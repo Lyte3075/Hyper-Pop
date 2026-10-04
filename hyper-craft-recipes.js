@@ -244,3 +244,15 @@ Object.assign(window.HYPERCRAFT_EXTRA,{
   'internet+phone':['📱','Smartphone'],
   'computer+phone':['📱','Smartphone']
 });
+
+Object.assign(window.HYPERCRAFT_EXTRA,{
+  'dust+fire':['🏜️','Sand'],
+  'dust+stone':['🏜️','Sand'],
+  'sand+earth':['🏜️','Desert'],
+  'desert+water':['🏝️','Oasis'],
+  'oasis+water':['🌴','Palm Tree'],
+  'machine+fire':['🚀','Rocket'],
+  'machine+energy':['🚀','Rocket'],
+  'metal+fire':['🔩','Forge'],
+  'forge+machine':['⚙️','Engine']
+});
