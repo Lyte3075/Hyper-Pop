@@ -8,7 +8,7 @@
 <div class="craft-actions"><button id="combine">⚡ Combine</button><button id="clear" class="secondary">↻ Clear slots</button></div>
 <div class="elements"><input id="search" class="craft-search" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Search discovered elements... 🔎"><div id="count" class="count"></div><div id="grid" class="element-grid"></div></div>
 
-</main></div><script src="app.js"></script><script>
+</main></div><script src="app.js"></script><script src="hyper-craft-recipes.js"></script><script>
 const base=[
 ['🌍','Earth'],['💧','Water'],['🔥','Fire'],['💨','Air']
 ];
@@ -79,6 +79,7 @@ const recipes={
 'volcano+sand':['🥃','Glass'],'drawing+tree':['✏️','Pencil'],'charcoal+water':['✏️','Pencil'],
 'fire+steam':['🚗','Engine'],'fire+water':['💨','Steam'],'oasis+plant':['💑','Date']
 };
+Object.assign(recipes,window.HYPERCRAFT_EXTRA||{});
 const emojiPool=['✨','🌀','🔭','🧬','🧿','🌠','🪄','🧩','🛰️','🗿','🛠️','🎲','🎮','📡','🌐','💠','🔬','🌟','🧊','🔥','🌪️','🌈','🪐','👽','🤯','🧙','🏆','💫'];
 const STORAGE_KEY='hypercraft-discovered-v2';
 function normalizeDiscovered(value){if(!Array.isArray(value))return [];return value.map(x=>Array.isArray(x)?{icon:String(x[0]||'✨'),name:String(x[1]||'').trim()}:x).filter(x=>x&&x.name&&x.icon)}
