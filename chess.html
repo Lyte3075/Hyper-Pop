@@ -5,7 +5,7 @@ const N=[[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]],K=[[1,1],[1,0]
 let b,turn,sel=null,gameOver=false,mode='bot',elo=1000,history=[],castle={wK:true,wQ:true,bK:true,bQ:true},ep=null,half=0,reps={};
 function clone(x){return x.map(r=>r.slice())}function inb(r,c){return r>=0&&r<8&&c>=0&&c<8}
 function pseudo(s,r,c,attack=false){const p=s[r][c],side=sideOf(p),t=typeOf(p),o=[];if(!p)return o;
- if(t==='p'){const d=side==='w'?-1:1;if(attack){for(const dc of[-1,1])if(inb(r+d,c+dc))o.push([r+d,c+dc]);return o}if(inb(r+d,c)&&!s[r+d][c]){o.push([r+d,c]);if((side==='w'&&r===6)||(side==='b'&&r===1)&&!s[r+2*d][c])o.push([r+2*d,c])}for(const dc of[-1,1])if(inb(r+d,c+dc)&&(sideOf(s[r+d][c+dc])===opp(side)||(ep&&ep[0]===r+d&&ep[1]===c+dc)))o.push([r+d,c+dc]);return o}
+ if(t==='p'){const d=side==='w'?-1:1;if(attack){for(const dc of[-1,1])if(inb(r+d,c+dc))o.push([r+d,c+dc]);return o}if(inb(r+d,c)&&!s[r+d][c]){o.push([r+d,c]);if(((side==='w'&&r===6)||(side==='b'&&r===1))&&!s[r+2*d][c])o.push([r+2*d,c])}for(const dc of[-1,1])if(inb(r+d,c+dc)&&(sideOf(s[r+d][c+dc])===opp(side)||(ep&&ep[0]===r+d&&ep[1]===c+dc)))o.push([r+d,c+dc]);return o}
  if(t==='n'){for(const[d,q]of N){let a=r+d,z=c+q;if(inb(a,z)&&sideOf(s[a][z])!==side&&typeOf(s[a][z])!=='k')o.push([a,z])}return o}
  if(t==='k'){for(const[d,q]of K){let a=r+d,z=c+q;if(inb(a,z)&&sideOf(s[a][z])!==side&&typeOf(s[a][z])!=='k')o.push([a,z])}return o}
  const ds=t==='b'?B:t==='r'?R:B.concat(R);for(const[d,q]of ds){let a=r+d,z=c+q;while(inb(a,z)){if(!s[a][z])o.push([a,z]);else{if(sideOf(s[a][z])!==side&&typeOf(s[a][z])!=='k')o.push([a,z]);break}a+=d;z+=q}}return o}
@@ -15,7 +15,7 @@ function check(s,side){const k=king(s,side);return !k||attacked(s,k[0],k[1],opp(
 function stateAfter(s,side,m){const n=clone(s),p=n[m.to[0]][m.to[1]],piece=n[m.from[0]][m.from[1]],tc=typeOf(piece);n[m.to[0]][m.to[1]]=piece;n[m.from[0]][m.from[1]]='';
  if(tc==='p'&&ep&&m.to[0]===ep[0]&&m.to[1]===ep[1]&&!p)n[m.to[0]+(side==='w'?1:-1)][m.to[1]]='';
  if(tc==='k'&&Math.abs(m.to[1]-m.from[1])===2){const row=m.from[0],rookCol=m.to[1]>m.from[1]?7:0,newCol=m.to[1]>m.from[1]?5:3;n[row][newCol]=n[row][rookCol];n[row][rookCol]=''}
- if(tc==='p'&&(m.to[0]===0||m.to[0]===7))n[m.to[0]][m.to[1]]=side==='w'?'♕':'♛';
+ if(tc==='p'&&(m.to[0]===0||m.to[0]===7)){const pm=m.promo||'Q';const map=side==='w'?{Q:'♕',R:'♖',B:'♗',N:'♘'}:{Q:'♛',R:'♜',B:'♝',N:'♞'};n[m.to[0]][m.to[1]]=map[pm]||map.Q;}
  return n}
 function legalMoves(s,side){const out=[];for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(sideOf(s[r][c])===side){for(const[toR,toC]of pseudo(s,r,c)){const m={from:[r,c],to:[toR,toC]},n=stateAfter(s,side,m);if(!check(n,side))out.push(m)}
  const p=s[r][c];if(typeOf(p)==='k'&&!check(s,side)){const row=side==='w'?7:0;if(c===4){for(const q of [{to:6,ok:side==='w'?castle.wK:castle.bK},{to:2,ok:side==='w'?castle.wQ:castle.bQ}])if(q.ok&&!s[row][q.to]&&!s[row][q.to+(q.to===6?-1:1)]&&!s[row][q.to+(q.to===6?1:-2)]&&(!attacked(s,row,q.to,opp(side)))&&(!attacked(s,row,q.to+(q.to===6?-1:1),opp(side))))out.push({from:[row,4],to:[row,q.to],castle:true})}}}return out}
