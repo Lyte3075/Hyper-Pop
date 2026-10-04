@@ -209,3 +209,38 @@ Object.assign(window.HYPERCRAFT_EXTRA,{
   'firefighting+human':['👨‍🚒','Firefighter'],
   'human+wildfire':['👨‍🚒','Firefighter']
 });
+
+/* Additional bridges for the progression tree. */
+Object.assign(window.HYPERCRAFT_EXTRA,{
+  'cloud+fire':['⚡','Lightning'],
+  'lightning+metal':['⚡','Electricity'],
+  'electricity+fire':['⚡','Energy'],
+  'electricity+water':['⚡','Hydroelectricity'],
+  'energy+fire':['🔥','Heat'],
+  'energy+water':['🔋','Battery'],
+  'energy+metal':['⚡','Electricity'],
+  'battery+computer':['💻','Computer'],
+  'machine+electricity':['💻','Computer'],
+  'computer+machine':['💻','Computer'],
+  'computer+air':['🌐','Internet'],
+  'computer+network':['🌐','Internet'],
+  'internet+computer':['🌐','Web'],
+  'air+cloud':['🌤️','Sky'],
+  'sky+earth':['🪐','Planet'],
+  'earth+sky':['🪐','Planet'],
+  'planet+fire':['☀️','Sun'],
+  'fire+planet':['☀️','Sun'],
+  'sun+air':['🌙','Night'],
+  'night+stone':['🌙','Moon'],
+  'night+sky':['🌌','Night Sky'],
+  'sun+night':['⭐','Star'],
+  'star+sky':['🌌','Space'],
+  'space+star':['🌌','Galaxy'],
+  'rocket+space':['🚀','Spaceship'],
+  'human+space':['👨‍🚀','Astronaut'],
+  'astronaut+rocket':['🚀','Spaceship'],
+  'web+computer':['🌐','Website'],
+  'website+internet':['🌐','Internet'],
+  'internet+phone':['📱','Smartphone'],
+  'computer+phone':['📱','Smartphone']
+});
