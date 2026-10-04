@@ -8,7 +8,7 @@ function pseudo(s,r,c,attack=false){const p=s[r][c],side=sideOf(p),t=typeOf(p),o
  if(t==='p'){const d=side==='w'?-1:1;if(attack){for(const dc of[-1,1])if(inb(r+d,c+dc))o.push([r+d,c+dc]);return o}if(inb(r+d,c)&&!s[r+d][c]){o.push([r+d,c]);if(((side==='w'&&r===6)||(side==='b'&&r===1))&&!s[r+2*d][c])o.push([r+2*d,c])}for(const dc of[-1,1])if(inb(r+d,c+dc)&&(sideOf(s[r+d][c+dc])===opp(side)||(ep&&ep[0]===r+d&&ep[1]===c+dc)))o.push([r+d,c+dc]);return o}
  if(t==='n'){for(const[d,q]of N){let a=r+d,z=c+q;if(inb(a,z)&&sideOf(s[a][z])!==side&&typeOf(s[a][z])!=='k')o.push([a,z])}return o}
  if(t==='k'){for(const[d,q]of K){let a=r+d,z=c+q;if(inb(a,z)&&sideOf(s[a][z])!==side&&typeOf(s[a][z])!=='k')o.push([a,z])}return o}
- const ds=t==='b'?B:t==='r'?R:B.concat(R);for(const[d,q]of ds){let a=r+d,z=c+q;while(inb(a,z)){if(!s[a][z])o.push([a,z]);else{if(sideOf(s[a][z])!==side&&typeOf(s[a][z])!=='k')o.push([a,z]);break}a+=d;z+=q}}return o}
+ const ds=t==='b'?B:t==='r'?R:B.concat(R);for(const[d,q]of ds){let a=r+d,z=c+q;while(inb(a,z)){if(!s[a][z])o.push([a,z]);else{if(sideOf(s[a][z])!==side&&(attack||typeOf(s[a][z])!=='k'))o.push([a,z]);break}a+=d;z+=q}}return o}
 function attacked(s,r,c,by){for(let y=0;y<8;y++)for(let x=0;x<8;x++)if(sideOf(s[y][x])===by&&pseudo(s,y,x,true).some(q=>q[0]===r&&q[1]===c))return true}
 function king(s,side){for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(s[r][c]===(side==='w'?'♔':'♚'))return[r,c];return null}
 function check(s,side){const k=king(s,side);return !k||attacked(s,k[0],k[1],opp(side))}
