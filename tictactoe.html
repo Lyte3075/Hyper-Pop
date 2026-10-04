@@ -1,0 +1,48 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><title>Tic-Tac-Toe ✦ Hyper-Pop</title><link rel="stylesheet" href="style.css"><style>
+.modegrid,.modgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.choice{padding:12px;border:1px solid var(--line);border-radius:14px;background:#ffffff07;color:#fff;text-align:left;cursor:pointer}.choice.active{border-color:var(--cyan);background:#4be0e315;box-shadow:0 0 20px #4be0e311}.choice b{display:block}.choice small{color:var(--muted)}.board3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:390px;margin:20px auto}.cell{aspect-ratio:1;border:1px solid var(--line);border-radius:16px;background:#ffffff07;color:#fff;font-size:clamp(40px,12vw,70px);font-weight:700;cursor:pointer}.cell.x{color:var(--pink)}.cell.o{color:var(--cyan)}.paneltitle{margin:24px 0 10px;font-size:14px;color:var(--muted)}.daily{border:1px solid #ffe66d55;background:#ffe66d0b;padding:14px;border-radius:15px;margin-bottom:14px}.status{text-align:center;min-height:24px;color:var(--yellow);font-weight:700}.mods{max-height:260px;overflow:auto;padding-right:3px}
+@media(max-width:500px){.modegrid,.modgrid{grid-template-columns:1fr}}
+</style></head><body><div class="w"><nav><a class="back" href="index.html">← Hyper-Pop</a><span class="logo">✦ Hyper-Pop</span><div id="account-slot"></div></nav>
+<header class="hero"><div class="e">⭕</div><h1>Tic-Tac-Toe</h1><p>Classic noughts and crosses, then turn the rules sideways.</p></header>
+<main class="box"><div class="daily"><b>🌟 Daily Challenge</b><br><span id="daily"></span></div>
+<div class="paneltitle">GAME MODE</div><div class="modegrid" id="modes">
+<button class="choice active" data-mode="easy"><b>🤖 Chill Bot</b><small>Friendly, random-ish play.</small></button>
+<button class="choice" data-mode="medium"><b>🤖 Clever Bot</b><small>Blocks obvious mistakes.</small></button>
+<button class="choice" data-mode="hard"><b>🤖 Hard Bot</b><small>Strong tactical play.</small></button>
+<button class="choice" data-mode="chaos"><b>🤖 Chaos Bot</b><small>Weird decisions and weird luck.</small></button>
+<button class="choice" data-mode="2p"><b>👥 2 Players</b><small>Pass the device and play.</small></button>
+<button class="choice" data-mode="daily"><b>🌟 Daily Challenge</b><small>Today's fixed mode + modifiers.</small></button></div>
+<div class="paneltitle">MODIFIERS</div><div class="mods modgrid" id="mods">
+<button class="choice active" data-mod="none"><b>Classic</b><small>Normal 3×3 board.</small></button>
+<button class="choice" data-mod="wild"><b>Wild Start</b><small>One random square begins occupied.</small></button>
+<button class="choice" data-mod="block"><b>Blocked Cell</b><small>One square cannot be played.</small></button>
+<button class="choice" data-mod="double"><b>Double Turn</b><small>Once per game, the first player gets two moves in a row.</small></button>
+<button class="choice" data-mod="swap"><b>Swap Rule</b><small>After the opening move, the second player may take X.</small></button>
+<button class="choice" data-mod="tiny"><b>Tiny Timer</b><small>Each turn has a short countdown.</small></button>
+</div>
+<div class="board3" id="board"></div><div class="status" id="status">Your turn • X</div>
+<div class="actions"><button class="btn" id="start">NEW GAME</button><a class="btn alt" href="leaderboard.html">🏆 LEADERBOARD</a></div></main></div>
+<script src="app.js"></script><script>
+const modNames={none:'Classic',wild:'Wild Start',block:'Blocked Cell',double:'Double Turn',swap:'Swap Rule',tiny:'Tiny Timer'};
+const modes={easy:'Chill Bot',medium:'Clever Bot',hard:'Hard Bot',chaos:'Chaos Bot','2p':'2 Players',daily:'Daily Challenge'};
+let mode='easy',mod='none',cells=Array(9).fill(''),turn='X',over=false,blocked=-1,doubleUsed=false,wildUsed=false,timer=null;
+const day=Math.floor(Date.now()/86400000),seed=()=>{let x=Math.sin(day*12.9898)*43758.5453;return x-Math.floor(x)};
+const dailyMods=['none','wild','block','double','swap','tiny'],dailyModes=['easy','medium','hard','chaos','2p'];
+const dailyMod=dailyMods[Math.floor(seed()*dailyMods.length)],dailyMode=dailyModes[Math.floor(seed()*dailyModes.length)];
+daily.textContent=modes[dailyMode]+' + '+modNames[dailyMod]+' · resets daily.';
+function render(){board.innerHTML=cells.map((v,i)=>'<button class="cell '+(v==='X'?'x':v==='O'?'o':'')+'" data-i="'+i+'">'+(i===blocked?'✕':v)+'</button>').join('');board.querySelectorAll('.cell').forEach(b=>b.onclick=()=>move(+b.dataset.i));}
+function wins(a){return [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]].some(q=>q.every(i=>a[i]===a[q[0]]&&a[i]))}
+function end(){if(wins(cells)){over=true;status.textContent=(turn==='X'?'X':'O')+' wins! 🎉';if(turn==='X')hpSubmit('tictactoe',100);return true}if(cells.every((x,i)=>x||i===blocked)){over=true;status.textContent='Draw! 🤝';return true}return false}
+function move(i){if(over||cells[i]||i===blocked)return;if(mode!=='2p'&&turn==='O')return;cells[i]=turn;render();if(end())return;turn=turn==='X'?'O':'X';status.textContent=turn==='X'?'Your turn • X':(mode==='2p'?'Player O • your turn':'Bot is thinking…');if(mod==='double'&&turn==='O'&&!doubleUsed){doubleUsed=true;turn='X';status.textContent='Double turn! X goes again.'}else if(mode!=='2p'&&turn==='O')setTimeout(bot,260)}
+function bot(){if(over)return;let empt=cells.map((v,i)=>!v&&i!==blocked?i:null).filter(v=>v!==null);if(!empt.length)return;let pick;
+if(mode==='easy')pick=empt[Math.floor(Math.random()*empt.length)];
+else if(mode==='chaos'){pick=Math.random()<.5?empt[Math.floor(Math.random()*empt.length)]:best(empt)}
+else if(mode==='medium'){pick=winOrBlock('O')??winOrBlock('X')??(cells[4]===''?4:empt[Math.floor(Math.random()*empt.length)])}
+else pick=best(empt);
+cells[pick]='O';render();if(end())return;turn='X';status.textContent='Your turn • X'}
+function winOrBlock(mark){for(const i of cells.map((v,j)=>!v&&j!==blocked?j:null).filter(v=>v!==null)){cells[i]=mark;let ok=wins(cells);cells[i]='';if(ok)return i}return null}
+function best(empt){let w=winOrBlock('O');if(w!==null)return w;let b=winOrBlock('X');if(b!==null)return b;if(cells[4]==='')return 4;return empt[Math.floor(Math.random()*empt.length)]}
+function newGame(){clearTimeout(timer);cells=Array(9).fill('');turn='X';over=false;doubleUsed=false;blocked=-1;wildUsed=false;if(mode==='daily'){mode=dailyMode;mod=dailyMod}if(mod==='block')blocked=Math.floor(Math.random()*9);if(mod==='wild'){let i=Math.floor(Math.random()*9);cells[i]='O';wildUsed=true}render();status.textContent=mode==='2p'?'Player X • your turn':'Your turn • X';if(mode!=='2p'&&cells.includes('O')){turn='X'}}
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-mode]').forEach(x=>x.classList.remove('active'));b.classList.add('active');mode=b.dataset.mode;newGame()});
+document.querySelectorAll('[data-mod]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-mod]').forEach(x=>x.classList.remove('active'));b.classList.add('active');mod=b.dataset.mod;newGame()});
+start.onclick=newGame;newGame();
+</script></body></html>
