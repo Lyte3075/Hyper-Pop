@@ -16,7 +16,8 @@ const recipes={
 };
 const emojiPool=['✨','🌀','🔭','🧬','🧿','🌠','🪄','🧩','🛰️','🗿','🛠️','🎲','🎮','📡','🌐','💠','🔬','🌟','🧊','🔥','🌪️','🌈','🪐','👽','🤯','🧙','🏆','💫'];
 const STORAGE_KEY='hypercraft-discovered-v2';
-function loadDiscovered(){try{const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');if(Array.isArray(saved)&&saved.length)return saved.filter(x=>x&&typeof x.name==='string'&&typeof x.icon==='string');const old=JSON.parse(localStorage.getItem('hypercraft-discovered')||'null');if(Array.isArray(old)&&old.length)return old.filter(x=>x&&typeof x.name==='string'&&typeof x.icon==='string')}catch(e){}return base.map(([icon,name])=>({icon,name}))}
+function normalizeDiscovered(value){if(!Array.isArray(value))return [];return value.map(x=>Array.isArray(x)?{icon:String(x[0]||'✨'),name:String(x[1]||'').trim()}:x).filter(x=>x&&x.name&&x.icon)}
+function loadDiscovered(){try{const current=normalizeDiscovered(JSON.parse(localStorage.getItem(STORAGE_KEY)||'null'));const old=normalizeDiscovered(JSON.parse(localStorage.getItem('hypercraft-discovered')||'null'));const merged=[...base.map(([icon,name])=>({icon,name})),...old,...current];const seen=new Set();const result=merged.filter(x=>{const k=x.name.toLowerCase();if(!k||seen.has(k))return false;seen.add(k);return true});if(result.length){localStorage.setItem(STORAGE_KEY,JSON.stringify(result));return result}}catch(e){}return base.map(([icon,name])=>({icon,name}))}
 let discovered=loadDiscovered(),s1=null,s2=null;
 function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(discovered));return true}catch(e){return false}}
 function keyOf(a,b){return [a.name.toLowerCase(),b.name.toLowerCase()].sort().join('+')}
@@ -30,5 +31,5 @@ document.getElementById('combine').onclick=combine;document.getElementById('clea
 document.getElementById('search').value='';
 requestAnimationFrame(()=>render());
 setTimeout(render,50);
-setTimeout(render,250);
+setTimeout(render,250);window.addEventListener('DOMContentLoaded',render);
 </script></body></html>
