@@ -258,83 +258,75 @@ Object.assign(window.HYPERCRAFT_EXTRA,{
 });
 
 
-/* 10,000 additional curated Hyper-Craft recipes.
-   Generated locally from themed ingredient families. */
+/* 10,000 additional meaningful Hyper-Craft recipes.
+   Uses real ingredient/concept names only. No synthetic filler names. */
 Object.assign(window.HYPERCRAFT_EXTRA, (() => {
-  const F = [
-    ["fire","metal","🔥","Forge"],["fire","wood","🔥","Charcoal"],["fire","stone","🏺","Ceramic"],
-    ["fire","water","💨","Steam"],["fire","plant","🍲","Cooked Food"],["fire","food","🍞","Cooked Meal"],
-    ["water","earth","🌱","Plant"],["water","air","☁️","Cloud"],["water","stone","🪨","Erosion"],
-    ["water","metal","🦀","Rust"],["water","plant","🌿","Garden"],["earth","plant","🌱","Garden"],
-    ["earth","metal","⛏️","Ore"],["earth","stone","🪨","Rock"],["earth","animal","🐾","Habitat"],
-    ["air","plant","🌬️","Pollen"],["air","animal","🐦","Bird"],["air","cloud","🌧️","Rain"],
-    ["metal","wood","🛠️","Tool"],["metal","stone","🔧","Tool"],["metal","electricity","🔌","Circuit"],
-    ["machine","electricity","⚙️","Motor"],["machine","computer","🤖","Robot"],["machine","human","🤖","Android"],
-    ["computer","internet","🌐","Web"]
-  ];
   const V = {
-    fire:"fire,flame,heat,ember,lava,magma,torch,spark,campfire,bonfire,furnace,volcano,smoke,ash,candle,fireplace,fireball,sunlight,heatwave,wildfire",
-    metal:"metal,iron,steel,copper,gold,silver,tin,aluminum,bronze,brass,wire,nail,screw,chain,blade,armor,coin,ore,alloy,gear",
-    wood:"wood,tree,log,branch,stick,plank,timber,bamboo,oak,pine,birch,forest,lumber,board,twig,wooden,driftwood,root,bark,paper",
-    stone:"stone,rock,pebble,granite,marble,brick,clay,sandstone,slate,quartz,crystal,boulder,gravel,chalk,flint,obsidian,gem,cobble,dust,sand",
-    water:"water,rain,river,lake,ocean,sea,wave,ice,snow,steam,mist,droplet,puddle,stream,fountain,bubble,splash,cloud,frost,hail",
-    air:"air,wind,breeze,sky,oxygen,gas,gust,draft,storm,vapor,cloud,fog,whirlwind,tornado,hurricane,weather,atmosphere,pressure,flight,smell",
-    plant:"plant,flower,grass,leaf,seed,vine,moss,fern,tree,bush,crop,wheat,corn,rose,lily,cactus,herb,fruit,vegetable,forest",
-    food:"food,bread,meal,soup,rice,cake,cookie,pizza,sandwich,cheese,fruit,vegetable,apple,berry,wheat,flour,sugar,salt,honey,jam",
-    earth:"earth,soil,ground,dirt,land,world,planet,field,mountain,valley,cave,island,continent,desert,dune,hill,mud,cliff,plain,volcano",
-    animal:"animal,dog,cat,bird,fish,horse,wolf,fox,bear,lion,tiger,rabbit,mouse,deer,cow,pig,chicken,eagle,shark,whale",
-    cloud:"cloud,raincloud,stormcloud,cumulus,fog,mist,sky,weather,storm,thunder,lightning,rain,snow,hail,drizzle,monsoon,cyclone,front,vapor,smog",
-    electricity:"electricity,power,energy,current,voltage,charge,battery,circuit,spark,electron,generator,motor,wire,grid,outlet,switch,light,signal,magnet,solar",
-    machine:"machine,engine,motor,robot,computer,printer,drone,car,truck,train,factory,gear,pump,crane,tool,device,vehicle,mechanism,generator,automaton",
-    computer:"computer,laptop,pc,server,keyboard,mouse,screen,monitor,program,code,software,browser,website,internet,data,file,app,game,algorithm,robot",
-    human:"human,person,worker,builder,artist,scientist,engineer,programmer,pilot,astronaut,chef,farmer,doctor,teacher,student,driver,sailor,explorer,inventor,creator",
-    internet:"internet,web,website,browser,network,server,cloud,data,link,page,search,social,email,stream,download,upload,online,wifi,protocol,domain"
+    fire:["fire","flame","heat","ember","lava","magma","torch","spark","campfire","bonfire","furnace","volcano","smoke","ash","candle","fireplace","fireball","wildfire","sunlight","heatwave"],
+    metal:["metal","iron","steel","copper","gold","silver","tin","aluminum","bronze","brass","wire","nail","screw","chain","blade","armor","coin","ore","alloy","gear"],
+    wood:["wood","tree","log","branch","stick","plank","timber","bamboo","oak","pine","birch","forest","lumber","board","twig","driftwood","root","bark","paper","wooden"],
+    stone:["stone","rock","pebble","granite","marble","brick","clay","sandstone","slate","quartz","crystal","boulder","gravel","chalk","flint","obsidian","gem","cobble","dust","sand"],
+    water:["water","rain","river","lake","ocean","sea","wave","ice","snow","steam","mist","droplet","puddle","stream","fountain","bubble","splash","frost","hail","drizzle"],
+    air:["air","wind","breeze","sky","oxygen","gas","gust","draft","storm","vapor","cloud","fog","whirlwind","tornado","hurricane","weather","atmosphere","pressure","flight","smell"],
+    plant:["plant","flower","grass","leaf","seed","vine","moss","fern","tree","bush","crop","wheat","corn","rose","lily","cactus","herb","fruit","vegetable","forest"],
+    food:["food","bread","meal","soup","rice","cake","cookie","pizza","sandwich","cheese","fruit","vegetable","apple","berry","wheat","flour","sugar","salt","honey","jam"],
+    earth:["earth","soil","ground","dirt","land","world","planet","field","mountain","valley","cave","island","continent","desert","dune","hill","mud","cliff","plain","volcano"],
+    animal:["animal","dog","cat","bird","fish","horse","wolf","fox","bear","lion","tiger","rabbit","mouse","deer","cow","pig","chicken","eagle","shark","whale"],
+    electricity:["electricity","power","energy","current","voltage","charge","battery","circuit","spark","electron","generator","motor","wire","grid","outlet","switch","light","signal","magnet","solar"],
+    machine:["machine","engine","motor","robot","computer","printer","drone","car","truck","train","factory","gear","pump","crane","tool","device","vehicle","mechanism","generator","automaton"],
+    computer:["computer","laptop","pc","server","keyboard","mouse","screen","monitor","program","code","software","browser","website","internet","data","file","app","game","algorithm","robot"],
+    human:["human","person","worker","builder","artist","scientist","engineer","programmer","pilot","astronaut","chef","farmer","doctor","teacher","student","driver","sailor","explorer","inventor","creator"],
+    space:["space","star","moon","sun","planet","galaxy","orbit","comet","asteroid","meteor","nebula","universe","rocket","satellite","astronaut","cosmos","gravity","eclipse","constellation","black hole"],
+    time:["time","clock","hour","minute","second","day","night","morning","evening","yesterday","tomorrow","calendar","season","year","age","moment","future","past","history","deadline"],
+    life:["life","growth","birth","seedling","health","living","organism","cell","nature","evolution","breath","ecosystem","species","family","child","humanity","soul","spirit","renewal","spring"]
   };
-  const out = Object.create(null), used = new Set();
-  const key = (a,b) => [a.toLowerCase(),b.toLowerCase()].sort().join("+");
-  const add = (a,b,icon,name) => {
-    const k=key(a,b);
-    if(!used.has(k)){used.add(k);out[k]=[icon,name];}
+  const rules = {
+    "fire+water":["💨","Steam"],"fire+metal":["🔩","Forge"],"fire+wood":["🔥","Charcoal"],"fire+stone":["🏺","Ceramic"],
+    "fire+plant":["🍲","Cooked Food"],"fire+food":["🍞","Cooked Meal"],"fire+earth":["🌋","Volcano"],"fire+air":["🌪️","Firestorm"],
+    "water+earth":["🌱","Mud"],"water+air":["☁️","Cloud"],"water+stone":["🪨","Erosion"],"water+metal":["🦀","Rust"],
+    "water+plant":["🌿","Garden"],"water+food":["🥣","Soup"],"water+animal":["🐟","Fish"],"water+human":["🤿","Diver"],
+    "metal+wood":["🛠️","Tool"],"metal+stone":["🔧","Tool"],"metal+electricity":["🔌","Circuit"],"metal+machine":["⚙️","Machine"],
+    "metal+computer":["💻","Hardware"],"metal+human":["🧑‍🔧","Engineer"],"metal+space":["🛰️","Satellite"],
+    "wood+stone":["🏠","Structure"],"wood+plant":["🌳","Forest"],"wood+food":["🍴","Utensil"],"wood+animal":["🐾","Habitat"],
+    "wood+human":["🏠","Builder"],"stone+earth":["🪨","Rock"],"stone+plant":["🌱","Garden"],"stone+animal":["🦴","Fossil"],
+    "stone+human":["🏗️","Builder"],"air+plant":["🌼","Pollination"],"air+animal":["🐦","Bird"],"air+cloud":["🌧️","Rain"],
+    "air+electricity":["⚡","Lightning"],"air+machine":["✈️","Aircraft"],"air+computer":["📡","Signal"],"air+space":["🚀","Rocket"],
+    "plant+animal":["🌳","Ecosystem"],"plant+food":["🍎","Fruit"],"plant+earth":["🌱","Crop"],"plant+human":["🌾","Farmer"],
+    "plant+life":["🌱","Growth"],"food+human":["🍽️","Meal"],"food+animal":["🍖","Animal Food"],"food+life":["🍎","Nutrition"],
+    "earth+animal":["🐾","Habitat"],"earth+human":["🏠","Home"],"earth+space":["🪐","Planet"],"earth+life":["🌍","Ecosystem"],
+    "animal+human":["🐾","Pet"],"animal+life":["🐾","Species"],"animal+space":["👽","Space Animal"],
+    "electricity+computer":["💻","Computer"],"electricity+machine":["⚙️","Motor"],"electricity+human":["💡","Inventor"],
+    "electricity+space":["🛰️","Satellite"],"electricity+life":["⚡","Bioelectricity"],
+    "machine+computer":["🤖","Robot"],"machine+human":["🤖","Android"],"machine+space":["🚀","Spacecraft"],
+    "machine+time":["⏱️","Time Machine"],"computer+human":["👨‍💻","Programmer"],"computer+internet":["🌐","Website"],
+    "computer+space":["🛰️","Space Computer"],"computer+time":["💾","Archive"],"human+space":["👨‍🚀","Astronaut"],
+    "human+time":["📜","History"],"human+life":["🧬","Humanity"],"space+time":["⏳","Space-Time"],"space+life":["🌌","Cosmic Life"],
+    "time+life":["🌱","Aging"],"life+earth":["🌍","Nature"],"life+air":["🫁","Breath"],"life+water":["🐟","Aquatic Life"]
   };
-  for(const [ca,cb,icon,name] of F){
-    const A=V[ca].split(","), B=V[cb].split(",");
-    for(const a of A) for(const b of B) add(a,b,icon,name);
+  const fallback = {
+    fire:["🔥","Heat"], water:["💧","Liquid"], air:["💨","Wind"], earth:["🌍","Land"], metal:["🔧","Metalwork"],
+    wood:["🪵","Woodwork"], stone:["🪨","Stonework"], plant:["🌿","Growth"], food:["🍽️","Meal"], animal:["🐾","Animal"],
+    electricity:["⚡","Energy"], machine:["⚙️","Machine"], computer:["💻","Technology"], human:["🧑","Person"],
+    space:["🌌","Space"], time:["⏳","Time"], life:["🧬","Life"]
+  };
+  const cats=Object.keys(V), out=Object.create(null), used=new Set();
+  const key=(a,b)=>[a.toLowerCase(),b.toLowerCase()].sort().join("+");
+  const categoryOf=n=>{for(const c of cats)if(V[c].includes(n))return c;return null};
+  const add=(a,b,icon,name)=>{const k=key(a,b);if(!used.has(k)){used.add(k);out[k]=[icon,name];}};
+  const ruleFor=(ca,cb)=>rules[[ca,cb].sort().join("+")];
+  for(const ca of cats)for(const cb of cats){
+    if(ca>cb)continue;
+    const rule=ruleFor(ca,cb)||fallback[ca];
+    for(const a of V[ca])for(const b of V[cb]){
+      const k=key(a,b);
+      if(used.has(k))continue;
+      let icon,name;
+      if(rule){[icon,name]=rule;}
+      else if(ca===cb){[icon,name]=fallback[ca];}
+      else {[icon,name]=fallback[ca];}
+      add(a,b,icon,name);
+      if(used.size>=10000)return Object.fromEntries(Object.entries(out).slice(0,10000));
+    }
   }
-  /* Fill the small gaps caused by overlapping ingredient vocabularies with
-     additional category-aware combinations. */
-  const fillers = [
-    ["fire","air","🔥","Firestorm"],["fire","earth","🌋","Volcano"],["fire","animal","🐉","Dragon"],
-    ["water","food","🥣","Soup"],["water","animal","🐟","Fish"],["water","human","🧑‍🚀","Diver"],
-    ["earth","food","🌾","Farm"],["earth","human","🏠","Home"],["earth","air","🌪️","Dust Storm"],
-    ["air","metal","✈️","Aircraft"],["air","machine","🚁","Aircraft"],["air","computer","📡","Signal"],
-    ["plant","animal","🌳","Habitat"],["plant","human","🌾","Farmer"],["plant","food","🍎","Fruit"],
-    ["metal","machine","⚙️","Machine"],["metal","computer","💻","Hardware"],["metal","human","🛠️","Engineer"],
-    ["electricity","computer","💻","Computer"],["electricity","internet","📶","Network"],["electricity","human","💡","Inventor"],
-    ["machine","internet","🌐","Connected Machine"],["machine","animal","🤖","Robot Pet"],["machine","food","🍳","Kitchen Machine"],
-    ["computer","human","👨‍💻","Programmer"],["computer","animal","🤖","Robot Pet"],["computer","food","🍳","Smart Kitchen"],
-    ["human","internet","📱","Online User"],["human","animal","🐾","Pet"],["human","food","🍽️","Meal"]
-  ];
-  for(const [ca,cb,icon,name] of fillers){
-    const A=V[ca].split(","),B=V[cb].split(",");
-    for(const a of A) for(const b of B) add(a,b,icon,name);
-  }
-  /* If any collisions remain, use sensible same-domain pairings until exactly
-     10,000 new entries are present. */
-  const domains = [
-    ["fire","heat","energy"],["water","liquid","weather"],["earth","nature","material"],
-    ["air","weather","motion"],["plant","nature","life"],["food","organic","meal"],
-    ["metal","material","tool"],["machine","technology","device"],["computer","technology","software"],
-    ["human","life","creator"],["animal","life","nature"],["electricity","energy","technology"],
-    ["internet","technology","communication"],["wood","material","nature"],["stone","material","earth"]
-  ];
-  for(let i=0; used.size<10000; i++){
-    const d=domains[i%domains.length], a=d[0]+" "+(Math.floor(i/domains.length)+1), b=d[1]+" "+(i+1);
-    const result=d[2]==="technology"?["💻","Technology"]:d[2]==="nature"?["🌿","Nature"]:d[2]==="material"?["🧱","Material"]:d[2]==="energy"?["⚡","Energy"]:d[2]==="weather"?["🌦️","Weather"]:d[2]==="life"?["🧬","Life"]:["✨","Discovery"];
-    add(a,b,result[0],result[1]);
-  }
-  const all=Object.keys(out);
-  /* Exactly 10,000 entries from this expansion. */
-  const trimmed=Object.create(null);
-  for(let i=0;i<10000;i++) trimmed[all[i]] = out[all[i]];
-  return trimmed;
+  return out;
 })());
