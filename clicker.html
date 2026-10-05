@@ -39,13 +39,14 @@ function sound(type){if(!soundOn)return;
     if(audioCtx.state==="suspended") audioCtx.resume();
     const o=audioCtx.createOscillator(), g=audioCtx.createGain(), now=audioCtx.currentTime;
     const cfg={
-      click:[520,0.045,"sine",0.055], crit:[880,0.11,"triangle",0.09],
+      click:[520,0.045,"sine",0.055], bigclick:[145,0.10,"triangle",0.13], crit:[880,0.11,"triangle",0.09],
       buy:[660,0.16,"square",0.055], unlock:[520,0.28,"triangle",0.07],
       golden:[260,0.45,"sawtooth",0.045], ui:[420,0.055,"sine",0.045], tab:[580,0.07,"triangle",0.045], close:[220,0.07,"sine",0.04], error:[150,0.12,"square",0.04],
       combo:[740,0.08,"sine",0.06]
     }[type]||[440,0.08,"sine",0.05];
     o.type=cfg[2]; o.frequency.setValueAtTime(cfg[0],now);
-    if(type==="golden"||type==="unlock"){o.frequency.exponentialRampToValueAtTime(cfg[0]*2.2,now+cfg[1]);}
+    if(type==="bigclick"){o.frequency.exponentialRampToValueAtTime(78,now+cfg[1]);}
+    else if(type==="golden"||type==="unlock"){o.frequency.exponentialRampToValueAtTime(cfg[0]*2.2,now+cfg[1]);}
     else if(type==="combo"){o.frequency.exponentialRampToValueAtTime(cfg[0]*1.35,now+cfg[1]);}
     g.gain.setValueAtTime(0.0001,now);g.gain.exponentialRampToValueAtTime(cfg[3],now+0.008);g.gain.exponentialRampToValueAtTime(0.0001,now+cfg[1]);
     o.connect(g).connect(audioCtx.destination);o.start(now);o.stop(now+cfg[1]+0.02);
@@ -368,7 +369,7 @@ function buy(id){sound("buy");let u=upgrades.find(x=>x.id===id),p=price(u);if(s.
 function toast(t){$("toast").textContent=t;clearTimeout(window.tt);window.tt=setTimeout(()=>{$("toast").textContent="Keep pressing.";},1200)}
 function pop(v){let x=document.createElement("div");x.className="float";x.textContent="+"+fmt(v);x.style.left=(35+Math.random()*30)+"%";x.style.top=(35+Math.random()*25)+"%";$("area").append(x);setTimeout(()=>x.remove(),800)}
 function burst(){for(let i=0;i<10;i++){let x=document.createElement("div");x.className="burst";x.textContent=["✨","💥","⚡","⭐"][i%4];x.style.left="50%";x.style.top="42%";x.style.setProperty("--x",(Math.random()*260-130)+"px");x.style.setProperty("--y",(Math.random()*240-120)+"px");document.body.append(x);setTimeout(()=>x.remove(),700)}}
-function clicker(){let now=Date.now();s.combo=(now-comboTimer<1200)?s.combo+1:1;comboTimer=now;s.bestCombo=Math.max(s.bestCombo||0,s.combo);let crit=Math.random()<Math.min(.08+s.combo*.002,.25);let v=power()*(crit?5:1);s.n+=v;s.total+=v;s.crit=(s.crit||0)+(crit?1:0);$("event").textContent=crit?"💥 CRITICAL! x5":(s.combo>5?"🔥 COMBO x"+s.combo:"Press it again.");$("combo").textContent=s.combo>1?"COMBO ×"+s.combo:"";$("b").classList.remove("hot");void $("b").offsetWidth;$("b").classList.add("hot");$("flash").classList.remove("on");void $("flash").offsetWidth;$("flash").classList.add("on");if(crit)burst();pop(v);check();render()}
+function clicker(){sound("bigclick");let now=Date.now();s.combo=(now-comboTimer<1200)?s.combo+1:1;comboTimer=now;s.bestCombo=Math.max(s.bestCombo||0,s.combo);let crit=Math.random()<Math.min(.08+s.combo*.002,.25);let v=power()*(crit?5:1);s.n+=v;s.total+=v;s.crit=(s.crit||0)+(crit?1:0);$("event").textContent=crit?"💥 CRITICAL! x5":(s.combo>5?"🔥 COMBO x"+s.combo:"Press it again.");$("combo").textContent=s.combo>1?"COMBO ×"+s.combo:"";$("b").classList.remove("hot");void $("b").offsetWidth;$("b").classList.add("hot");$("flash").classList.remove("on");void $("flash").offsetWidth;$("flash").classList.add("on");if(crit)burst();pop(v);check();render()}
 function check(){achievements.forEach(a=>{if(!s.ach[a[0]]&&s.total>=a[3]){s.ach[a[0]]=1;let r=a[3]>=1e33?25:a[3]>=1e24?10:a[3]>=1e15?5:a[3]>=1e9?1:a[3]>=1e6?.5:a[3]>=1e3?.1:.05;s.rewards=(s.rewards||0)+r;celebration();toast("🏆 "+a[1]+"! Permanent power reward unlocked!");}});tasks.forEach(t=>{let done=s.task[t[0]];let ok=t[0]==="gold"?(s.golden||0)>=t[3]:t[0]==="combo"?(s.bestCombo||0)>=t[3]:t[0]==="crit"?(s.crit||0)>=t[3]:t[0]==="hours"?((Date.now()-s.started)/1000)>=t[3]:t[4]?(s.total>=t[3]&&(Date.now()-s.started)/1000<=t[4]):false;if(ok&&!done){s.task[t[0]]=1;s.click*=1.1;toast("🎁 Task complete! +10% permanent click power");}});}
 $("b").onclick=clicker;
 $("reset").onclick=()=>{if(confirm("Reset all Button Bonanza progress?")){localStorage.removeItem(KEY);location.reload()}};
