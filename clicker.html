@@ -12,8 +12,11 @@ nav{height:72px;display:flex;justify-content:space-between;align-items:center}.b
 .shop h2,.ach h2{margin:0 0 12px}.item{width:100%;display:flex;justify-content:space-between;gap:10px;text-align:left;padding:13px;margin:8px 0;border-radius:15px;border:1px solid #ffffff12;background:#ffffff07;color:#fff}.item:disabled{opacity:.42;cursor:not-allowed}.item b{display:block}.item small{display:block;color:#aaa7c1;margin-top:3px}.price{color:#ffe66d;font-weight:900;white-space:nowrap}.tabs{display:flex;gap:6px;margin-bottom:10px}.tab{flex:1;padding:9px;border-radius:10px;border:1px solid #ffffff12;background:#ffffff08;color:#aaa7c1}.tab.on{background:#ffe66d;color:#17100a}.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.stat{background:#ffffff06;border-radius:12px;padding:10px}.stat b{display:block;font-size:18px}.stat span{color:#88869a;font-size:11px}.actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}.btn{padding:10px 14px;border-radius:11px;border:1px solid #ffffff18;background:#fff;color:#111;font-weight:800}.dark{background:#ffffff08;color:#fff}.toast{text-align:center;color:#ffe66d;font-weight:800;min-height:22px;margin:8px}.ach{grid-column:1/-1}.ach-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;max-height:520px;overflow:auto;padding-right:4px}.reward{color:#ffe66d;font-size:11px;margin-top:4px}.tasks{display:grid;gap:8px;margin-top:12px}.task{padding:12px;border:1px solid #ffffff12;border-radius:14px;background:#ffffff06}.task b{display:flex;justify-content:space-between}.task small{color:#aaa7c1}.bar{height:6px;background:#ffffff0d;border-radius:9px;margin-top:8px;overflow:hidden}.bar i{display:block;height:100%;background:#ffe66d;width:0}.theme-row{display:flex;gap:8px;overflow:auto;padding:4px 0}.theme{min-width:115px;padding:12px;border-radius:14px;border:1px solid #ffffff15;background:#ffffff07;color:#fff;text-align:center}.theme.locked{opacity:.45}.theme.active{border-color:#ffe66d;background:#ffe66d12}.badge{padding:11px;border-radius:12px;background:#ffffff06;border:1px solid #ffffff0d;color:#77758a}.badge.done{color:#fff;background:#ffe66d12;border-color:#ffe66d55}.badge strong{display:block}.foot{text-align:center;color:#66647a;font:11px monospace;padding-bottom:35px}
  .flash{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(circle,#ffe66d55,transparent 55%);z-index:20}.flash.on{animation:flash .18s ease-out}@keyframes flash{0%{opacity:.8}100%{opacity:0}}.combo{font:900 18px monospace;color:#ff6be8;min-height:24px}.clicker.hot{animation:hot .16s ease-out}@keyframes hot{50%{filter:brightness(1.5) saturate(1.4);transform:scale(.93)}}.golden{position:absolute;z-index:4;width:82px;height:82px;border-radius:50%;border:4px solid #fff;background:radial-gradient(circle,#fff,#ffe66d 30%,#ff9d00 70%);box-shadow:0 0 35px #ffe66d;animation:gold 1s infinite alternate;cursor:pointer;font-size:34px}@keyframes gold{to{transform:scale(1.1) rotate(8deg)}}.event{color:#7df9ff;font:800 13px monospace;min-height:18px}
 @media(max-width:760px){.grid{grid-template-columns:1fr}.click-area{min-height:390px}.ach{grid-column:auto}}
-</style><link rel="stylesheet" href="style.css"></head>
-<body><div class="w"><nav><a class="back" href="index.html">← Hyper-Pop</a><span class="logo">✦ Hyper-Pop</span><div id="account-slot"></div></nav>
+</style><link rel="stylesheet" href="style.css"><style>
+#sound-toggle{position:fixed;right:14px;bottom:14px;z-index:50;width:44px;height:44px;border-radius:50%;border:1px solid #ffffff20;background:#12121dcc;color:#fff;font-size:20px;backdrop-filter:blur(12px);cursor:pointer}
+#sound-toggle:active{transform:scale(.9)}
+</style></head>
+<body><button id="sound-toggle" aria-label="Toggle sound" title="Toggle sound">🔊</button><div class="w"><nav><a class="back" href="index.html">← Hyper-Pop</a><span class="logo">✦ Hyper-Pop</span><div id="account-slot"></div></nav>
 <header class="hero"><div class="e">🖱️</div><h1>Button Bonanza</h1><p>Click. Upgrade. Automate. Become absurdly good at pressing one button.</p></header>
 <main class="grid">
 <section class="box">
@@ -28,6 +31,27 @@ nav{height:72px;display:flex;justify-content:space-between;align-items:center}.b
 </main><footer class="foot">Hyper-Pop ✦ tiny internet, increasingly enormous button</footer></div>
 <script>
 const KEY="hyperpop-button-bonanza-v2";
+let audioCtx=null;
+let soundOn=localStorage.getItem("hyperpop-button-sound")!=="off";
+function sound(type){if(!soundOn)return;
+  try{
+    if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==="suspended") audioCtx.resume();
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain(), now=audioCtx.currentTime;
+    const cfg={
+      click:[520,0.045,"sine",0.055], crit:[880,0.11,"triangle",0.09],
+      buy:[660,0.16,"square",0.055], unlock:[520,0.28,"triangle",0.07],
+      golden:[260,0.45,"sawtooth",0.045], error:[150,0.12,"square",0.04],
+      combo:[740,0.08,"sine",0.06]
+    }[type]||[440,0.08,"sine",0.05];
+    o.type=cfg[2]; o.frequency.setValueAtTime(cfg[0],now);
+    if(type==="golden"||type==="unlock"){o.frequency.exponentialRampToValueAtTime(cfg[0]*2.2,now+cfg[1]);}
+    else if(type==="combo"){o.frequency.exponentialRampToValueAtTime(cfg[0]*1.35,now+cfg[1]);}
+    g.gain.setValueAtTime(0.0001,now);g.gain.exponentialRampToValueAtTime(cfg[3],now+0.008);g.gain.exponentialRampToValueAtTime(0.0001,now+cfg[1]);
+    o.connect(g).connect(audioCtx.destination);o.start(now);o.stop(now+cfg[1]+0.02);
+  }catch(e){}
+}
+
 const upgrades=[
 {id:"finger",name:"Stronger Finger",desc:"+1 click power",base:15,kind:"click",amount:1,icon:"☝️"},
 {id:"double",name:"Double Tap",desc:"+2 click power",base:120,kind:"click",amount:2,icon:"✌️"},
@@ -340,19 +364,21 @@ $("themes").innerHTML=themes.map(t=>{let ok=t[0]==="classic"||(t[0]==="sunset"&&
 document.querySelectorAll(".theme").forEach(x=>x.onclick=()=>{if(!x.classList.contains("locked")){s.theme=x.dataset.theme;applyTheme();save();render()}});
  document.querySelectorAll(".buy").forEach(x=>x.onclick=()=>buy(x.dataset.id));
 }
-function buy(id){let u=upgrades.find(x=>x.id===id),p=price(u);if(s.n<p)return;s.n-=p;s.spent+=p;s.owned[id]=(s.owned[id]||0)+1;if(u.kind==="click")s.click+=u.amount;if(u.kind==="auto")s.auto+=u.amount;toast(u.icon+" "+u.name+" upgraded!");save();render()}
+function buy(id){sound("buy");let u=upgrades.find(x=>x.id===id),p=price(u);if(s.n<p)return;s.n-=p;s.spent+=p;s.owned[id]=(s.owned[id]||0)+1;if(u.kind==="click")s.click+=u.amount;if(u.kind==="auto")s.auto+=u.amount;toast(u.icon+" "+u.name+" upgraded!");save();render()}
 function toast(t){$("toast").textContent=t;clearTimeout(window.tt);window.tt=setTimeout(()=>{$("toast").textContent="Keep pressing.";},1200)}
 function pop(v){let x=document.createElement("div");x.className="float";x.textContent="+"+fmt(v);x.style.left=(35+Math.random()*30)+"%";x.style.top=(35+Math.random()*25)+"%";$("area").append(x);setTimeout(()=>x.remove(),800)}
 function burst(){for(let i=0;i<10;i++){let x=document.createElement("div");x.className="burst";x.textContent=["✨","💥","⚡","⭐"][i%4];x.style.left="50%";x.style.top="42%";x.style.setProperty("--x",(Math.random()*260-130)+"px");x.style.setProperty("--y",(Math.random()*240-120)+"px");document.body.append(x);setTimeout(()=>x.remove(),700)}}
 function clicker(){let now=Date.now();s.combo=(now-comboTimer<1200)?s.combo+1:1;comboTimer=now;s.bestCombo=Math.max(s.bestCombo||0,s.combo);let crit=Math.random()<Math.min(.08+s.combo*.002,.25);let v=power()*(crit?5:1);s.n+=v;s.total+=v;s.crit=(s.crit||0)+(crit?1:0);$("event").textContent=crit?"💥 CRITICAL! x5":(s.combo>5?"🔥 COMBO x"+s.combo:"Press it again.");$("combo").textContent=s.combo>1?"COMBO ×"+s.combo:"";$("b").classList.remove("hot");void $("b").offsetWidth;$("b").classList.add("hot");$("flash").classList.remove("on");void $("flash").offsetWidth;$("flash").classList.add("on");if(crit)burst();pop(v);check();render()}
-function check(){achievements.forEach(a=>{if(!s.ach[a[0]]&&s.total>=a[3]){s.ach[a[0]]=1;let r=a[3]>=1e33?25:a[3]>=1e24?10:a[3]>=1e15?5:a[3]>=1e9?1:a[3]>=1e6?.5:a[3]>=1e3?.1:.05;s.rewards=(s.rewards||0)+r;toast("🏆 "+a[1]+"! Permanent power reward unlocked!");}});tasks.forEach(t=>{let done=s.task[t[0]];let ok=t[0]==="gold"?(s.golden||0)>=t[3]:t[0]==="combo"?(s.bestCombo||0)>=t[3]:t[0]==="crit"?(s.crit||0)>=t[3]:t[0]==="hours"?((Date.now()-s.started)/1000)>=t[3]:t[4]?(s.total>=t[3]&&(Date.now()-s.started)/1000<=t[4]):false;if(ok&&!done){s.task[t[0]]=1;s.click*=1.1;toast("🎁 Task complete! +10% permanent click power");}});}
+function check(){achievements.forEach(a=>{if(!s.ach[a[0]]&&s.total>=a[3]){s.ach[a[0]]=1;let r=a[3]>=1e33?25:a[3]>=1e24?10:a[3]>=1e15?5:a[3]>=1e9?1:a[3]>=1e6?.5:a[3]>=1e3?.1:.05;s.rewards=(s.rewards||0)+r;sound("unlock");toast("🏆 "+a[1]+"! Permanent power reward unlocked!");}});tasks.forEach(t=>{let done=s.task[t[0]];let ok=t[0]==="gold"?(s.golden||0)>=t[3]:t[0]==="combo"?(s.bestCombo||0)>=t[3]:t[0]==="crit"?(s.crit||0)>=t[3]:t[0]==="hours"?((Date.now()-s.started)/1000)>=t[3]:t[4]?(s.total>=t[3]&&(Date.now()-s.started)/1000<=t[4]):false;if(ok&&!done){s.task[t[0]]=1;s.click*=1.1;toast("🎁 Task complete! +10% permanent click power");}});}
 $("b").onclick=clicker;
 $("reset").onclick=()=>{if(confirm("Reset all Button Bonanza progress?")){localStorage.removeItem(KEY);location.reload()}};
 $("save").onclick=()=>{save();toast("💾 Progress saved.")};
 $("upTab").onclick=()=>{$("shop").style.display="block";$("stats").style.display="none";$("upTab").classList.add("on");$("achTab").classList.remove("on")};
 $("achTab").onclick=()=>{$("shop").style.display="none";$("stats").style.display="block";$("achTab").classList.add("on");$("upTab").classList.remove("on")};
-function spawnGolden(){if(document.querySelector(".golden"))return;let g=document.createElement("button");g.className="golden";g.textContent="⭐";g.title="Golden Button";g.style.left=(15+Math.random()*70)+"%";g.style.top=(20+Math.random()*55)+"%";g.onclick=()=>{let bonus=Math.max(100,power()*50+s.auto*30);s.golden=(s.golden||0)+1;s.n+=bonus;s.total+=bonus;toast("🌟 GOLDEN BUTTON! +"+fmt(bonus));burst();g.remove()};$("area").append(g);setTimeout(()=>g.remove(),8000)}
+function spawnGolden(){if(document.querySelector(".golden"))return;let g=document.createElement("button");g.className="golden";g.textContent="⭐";g.title="Golden Button";g.style.left=(15+Math.random()*70)+"%";g.style.top=(20+Math.random()*55)+"%";g.onclick=()=>{sound("golden");let bonus=Math.max(100,power()*50+s.auto*30);s.golden=(s.golden||0)+1;s.n+=bonus;s.total+=bonus;toast("🌟 GOLDEN BUTTON! +"+fmt(bonus));burst();g.remove()};$("area").append(g);setTimeout(()=>g.remove(),8000)}
 setInterval(()=>{if(s.auto){s.n+=s.auto;s.total+=s.auto;check();render()}},1000);setInterval(spawnGolden,22000);
+document.getElementById("sound-toggle").onclick=()=>{soundOn=!soundOn;localStorage.setItem("hyperpop-button-sound",soundOn?"on":"off");document.getElementById("sound-toggle").textContent=soundOn?"🔊":"🔇";if(soundOn)sound("unlock")};
+document.getElementById("sound-toggle").textContent=soundOn?"🔊":"🔇";
 function applyTheme(){let t=s.theme||"classic";document.body.dataset.theme=t;let bg={classic:"",sunset:"radial-gradient(circle at 50% 10%,#ff7b4d33,transparent 35%)",ocean:"radial-gradient(circle at 50% 10%,#35d9ff33,transparent 35%)",space:"radial-gradient(circle at 50% 10%,#9b6cff33,transparent 35%)",void:"radial-gradient(circle at 50% 10%,#000 0%,#25002f 35%,#0b0b16 70%)",rainbow:"radial-gradient(circle at 20% 20%,#ff4fd833,transparent 30%),radial-gradient(circle at 80% 70%,#4be0e333,transparent 30%)"}[t];if(bg)document.body.style.background=bg+",#0b0b16";else document.body.style.background="";} applyTheme();setInterval(save,5000);render();
 document.addEventListener("dblclick",e=>e.preventDefault(),{passive:false});document.addEventListener("gesturestart",e=>e.preventDefault(),{passive:false});
 </script><script src="app.js"></script></body></html>
