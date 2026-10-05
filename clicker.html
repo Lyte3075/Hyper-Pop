@@ -325,7 +325,7 @@ function fmtAch(n){
  if(idx>=0&&idx<names.length)return (n/Math.pow(1000,idx+2)).toFixed(n>=1e12?0:1).replace(/\\.0$/,"")+" "+names[idx];
  return n.toExponential(0);
 }
-function price(u){return Math.floor(u.base*Math.pow(1.16,s.owned[u.id]||0))}
+function price(u){const owned=s.owned[u.id]||0;const curves={multi:3.85,click:1.72,auto:1.58};const growth=curves[u.kind]||1.65;return Math.floor(u.base*Math.pow(growth,owned)*Math.pow(1.08,owned*owned))}
 function save(){localStorage.setItem(KEY,JSON.stringify(s))}
 function power(){let p=s.click;for(const u of upgrades){if(u.kind==="multi"&&s.owned[u.id])p*=Math.pow(u.amount,s.owned[u.id]);}return p}
 function rewardForAchievement(a){let v=a[3];return v>=1e33?"×25 click power":v>=1e24?"×10 click power":v>=1e15?"×5 click power":v>=1e9?"+100% click power":v>=1e6?"+50% click power":v>=1e3?"+10% click power":"+5% click power"}
