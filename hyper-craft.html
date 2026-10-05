@@ -5,7 +5,7 @@
 </style></head><body><div class="w"><nav><a class="back" href="index.html">← Hyper-Pop</a><span class="logo">✦ Hyper-Pop</span><div id="account-slot"></div></nav><header class="hero"><div class="e">🧪</div><h1>Hyper-Craft</h1><p>Combine two things. Discover something new. Keep going until your tiny universe becomes enormous.</p></header><main class="box craftbox">
 <div class="craft-top"><button id="slot1" class="slot">Pick an element for slot 1</button><div class="plus">＋</div><button id="slot2" class="slot">Pick an element for slot 2</button></div>
 <div id="result" class="result-card"><div class="icon">✨</div><div class="result-name">What will you make?</div><div class="result-note">Choose two elements, then combine them.</div></div>
-<div class="craft-actions"><button id="combine">⚡ Combine</button><button id="clear" class="secondary">↻ Clear slots</button></div>
+<div class="craft-actions"><button id="combine">⚡ Combine</button><button id="clear" class="secondary">↻ Clear slots</button><button id="export-progress" class="secondary">📤 Export Progress</button><button id="import-progress" class="secondary">📥 Import Progress</button><input id="import-file" type="file" accept=".json,application/json" hidden></div>
 <div class="elements"><input id="search" class="craft-search" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Search discovered elements... 🔎"><div id="count" class="count"></div><div id="grid" class="element-grid"></div></div>
 
 </main></div><script src="app.js"></script><script src="hyper-craft-recipes.js"></script><script>
@@ -290,6 +290,54 @@ function normalizeDiscovered(value){if(!Array.isArray(value))return [];return va
 function loadDiscovered(){try{const current=normalizeDiscovered(JSON.parse(localStorage.getItem(STORAGE_KEY)||'null'));const old=normalizeDiscovered(JSON.parse(localStorage.getItem('hypercraft-discovered')||'null'));const merged=[...base.map(([icon,name])=>({icon,name})),...old,...current];const seen=new Set();const result=merged.filter(x=>{const k=x.name.toLowerCase();if(!k||seen.has(k))return false;seen.add(k);return true});if(result.length){localStorage.setItem(STORAGE_KEY,JSON.stringify(result));return result}}catch(e){}return base.map(([icon,name])=>({icon,name}))}
 let discovered=loadDiscovered(),s1=null,s2=null;
 function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(discovered));return true}catch(e){return false}}
+function exportProgress(){
+  try{
+    const payload={
+      format:'hyper-craft-progress',
+      version:1,
+      exportedAt:new Date().toISOString(),
+      elements:discovered.map(x=>({icon:x.icon,name:x.name}))
+    };
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download='hyper-craft-progress.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    showResult('📤','Progress exported','Your discovered elements were saved to a JSON file.');
+  }catch(e){showResult('❌','Export failed','Could not create the progress file.');}
+}
+function importProgress(file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const data=JSON.parse(String(reader.result||''));
+      const incoming=normalizeDiscovered(
+        Array.isArray(data)?data:(data&&Array.isArray(data.elements)?data.elements:null)
+      );
+      if(!incoming.length)throw new Error('No elements');
+      const before=discovered.length;
+      const byName=new Map(discovered.map(x=>[x.name.toLowerCase(),x]));
+      for(const item of incoming){
+        const key=item.name.toLowerCase();
+        if(!byName.has(key))byName.set(key,{icon:item.icon,name:item.name});
+      }
+      discovered=Array.from(byName.values());
+      save();
+      const added=discovered.length-before;
+      showResult('📥','Progress imported',added?('Added '+added+' new discovery'+(added===1?'':'ies')+'. Existing discoveries were kept.'):'Everything in that file was already discovered.');
+      render();
+    }catch(e){
+      showResult('❌','Import failed','That file is not a valid Hyper-Craft progress JSON file.');
+    }
+  };
+  reader.onerror=()=>showResult('❌','Import failed','The progress file could not be read.');
+  reader.readAsText(file);
+}
 function keyOf(a,b){return [a.name.toLowerCase(),b.name.toLowerCase()].sort().join('+')}
 function renderSlots(){for(const [id,v,n] of [['slot1',s1,1],['slot2',s2,2]]){const e=document.getElementById(id);if(v){e.classList.add('has');e.innerHTML='<span class="icon">'+v.icon+'</span><span class="name">'+v.name+'</span>'}else{e.classList.remove('has');e.textContent='Pick an element for slot '+n}}}
 function render(){const q=document.getElementById('search').value.toLowerCase();const list=discovered.filter(x=>x.name.toLowerCase().includes(q));document.getElementById('count').textContent=discovered.length+' discovered element'+(discovered.length===1?'':'s');document.getElementById('grid').innerHTML=list.map((x,i)=>'<button class="element" data-i="'+discovered.indexOf(x)+'"><div class="icon">'+x.icon+'</div><div class="name">'+x.name+'</div></button>').join('');document.querySelectorAll('.element').forEach(e=>e.onclick=()=>pick(discovered[+e.dataset.i]));renderSlots()}
@@ -297,7 +345,7 @@ function pick(x){if(!s1)s1=x;else if(!s2)s2=x;else{s1=x;s2=null}renderSlots()}
 function showResult(icon,name,note){document.getElementById('result').innerHTML='<div class="icon">'+icon+'</div><div class="result-name">'+name+'</div><div class="result-note">'+note+'</div>'}
 function localCombine(a,b){const r=recipes[keyOf(a,b)];if(r)return {icon:r[0],name:r[1],note:'Built-in recipe'};return null}
 async function aiCombine(a,b){const t=localStorage.getItem('hyperpop_token');if(!t)return null;try{const r=await fetch('https://iapnejlttsqqefkpmelp.supabase.co/functions/v1/hypercraft-combine',{method:'POST',headers:{'Content-Type':'application/json','x-hyperpop-session':t},body:JSON.stringify({a:a.name,b:b.name})});const d=await r.json().catch(()=>({}));if(!r.ok||!d.name)return null;return {icon:d.emoji||'✨',name:d.name,note:d.note||'Generated by AI'}}catch(e){return null}}async function combine(){if(!s1||!s2){showResult('❓','Pick two things first','Choose two discovered elements.');return}const a=s1,b=s2;const local=localCombine(a,b);if(local){showResult(local.icon,local.name,local.note);if(!discovered.some(x=>x.name.toLowerCase()===local.name.toLowerCase())){discovered.push({icon:local.icon,name:local.name});save()}s1=null;s2=null;render();return}showResult('🧠','Thinking...','No built-in formula matched, so Hyper-Craft is checking the AI.');const ai=await aiCombine(a,b);const r=ai;if(!r){showResult('❌','No sensible combination','Nothing established was found for those two things.');s1=null;s2=null;render();return}if(!discovered.some(x=>x.name.toLowerCase()===r.name.toLowerCase())){discovered.push({icon:r.icon,name:r.name});save()}showResult(r.icon,r.name,r.note);s1=null;s2=null;render()}
-document.getElementById('combine').onclick=combine;document.getElementById('clear').onclick=()=>{s1=s2=null;renderSlots()};document.getElementById('search').oninput=render;
+document.getElementById('combine').onclick=combine;document.getElementById('clear').onclick=()=>{s1=s2=null;renderSlots()};document.getElementById('export-progress').onclick=exportProgress;document.getElementById('import-progress').onclick=()=>document.getElementById('import-file').click();document.getElementById('import-file').onchange=e=>{importProgress(e.target.files&&e.target.files[0]);e.target.value=''};document.getElementById('search').oninput=render;
 document.getElementById('search').value='';
 requestAnimationFrame(()=>render());
 setTimeout(render,50);
