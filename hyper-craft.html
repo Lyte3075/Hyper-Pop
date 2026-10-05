@@ -189,6 +189,77 @@ Object.assign(recipes,{
   'machine+energy':['⚙️','Engine'],
   'energy+machine':['⚙️','Engine']
 });
+/* Final easy-material progression: core crafting resources have direct, reachable recipes. */
+Object.assign(recipes,{
+  'life+fire':['🐾','Animal'],
+  'fire+life':['🐾','Animal'],
+  'animal+human':['🐾','Pet'],
+  'human+animal':['🐾','Pet'],
+
+  'cloud+cloud':['❄️','Snow'],
+  'cloud+ice':['❄️','Snow'],
+  'ice+cloud':['❄️','Snow'],
+  'water+snow':['🧊','Ice'],
+  'snow+water':['🧊','Ice'],
+  'water+ice':['🧊','Ice'],
+  'ice+water':['🧊','Ice'],
+
+  'plant+sun':['🌳','Tree'],
+  'sun+plant':['🌳','Tree'],
+  'tree+water':['🪵','Wood'],
+  'water+tree':['🪵','Wood'],
+  'tree+earth':['🌳','Forest'],
+  'earth+tree':['🌳','Forest'],
+
+  'earth+metal':['⛏️','Ore'],
+  'metal+earth':['⛏️','Ore'],
+  'ore+fire':['🥉','Copper'],
+  'fire+ore':['🥉','Copper'],
+  'ore+sun':['🥇','Gold'],
+  'sun+ore':['🥇','Gold'],
+  'copper+fire':['🧵','Wire'],
+  'fire+copper':['🧵','Wire'],
+  'metal+electricity':['🧵','Wire'],
+  'electricity+metal':['🧵','Wire'],
+  'wire+electricity':['🔌','Circuit'],
+  'electricity+wire':['🔌','Circuit'],
+
+  'stone+energy':['💎','Crystal'],
+  'energy+stone':['💎','Crystal'],
+  'crystal+coal':['💎','Diamond'],
+  'coal+crystal':['💎','Diamond'],
+  'coal+fire':['🔥','Charcoal'],
+  'fire+coal':['🔥','Charcoal'],
+  'wood+fire':['🔥','Charcoal'],
+  'fire+wood':['🔥','Charcoal'],
+  'charcoal+energy':['💎','Diamond'],
+  'energy+charcoal':['💎','Diamond'],
+
+  'plant+human':['🌾','Farmer'],
+  'human+plant':['🌾','Farmer'],
+  'farmer+plant':['🌾','Wheat'],
+  'plant+farmer':['🌾','Wheat'],
+  'farm+plant':['🌾','Wheat'],
+  'wheat+stone':['🌾','Flour'],
+  'stone+wheat':['🌾','Flour'],
+  'wheat+water':['🌾','Dough'],
+  'water+wheat':['🌾','Dough'],
+  'flour+water':['🌾','Dough'],
+  'water+flour':['🌾','Dough'],
+  'dough+fire':['🍞','Bread'],
+  'fire+dough':['🍞','Bread'],
+  'flour+fire':['🍞','Bread'],
+  'fire+flour':['🍞','Bread'],
+  'animal+fire':['🍖','Food'],
+  'fire+animal':['🍖','Food'],
+  'meat+fire':['🍖','Food'],
+  'fire+meat':['🍖','Food'],
+  'plant+animal':['🍎','Food'],
+  'animal+plant':['🍎','Food'],
+  'food+fire':['🍳','Cooked Food'],
+  'fire+food':['🍳','Cooked Food']
+});
+
 const emojiPool=['✨','🌀','🔭','🧬','🧿','🌠','🪄','🧩','🛰️','🗿','🛠️','🎲','🎮','📡','🌐','💠','🔬','🌟','🧊','🔥','🌪️','🌈','🪐','👽','🤯','🧙','🏆','💫'];
 const STORAGE_KEY='hypercraft-discovered-v2';
 function normalizeDiscovered(value){if(!Array.isArray(value))return [];return value.map(x=>Array.isArray(x)?{icon:String(x[0]||'✨'),name:String(x[1]||'').trim()}:x).filter(x=>x&&x.name&&x.icon)}
