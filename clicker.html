@@ -1,1 +1,66 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#0b0b16"><title>Button Bonanza ✦ Hyper-Pop</title><style>*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html{touch-action:manipulation;-webkit-text-size-adjust:100%}body{margin:0;min-height:100vh;background:radial-gradient(circle at 20% 10%,var(--c)33,transparent 35%),#0b0b16;color:#f7f4ff;font:16px system-ui,sans-serif}button,input{font:inherit;touch-action:manipulation}button{cursor:pointer}.w{max-width:850px;margin:auto;padding:0 18px}nav{height:72px;display:flex;justify-content:space-between;align-items:center}.back{color:#aaa7c1}.logo{font-weight:800}.hero{text-align:center;padding:55px 0 30px}.hero .e{font-size:60px}.hero h1{font-size:clamp(42px,9vw,76px);letter-spacing:-.06em;margin:12px 0}.hero p{color:#aaa7c1}.box{margin:15px 0 60px;padding:25px;border:1px solid #ffffff18;background:#151526;border-radius:24px;box-shadow:0 25px 70px #0008}.big{font:500 55px monospace;text-align:center;margin:20px 0}.actions{display:flex;gap:9px;justify-content:center;flex-wrap:wrap}.btn{padding:12px 16px;border-radius:12px;border:1px solid #ffffff18;background:#fff;color:#111;font-weight:800}.dark{background:#ffffff08;color:#fff}.result{text-align:center;color:var(--c);font-weight:700;margin-top:14px}.foot{text-align:center;color:#66647a;font:11px monospace;padding-bottom:35px}</style><link rel="stylesheet" href="style.css"></head><body style="--c:#ffe66d"><div class="w"><nav><a class="back" href="index.html">← Hyper-Pop</a><span class="logo">✦ Hyper-Pop</span><div id="account-slot"></div></nav><header class="hero"><div class="e">🖱️</div><h1>Button Bonanza</h1><p>One tiny thing. One whole page. Zero productivity required.</p></header><main class="box"><div class="big" id="n">0</div><div class="actions"><button class="btn" id="b">CLICK +1</button><button class="btn dark" id="z">RESET</button></div><div class="result" id="r">There is no prize. There is only the number.</div><script>let n=0;b.onclick=()=>{n++;document.querySelector("#n").textContent=n;if(n%50===0)r.textContent="🏆 Frighteningly good at clicking."};z.onclick=()=>{n=0;document.querySelector("#n").textContent=0}</script><div class="actions" style="margin-top:14px"><a class="btn dark" href="leaderboard.html">🏆 LEADERBOARD</a><a class="btn dark" href="auth.html">👤 ACCOUNT</a></div></main><footer class="foot">Hyper-Pop ✦ tiny internet, big vibes</footer></div><script>document.addEventListener("dblclick",e=>e.preventDefault(),{passive:false});document.addEventListener("gesturestart",e=>e.preventDefault(),{passive:false});</script><script src="app.js"></script></body></html>
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0b0b16"><title>Button Bonanza ✦ Hyper-Pop</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html{touch-action:manipulation;-webkit-text-size-adjust:100%}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% 12%,#ffe66d22,transparent 32%),radial-gradient(circle at 10% 80%,#ff4fd822,transparent 28%),#0b0b16;color:#f7f4ff;font:15px system-ui,sans-serif;overflow-x:hidden}
+button,input{font:inherit;touch-action:manipulation}button{cursor:pointer}.w{max-width:1050px;margin:auto;padding:0 16px}
+nav{height:72px;display:flex;justify-content:space-between;align-items:center}.back{color:#aaa7c1}.logo{font-weight:800}.hero{text-align:center;padding:24px 0 12px}.hero .e{font-size:48px}.hero h1{font-size:clamp(38px,8vw,66px);letter-spacing:-.06em;margin:5px 0}.hero p{color:#aaa7c1;margin:0}
+.grid{display:grid;grid-template-columns:1fr 330px;gap:16px;margin:18px 0 55px}.box{padding:20px;border:1px solid #ffffff18;background:#151526;border-radius:24px;box-shadow:0 25px 70px #0008}
+.score{text-align:center}.label{color:#aaa7c1;font:12px monospace;text-transform:uppercase;letter-spacing:.12em}.big{font:800 clamp(42px,9vw,72px) monospace;margin:4px 0}.rate{color:#ffe66d;font-weight:800}
+.click-area{min-height:420px;display:grid;place-items:center;position:relative;overflow:hidden}.clicker{width:min(290px,70vw);aspect-ratio:1;border-radius:50%;border:8px solid #fff8;background:radial-gradient(circle at 35% 25%,#fff8,#ffe66d 18%,#ffb400 55%,#ff5c35);box-shadow:0 0 0 12px #ffe66d18,0 0 70px #ffe66d55,0 25px 0 #a85c12;transition:transform .06s}.clicker:active{transform:scale(.91) translateY(5px);box-shadow:0 0 0 8px #ffe66d18,0 0 40px #ffe66d44,0 18px 0 #a85c12}.clicker span{display:block;font-size:34px;font-weight:1000;color:#321900;text-shadow:0 2px #fff5}.float{position:absolute;pointer-events:none;font:900 24px monospace;animation:float .8s ease-out forwards}@keyframes float{to{transform:translateY(-90px) scale(1.2);opacity:0}}
+.shop h2,.ach h2{margin:0 0 12px}.item{width:100%;display:flex;justify-content:space-between;gap:10px;text-align:left;padding:13px;margin:8px 0;border-radius:15px;border:1px solid #ffffff12;background:#ffffff07;color:#fff}.item:disabled{opacity:.42;cursor:not-allowed}.item b{display:block}.item small{display:block;color:#aaa7c1;margin-top:3px}.price{color:#ffe66d;font-weight:900;white-space:nowrap}.tabs{display:flex;gap:6px;margin-bottom:10px}.tab{flex:1;padding:9px;border-radius:10px;border:1px solid #ffffff12;background:#ffffff08;color:#aaa7c1}.tab.on{background:#ffe66d;color:#17100a}.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.stat{background:#ffffff06;border-radius:12px;padding:10px}.stat b{display:block;font-size:18px}.stat span{color:#88869a;font-size:11px}.actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}.btn{padding:10px 14px;border-radius:11px;border:1px solid #ffffff18;background:#fff;color:#111;font-weight:800}.dark{background:#ffffff08;color:#fff}.toast{text-align:center;color:#ffe66d;font-weight:800;min-height:22px;margin:8px}.ach{grid-column:1/-1}.ach-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}.badge{padding:11px;border-radius:12px;background:#ffffff06;border:1px solid #ffffff0d;color:#77758a}.badge.done{color:#fff;background:#ffe66d12;border-color:#ffe66d55}.badge strong{display:block}.foot{text-align:center;color:#66647a;font:11px monospace;padding-bottom:35px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.click-area{min-height:390px}.ach{grid-column:auto}}
+</style><link rel="stylesheet" href="style.css"></head>
+<body><div class="w"><nav><a class="back" href="index.html">← Hyper-Pop</a><span class="logo">✦ Hyper-Pop</span><div id="account-slot"></div></nav>
+<header class="hero"><div class="e">🖱️</div><h1>Button Bonanza</h1><p>Click. Upgrade. Automate. Become absurdly good at pressing one button.</p></header>
+<main class="grid">
+<section class="box">
+<div class="score"><div class="label">Buttons pressed</div><div class="big" id="n">0</div><div class="rate"><span id="cps">0</span> clicks/sec • <span id="power">+1</span> per click</div></div>
+<div class="click-area" id="area"><button class="clicker" id="b"><span>CLICK!</span></button></div>
+<div class="toast" id="toast">Your button awaits.</div>
+<div class="actions"><button class="btn dark" id="save">💾 SAVE</button><button class="btn dark" id="reset">↻ RESET</button><a class="btn dark" href="leaderboard.html">🏆 LEADERBOARD</a><a class="btn dark" href="auth.html">👤 ACCOUNT</a></div>
+</section>
+<aside class="box shop"><div class="tabs"><button class="tab on" id="upTab">UPGRADES</button><button class="tab" id="achTab">STATS</button></div>
+<div id="shop"></div><div id="stats" style="display:none"></div></aside>
+<section class="box ach"><h2>🏆 Achievements</h2><div class="ach-grid" id="achievements"></div></section>
+</main><footer class="foot">Hyper-Pop ✦ tiny internet, increasingly enormous button</footer></div>
+<script>
+const KEY="hyperpop-button-bonanza-v2";
+const upgrades=[
+{id:"finger",name:"Stronger Finger",desc:"+1 click power",base:15,kind:"click",amount:1,icon:"☝️"},
+{id:"double",name:"Double Tap",desc:"+2 click power",base:120,kind:"click",amount:2,icon:"✌️"},
+{id:"bot",name:"Tiny Button Bot",desc:"+1 click/sec",base:50,kind:"auto",amount:1,icon:"🤖"},
+{id:"factory",name:"Button Factory",desc:"+8 clicks/sec",base:400,kind:"auto",amount:8,icon:"🏭"},
+{id:"lab",name:"Button Lab",desc:"+45 clicks/sec",base:2500,kind:"auto",amount:45,icon:"🧪"},
+{id:"overclock",name:"Overclock",desc:"×2 all click power",base:15000,kind:"multi",amount:2,icon:"⚡"}
+];
+const achievements=[
+["first","First Press","Click once",1],["hundred","Warm Up","Reach 100 clicks",100],["thousand","Button Enthusiast","Reach 1,000 clicks",1000],["tenk","No Life Mode","Reach 10,000 clicks",10000],["million","Button Billionaire","Reach 1,000,000 clicks",1000000]
+];
+let s=JSON.parse(localStorage.getItem(KEY)||"null")||{n:0,total:0,click:1,auto:0,spent:0,owned:{},ach:{},started:Date.now()};
+const $=id=>document.getElementById(id),fmt=n=>Intl.NumberFormat("en",{notation:n>999999?"compact":"standard",maximumFractionDigits:1}).format(n);
+function price(u){return Math.floor(u.base*Math.pow(1.16,s.owned[u.id]||0))}
+function save(){localStorage.setItem(KEY,JSON.stringify(s))}
+function power(){let p=s.click;return p*(s.owned.overclock?Math.pow(2,s.owned.overclock):1)}
+function render(){
+ $("n").textContent=fmt(s.n);$("power").textContent=fmt(power());$("cps").textContent=fmt(s.auto);
+ $("shop").innerHTML=upgrades.map(u=>{let o=s.owned[u.id]||0,p=price(u);return '<button class="item buy" data-id="'+u.id+'" '+(s.n<p?'disabled':'')+'><span><b>'+u.icon+" "+u.name+" ×"+o+'</b><small>'+u.desc+'</small></span><span class="price">'+fmt(p)+' 🖱️</span></button>'}).join("");
+ $("stats").innerHTML='<div class="stats"><div class="stat"><b>'+fmt(s.total)+'</b><span>Total clicks</span></div><div class="stat"><b>'+fmt(s.auto)+'</b><span>Clicks/sec</span></div><div class="stat"><b>'+fmt(s.spent)+'</b><span>Spent</span></div><div class="stat"><b>'+Math.floor((Date.now()-s.started)/1000)+'s</b><span>Playing</span></div></div>';
+ $("achievements").innerHTML=achievements.map(a=>'<div class="badge '+(s.ach[a[0]]?'done':'')+'"><strong>'+(s.ach[a[0]]?'🏆':'🔒')+' '+a[1]+'</strong><small>'+a[2]+'</small></div>').join("");
+ document.querySelectorAll(".buy").forEach(x=>x.onclick=()=>buy(x.dataset.id));
+}
+function buy(id){let u=upgrades.find(x=>x.id===id),p=price(u);if(s.n<p)return;s.n-=p;s.spent+=p;s.owned[id]=(s.owned[id]||0)+1;if(u.kind==="click")s.click+=u.amount;if(u.kind==="auto")s.auto+=u.amount;toast(u.icon+" "+u.name+" upgraded!");save();render()}
+function toast(t){$("toast").textContent=t;clearTimeout(window.tt);window.tt=setTimeout(()=>{$("toast").textContent="Keep pressing.",},1200)}
+function pop(v){let x=document.createElement("div");x.className="float";x.textContent="+"+fmt(v);x.style.left=(35+Math.random()*30)+"%";x.style.top=(35+Math.random()*25)+"%";$("area").append(x);setTimeout(()=>x.remove(),800)}
+function clicker(){let v=power();s.n+=v;s.total+=v;pop(v);check();render()}
+function check(){achievements.forEach(a=>{if(!s.ach[a[0]]&&s.total>=a[3]){s.ach[a[0]]=1;toast("🏆 Achievement: "+a[1]+"!");}})}
+$("b").onclick=clicker;
+$("reset").onclick=()=>{if(confirm("Reset all Button Bonanza progress?")){localStorage.removeItem(KEY);location.reload()}};
+$("save").onclick=()=>{save();toast("💾 Progress saved.")};
+$("upTab").onclick=()=>{$("shop").style.display="block";$("stats").style.display="none";$("upTab").classList.add("on");$("achTab").classList.remove("on")};
+$("achTab").onclick=()=>{$("shop").style.display="none";$("stats").style.display="block";$("achTab").classList.add("on");$("upTab").classList.remove("on")};
+setInterval(()=>{if(s.auto){s.n+=s.auto;s.total+=s.auto;check();render();}},1000);
+setInterval(save,5000);render();
+document.addEventListener("dblclick",e=>e.preventDefault(),{passive:false});document.addEventListener("gesturestart",e=>e.preventDefault(),{passive:false});
+</script><script src="app.js"></script></body></html>
