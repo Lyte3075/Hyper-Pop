@@ -260,6 +260,30 @@ Object.assign(recipes,{
   'fire+food':['🍳','Cooked Food']
 });
 
+
+/* Reliable core progression: reachable from the four base elements without Night. */
+Object.assign(recipes,{
+  'charcoal+earth':['🪨','Coal'],
+  'earth+charcoal':['🪨','Coal'],
+  'dust+air':['🌍','Atmosphere'],
+  'air+dust':['🌍','Atmosphere'],
+  'air+air':['🌤️','Sky'],
+  'sky+earth':['🪐','Planet'],
+  'earth+sky':['🪐','Planet'],
+  'planet+fire':['☀️','Sun'],
+  'fire+planet':['☀️','Sun'],
+  'sun+air':['🌌','Night Sky'],
+  'air+sun':['🌌','Night Sky'],
+  'night sky+stone':['🌙','Moon'],
+  'stone+night sky':['🌙','Moon'],
+  'moon+space':['🌙','Moon'],
+  'sun+night sky':['🌗','Eclipse'],
+  'night sky+star':['🌌','Constellation'],
+  'star+night sky':['🌌','Constellation'],
+  'sun+air':['🌌','Night Sky'],
+  'air+sun':['🌌','Night Sky']
+});
+
 const emojiPool=['✨','🌀','🔭','🧬','🧿','🌠','🪄','🧩','🛰️','🗿','🛠️','🎲','🎮','📡','🌐','💠','🔬','🌟','🧊','🔥','🌪️','🌈','🪐','👽','🤯','🧙','🏆','💫'];
 const STORAGE_KEY='hypercraft-discovered-v2';
 function normalizeDiscovered(value){if(!Array.isArray(value))return [];return value.map(x=>Array.isArray(x)?{icon:String(x[0]||'✨'),name:String(x[1]||'').trim()}:x).filter(x=>x&&x.name&&x.icon)}
