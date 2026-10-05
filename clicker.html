@@ -10,14 +10,15 @@ nav{height:72px;display:flex;justify-content:space-between;align-items:center}.b
 .score{text-align:center}.label{color:#aaa7c1;font:12px monospace;text-transform:uppercase;letter-spacing:.12em}.big{font:800 clamp(42px,9vw,72px) monospace;margin:4px 0}.rate{color:#ffe66d;font-weight:800}
 .click-area{min-height:420px;display:grid;place-items:center;position:relative;overflow:hidden}.clicker{width:min(290px,70vw);aspect-ratio:1;border-radius:50%;border:8px solid #fff8;background:radial-gradient(circle at 35% 25%,#fff8,#ffe66d 18%,#ffb400 55%,#ff5c35);box-shadow:0 0 0 12px #ffe66d18,0 0 70px #ffe66d55,0 25px 0 #a85c12;transition:transform .06s}.clicker:active{transform:scale(.91) translateY(5px);box-shadow:0 0 0 8px #ffe66d18,0 0 40px #ffe66d44,0 18px 0 #a85c12}.clicker span{display:block;font-size:34px;font-weight:1000;color:#321900;text-shadow:0 2px #fff5}.float{position:absolute;pointer-events:none;font:900 24px monospace;animation:float .8s ease-out forwards}@keyframes float{to{transform:translateY(-90px) scale(1.2);opacity:0}}
 .shop h2,.ach h2{margin:0 0 12px}.item{width:100%;display:flex;justify-content:space-between;gap:10px;text-align:left;padding:13px;margin:8px 0;border-radius:15px;border:1px solid #ffffff12;background:#ffffff07;color:#fff}.item:disabled{opacity:.42;cursor:not-allowed}.item b{display:block}.item small{display:block;color:#aaa7c1;margin-top:3px}.price{color:#ffe66d;font-weight:900;white-space:nowrap}.tabs{display:flex;gap:6px;margin-bottom:10px}.tab{flex:1;padding:9px;border-radius:10px;border:1px solid #ffffff12;background:#ffffff08;color:#aaa7c1}.tab.on{background:#ffe66d;color:#17100a}.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.stat{background:#ffffff06;border-radius:12px;padding:10px}.stat b{display:block;font-size:18px}.stat span{color:#88869a;font-size:11px}.actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}.btn{padding:10px 14px;border-radius:11px;border:1px solid #ffffff18;background:#fff;color:#111;font-weight:800}.dark{background:#ffffff08;color:#fff}.toast{text-align:center;color:#ffe66d;font-weight:800;min-height:22px;margin:8px}.ach{grid-column:1/-1}.ach-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}.badge{padding:11px;border-radius:12px;background:#ffffff06;border:1px solid #ffffff0d;color:#77758a}.badge.done{color:#fff;background:#ffe66d12;border-color:#ffe66d55}.badge strong{display:block}.foot{text-align:center;color:#66647a;font:11px monospace;padding-bottom:35px}
+ .flash{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(circle,#ffe66d55,transparent 55%);z-index:20}.flash.on{animation:flash .18s ease-out}@keyframes flash{0%{opacity:.8}100%{opacity:0}}.combo{font:900 18px monospace;color:#ff6be8;min-height:24px}.clicker.hot{animation:hot .16s ease-out}@keyframes hot{50%{filter:brightness(1.5) saturate(1.4);transform:scale(.93)}}.golden{position:absolute;z-index:4;width:82px;height:82px;border-radius:50%;border:4px solid #fff;background:radial-gradient(circle,#fff,#ffe66d 30%,#ff9d00 70%);box-shadow:0 0 35px #ffe66d;animation:gold 1s infinite alternate;cursor:pointer;font-size:34px}@keyframes gold{to{transform:scale(1.1) rotate(8deg)}}.event{color:#7df9ff;font:800 13px monospace;min-height:18px}
 @media(max-width:760px){.grid{grid-template-columns:1fr}.click-area{min-height:390px}.ach{grid-column:auto}}
 </style><link rel="stylesheet" href="style.css"></head>
 <body><div class="w"><nav><a class="back" href="index.html">← Hyper-Pop</a><span class="logo">✦ Hyper-Pop</span><div id="account-slot"></div></nav>
 <header class="hero"><div class="e">🖱️</div><h1>Button Bonanza</h1><p>Click. Upgrade. Automate. Become absurdly good at pressing one button.</p></header>
 <main class="grid">
 <section class="box">
-<div class="score"><div class="label">Buttons pressed</div><div class="big" id="n">0</div><div class="rate"><span id="cps">0</span> clicks/sec • <span id="power">+1</span> per click</div></div>
-<div class="click-area" id="area"><button class="clicker" id="b"><span>CLICK!</span></button></div>
+<div class="score"><div class="label">Buttons pressed</div><div class="big" id="n">0</div><div class="rate"><span id="cps">0</span> clicks/sec • <span id="power">+1</span> per click</div><div class="combo" id="combo"></div><div class="event" id="event">Press the button. Fast.</div></div>
+<div class="click-area" id="area"><button class="clicker" id="b"><span>CLICK!</span></button></div><div class="flash" id="flash"></div>
 <div class="toast" id="toast">Your button awaits.</div>
 <div class="actions"><button class="btn dark" id="save">💾 SAVE</button><button class="btn dark" id="reset">↻ RESET</button><a class="btn dark" href="leaderboard.html">🏆 LEADERBOARD</a><a class="btn dark" href="auth.html">👤 ACCOUNT</a></div>
 </section>
@@ -38,7 +39,7 @@ const upgrades=[
 const achievements=[
 ["first","First Press","Click once",1],["hundred","Warm Up","Reach 100 clicks",100],["thousand","Button Enthusiast","Reach 1,000 clicks",1000],["tenk","No Life Mode","Reach 10,000 clicks",10000],["million","Button Billionaire","Reach 1,000,000 clicks",1000000]
 ];
-let s=JSON.parse(localStorage.getItem(KEY)||"null")||{n:0,total:0,click:1,auto:0,spent:0,owned:{},ach:{},started:Date.now()};
+let s=JSON.parse(localStorage.getItem(KEY)||"null")||{n:0,total:0,click:1,auto:0,spent:0,owned:{},ach:{},started:Date.now(),combo:0,bestCombo:0,crit:0}; let comboTimer=0;
 const $=id=>document.getElementById(id),fmt=n=>Intl.NumberFormat("en",{notation:n>999999?"compact":"standard",maximumFractionDigits:1}).format(n);
 function price(u){return Math.floor(u.base*Math.pow(1.16,s.owned[u.id]||0))}
 function save(){localStorage.setItem(KEY,JSON.stringify(s))}
@@ -46,21 +47,23 @@ function power(){let p=s.click;return p*(s.owned.overclock?Math.pow(2,s.owned.ov
 function render(){
  $("n").textContent=fmt(s.n);$("power").textContent=fmt(power());$("cps").textContent=fmt(s.auto);
  $("shop").innerHTML=upgrades.map(u=>{let o=s.owned[u.id]||0,p=price(u);return '<button class="item buy" data-id="'+u.id+'" '+(s.n<p?'disabled':'')+'><span><b>'+u.icon+" "+u.name+" ×"+o+'</b><small>'+u.desc+'</small></span><span class="price">'+fmt(p)+' 🖱️</span></button>'}).join("");
- $("stats").innerHTML='<div class="stats"><div class="stat"><b>'+fmt(s.total)+'</b><span>Total clicks</span></div><div class="stat"><b>'+fmt(s.auto)+'</b><span>Clicks/sec</span></div><div class="stat"><b>'+fmt(s.spent)+'</b><span>Spent</span></div><div class="stat"><b>'+Math.floor((Date.now()-s.started)/1000)+'s</b><span>Playing</span></div></div>';
+ $("stats").innerHTML='<div class="stats"><div class="stat"><b>'+fmt(s.total)+'</b><span>Total clicks</span></div><div class="stat"><b>'+fmt(s.auto)+'</b><span>Clicks/sec</span></div><div class="stat"><b>'+fmt(s.spent)+'</b><span>Spent</span></div><div class="stat"><b>'+fmt(s.bestCombo||0)+'</b><span>Best combo</span></div><div class="stat"><b>'+fmt(s.crit||0)+'</b><span>Criticals</span></div><div class="stat"><b>'+Math.floor((Date.now()-s.started)/1000)+'s</b><span>Playing</span></div></div>';
  $("achievements").innerHTML=achievements.map(a=>'<div class="badge '+(s.ach[a[0]]?'done':'')+'"><strong>'+(s.ach[a[0]]?'🏆':'🔒')+' '+a[1]+'</strong><small>'+a[2]+'</small></div>').join("");
  document.querySelectorAll(".buy").forEach(x=>x.onclick=()=>buy(x.dataset.id));
 }
 function buy(id){let u=upgrades.find(x=>x.id===id),p=price(u);if(s.n<p)return;s.n-=p;s.spent+=p;s.owned[id]=(s.owned[id]||0)+1;if(u.kind==="click")s.click+=u.amount;if(u.kind==="auto")s.auto+=u.amount;toast(u.icon+" "+u.name+" upgraded!");save();render()}
-function toast(t){$("toast").textContent=t;clearTimeout(window.tt);window.tt=setTimeout(()=>{$("toast").textContent="Keep pressing.",},1200)}
+function toast(t){$("toast").textContent=t;clearTimeout(window.tt);window.tt=setTimeout(()=>{$("toast").textContent="Keep pressing.";},1200)}
 function pop(v){let x=document.createElement("div");x.className="float";x.textContent="+"+fmt(v);x.style.left=(35+Math.random()*30)+"%";x.style.top=(35+Math.random()*25)+"%";$("area").append(x);setTimeout(()=>x.remove(),800)}
-function clicker(){let v=power();s.n+=v;s.total+=v;pop(v);check();render()}
+function burst(){for(let i=0;i<10;i++){let x=document.createElement("div");x.className="burst";x.textContent=["✨","💥","⚡","⭐"][i%4];x.style.left="50%";x.style.top="42%";x.style.setProperty("--x",(Math.random()*260-130)+"px");x.style.setProperty("--y",(Math.random()*240-120)+"px");document.body.append(x);setTimeout(()=>x.remove(),700)}}
+function clicker(){let now=Date.now();s.combo=(now-comboTimer<1200)?s.combo+1:1;comboTimer=now;s.bestCombo=Math.max(s.bestCombo||0,s.combo);let crit=Math.random()<Math.min(.08+s.combo*.002,.25);let v=power()*(crit?5:1);s.n+=v;s.total+=v;s.crit=(s.crit||0)+(crit?1:0);$("event").textContent=crit?"💥 CRITICAL! x5":(s.combo>5?"🔥 COMBO x"+s.combo:"Press it again.");$("combo").textContent=s.combo>1?"COMBO ×"+s.combo:"";$("b").classList.remove("hot");void $("b").offsetWidth;$("b").classList.add("hot");$("flash").classList.remove("on");void $("flash").offsetWidth;$("flash").classList.add("on");if(crit)burst();pop(v);check();render()}
 function check(){achievements.forEach(a=>{if(!s.ach[a[0]]&&s.total>=a[3]){s.ach[a[0]]=1;toast("🏆 Achievement: "+a[1]+"!");}})}
 $("b").onclick=clicker;
 $("reset").onclick=()=>{if(confirm("Reset all Button Bonanza progress?")){localStorage.removeItem(KEY);location.reload()}};
 $("save").onclick=()=>{save();toast("💾 Progress saved.")};
 $("upTab").onclick=()=>{$("shop").style.display="block";$("stats").style.display="none";$("upTab").classList.add("on");$("achTab").classList.remove("on")};
 $("achTab").onclick=()=>{$("shop").style.display="none";$("stats").style.display="block";$("achTab").classList.add("on");$("upTab").classList.remove("on")};
-setInterval(()=>{if(s.auto){s.n+=s.auto;s.total+=s.auto;check();render();}},1000);
+function spawnGolden(){if(document.querySelector(".golden"))return;let g=document.createElement("button");g.className="golden";g.textContent="⭐";g.title="Golden Button";g.style.left=(15+Math.random()*70)+"%";g.style.top=(20+Math.random()*55)+"%";g.onclick=()=>{let bonus=Math.max(100,power()*50+s.auto*30);s.n+=bonus;s.total+=bonus;toast("🌟 GOLDEN BUTTON! +"+fmt(bonus));burst();g.remove()};$("area").append(g);setTimeout(()=>g.remove(),8000)}
+setInterval(()=>{if(s.auto){s.n+=s.auto;s.total+=s.auto;check();render()}},1000);setInterval(spawnGolden,22000);
 setInterval(save,5000);render();
 document.addEventListener("dblclick",e=>e.preventDefault(),{passive:false});document.addEventListener("gesturestart",e=>e.preventDefault(),{passive:false});
 </script><script src="app.js"></script></body></html>
