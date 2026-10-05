@@ -41,7 +41,7 @@ function sound(type){if(!soundOn)return;
     const cfg={
       click:[520,0.045,"sine",0.055], bigclick:[145,0.10,"triangle",0.13], crit:[880,0.11,"triangle",0.09],
       buy:[660,0.16,"square",0.055], unlock:[520,0.28,"triangle",0.07],
-      golden:[260,0.45,"sawtooth",0.045], ui:[420,0.055,"sine",0.045], tab:[580,0.07,"triangle",0.045], close:[220,0.07,"sine",0.04], error:[150,0.12,"square",0.04],
+      golden:[260,0.45,"sawtooth",0.045], ui:[420,0.055,"sine",0.045], tab:[720,0.075,"sine",0.06], close:[220,0.07,"sine",0.04], error:[150,0.12,"square",0.04],
       combo:[740,0.08,"sine",0.06]
     }[type]||[440,0.08,"sine",0.05];
     o.type=cfg[2]; o.frequency.setValueAtTime(cfg[0],now);
@@ -53,6 +53,20 @@ function sound(type){if(!soundOn)return;
   }catch(e){}
 }
 
+function taDa(){
+  if(!soundOn)return;
+  try{
+    if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==="suspended")audioCtx.resume();
+    [523.25,659.25,783.99,1046.5].forEach((f,i)=>{
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain(),t=audioCtx.currentTime+i*.10;
+      o.type="triangle";o.frequency.setValueAtTime(f,t);
+      g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.12,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+.20);
+      o.connect(g).connect(audioCtx.destination);o.start(t);o.stop(t+.22);
+    });
+  }catch(e){}
+}
+function tabPop(){sound("tab");}
 const upgrades=[
 {id:"finger",name:"Stronger Finger",desc:"+1 click power",base:15,kind:"click",amount:1,icon:"☝️"},
 {id:"double",name:"Double Tap",desc:"+2 click power",base:120,kind:"click",amount:2,icon:"✌️"},
@@ -376,7 +390,7 @@ $("reset").onclick=()=>{if(confirm("Reset all Button Bonanza progress?")){localS
 $("save").onclick=()=>{save();toast("💾 Progress saved.")};
 $("upTab").onclick=()=>{$("shop").style.display="block";$("stats").style.display="none";$("upTab").classList.add("on");$("achTab").classList.remove("on")};
 $("achTab").onclick=()=>{$("shop").style.display="none";$("stats").style.display="block";$("achTab").classList.add("on");$("upTab").classList.remove("on")};
-function spawnGolden(){if(document.querySelector(".golden"))return;let g=document.createElement("button");g.className="golden";g.textContent="⭐";g.title="Golden Button";g.style.left=(15+Math.random()*70)+"%";g.style.top=(20+Math.random()*55)+"%";g.onclick=()=>{sound("golden");let bonus=Math.max(100,power()*50+s.auto*30);s.golden=(s.golden||0)+1;s.n+=bonus;s.total+=bonus;toast("🌟 GOLDEN BUTTON! +"+fmt(bonus));burst();g.remove()};$("area").append(g);setTimeout(()=>g.remove(),8000)}
+function spawnGolden(){if(document.querySelector(".golden"))return;let g=document.createElement("button");g.className="golden";g.textContent="⭐";g.title="Golden Button";g.style.left=(15+Math.random()*70)+"%";g.style.top=(20+Math.random()*55)+"%";g.onclick=()=>{sound("golden");let bonus=Math.max(100,power()*50+s.auto*30);s.golden=(s.golden||0)+1;taDa();s.n+=bonus;s.total+=bonus;toast("🌟 GOLDEN BUTTON! +"+fmt(bonus));burst();g.remove()};$("area").append(g);setTimeout(()=>g.remove(),8000)}
 setInterval(()=>{if(s.auto){s.n+=s.auto;s.total+=s.auto;check();render()}},1000);setInterval(spawnGolden,22000);
 document.querySelectorAll("button").forEach(b=>{if(b.id!=="sound-toggle")b.addEventListener("click",()=>uiSound(b.classList.contains("theme")?"tab":"button"),{capture:true})});
 document.getElementById("sound-toggle").onclick=()=>{soundOn=!soundOn;localStorage.setItem("hyperpop-button-sound",soundOn?"on":"off");document.getElementById("sound-toggle").textContent=soundOn?"🔊":"🔇";if(soundOn)sound("unlock")};
