@@ -151,24 +151,74 @@
   function localAI(a,b){
     const n1=normalize(a&&a.name),n2=normalize(b&&b.name);
     const direct=RECIPES[key(n1,n2)];
-    if(direct)return {icon:direct[0],name:direct[1],note:'Local AI • learned recipe'};
+    if(direct)return {icon:direct[0],name:direct[1],note:'Local AI • learned recipe',recipe:[a&&a.name,b&&b.name]};
 
     const exact=rules.find(rule=>{
       const wanted=rule.a.slice().sort().join('+');
       return wanted===key(n1,n2);
     });
-    if(exact)return {icon:exact.r[0],name:exact.r[1],note:'Local AI • '+exact.why};
+    if(exact)return {icon:exact.r[0],name:exact.r[1],note:'Local AI • '+exact.why,recipe:[a&&a.name,b&&b.name]};
 
     const inferred=scoreSemantic(n1,n2);
     if(inferred && inferred.s>=32)
-      return {icon:inferred.r[0],name:inferred.r[1],note:'Local AI • '+inferred.why};
+      return {icon:inferred.r[0],name:inferred.r[1],note:'Local AI • '+inferred.why,recipe:[a&&a.name,b&&b.name]};
+
+    // Broader local synthesis. These are intentionally conservative combinations,
+    // but they greatly reduce dead ends without inventing random nonsense.
+    const A=knowledge[n1],B=knowledge[n2];
+    if(A&&B){
+      const tags=new Set([...A.tags,...B.tags]);
+      const both=(x,y)=>tags.has(x)&&tags.has(y);
+      const synth=[
+        [both('heat','material'),['🧱','Ceramic'],'heat + material → fired material',31],
+        [both('water','solid'),['🧊','Ice'],'water + solid → frozen material',31],
+        [both('water','organic'),['🌿','Plant Matter'],'water + organic matter → plant matter',30],
+        [both('life','food'),['🍎','Food'],'life + food → nourishment',30],
+        [both('metal','wood'),['🛠️','Tool'],'metal + wood → toolmaking',30],
+        [both('metal','machine'),['⚙️','Machine'],'metal + machine → mechanism',30],
+        [both('energy','machine'),['⚙️','Engine'],'energy + machine → power',30],
+        [both('technology','conductive'),['🔌','Circuit'],'technology + conduction → circuit',30],
+        [both('space','rock'),['🪐','Planet'],'space + rock → planetary body',30],
+        [both('space','light'),['⭐','Star'],'space + light → star',30],
+        [both('weather','air'),['🌬️','Wind'],'weather + air → wind',29],
+        [both('weather','water'),['🌧️','Rain'],'weather + water → precipitation',29],
+        [both('nature','life'),['🌱','Growth'],'nature + life → growth',28],
+        [both('human','creator'),['🛠️','Maker'],'human + creator → maker',28],
+        [both('human','social'),['🏙️','Community'],'human + social → community',28],
+        [both('structure','shelter'),['🏠','Building'],'structure + shelter → building',28],
+        [both('light','dark'),['🌗','Eclipse'],'light + dark → eclipse',28],
+        [both('time','space'),['🌀','Space-Time'],'time + space → space-time',28],
+        [both('energy','light'),['💡','Light'],'energy + light → light',27],
+        [both('organic','material'),['🍎','Food'],'organic material → food',27],
+        [both('mineral','solid'),['💎','Mineral'],'mineral + solid → mineral',26]
+      ];
+      const usable=synth.filter(x=>x[0]).sort((x,y)=>y[3]-x[3]);
+      if(usable.length){
+        const pick=usable[0];
+        return {icon:pick[1][0],name:pick[1][1],note:'Local AI • '+pick[2],recipe:[a&&a.name,b&&b.name]};
+      }
+    }
+
+    // Last-resort synthesis still has a semantic basis. It is preferable to
+    // a dead end, but avoids claiming that unrelated objects have a real recipe.
+    const fallback=[
+      [A&&A.tags.includes('food')&&B&&B.tags.includes('food'),['🍽️','Meal'],'food + food → meal'],
+      [A&&A.tags.includes('life')&&B&&B.tags.includes('life'),['🌱','Life Form'],'life + life → life form'],
+      [A&&A.tags.includes('material')&&B&&B.tags.includes('material'),['🧱','Material'],'material + material → composite material'],
+      [A&&A.tags.includes('energy')&&B&&B.tags.includes('energy'),['⚡','Energy'],'energy + energy → concentrated energy'],
+      [A&&A.tags.includes('nature')&&B&&B.tags.includes('nature'),['🌿','Nature'],'nature + nature → natural system']
+    ].filter(x=>x[0]);
+    if(fallback.length){
+      const f=fallback[0];
+      return {icon:f[1][0],name:f[1][1],note:'Local AI • '+f[2],recipe:[a&&a.name,b&&b.name]};
+    }
 
     return null;
   }
 
   window.HyperCraftLocalAI={
     combine:localAI,
-    version:'0.2-semantic',
+    version:'0.3-generative-semantic',
     capabilities:['recipes','aliases','semantic-tags','weighted-rules','local-inference']
   };
 })();
