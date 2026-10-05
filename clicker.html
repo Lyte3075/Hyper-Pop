@@ -325,7 +325,7 @@ function fmtAch(n){
 }
 function price(u){return Math.floor(u.base*Math.pow(1.16,s.owned[u.id]||0))}
 function save(){localStorage.setItem(KEY,JSON.stringify(s))}
-function power(){let p=s.click*(s.owned.overclock?Math.pow(2,s.owned.overclock):1);for(const u of upgrades){if(u.kind==="multi"&&s.owned[u.id])p*=Math.pow(u.amount,s.owned[u.id]);}return p}
+function power(){let p=s.click;for(const u of upgrades){if(u.kind==="multi"&&s.owned[u.id])p*=Math.pow(u.amount,s.owned[u.id]);}return p}
 function render(){
  $("n").textContent=fmt(s.n);$("power").textContent=fmt(power());$("cps").textContent=fmt(s.auto);
  $("shop").innerHTML=upgrades.map(u=>{let o=s.owned[u.id]||0,p=price(u);return '<button class="item buy" data-id="'+u.id+'" '+(s.n<p?'disabled':'')+'><span><b>'+u.icon+" "+u.name+" ×"+o+'</b><small>'+u.desc+'</small></span><span class="price">'+fmt(p)+' 🖱️</span></button>'}).join("");
