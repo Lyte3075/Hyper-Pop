@@ -284,6 +284,86 @@ Object.assign(recipes,{
   'air+sun':['🌌','Night Sky']
 });
 
+/* Local AI layer: deterministic, offline combination knowledge. No network or account required. */
+const LOCAL_AI_RECIPES={
+  'engine+metal':['⚙️','Machine'],'metal+engine':['⚙️','Machine'],
+  'engine+steel':['⚙️','Machine'],'steel+engine':['⚙️','Machine'],
+  'moon+earth':['🌙','Night'],'earth+moon':['🌙','Night'],
+  'moon+human':['🌙','Night'],'human+moon':['🌙','Night'],
+  'night sky+moon':['🌙','Night'],'moon+night sky':['🌙','Night'],
+  'animal+life':['🐾','Animal'],'life+animal':['🐾','Animal'],
+  'animal+earth':['🐾','Animal'],'earth+animal':['🐾','Animal'],
+  'animal+plant':['🐾','Animal'],'plant+animal':['🐾','Animal'],
+  'animal+water':['🐟','Fish'],'water+animal':['🐟','Fish'],
+  'machine+computer':['🤖','Robot'],'computer+machine':['🤖','Robot'],
+  'machine+human':['🤖','Robot'],'human+machine':['🤖','Robot'],
+  'machine+electricity':['⚙️','Motor'],'electricity+machine':['⚙️','Motor'],
+  'machine+fire':['🚀','Rocket'],'fire+machine':['🚀','Rocket'],
+  'machine+car':['🚗','Car'],'car+machine':['🚗','Car'],
+  'metal+wood':['🪓','Axe'],'wood+metal':['🪓','Axe'],
+  'metal+stone':['🔧','Tool'],'stone+metal':['🔧','Tool'],
+  'metal+fire':['🔩','Forge'],'fire+metal':['🔩','Forge'],
+  'metal+water':['🦀','Rust'],'water+metal':['🦀','Rust'],
+  'human+animal':['🐾','Pet'],'animal+human':['🐾','Pet'],
+  'human+life':['🧬','Human'],'life+human':['🧬','Human'],
+  'human+house':['🏠','Home'],'house+human':['🏠','Home'],
+  'human+city':['🏙️','Citizen'],'city+human':['🏙️','Citizen'],
+  'human+computer':['👨‍💻','Programmer'],'computer+human':['👨‍💻','Programmer'],
+  'night+sun':['🌅','Day'],'sun+night':['🌅','Day'],
+  'night+star':['🌌','Night Sky'],'star+night':['🌌','Night Sky'],
+  'night+moon':['🌙','Moon'],'moon+night':['🌙','Moon'],
+  'day+sun':['☀️','Daylight'],'sun+day':['☀️','Daylight'],
+  'cloud+cloud':['❄️','Snow'],'snow+fire':['💧','Meltwater'],'fire+snow':['💧','Meltwater'],
+  'ice+fire':['💧','Meltwater'],'fire+ice':['💧','Meltwater'],
+  'water+life':['🐟','Fish'],'life+water':['🐟','Fish'],
+  'air+life':['🐦','Bird'],'life+air':['🐦','Bird'],
+  'earth+life':['🧑','Human'],'life+earth':['🧑','Human'],
+  'life+fire':['🐾','Animal'],'fire+life':['🐾','Animal'],
+  'charcoal+earth':['🪨','Coal'],'earth+charcoal':['🪨','Coal'],
+  'coal+fire':['🔥','Charcoal'],'fire+coal':['🔥','Charcoal'],
+  'coal+crystal':['💎','Diamond'],'crystal+coal':['💎','Diamond'],
+  'diamond+metal':['⚔️','Diamond'], 'metal+diamond':['⚔️','Diamond'],
+  'bread+fire':['🍞','Toast'],'fire+bread':['🍞','Toast'],
+  'food+human':['🍽️','Meal'],'human+food':['🍽️','Meal'],
+  'plant+water':['🌿','Algae'],'water+plant':['🌿','Algae'],
+  'plant+earth':['🌱','Plant'],'earth+plant':['🌱','Plant'],
+  'plant+rain':['🌺','Garden'],'rain+plant':['🌺','Garden'],
+  'tree+wood':['🪵','Wood'],'wood+tree':['🪵','Wood'],
+  'tree+fire':['🔥','Charcoal'],'fire+tree':['🔥','Charcoal'],
+  'house+fire':['🔥','Fireplace'],'fire+house':['🔥','Fireplace'],
+  'house+water':['🚿','Plumbing'],'water+house':['🚿','Plumbing'],
+  'car+fuel':['🚗','Car'],'fuel+fire':['🔥','Fuel'],
+  'rocket+space':['🚀','Spaceship'],'space+rocket':['🚀','Spaceship'],
+  'planet+moon':['🌙','Moon'],'moon+planet':['🌙','Moon'],
+  'planet+sun':['☀️','Sun'],'sun+planet':['☀️','Sun'],
+  'sun+earth':['🌍','World'],'earth+sun':['🌍','World'],
+  'star+space':['🌌','Galaxy'],'space+star':['🌌','Galaxy'],
+  'rain+sun':['🌈','Rainbow'],'sun+rain':['🌈','Rainbow'],
+  'cloud+sun':['🌈','Rainbow'],'sun+cloud':['🌈','Rainbow'],
+  'water+sun':['🌈','Rainbow'],'sun+water':['🌈','Rainbow']
+};
+function localAiCombine(a,b){
+  const k=keyOf(a,b);
+  const direct=LOCAL_AI_RECIPES[k];
+  if(direct)return {icon:direct[0],name:direct[1],note:'Local AI • offline'};
+  const n1=a.name.toLowerCase(),n2=b.name.toLowerCase();
+  const names=[n1,n2],has=x=>names.includes(x);
+  if(has('metal')&&has('engine'))return {icon:'⚙️',name:'Machine',note:'Local AI • offline'};
+  if((has('moon')||has('night sky'))&&has('earth'))return {icon:'🌙',name:'Night',note:'Local AI • offline'};
+  if(has('life')&&has('fire'))return {icon:'🐾',name:'Animal',note:'Local AI • offline'};
+  if(has('animal')&&has('human'))return {icon:'🐾',name:'Pet',note:'Local AI • offline'};
+  if(has('computer')&&has('internet'))return {icon:'🌐',name:'Web',note:'Local AI • offline'};
+  if(has('computer')&&has('machine'))return {icon:'🤖',name:'Robot',note:'Local AI • offline'};
+  if(has('metal')&&has('electricity'))return {icon:'🔌',name:'Circuit',note:'Local AI • offline'};
+  if(has('wood')&&has('metal'))return {icon:'🪓',name:'Axe',note:'Local AI • offline'};
+  if(has('stone')&&has('metal'))return {icon:'🔧',name:'Tool',note:'Local AI • offline'};
+  if(has('plant')&&has('sun'))return {icon:'🌳',name:'Tree',note:'Local AI • offline'};
+  if(has('tree')&&has('water'))return {icon:'🪵',name:'Wood',note:'Local AI • offline'};
+  if(has('water')&&has('cloud'))return {icon:'🌧️',name:'Rain',note:'Local AI • offline'};
+  if(has('air')&&has('water'))return {icon:'☁️',name:'Cloud',note:'Local AI • offline'};
+  return null;
+}
+
 const emojiPool=['✨','🌀','🔭','🧬','🧿','🌠','🪄','🧩','🛰️','🗿','🛠️','🎲','🎮','📡','🌐','💠','🔬','🌟','🧊','🔥','🌪️','🌈','🪐','👽','🤯','🧙','🏆','💫'];
 const STORAGE_KEY='hypercraft-discovered-v2';
 function normalizeDiscovered(value){if(!Array.isArray(value))return [];return value.map(x=>Array.isArray(x)?{icon:String(x[0]||'✨'),name:String(x[1]||'').trim()}:x).filter(x=>x&&x.name&&x.icon)}
@@ -344,7 +424,7 @@ function render(){const q=document.getElementById('search').value.toLowerCase();
 function pick(x){if(!s1)s1=x;else if(!s2)s2=x;else{s1=x;s2=null}renderSlots()}
 function showResult(icon,name,note){document.getElementById('result').innerHTML='<div class="icon">'+icon+'</div><div class="result-name">'+name+'</div><div class="result-note">'+note+'</div>'}
 function localCombine(a,b){const r=recipes[keyOf(a,b)];if(r)return {icon:r[0],name:r[1],note:'Built-in recipe'};return null}
-async function aiCombine(a,b){const t=localStorage.getItem('hyperpop_token');if(!t)return null;try{const r=await fetch('https://iapnejlttsqqefkpmelp.supabase.co/functions/v1/hypercraft-combine',{method:'POST',headers:{'Content-Type':'application/json','x-hyperpop-session':t},body:JSON.stringify({a:a.name,b:b.name})});const d=await r.json().catch(()=>({}));if(!r.ok||!d.name)return null;return {icon:d.emoji||'✨',name:d.name,note:d.note||'Generated by AI'}}catch(e){return null}}async function combine(){if(!s1||!s2){showResult('❓','Pick two things first','Choose two discovered elements.');return}const a=s1,b=s2;const local=localCombine(a,b);if(local){showResult(local.icon,local.name,local.note);if(!discovered.some(x=>x.name.toLowerCase()===local.name.toLowerCase())){discovered.push({icon:local.icon,name:local.name});save()}s1=null;s2=null;render();return}showResult('🧠','Thinking...','No built-in formula matched, so Hyper-Craft is checking the AI.');const ai=await aiCombine(a,b);const r=ai;if(!r){showResult('❌','No sensible combination','Nothing established was found for those two things.');s1=null;s2=null;render();return}if(!discovered.some(x=>x.name.toLowerCase()===r.name.toLowerCase())){discovered.push({icon:r.icon,name:r.name});save()}showResult(r.icon,r.name,r.note);s1=null;s2=null;render()}
+async function aiCombine(a,b){return localAiCombine(a,b)}async function combine(){if(!s1||!s2){showResult('❓','Pick two things first','Choose two discovered elements.');return}const a=s1,b=s2;const local=localCombine(a,b);if(local){showResult(local.icon,local.name,local.note);if(!discovered.some(x=>x.name.toLowerCase()===local.name.toLowerCase())){discovered.push({icon:local.icon,name:local.name});save()}s1=null;s2=null;render();return}showResult('🧠','Thinking...','Using Hyper-Craft Local AI. No internet connection is needed.');const ai=await aiCombine(a,b);const r=ai;if(!r){showResult('❌','No sensible combination','Nothing established was found for those two things.');s1=null;s2=null;render();return}if(!discovered.some(x=>x.name.toLowerCase()===r.name.toLowerCase())){discovered.push({icon:r.icon,name:r.name});save()}showResult(r.icon,r.name,r.note);s1=null;s2=null;render()}
 document.getElementById('combine').onclick=combine;document.getElementById('clear').onclick=()=>{s1=s2=null;renderSlots()};document.getElementById('export-progress').onclick=exportProgress;document.getElementById('import-progress').onclick=()=>document.getElementById('import-file').click();document.getElementById('import-file').onchange=e=>{importProgress(e.target.files&&e.target.files[0]);e.target.value=''};document.getElementById('search').oninput=render;
 document.getElementById('search').value='';
 requestAnimationFrame(()=>render());
