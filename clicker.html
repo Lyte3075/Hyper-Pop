@@ -375,7 +375,7 @@ function fmt(n){
    const v=n/Math.pow(1000,e);
    return (v>=100?v.toFixed(0):v>=10?v.toFixed(1):v.toFixed(2)).replace(/\\.0+$|(?<=\\.\\d)0+$/,"")+units[e];
  }
- return n.toExponential(2).replace("+","e+").replace("e+0","e+");
+ return n.toExponential(2).replace("e+","e");
 }
 function fmtAch(n){
  if(n<1e6)return n.toLocaleString("en-US");
@@ -386,14 +386,24 @@ function fmtAch(n){
 }
 function price(u){const owned=s.owned[u.id]||0;const curves={multi:3.85,click:1.72,auto:1.58,autoMulti:2.35};const growth=curves[u.kind]||1.65;return Math.floor(u.base*Math.pow(growth,owned)*Math.pow(1.08,owned*owned))}
 function save(){localStorage.setItem(KEY,JSON.stringify(s))}
-function power(){let p=s.click;for(const u of upgrades){if(u.kind==="multi"&&s.owned[u.id])p*=Math.pow(u.amount,s.owned[u.id]);}return p}
+function multiFactor(){let m=1;for(const u of upgrades){if(u.kind==="multi"&&s.owned[u.id])m*=Math.pow(u.amount,s.owned[u.id]);}return m}
+function power(){return s.click*multiFactor()}
 function effectivePower(){return power()*(1+(s.rewards||0))}
+function effectText(u){
+ if(u.kind==="click"){
+   const final=u.amount*multiFactor()*(1+(s.rewards||0));
+   return "+"+fmt(u.amount)+" base click power • currently +"+fmt(final)+" final/click";
+ }
+ if(u.kind==="auto")return "+"+fmt(u.amount)+" clicks/sec";
+ if(u.kind==="multi")return "×"+fmt(u.amount)+" final click power per purchase";
+ return u.desc;
+}
 function production(){let p=s.auto;for(const u of upgrades){if(u.kind==="autoMulti"&&s.owned[u.id])p*=Math.pow(u.amount,s.owned[u.id]);}return p}
-function rewardForAchievement(a){let v=a[3];return v>=1e33?"×25 click power":v>=1e24?"×10 click power":v>=1e15?"×5 click power":v>=1e9?"+100% click power":v>=1e6?"+50% click power":v>=1e3?"+10% click power":"+5% click power"}
+function rewardForAchievement(a){let v=a[3];return v>=1e33?"+2500% click power":v>=1e24?"+1000% click power":v>=1e15?"+500% click power":v>=1e9?"+100% click power":v>=1e6?"+50% click power":v>=1e3?"+10% click power":"+5% click power"}
 function achievementMultiplier(){return 1+(s.rewards||0)}
 function render(){
  $("n").textContent=fmt(s.n);$("power").textContent="+"+fmt(effectivePower());$("cps").textContent=fmt(production());
- $("shop").innerHTML=upgrades.map(u=>{let o=s.owned[u.id]||0,p=price(u);return '<button class="item buy" data-id="'+u.id+'" '+(s.n<p?'disabled':'')+'><span><b>'+u.icon+" "+u.name+" ×"+o+'</b><small>'+u.desc+'</small></span><span class="price">'+fmt(p)+' 🖱️</span></button>'}).join("");
+ $("shop").innerHTML=upgrades.map(u=>{let o=s.owned[u.id]||0,p=price(u);return '<button class="item buy" data-id="'+u.id+'" '+(s.n<p?'disabled':'')+'><span><b>'+u.icon+" "+u.name+" ×"+o+'</b><small>'+effectText(u)+'</small></span><span class="price">'+fmt(p)+' 🖱️</span></button>'}).join("");
  $("stats").innerHTML='<div class="stats"><div class="stat"><b>'+fmt(s.total)+'</b><span>Total clicks</span></div><div class="stat"><b>'+fmt(s.auto)+'</b><span>Clicks/sec</span></div><div class="stat"><b>'+fmt(s.spent)+'</b><span>Spent</span></div><div class="stat"><b>'+fmt(s.bestCombo||0)+'</b><span>Best combo</span></div><div class="stat"><b>'+fmt(s.crit||0)+'</b><span>Criticals</span></div><div class="stat"><b>'+Math.floor((Date.now()-s.started)/1000)+'s</b><span>Playing</span></div></div>';
  $("achievements").innerHTML=achievements.map(a=>'<div class="badge '+(s.ach[a[0]]?'done':'')+'"><strong>'+(s.ach[a[0]]?'🏆':'🔒')+' '+a[1]+'</strong><small>'+a[2]+'</small><div class="reward">'+(s.ach[a[0]]?'Reward: '+rewardForAchievement(a):'Reward locked')+'</div></div>').join("");
 $("tasks").innerHTML=tasks.map(t=>{let p=t[4]?Math.min(1,(s.total-t[2])/t[3]):0,done=s.task[t[0]];if(t[0]==="gold")p=Math.min(1,(s.golden||0)/t[3]);if(t[0]==="combo")p=Math.min(1,(s.bestCombo||0)/t[3]);if(t[0]==="crit")p=Math.min(1,(s.crit||0)/t[3]);if(t[0]==="hours")p=Math.min(1,(Date.now()-s.started)/1000/t[3]);return '<div class="task"><b><span>'+t[1]+'</span><span>'+(done?'CLAIMED':'')+'</span></b><small>'+t[2]+'</small><div class="bar"><i style="width:'+(p*100)+'%"></i></div></div>'}).join("");
