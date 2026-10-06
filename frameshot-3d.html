@@ -31,14 +31,12 @@
         #hp-crosshair:before{left:7px;top:0;width:2px;height:16px}.hp-crosshair:after{left:0;top:7px;width:16px;height:2px}
         @media(min-width:801px){#move-zone,#look-zone,#fire,#melee,#super,#switch,#joy-base{display:block!important}#hp-crosshair{display:block}}
 @media(max-width:800px){#move-zone,#look-zone{display:block!important}.btn{display:flex!important}.ctrl-zone{pointer-events:auto!important}.btn{touch-action:manipulation!important}}
-#move-zone,#look-zone{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}#move-zone{position:fixed!important;left:0!important;top:0!important;bottom:0!important;width:55vw!important;height:100dvh!important;z-index:5000!important;pointer-events:auto!important;touch-action:none!important}
-#look-zone{position:fixed!important;right:0!important;top:0!important;bottom:0!important;width:45vw!important;height:100dvh!important;z-index:4999!important;pointer-events:auto!important;touch-action:none!important}
-#joy-base{position:fixed!important;left:30px!important;bottom:30px!important;z-index:5001!important;pointer-events:none!important}
-#joy-stick{pointer-events:none!important}
-.btn{z-index:5005!important}
-.btn-label{display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;height:100%!important;position:relative!important;z-index:10!important;font-size:clamp(10px,2.2vmin,18px)!important;line-height:1!important;white-space:nowrap!important;overflow:visible!important;text-align:center!important}</style>
+#move-zone,#look-zone{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}#hp-new-joystick-zone{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;z-index:10000!important;pointer-events:none!important;touch-action:none!important}
+#hp-new-joystick{position:fixed!important;left:clamp(24px,7vw,90px)!important;bottom:clamp(24px,7vh,80px)!important;width:86px!important;height:86px!important;border-radius:50%!important;background:rgba(40,40,40,.72)!important;border:2px solid rgba(255,255,255,.25)!important;z-index:10001!important;pointer-events:none!important}
+#hp-new-joystick::after{content:"";position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px;border-radius:50%;background:#fff}
+.btn{z-index:10005!important}</style>
 <style id="hyperpop-back-style">#hyperpop-back{position:fixed;top:14px;left:14px;z-index:9999;display:flex;align-items:center;gap:7px;padding:9px 13px;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:rgba(10,10,20,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;text-decoration:none;font:700 13px system-ui,sans-serif;box-shadow:0 8px 30px #0008;cursor:pointer;touch-action:manipulation}#hyperpop-back:hover{background:rgba(255,255,255,.14);transform:translateY(-1px)}@media(max-width:600px){#hyperpop-back{top:10px;left:10px;padding:8px 11px;font-size:12px}}</style><style id="pc-controls-style">#pc-help{position:absolute;left:10px;bottom:10px;z-index:35;background:rgba(0,0,0,.72);border:1px solid #ffffff22;border-radius:8px;padding:7px 9px;color:#ddd;font:10px monospace;pointer-events:none}@media(max-width:700px){#pc-help{display:none}}</style></head>
-<body><a id="hp-global-back" href="index.html">← Hyper-Pop</a><div id="hp-crosshair"></div><a id="hyperpop-back" href="index.html" aria-label="Back to Hyper-Pop">← Hyper-Pop</a>
+<body><div id="hp-new-joystick-zone"><div id="hp-new-joystick"></div></div><a id="hp-global-back" href="index.html">← Hyper-Pop</a><div id="hp-crosshair"></div><a id="hyperpop-back" href="index.html" aria-label="Back to Hyper-Pop">← Hyper-Pop</a>
     <div id="container">
         <canvas id="g"></canvas>
         <canvas id="minimap"></canvas>
@@ -141,56 +139,32 @@ world = genMap(20);
 let joy = {x:0,y:0}, moveId=null, lookId=null, lastX=0;
 const moveZone=document.getElementById('move-zone');
 const joyBase=document.getElementById('joy-base');
-const joyStick=document.getElementById('joy-stick');
-function joystickPoint(x,y){
- const b=joyBase.getBoundingClientRect();
- const dx=x-(b.left+b.width/2),dy=y-(b.top+b.height/2);
- const d=Math.min(32,Math.hypot(dx,dy)),a=Math.atan2(dy,dx);
- joy.x=Math.cos(a)*(d/32);joy.y=Math.sin(a)*(d/32);
- const k=d?Math.min(1,32/d):1;
- joyStick.style.transform=`translate(${dx*k}px,${dy*k}px)`;
+const joyStick=document.getElementById('joy-stick'let joy={x:0,y:0},moveId=null,lookId=null,lastX=0;
+const newJoy=document.getElementById('hp-new-joystick');
+let newJoyTouch=null;
+function setNewJoy(x,y){
+ const r=newJoy.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+ const dx=x-cx,dy=y-cy,d=Math.min(34,Math.hypot(dx,dy)),a=Math.atan2(dy,dx);
+ joy.x=Math.cos(a)*(d/34);joy.y=Math.sin(a)*(d/34);
+ newJoy.style.setProperty('--jx',(Math.cos(a)*d)+'px');
+ newJoy.style.setProperty('--jy',(Math.sin(a)*d)+'px');
+ newJoy.style.transform=`translate(${Math.cos(a)*d}px,${Math.sin(a)*d}px)`;
 }
-function joystickReset(){
- moveId=null;joy.x=0;joy.y=0;joyStick.style.transform='';
-}
-moveZone.addEventListener('touchstart',e=>{
- const t=e.changedTouches[0];
- if(!t)return;
- moveId=t.identifier;
- joystickPoint(t.clientX,t.clientY);
- e.preventDefault();
-},{passive:false});
-moveZone.addEventListener('touchmove',e=>{
- if(moveId===null)return;
- for(const t of e.touches)if(t.identifier===moveId){
-  joystickPoint(t.clientX,t.clientY);
-  e.preventDefault();
-  break;
- }
-},{passive:false});
-moveZone.addEventListener('touchend',e=>{
- for(const t of e.changedTouches)if(t.identifier===moveId){joystickReset();break}
-},{passive:false});
-moveZone.addEventListener('touchcancel',joystickReset,{passive:false});
-moveZone.addEventListener('pointerdown',e=>{
- if(e.pointerType!=='touch')return;
- moveId=e.pointerId;
- moveZone.setPointerCapture?.(e.pointerId);
- joystickPoint(e.clientX,e.clientY);
- e.preventDefault();
-},{passive:false});
-moveZone.addEventListener('pointermove',e=>{
- if(e.pointerType!=='touch'||e.pointerId!==moveId)return;
- joystickPoint(e.clientX,e.clientY);
- e.preventDefault();
-},{passive:false});
-moveZone.addEventListener('pointerup',e=>{if(e.pointerId===moveId)joystickReset()},{passive:false});
-moveZone.addEventListener('pointercancel',e=>{if(e.pointerId===moveId)joystickReset()},{passive:false});
-window.addEventListener('keydown',e=>{
- const k=e.key.toLowerCase();
- if(['w','a','s','d'].includes(k)){joyKeys[k==='w'?'up':k==='s'?'down':k==='a'?'left':'right']=true;e.preventDefault();}
-});
-window.addEventListener('keyup',e=>{
+function resetNewJoy(){newJoyTouch=null;joy.x=0;joy.y=0;newJoy.style.transform='';}
+document.addEventListener('touchstart',e=>{
+ if(newJoyTouch!==null)return;
+ const t=e.changedTouches[0]; if(!t)return;
+ if(t.clientX>innerWidth*.55)return;
+ newJoyTouch=t.identifier;setNewJoy(t.clientX,t.clientY);e.preventDefault();
+},{capture:true,passive:false});
+document.addEventListener('touchmove',e=>{
+ if(newJoyTouch===null)return;
+ for(const t of e.touches)if(t.identifier===newJoyTouch){setNewJoy(t.clientX,t.clientY);e.preventDefault();break}
+},{capture:true,passive:false});
+document.addEventListener('touchend',e=>{
+ if([...e.changedTouches].some(t=>t.identifier===newJoyTouch))resetNewJoy();
+},{capture:true,passive:false});
+document.addEventListener('touchcancel',resetNewJoy,{capture:true,passive:false});Listener('keyup',e=>{
  const k=e.key.toLowerCase();
  if(['w','a','s','d'].includes(k))joyKeys[k==='w'?'up':k==='s'?'down':k==='a'?'left':'right']=false;
 });
