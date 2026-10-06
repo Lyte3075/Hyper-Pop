@@ -134,11 +134,19 @@ world = genMap(20);
 
 let joy = { x:0, y:0 }, moveId = null, lookId = null, lastX = 0;
 const moveZone = document.getElementById('move-zone');
-moveZone.addEventListener('touchstart',e=>{e.preventDefault();const t=e.changedTouches[0];moveId=t.identifier;moveJoystick(t.clientX,t.clientY)},{passive:false});
-moveZone.addEventListener('touchmove',e=>{e.preventDefault();for(const t of e.changedTouches)if(t.identifier===moveId)moveJoystick(t.clientX,t.clientY)},{passive:false});
-moveZone.addEventListener('touchend',e=>{e.preventDefault();joy.x=0;joy.y=0;moveId=null;document.getElementById('joy-stick').style.transform=''},{passive:false});
-moveZone.addEventListener('touchcancel',()=>{joy.x=0;joy.y=0;moveId=null;document.getElementById('joy-stick').style.transform=''});
-function moveJoystick(x,y){const b=document.getElementById('joy-base').getBoundingClientRect(),cx=b.left+b.width/2,cy=b.top+b.height/2;let dx=x-cx,dy=y-cy,d=Math.min(30,Math.hypot(dx,dy)),a=Math.atan2(dy,dx);joy.x=Math.cos(a)*(d/30);joy.y=Math.sin(a)*(d/30);const sx=dx*(d<30?1:30/d),sy=dy*(d<30?1:30/d);document.getElementById('joy-stick').style.transform=`translate(${sx}px,${sy}px)`;}
+function moveJoystick(x,y){
+ const b=document.getElementById('joy-base').getBoundingClientRect(),cx=b.left+b.width/2,cy=b.top+b.height/2;
+ let dx=x-cx,dy=y-cy,d=Math.min(30,Math.hypot(dx,dy)),a=Math.atan2(dy,dx);
+ joy.x=Math.cos(a)*(d/30);joy.y=Math.sin(a)*(d/30);
+ const sx=dx*(d<30?1:30/d),sy=dy*(d<30?1:30/d);
+ document.getElementById('joy-stick').style.transform=`translate(${sx}px,${sy}px)`;
+}
+function endJoystick(e){if(e&&e.pointerType&&e.pointerType!=='touch')return;joy.x=0;joy.y=0;moveId=null;document.getElementById('joy-stick').style.transform='';}
+moveZone.addEventListener('pointerdown',e=>{if(e.pointerType!=='touch')return;e.preventDefault();moveId=e.pointerId;moveZone.setPointerCapture?.(e.pointerId);moveJoystick(e.clientX,e.clientY)},{passive:false});
+moveZone.addEventListener('pointermove',e=>{if(e.pointerType!=='touch'||e.pointerId!==moveId)return;e.preventDefault();moveJoystick(e.clientX,e.clientY)},{passive:false});
+moveZone.addEventListener('pointerup',endJoystick,{passive:false});
+moveZone.addEventListener('pointercancel',endJoystick,{passive:false});
+moveZone.addEventListener('lostpointercapture',endJoystick,{passive:false});
 
 const lookZone = document.getElementById('look-zone');
 lookZone.addEventListener('touchstart', e => { lookId = e.changedTouches[0].identifier; lastX = e.changedTouches[0].clientX; }, {passive: false});
