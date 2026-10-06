@@ -16,12 +16,35 @@ const value=i=>Math.max(.01,Number(s.prices[i]||stocks[i].base));
 const portfolio=()=>Object.keys(s.holdings).reduce((t,i)=>t+shares(i)*value(i),0);
 const net=()=>s.cash+portfolio();
 function save(){localStorage.setItem(KEY,JSON.stringify(s))}
+const AudioCtx=window.AudioContext||window.webkitAudioContext;
+let audioCtx;
+function tone(freq,duration,type="sine",volume=.045,when=0){
+ try{
+  audioCtx=audioCtx||new AudioCtx();
+  if(audioCtx.state==="suspended")audioCtx.resume();
+  const o=audioCtx.createOscillator(),g=audioCtx.createGain(),t=audioCtx.currentTime+when;
+  o.type=type;o.frequency.setValueAtTime(freq,t);
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(volume,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+duration);
+  o.connect(g);g.connect(audioCtx.destination);o.start(t);o.stop(t+duration+.02);
+ }catch(e){}
+}
+function uiSound(kind){
+ const map={select:[520,.055,"sine"],buy:[420,.08,"triangle"],sell:[300,.09,"triangle"],advance:[680,.07,"sine"],reset:[240,.08,"sawtooth"],error:[150,.12,"square"],click:[560,.045,"sine"]};
+ const x=map[kind]||map.click;tone(x[0],x[1],x[2],.04);
+ if(kind==="buy"){tone(660,.08,"triangle",.035,.07);tone(880,.12,"sine",.03,.14)}
+ if(kind==="sell"){tone(220,.09,"triangle",.035,.07);tone(170,.13,"sine",.025,.15)}
+ if(kind==="advance"){tone(820,.07,"sine",.03,.07);tone(1040,.1,"sine",.025,.14)}
+}
+function moneySound(delta){
+ if(delta>0){tone(523,.08,"triangle",.045);tone(659,.08,"triangle",.04,.08);tone(784,.13,"sine",.035,.16)}
+ else if(delta<0){tone(392,.08,"triangle",.04);tone(294,.1,"triangle",.035,.08);tone(220,.14,"sine",.03,.17)}
+}
 function note(t,bad=false){$("msg").textContent=t;$("msg").style.color=bad?"#ff9aad":"#ffeeb0"}
-function select(i){s.selected=i;save();render()}
-function buy(){if(s.gameOver)return;const i=s.selected,q=Math.max(1,Math.floor(Number($("qty").value)||1)),cost=q*value(i),types=Object.keys(s.holdings).filter(i=>shares(i)>0);if(s.cash<cost)return note("Not enough cash for that purchase.",true);if(!shares(i)&&types.length>=15)return note("Portfolio full. You can hold 15 different stocks.",true);s.cash-=cost;s.holdings[i]=shares(i)+q;save();note("Bought "+q+" share"+(q===1?"":"s")+" of "+stocks[i].name+".");render()}
-function sell(){if(s.gameOver)return;const i=s.selected,q=Math.max(1,Math.floor(Number($("qty").value)||1));if(shares(i)<q)return note("You don't own that many shares.",true);s.cash+=q*value(i);s.holdings[i]-=q;if(s.holdings[i]<=0)delete s.holdings[i];save();note("Sold "+q+" share"+(q===1?"":"s")+" of "+stocks[i].name+".");render()}
-function advance(){if(s.gameOver)return;let delta=0;stocks.forEach((x,i)=>{const pct=(Math.random()-.47)*.20+(Math.random()-.5)*.06+(Math.random()<.035?(Math.random()-.5)*.55:0),old=value(i);s.prices[i]=Math.max(.01,old*(1+pct));if(shares(i))delta+=shares(i)*(s.prices[i]-old)});s.day++;save();if(net()<=.01){s.gameOver=true;s.cash=0;save();note("💀 BANKRUPT. You lost everything. Reset to play again.",true)}else note((delta>=0?"📈 ":"📉 ")+(delta>=0?"Your holdings gained ":"Your holdings lost ")+money(Math.abs(delta))+" today. Day "+s.day+".");render()}
-function reset(){s=fresh();save();note("Fresh portfolio. $1,000 loaded.");render()}
+function select(i){uiSound("select");s.selected=i;save();render()}
+function buy(){if(s.gameOver)return;const i=s.selected,q=Math.max(1,Math.floor(Number($("qty").value)||1)),cost=q*value(i),types=Object.keys(s.holdings).filter(i=>shares(i)>0);if(s.cash<cost){uiSound("error");return note("Not enough cash for that purchase.",true)}if(!shares(i)&&types.length>=15){uiSound("error");return note("Portfolio full. You can hold 15 different stocks.",true)}s.cash-=cost;s.holdings[i]=shares(i)+q;uiSound("buy");moneySound(cost);save();note("Bought "+q+" share"+(q===1?"":"s")+" of "+stocks[i].name+".");render()}
+function sell(){if(s.gameOver)return;const i=s.selected,q=Math.max(1,Math.floor(Number($("qty").value)||1));if(shares(i)<q){uiSound("error");return note("You don't own that many shares.",true)}s.cash+=q*value(i);s.holdings[i]-=q;if(s.holdings[i]<=0)delete s.holdings[i];uiSound("sell");moneySound(q*value(i));save();note("Sold "+q+" share"+(q===1?"":"s")+" of "+stocks[i].name+".");render()}
+function advance(){if(s.gameOver){uiSound("error");return}let delta=0;stocks.forEach((x,i)=>{const pct=(Math.random()-.47)*.20+(Math.random()-.5)*.06+(Math.random()<.035?(Math.random()-.5)*.55:0),old=value(i);s.prices[i]=Math.max(.01,old*(1+pct));if(shares(i))delta+=shares(i)*(s.prices[i]-old)});s.day++;uiSound("advance");moneySound(delta);save();if(net()<=.01){s.gameOver=true;s.cash=0;save();note("💀 BANKRUPT. You lost everything. Reset to play again.",true)}else note((delta>=0?"📈 ":"📉 ")+(delta>=0?"Your holdings gained ":"Your holdings lost ")+money(Math.abs(delta))+" today. Day "+s.day+".");render()}
+function reset(){uiSound("reset");s=fresh();save();note("Fresh portfolio. $1,000 loaded.");render()}
 function render(){const n=net(),p=portfolio(),count=Object.keys(s.holdings).filter(i=>shares(i)>0).length;$("stats").innerHTML='<div class="stat"><small>Cash</small><b class="money">'+money(s.cash)+'</b></div><div class="stat"><small>Invested</small><b>'+money(p)+'</b></div><div class="stat"><small>Net worth · Day '+s.day+'</small><b class="'+(n>=1000?"money":"loss")+'">'+money(n)+'</b></div>';$("selected").textContent=stocks[s.selected].name+" ("+stocks[s.selected].ticker+") · "+money(value(s.selected))+" · "+shares(s.selected)+" owned";const q=$("search").value.toLowerCase();$("market").innerHTML=stocks.map((x,i)=>{if(q&&!((x.name+" "+x.ticker+" "+x.sector).toLowerCase().includes(q)))return "";const v=value(i),change=(v/x.base-1)*100;return '<button class="stock '+(i===s.selected?"active":"")+'" data-i="'+i+'"><div><span class="name">'+x.name+'</span> <span class="ticker">'+x.ticker+'</span><div class="sub">'+x.sector+(shares(i)?" · "+shares(i)+" owned":"")+'</div></div><div class="price">'+money(v)+'</div><div class="move '+(change>=0?"up":"down")+'">'+(change>=0?"+":"")+change.toFixed(1)+"%</div></button>"}).join("");document.querySelectorAll(".stock").forEach(b=>b.onclick=()=>select(Number(b.dataset.i)));$("holdings").innerHTML=count?Object.keys(s.holdings).filter(i=>shares(i)>0).map(i=>'<div class="holding"><div><b>'+stocks[i].name+'</b><br><span class="sub">'+shares(i)+' shares × '+money(value(i))+'</span></div><b>'+money(shares(i)*value(i))+'</b></div>').join(""):'<div class="empty">No stocks yet. Pick one from the market.</div>';$("next").disabled=$("buy").disabled=$("sell").disabled=s.gameOver}
-$("buy").onclick=buy;$("sell").onclick=sell;$("next").onclick=advance;$("reset").onclick=reset;$("search").oninput=render;render();
+$("buy").onclick=buy;$("sell").onclick=sell;$("next").onclick=advance;$("reset").onclick=reset;$("search").oninput=render;document.addEventListener("click",e=>{const b=e.target.closest("button");if(!b||b.disabled||["buy","sell","next","reset"].includes(b.id)||b.classList.contains("stock"))return;uiSound("click")});render();
 </script></body></html>
