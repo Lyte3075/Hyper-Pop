@@ -34,6 +34,7 @@ async function hpAccountBar(){const slot=document.getElementById('account-slot')
 /help                  Show all commands
 /close                 Close the terminal
 /clear                 Clear terminal output
+/recipes                Search the Hyper-Craft recipe database
 /status                Show cheat status and current page
 /click [n]             Press the main game control n times
 /spam [n]              Rapid-fire the main game control
@@ -63,24 +64,15 @@ TIP: /js is the universal cheat and can be used for game-specific cheats too.`;
       const parts=raw.trim().split(/\s+/),cmd=(parts.shift()||'').toLowerCase(),arg=parts.join(' ');if(!cmd)return;
       print('> '+raw,'hp-cmd');
       try{
-        if(cmd==='/recipes'){print(`HYPER-CRAFT RECIPE LOOKUP
-/recipes
-/recipes <ingredient>
-/recipes <ingredient> + <ingredient>
-
-Examples:
-Earth + Water → Mud
-Fire + Water → Steam
-Steam + Fire → Engine
-Engine + Metal → Machine
-Moon + Earth → Night
-Animal + Life → Animal
-Machine + Computer → Robot
-Metal + Wood → Tool
-Rain + Sun → Rainbow
-
-For the complete live recipe database, open Hyper-Craft. The command accepts a search term and shows matching known recipes when the recipe database is loaded on that page.`,'hp-ok');if(location.pathname.endsWith('hyper-craft.html')&&window.HYPERCRAFT_EXTRA){const q=arg.toLowerCase();const rows=Object.entries(window.HYPERCRAFT_EXTRA).filter(([k,v])=>!q||k.includes(q)||String(v?.[1]||'').toLowerCase().includes(q)).slice(0,80).map(([k,v])=>k.replace(/\\+/g,' + ')+' → '+(v?.[0]||'')+' '+(v?.[1]||''));print(rows.join('\\n')||'No matching recipes.','hp-ok')}return}
-        if(cmd==='/help'){print(help,'hp-ok');return} if(cmd==='/close'){term.classList.remove('open');return}
+        if(cmd==='/recipes'){
+ const q=arg.trim().toLowerCase();
+ print('HYPER-CRAFT RECIPE LOOKUP\\n'+(q?'Searching for: '+arg:'Showing recipe database')+'\\n','hp-ok');
+ const parse=src=>{const map=new Map();const re=/['"]([^'"]+\\+[^'"]+)['"]\\s*:\\s*\\[['"]([^'"]*)['"]\\s*,\\s*['"]([^'"]+)['"]\\]/g;let m;while((m=re.exec(src)))map.set(m[1].toLowerCase(),[m[2],m[3]]);return map};
+ const show=map=>{const rows=[...map.entries()].filter(([k,v])=>!q||k.includes(q)||v[1].toLowerCase().includes(q)).sort((a,b)=>a[0].localeCompare(b[0])).slice(0,120).map(([k,v])=>k.split('+').join(' + ')+' → '+v[0]+' '+v[1]);print(rows.join('\\n')||'No matching recipes found.','hp-ok');if(rows.length===120)print('Showing first 120 matches. Narrow the search for more.','hp-warn')};
+ const map=new Map();
+ try{const page=await fetch('hyper-craft.html',{cache:'no-store'});if(page.ok)parse(await page.text()).forEach((v,k)=>map.set(k,v));const extra=await fetch('hyper-craft-recipes.js',{cache:'no-store'});if(extra.ok)parse(await extra.text()).forEach((v,k)=>map.set(k,v))}catch(e){}
+ if(map.size)show(map);else print('Could not load the Hyper-Craft recipe database.','hp-err');return;
+} if(cmd==='/help'){print(help,'hp-ok');return} if(cmd==='/close'){term.classList.remove('open');return}
         if(cmd==='/clear'){out.textContent='';return}
         if(cmd==='/status'){print('Unlocked ✓  •  '+location.pathname.split('/').pop()+'  •  '+clickables().length+' clickable controls','hp-ok');return}
         if(cmd==='/click'){const n=Math.max(1,Math.min(10000,Number(parts[0])||1)),els=clickables(),target=els.find(x=>/click|press|start|go|roll|flip|tap|play/i.test(x.id+' '+x.textContent))||els[0];if(!target){print('No clickable game control found.','hp-err');return}for(let i=0;i<n;i++)target.click();print('Pressed '+n+'×: '+(target.textContent||target.id),'hp-ok');return}
