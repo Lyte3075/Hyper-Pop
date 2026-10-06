@@ -1052,6 +1052,20 @@ document.addEventListener('click',e=>{if(e.target.closest('button'))HPFX.click()
 const _collectItem=collectItem;collectItem=function(item){HPFX.pickup();return _collectItem(item)};
 const _useInventoryItem=useInventoryItem;useInventoryItem=function(){HPFX.use();return _useInventoryItem()};
 const _toggleHideInLocker=toggleHideInLocker;toggleHideInLocker=function(){HPFX.hide();return _toggleHideInLocker()};
-window.addEventListener('keydown',e=>{if(['w','a','s','d','shift','e','f',' '].includes(e.key.toLowerCase()))HPFX.step()},{passive:true});
+window.addEventListener('keydown',e=>{
+ const k=e.key.toLowerCase();
+ if(['w','a','s','d','shift'].includes(k))HPFX.step();
+ if(k==='f'||k==='e'||k===' ')HPFX.use();
+ if(k==='shift')HPFX.step();
+},{passive:true});
+let hpLastHealth=health,hpLastDanger=0,hpLastStep=0;
+const hpSoundLoop=setInterval(()=>{
+ if(isGameOver)return;
+ const now=performance.now();
+ if(health<hpLastHealth){HPFX.scare();hpLastHealth=health}
+ const dangerEl=document.getElementById('danger-level');
+ if(dangerEl){const txt=dangerEl.textContent||'';const m=txt.match(/(\d+)/);const danger=m?Number(m[1]):0;if(danger>hpLastDanger&&danger>=70)HPFX.scare();hpLastDanger=danger}
+ if(isMoving&&now-hpLastStep>220){HPFX.step();hpLastStep=now}
+},100);
 </script><script src="app.js"></script></body>
 </html>
