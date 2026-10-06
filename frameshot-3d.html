@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        body { margin: 0; background: #000; color: #fff; font-family: monospace; overflow: hidden; touch-action: none; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        #container { position: relative; width: 100vw; height: 56.25vw; max-height: 100vh; max-width: 177.78vh; background: #050505; }
+        canvas { width: 100%; height: 100%; image-rendering: pixelated; display: block; }
+        #ui { position: absolute; top: 10px; left: 10px; pointer-events: none; font-size: 10px; background: rgba(0,0,0,0.8); padding: 8px; border-radius: 5px; z-index: 30; border-left: 3px solid #0f0; }
+        #boss-hud { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 200px; display: none; text-align: center; z-index: 35; }
+        #boss-bar-bg { width: 100%; height: 8px; background: #222; border: 1px solid #fff; margin-top: 4px; }
+        #boss-bar-fill { width: 100%; height: 100%; background: #f00; transition: width 0.1s; }
+        #minimap { position: absolute; top: 10px; right: 10px; width: 80px; height: 80px; background: rgba(0,0,0,0.85); border: 1px solid #444; z-index: 30; border-radius: 2px; }
+        .ctrl-zone { position: absolute; top: 0; bottom: 0; z-index: 10; }
+        #move-zone { left: 0; width: 35%; }
+        #look-zone { right: 0; width: 65%; }
+        #joy-base { position: absolute; bottom: 30px; left: 30px; width: 70px; height: 70px; background: rgba(255,255,255,0.1); border-radius: 50%; border: 1px solid #444; }
+        #joy-stick { position: absolute; top: 20px; left: 20px; width: 30px; height: 30px; background: #fff; border-radius: 50%; }
+        .btn { position: absolute; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid #fff; pointer-events: auto; z-index: 25; text-align: center; }
+        #fire { bottom: 20px; right: 20px; width: 80px; height: 80px; background: rgba(255,0,0,0.4); }
+        #melee { bottom: 110px; right: 25px; background: rgba(0,255,100,0.3); width: 55px; height: 55px; font-size: 10px; }
+        #super { bottom: 25px; right: 115px; background: rgba(0,100,255,0.3); width: 55px; height: 55px; overflow: hidden; font-size: 10px; }
+        #switch { bottom: 100px; right: 100px; background: rgba(100,100,100,0.4); width: 45px; height: 45px; font-size: 9px; }
+        #super-fill { position: absolute; bottom: 0; width: 100%; background: rgba(255,255,255,0.3); height: 0%; }
+        #msg { position: absolute; top: 20%; left: 50%; transform: translateX(-50%); color: #0f0; font-weight: bold; pointer-events: none; z-index: 40; text-align: center; }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <canvas id="g"></canvas>
+        <canvas id="minimap"></canvas>
+        <div id="boss-hud">
+            <div id="boss-name">ANCIENT CORE</div>
+            <div id="boss-bar-bg"><div id="boss-bar-fill"></div></div>
+        </div>
+        <div id="ui">LVL: <span id="lvl">1</span> | HP: <span id="hp">100</span>/<span id="mhp">100</span><br>WEP: <span id="wep-name">RIFLE</span></div>
+        <div id="msg"></div>
+        <div id="move-zone" class="ctrl-zone"><div id="joy-base"><div id="joy-stick"></div></div></div>
+        <div id="look-zone" class="ctrl-zone"></div>
+        <div id="fire" class="btn">FIRE</div>
+        <div id="melee" class="btn">SWORD</div>
+        <div id="super" class="btn">ULTRA<div id="super-fill"></div></div>
+        <div id="switch" class="btn">SWAP</div>
+    </div>
+
+<script>
+const canvas = document.getElementById('g'), ctx = canvas.getContext('2d');
+const mCanvas = document.getElementById('minimap'), mCtx = mCanvas.getContext('2d');
+const W = 320, H = 180; canvas.width = W; canvas.height = H;
+mCanvas.width = 80; mCanvas.height = 80;
+
+const WEAPONS = [
+    { name: "RIFLE", dmg: 25, speed: 0.35, spread: 0.04, color: "#ff0", auto: true, delay: 8, trait: "Knockback" },
+    { name: "SHOTGUN", dmg: 15, speed: 0.25, pellets: 8, spread: 0.3, color: "#fff", auto: false, delay: 35, trait: "Anti-Armor" },
+    { name: "RAILGUN", dmg: 300, speed: 1.2, spread: 0, color: "#0ff", auto: false, delay: 70, trait: "Pierce" },
+    { name: "PLASMA", dmg: 18, speed: 0.22, spread: 0.02, color: "#f0f", auto: true, delay: 10, trait: "Searing" },
+    { name: "SMG", dmg: 10, speed: 0.45, spread: 0.15, color: "#0f0", auto: true, delay: 4, trait: "Lifesteal" },
+    { name: "FLAMER", dmg: 8, speed: 0.15, pellets: 3, spread: 0.4, color: "#f80", auto: true, delay: 2, trait: "Incendiary" },
+    { name: "SNIPER", dmg: 150, speed: 1.5, spread: 0, color: "#f44", auto: false, delay: 50, trait: "Critical" },
+    { name: "NEEDLER", dmg: 20, speed: 0.18, spread: 0.05, color: "#a0f", auto: true, delay: 8, trait: "Homing" },
+    { name: "BLASTER", dmg: 60, speed: 0.25, spread: 0.02, color: "#ff4", auto: false, delay: 20, trait: "Impact" },
+    { name: "TESLA", dmg: 15, speed: 0.5, spread: 0.01, color: "#4af", auto: true, delay: 12, trait: "Chain" }
+];
+
+let player = { x:2.5, y:2.5, dir:0, hp:100, maxHp:100, level:1, bob:0, currentWep:0, unlocked:[true], swordT:0, fireT:0, isFiring: false };
+for(let i=1; i<WEAPONS.length; i++) player.unlocked[i] = false;
+
+let world = [], enemies = [], bullets = [], eBullets = [], powerups = [];
+let superCd = 0, gunKick = 0, zBuf = new Float32Array(W), boss = null, bossBaseHp = 600;
+
+function showMsg(t) { const m = document.getElementById('msg'); m.innerText = t; setTimeout(() => { if(m.innerText === t) m.innerText = ""; }, 2000); }
+
+function isSolid(x, y) {
+    let ix = Math.floor(x), iy = Math.floor(y);
+    if (!world[ix] || world[ix][iy] === undefined) return true;
+    return world[ix][iy] === 1;
+}
+
+function genMap(size) {
+    if (player.level % 5 === 0) {
+        document.getElementById('boss-hud').style.display = 'block';
+        let m = Array(15).fill().map((_,x) => Array(15).fill().map((_,y) => (x===0||y===0||x===14||y===14)?1:0));
+        m[7][1] = 2;
+        boss = { x:7.5, y:7.5, hp: bossBaseHp + (player.level*100), maxHp: bossBaseHp + (player.level*100), r:0.8, color:"#f00", fireT:0, type:"BOSS", stuckFrames: 0 };
+        enemies = [boss]; powerups = [];
+        return m;
+    }
+    document.getElementById('boss-hud').style.display = 'none';
+    boss = null;
+    let m = Array(size).fill().map(() => Array(size).fill(1));
+    let cx = 2, cy = 2, targetX = size-3, targetY = size-3;
+    m[cx][cy] = 0;
+    while(cx !== targetX || cy !== targetY) {
+        if(cx < targetX && Math.random() > 0.4) cx++;
+        else if(cx > targetX && Math.random() > 0.4) cx--;
+        else if(cy < targetY) cy++;
+        else if(cy > targetY) cy--;
+        m[cx][cy] = 0;
+    }
+    m[targetX][targetY] = 2;
+    for(let k=0; k<15; k++) {
+        let rx = Math.floor(Math.random()*(size-6))+3, ry = Math.floor(Math.random()*(size-6))+3;
+        let rw = Math.floor(Math.random()*3)+2, rh = Math.floor(Math.random()*3)+2;
+        for(let i=0; i<rw; i++) for(let j=0; j<rh; j++) if(m[rx+i] && m[rx+i][ry+j] !== undefined) m[rx+i][ry+j] = 0;
+        let tx = rx, ty = ry;
+        while(tx > 2 || ty > 2) {
+            if(tx > 2) tx--; else if (ty > 2) ty--;
+            if(m[tx] && m[tx][ty] !== undefined) m[tx][ty] = 0;
+        }
+    }
+    enemies = [];
+    const types = [{type:"STALKER", color:"#f44", hp:60, spd:0.02, r:0.3}, {type:"SENTINEL", color:"#f84", hp:40, spd:0.01, r:0.35}, {type:"BREACHER", color:"#ff4", hp:20, spd:0.04, r:0.25}];
+    for(let i=0; i<5 + player.level; i++) {
+        let rx, ry, findAttempts = 0;
+        do { rx = Math.floor(Math.random()*size); ry = Math.floor(Math.random()*size); findAttempts++; } 
+        while((!m[rx] || m[rx][ry] !== 0 || (rx < 6 && ry < 6)) && findAttempts < 100);
+        if(m[rx] && m[rx][ry] === 0) {
+            let t = types[Math.floor(Math.random()*types.length)];
+            enemies.push({x:rx+0.5, y:ry+0.5, hp:t.hp+player.level*8, maxHp:t.hp+player.level*8, r:t.r, color:t.color, spd:t.spd, type:t.type, burn:0, fireT:Math.random()*100, stuckFrames: 0 });
+        }
+    }
+    powerups = [];
+    return m;
+}
+
+world = genMap(20);
+
+let joy = { x:0, y:0 }, moveId = null, lookId = null, lastX = 0;
+const moveZone = document.getElementById('move-zone');
+moveZone.addEventListener('touchstart', e => moveId = e.changedTouches[0].identifier, {passive: false});
+moveZone.addEventListener('touchmove', e => {
+    for(let t of e.changedTouches) if(t.identifier === moveId) {
+        let b = document.getElementById('joy-base').getBoundingClientRect();
+        let dx = t.clientX - (b.left + 35), dy = t.clientY - (b.top + 35);
+        let d = Math.min(30, Math.sqrt(dx*dx+dy*dy));
+        let a = Math.atan2(dy, dx);
+        joy.x = Math.cos(a)*(d/30); joy.y = Math.sin(a)*(d/30);
+        document.getElementById('joy-stick').style.transform = `translate(${dx}px,${dy}px)`;
+    }
+}, {passive: false});
+moveZone.addEventListener('touchend', () => { joy.x=0; joy.y=0; document.getElementById('joy-stick').style.transform=''; });
+
+const lookZone = document.getElementById('look-zone');
+lookZone.addEventListener('touchstart', e => { lookId = e.changedTouches[0].identifier; lastX = e.changedTouches[0].clientX; }, {passive: false});
+lookZone.addEventListener('touchmove', e => {
+    for(let t of e.changedTouches) if(t.identifier === lookId) { player.dir += (t.clientX - lastX) * 0.008; lastX = t.clientX; }
+}, {passive: false});
+
+const fireBtn = document.getElementById('fire');
+fireBtn.addEventListener('touchstart', (e) => { e.preventDefault(); player.isFiring = true; }, {passive: false});
+fireBtn.addEventListener('touchend', () => { player.isFiring = false; });
+
+function tryShoot() {
+    if (player.fireT > 0) return;
+    let w = WEAPONS[player.currentWep];
+    gunKick = 8;
+    const spawn = (a) => bullets.push({ 
+        x:player.x, y:player.y, 
+        vx:Math.cos(player.dir+a)*w.speed, vy:Math.sin(player.dir+a)*w.speed, 
+        dmg:w.dmg, c:w.color, pierces:(w.name==="RAILGUN"?99:0), type:w.name 
+    });
+    if(w.pellets) for(let i=0; i<w.pellets; i++) spawn((Math.random()-0.5)*w.spread);
+    else spawn(0);
+    player.fireT = w.delay;
+}
+
+document.getElementById('melee').ontouchstart = e => {
+    e.preventDefault(); if(player.swordT > 0) return;
+    player.swordT = 15;
+    enemies.forEach(en => { if(Math.sqrt((en.x-player.x)**2+(en.y-player.y)**2) < 1.8) en.hp -= 200; });
+};
+
+document.getElementById('switch').ontouchstart = e => {
+    e.preventDefault();
+    let original = player.currentWep;
+    do { player.currentWep = (player.currentWep + 1) % WEAPONS.length; 
+    } while (!player.unlocked[player.currentWep] && player.currentWep !== original);
+    document.getElementById('wep-name').innerText = WEAPONS[player.currentWep].name;
+};
+
+document.getElementById('super').ontouchstart = e => {
+    e.preventDefault(); if(superCd > 0) return;
+    superCd = 600;
+    for(let i=0; i<25; i++) setTimeout(() => {
+        bullets.push({ x:player.x, y:player.y, vx:Math.cos(player.dir+(Math.random()-0.5))*0.4, vy:Math.sin(player.dir+(Math.random()-0.5))*0.4, dmg:200, c:"#fff", pierces:10 });
+    }, i*30);
+};
+
+function nextLevel() {
+    player.level++; world = genMap(20); player.x = 2.5; player.y = 2.5;
+    document.getElementById('lvl').innerText = player.level;
+    showMsg("NEXT LEVEL");
+}
+
+function update() {
+    let spd = 0.075;
+    let sx = (Math.cos(player.dir)*-joy.y + Math.cos(player.dir+1.57)*joy.x)*spd;
+    let sy = (Math.sin(player.dir)*-joy.y + Math.sin(player.dir+1.57)*joy.x)*spd;
+    
+    if(!isSolid(player.x+sx, player.y)) player.x+=sx;    if(!isSolid(player.x, player.y+sy)) player.y+=sy;
+    if(Math.abs(sx)+Math.abs(sy) > 0.01) player.bob += 0.22;
+
+    // NEXT LEVEL CONDITION: Either step on teleporter OR clear all enemies
+    if(world[Math.floor(player.x)] && world[Math.floor(player.x)][Math.floor(player.y)] === 2) {
+        if (enemies.length === 0) nextLevel();
+    }
+    
+    // Auto-advance if enemies are dead (handles inaccessible teleporters)
+    if(enemies.length === 0 && player.level % 5 !== 0) {
+        // We delay slightly so player can see the last kill/collect loot
+        setTimeout(() => { if(enemies.length === 0) nextLevel(); }, 3000);
+    }
+
+    if (player.isFiring) {
+        if (WEAPONS[player.currentWep].auto || player.fireT === 0) tryShoot();
+        if (!WEAPONS[player.currentWep].auto) player.isFiring = false;
+    }
+
+    bullets = bullets.filter(b => {
+        b.x += b.vx; b.y += b.vy;
+        if(b.type === "NEEDLER") {
+            let target = null, minDist = 3;
+            enemies.forEach(e => {
+                let d = Math.sqrt((e.x-b.x)**2+(e.y-b.y)**2);
+                if(d < minDist) { minDist = d; target = e; }
+            });
+            if(target) {
+                let ta = Math.atan2(target.y-b.y, target.x-b.x);
+                let curA = Math.atan2(b.vy, b.vx);
+                let newA = curA + (ta - curA) * 0.1;
+                b.vx = Math.cos(newA) * 0.18; b.vy = Math.sin(newA) * 0.18;
+            }
+        }
+        if(isSolid(b.x, b.y)) return false;
+        let hit = false;
+        enemies.forEach(en => { 
+            if(Math.sqrt((b.x-en.x)**2+(b.y-en.y)**2) < en.r){ 
+                let finalDmg = b.dmg;
+                if(b.type === "SNIPER" && Math.random() < 0.2) finalDmg *= 3;
+                if(b.type === "SHOTGUN" && en.type === "BOSS") finalDmg *= 2;
+                en.hp -= finalDmg; 
+                if(b.type === "PLASMA" || b.type === "FLAMER") en.burn = 90;
+                if(b.type === "RIFLE") { 
+                    let nx = en.x + b.vx*0.5, ny = en.y + b.vy*0.5;
+                    if(!isSolid(nx, ny)) { en.x = nx; en.y = ny; }
+                }
+                if(b.type === "SMG" && Math.random() < 0.1) player.hp = Math.min(player.maxHp, player.hp+1);
+                if(b.type === "TESLA") { en.spd *= 0.5; setTimeout(() => en.spd *= 2, 1000); }
+                if(b.pierces > 0) { b.pierces--; } else { hit=true; }
+            } 
+        });
+        return !hit;
+    });
+
+    eBullets = eBullets.filter(b => {
+        b.x += b.vx; b.y += b.vy;
+        if(isSolid(b.x, b.y)) return false;
+        if(Math.sqrt((b.x-player.x)**2+(b.y-player.y)**2) < 0.4) { player.hp -= 10; return false; }
+        return true;
+    });
+
+    enemies = enemies.filter(en => {
+        if (isSolid(en.x, en.y)) {
+            en.stuckFrames++;
+            let nudged = false;
+            [[0.1,0],[-0.1,0],[0,0.1],[0,-0.1]].forEach(([ox, oy]) => {
+                if(!nudged && !isSolid(en.x+ox, en.y+oy)) { en.x += ox; en.y += oy; nudged = true; }
+            });
+            if (en.stuckFrames > 30) return false; 
+        } else {
+            en.stuckFrames = 0;
+        }
+
+        if(en.burn > 0) { en.hp -= 0.5; en.burn--; }
+        if(en.hp <= 0) {
+            if(en.type === "BOSS") { document.getElementById('boss-hud').style.display = 'none'; showMsg("BOSS DEFEATED"); }
+            let r = Math.random();
+            if(r < 0.25) {
+                let pool = [];
+                for(let i=0; i<WEAPONS.length; i++) if(!player.unlocked[i]) pool.push(i);
+                if(pool.length > 0) {
+                    let chosen = pool[Math.floor(Math.random() * pool.length)];
+                    powerups.push({x:en.x, y:en.y, t:'WEP', id:chosen});
+                } else powerups.push({x:en.x, y:en.y, t:'MAX'});
+            }
+            else if(r < 0.45) powerups.push({x:en.x, y:en.y, t:'MAX'});
+            else if(r < 0.8) powerups.push({x:en.x, y:en.y, t:'HEAL'});
+            return false;
+        }
+        let dist = Math.sqrt((player.x-en.x)**2+(player.y-en.y)**2);
+        let a = Math.atan2(player.y-en.y, player.x-en.x);
+        if(en.type === "BOSS") {
+            document.getElementById('boss-bar-fill').style.width = (en.hp/en.maxHp)*100+'%';
+            en.fireT--;
+            if(en.fireT <= 0) {
+                for(let i=-2; i<3; i++) eBullets.push({x:en.x, y:en.y, vx:Math.cos(a+i*0.3)*0.15, vy:Math.sin(a+i*0.3)*0.15});
+                en.fireT = 45;
+            }
+        } else if(en.type === "SENTINEL") {
+            let moveX = 0, moveY = 0;
+            if(dist > 5) { moveX = Math.cos(a)*en.spd; moveY = Math.sin(a)*en.spd; }
+            else if(dist < 4) { moveX = -Math.cos(a)*en.spd; moveY = -Math.sin(a)*en.spd; }
+            if(!isSolid(en.x+moveX, en.y)) en.x += moveX;
+            if(!isSolid(en.x, en.y+moveY)) en.y += moveY;
+            en.fireT--;
+            if(en.fireT <= 0) { eBullets.push({x:en.x, y:en.y, vx:Math.cos(a)*0.1, vy:Math.sin(a)*0.1}); en.fireT = 120; }
+        } else {
+            let moveX = Math.cos(a)*en.spd, moveY = Math.sin(a)*en.spd;
+            if(!isSolid(en.x+moveX, en.y)) en.x += moveX;
+            if(!isSolid(en.x, en.y+moveY)) en.y += moveY;
+        }
+        if(dist < 0.5) player.hp -= 0.6;
+        return true;
+    });
+
+    powerups = powerups.filter(p => {
+        if(Math.sqrt((p.x-player.x)**2+(p.y-player.y)**2) < 0.6) {
+            if(p.t==='WEP') { player.unlocked[p.id]=true; showMsg("UNLOCKED: " + WEAPONS[p.id].name); }
+            if(p.t==='MAX') { player.maxHp+=25; player.hp+=25; showMsg("MAX HP UP"); }
+            if(p.t==='HEAL') { player.hp=Math.min(player.maxHp, player.hp+50); showMsg("REPAIRED"); }
+            return false;
+        }
+        return true;
+    });
+
+    if(player.fireT > 0) player.fireT--;
+    if(superCd > 0) { superCd--; document.getElementById('super-fill').style.height = (superCd/600)*100+'%'; }
+    if(gunKick > 0) gunKick--; if(player.swordT > 0) player.swordT--;
+    
+    document.getElementById('hp').innerText = Math.floor(player.hp);
+    document.getElementById('mhp').innerText = player.maxHp;
+    if(player.hp <= 0) location.reload();
+
+    render();
+    renderMap();
+    requestAnimationFrame(update);
+}
+
+function render() {
+    ctx.fillStyle = '#050505'; ctx.fillRect(0,0,W,H/2);
+    ctx.fillStyle = '#111'; ctx.fillRect(0,H/2,W,H/2);
+    for(let i=0; i<W; i++) {
+        let a = (player.dir - 0.5) + (i/W);
+        let rx = player.x, ry = player.y, vx = Math.cos(a)*0.06, vy = Math.sin(a)*0.06, d = 0, hit = 0;
+        while(d < 12) {
+            rx += vx; ry += vy; d += 0.06;
+            let ix = Math.floor(rx), iy = Math.floor(ry);
+            if(!world[ix] || world[ix][iy] === undefined || world[ix][iy] > 0) { 
+                hit = (world[ix] && world[ix][iy]) ? world[ix][iy] : 1; 
+                break; 
+            }
+        }
+        let h = H / (d * Math.cos(a - player.dir));
+        ctx.fillStyle = hit===2 ? "#fff" : `rgb(${90-d*7},${90-d*7},${100-d*7})`;
+        ctx.fillRect(i, H/2-h/2, 1, h); zBuf[i] = d;
+    }
+    let sprites = [...enemies.map(e=>({...e, t:'e'})), ...bullets.map(b=>({...b, t:'b'})), ...eBullets.map(b=>({...b, t:'eb'})), ...powerups.map(p=>({...p, t:'p'}))];
+    sprites.sort((a,b) => ((b.x-player.x)**2+(b.y-player.y)**2) - ((a.x-player.x)**2+(a.y-player.y)**2));
+    sprites.forEach(s => {
+        let dx = s.x - player.x, dy = s.y - player.y, dist = Math.sqrt(dx*dx+dy*dy);
+        let a = Math.atan2(dy, dx) - player.dir;
+        while(a < -Math.PI) a += Math.PI*2; while(a > Math.PI) a -= Math.PI*2;
+        let sx = (0.5 + a) * W, sz = H / dist;
+        let bIdx = Math.floor(sx);
+        if(Math.abs(a) < 1 && bIdx >= 0 && bIdx < W && dist < zBuf[bIdx]) {
+            if(s.t==='e') { ctx.fillStyle = s.color; ctx.fillRect(sx-sz/2, H/2-sz/2, sz, sz); }
+            if(s.t==='b'||s.t==='eb') { ctx.fillStyle = s.c || "#f00"; ctx.beginPath(); ctx.arc(sx, H/2, sz/8, 0, 7); ctx.fill(); }
+            if(s.t==='p') { ctx.fillStyle = s.t==='WEP' ? "#0ff" : "#fff"; ctx.fillRect(sx-sz/4, H/2+sz/4, sz/2, sz/2); }
+        }
+    });
+    let bY = Math.sin(player.bob)*3 + gunKick;
+    ctx.fillStyle = '#333'; ctx.fillRect(W/2-8, H-40+bY, 16, 50);
+    ctx.fillStyle = WEAPONS[player.currentWep].color; ctx.fillRect(W/2-2, H-45+bY, 4, 15);
+}
+
+function renderMap() {
+    mCtx.fillStyle = 'rgba(0,0,0,0.8)'; mCtx.fillRect(0,0,80,80);
+    if(!world.length) return;
+    let s = 80 / world.length;
+    for(let x=0; x<world.length; x++) for(let y=0; y<world.length; y++) {
+        if(world[x][y] === 1) { mCtx.fillStyle = '#333'; mCtx.fillRect(x*s, y*s, s, s); }
+        if(world[x][y] === 2) { mCtx.fillStyle = '#fff'; mCtx.fillRect(x*s, y*s, s, s); }
+    }
+    mCtx.fillStyle = '#0f0'; mCtx.save(); mCtx.translate(player.x*s, player.y*s); mCtx.rotate(player.dir);
+    mCtx.beginPath(); mCtx.moveTo(4,0); mCtx.lineTo(-3,-3); mCtx.lineTo(-3,3); mCtx.fill(); mCtx.restore();
+    enemies.forEach(e => { mCtx.fillStyle = e.color; mCtx.fillRect(e.x*s-1, e.y*s-1, 2, 2); });
+}
+update();
+</script>
+</body>
+</html>
