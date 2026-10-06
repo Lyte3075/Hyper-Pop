@@ -88,9 +88,10 @@
       border: 4px solid #ffffff; border-radius: 4px; display: none;
       box-shadow: 0 0 20px rgba(255, 255, 255, 0.3); z-index: 12; touch-action: none;
     }
-  </style>
+  #hp-back{position:fixed;left:14px;top:14px;z-index:1000;padding:9px 13px;border:1px solid #38bdf855;border-radius:11px;background:#020617ee;color:#dff7ff;text-decoration:none;font:700 13px monospace;backdrop-filter:blur(8px);box-shadow:0 8px 24px #0008}#hp-back:hover{color:#fff;border-color:#38bdf8}
+</style>
 <style id="hyperpop-back-style">#hyperpop-back{position:fixed;top:14px;left:14px;z-index:9999;display:flex;align-items:center;gap:7px;padding:9px 13px;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:rgba(10,10,20,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;text-decoration:none;font:700 13px system-ui,sans-serif;box-shadow:0 8px 30px #0008;cursor:pointer;touch-action:manipulation}#hyperpop-back:hover{background:rgba(255,255,255,.14);transform:translateY(-1px)}@media(max-width:600px){#hyperpop-back{top:10px;left:10px;padding:8px 11px;font-size:12px}}</style></head>
-<body><a id="hyperpop-back" href="index.html" aria-label="Back to Hyper-Pop">← Hyper-Pop</a>
+<body><a id="hp-back" href="index.html">← Hyper-Pop</a><a id="hyperpop-back" href="index.html" aria-label="Back to Hyper-Pop">← Hyper-Pop</a>
 
 <div id="game-container">
   <canvas id="canvas"></canvas>
@@ -682,5 +683,14 @@
     requestAnimationFrame(gameLoop);
   }
 </script>
-</body>
+<script>
+const HPFX=(()=>{let a=null;const ctx=()=>a||(a=new (window.AudioContext||window.webkitAudioContext)());function tone(f,d=.07,type='sine',v=.035){try{const c=ctx(),o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(f,c.currentTime);g.gain.setValueAtTime(v,c.currentTime);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+d);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+d)}catch(e){}}return{click(){tone(260,.035,'square',.02)},hit(){tone(600,.08,'triangle',.04)},crit(){tone(900,.12,'triangle',.05);setTimeout(()=>tone(1200,.15,'triangle',.04),70)},hurt(){tone(110,.14,'sawtooth',.04)},heal(){tone(420,.1,'sine',.035);setTimeout(()=>tone(650,.13,'sine',.03),80)},win(){tone(500,.1,'triangle',.04);setTimeout(()=>tone(750,.1,'triangle',.04),90);setTimeout(()=>tone(1000,.18,'triangle',.04),180)},warn(){tone(180,.1,'sawtooth',.025)}}})();
+</script><script>
+document.addEventListener('click',e=>{if(e.target.closest('button'))HPFX.click()},{passive:true});
+const _combatAction=combatAction;combatAction=function(action){if(action==='item')HPFX.heal();else HPFX.hit();return _combatAction(action)};
+const _timing=handleTimingClick;handleTimingClick=function(){HPFX.crit();return _timing()};
+const _endCombat=endCombat;endCombat=function(removeEnemy){if(removeEnemy)HPFX.win();return _endCombat(removeEnemy)};
+const _interact=interactTile;interactTile=function(){HPFX.click();return _interact()};
+window.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')HPFX.click()},{passive:true});
+</script></body>
 </html>
