@@ -13,10 +13,10 @@ async function hpAccountBar(){const slot=document.getElementById('account-slot')
   const UNLOCK_KEY='hyperpop-command-prompt-unlocked';
   const unlocked=()=>localStorage.getItem(UNLOCK_KEY)==='1';
   function addTerminal(){
-    if(!unlocked()||document.getElementById('hp-terminal-launcher'))return;
+    if(document.getElementById('hp-terminal-launcher')){updateTerminalState();return;}
     const style=document.createElement('style');
     style.textContent=`
-      #hp-terminal-launcher{position:fixed;right:14px;bottom:14px;z-index:99999;width:42px;height:42px;border:1px solid #ffffff22;border-radius:12px;background:#0b0b12eF;color:#7df9ff;font:800 18px monospace;box-shadow:0 8px 30px #0008;backdrop-filter:blur(12px)}
+      #hp-terminal-launcher{position:fixed;left:14px;bottom:14px;z-index:99999;width:42px;height:42px;border:1px solid #ffffff22;border-radius:12px;background:#0b0b12eF;color:#7df9ff;font:800 18px monospace;box-shadow:0 8px 30px #0008;backdrop-filter:blur(12px);transition:.15s}.hp-terminal-locked{opacity:.45;filter:grayscale(.7);cursor:not-allowed}.hp-terminal-locked:hover{opacity:.6}
       #hp-terminal{position:fixed;right:14px;bottom:14px;z-index:99998;width:min(430px,calc(100vw - 28px));height:min(520px,calc(100vh - 28px));display:none;flex-direction:column;overflow:hidden;border:1px solid #7df9ff55;border-radius:16px;background:#07090deF;color:#dffcff;box-shadow:0 20px 70px #000C;font:13px/1.45 "DM Mono",ui-monospace,monospace;backdrop-filter:blur(16px)}
       #hp-terminal.open{display:flex}#hp-term-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #ffffff15;background:#0d1119}
       #hp-term-out{flex:1;overflow:auto;padding:12px;white-space:pre-wrap;word-break:break-word}#hp-term-form{display:flex;border-top:1px solid #ffffff15;background:#0d1119}
@@ -29,6 +29,13 @@ async function hpAccountBar(){const slot=document.getElementById('account-slot')
     term.innerHTML='<div id="hp-term-head"><b>⌘ Hyper-Pop Command Prompt</b><button id="hp-term-close">×</button></div><div id="hp-term-out"></div><form id="hp-term-form"><span>&gt;</span><input id="hp-term-input" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="/help"></form>';
     document.body.append(launcher,term);
     const out=document.getElementById('hp-term-out'),input=document.getElementById('hp-term-input');
+    function updateTerminalState(){
+      const l=document.getElementById('hp-terminal-launcher');
+      if(!l)return;
+      const on=unlocked();
+      l.disabled=!on;l.classList.toggle('hp-terminal-locked',!on);l.title=on?'Command Prompt':'Locked • reach 100% danger in Do Not Press';
+      if(!on)term.classList.remove('open');
+    }
     const print=(text,cls='')=>{const d=document.createElement('div');d.className=cls;d.textContent=text;out.appendChild(d);out.scrollTop=out.scrollHeight};
     const help=`COMMANDS
 /help                  Show all commands
@@ -60,7 +67,7 @@ TIP: /js is the universal cheat and can be used for game-specific cheats too.`;
       ['score','points','coins','money','clicks','hyperpop-score'].forEach(k=>localStorage.setItem('hyperpop-'+k,String(value)));
       return touched;
     }
-    function command(raw){
+    async function command(raw){
       const parts=raw.trim().split(/\s+/),cmd=(parts.shift()||'').toLowerCase(),arg=parts.join(' ');if(!cmd)return;
       print('> '+raw,'hp-cmd');
       try{
@@ -91,10 +98,11 @@ TIP: /js is the universal cheat and can be used for game-specific cheats too.`;
         print('Unknown command. Type /help.','hp-err');
       }catch(e){print('ERROR: '+(e?.message||e),'hp-err')}
     }
-    launcher.onclick=()=>{term.classList.add('open');input.focus()};document.getElementById('hp-term-close').onclick=()=>term.classList.remove('open');
+    launcher.onclick=()=>{if(!unlocked())return;term.classList.add('open');input.focus()};document.getElementById('hp-term-close').onclick=()=>term.classList.remove('open');
     document.getElementById('hp-term-form').onsubmit=e=>{e.preventDefault();const raw=input.value;input.value='';command(raw)};
-    print('Command Prompt unlocked.','hp-ok');print('Type /help for a list of commands.');
+    updateTerminalState();
+    if(unlocked()){print('Command Prompt unlocked.','hp-ok');print('Type /help for a list of commands.');}
   }
-  window.HyperPopCommandPrompt={unlock:function(){localStorage.setItem(UNLOCK_KEY,'1');addTerminal()},isUnlocked:unlocked};
+  window.HyperPopCommandPrompt={unlock:function(){localStorage.setItem(UNLOCK_KEY,'1');addTerminal();updateTerminalState()},disable:function(){localStorage.removeItem(UNLOCK_KEY);const l=document.getElementById('hp-terminal-launcher');const t=document.getElementById('hp-terminal');if(l){l.disabled=true;l.classList.add('hp-terminal-locked');l.title='Locked • reach 100% danger in Do Not Press'}if(t)t.classList.remove('open')},isUnlocked:unlocked};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addTerminal);else addTerminal();
 })();
