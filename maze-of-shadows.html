@@ -1059,6 +1059,30 @@ window.addEventListener('keydown',e=>{
  if(k==='shift')HPFX.step();
 },{passive:true});
 let hpLastHealth=health,hpLastDanger=0,hpLastStep=0;
+const mazeArrowKeys={left:false,right:false};
+window.addEventListener('keydown',e=>{
+ const k=e.key.toLowerCase();
+ if(k==='f'){
+   e.preventDefault();
+   document.getElementById('flashlight-btn')?.click();
+   HPFX.use();
+ }
+ if(k==='arrowleft'||k==='arrowright'){
+   e.preventDefault();
+   mazeArrowKeys[k==='arrowleft'?'left':'right']=true;
+ }
+},{passive:false});
+window.addEventListener('keyup',e=>{
+ const k=e.key.toLowerCase();
+ if(k==='arrowleft'||k==='arrowright')mazeArrowKeys[k==='arrowleft'?'left':'right']=false;
+});
+(function mazeArrowCamera(){
+ if(!isGameOver){
+   if(mazeArrowKeys.left) rotation.yaw-=0.045;
+   if(mazeArrowKeys.right) rotation.yaw+=0.045;
+ }
+ requestAnimationFrame(mazeArrowCamera);
+})();
 const hpSoundLoop=setInterval(()=>{
  if(isGameOver)return;
  const now=performance.now();
