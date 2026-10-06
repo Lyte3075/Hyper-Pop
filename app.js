@@ -24,7 +24,7 @@ async function hpAccountBar(){const slot=document.getElementById('account-slot')
       #hp-term-close{border:0;background:transparent;color:#aaa;padding:2px 6px;font:inherit}.hp-ok{color:#7dffb2}.hp-warn{color:#ffe66d}.hp-err{color:#ff718d}.hp-cmd{color:#7df9ff}
     `;
     document.head.appendChild(style);
-    const launcher=document.createElement('button');launcher.id='hp-terminal-launcher';launcher.title='Command Prompt';launcher.textContent='>_';
+    const launcher=document.createElement('button');launcher.id='hp-terminal-launcher';launcher.title='Command Prompt';launcher.textContent='>_';launcher.style.display='none';
     const term=document.createElement('div');term.id='hp-terminal';
     term.innerHTML='<div id="hp-term-head"><b>⌘ Hyper-Pop Command Prompt</b><button id="hp-term-close">×</button></div><div id="hp-term-out"></div><form id="hp-term-form"><span>&gt;</span><input id="hp-term-input" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="/help"></form>';
     document.body.append(launcher,term);
@@ -33,7 +33,7 @@ async function hpAccountBar(){const slot=document.getElementById('account-slot')
       const l=document.getElementById('hp-terminal-launcher');
       if(!l)return;
       const on=unlocked();
-      l.disabled=!on;l.classList.toggle('hp-terminal-locked',!on);l.style.display=on?'':'none';l.title='Command Prompt';
+      l.disabled=!on;l.classList.toggle('hp-terminal-locked',!on);l.style.display=on?'block':'none';l.title='Command Prompt';
       if(!on){term.classList.remove('open');term.style.display='none';launcher.style.display=''}
     }
     const print=(text,cls='')=>{const d=document.createElement('div');d.className=cls;d.textContent=text;out.appendChild(d);out.scrollTop=out.scrollHeight};
