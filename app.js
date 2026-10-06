@@ -63,6 +63,23 @@ TIP: /js is the universal cheat and can be used for game-specific cheats too.`;
       const parts=raw.trim().split(/\s+/),cmd=(parts.shift()||'').toLowerCase(),arg=parts.join(' ');if(!cmd)return;
       print('> '+raw,'hp-cmd');
       try{
+        if(cmd==='/recipes'){print(`HYPER-CRAFT RECIPE LOOKUP
+/recipes
+/recipes <ingredient>
+/recipes <ingredient> + <ingredient>
+
+Examples:
+Earth + Water → Mud
+Fire + Water → Steam
+Steam + Fire → Engine
+Engine + Metal → Machine
+Moon + Earth → Night
+Animal + Life → Animal
+Machine + Computer → Robot
+Metal + Wood → Tool
+Rain + Sun → Rainbow
+
+For the complete live recipe database, open Hyper-Craft. The command accepts a search term and shows matching known recipes when the recipe database is loaded on that page.`,'hp-ok');if(location.pathname.endsWith('hyper-craft.html')&&window.HYPERCRAFT_EXTRA){const q=arg.toLowerCase();const rows=Object.entries(window.HYPERCRAFT_EXTRA).filter(([k,v])=>!q||k.includes(q)||String(v?.[1]||'').toLowerCase().includes(q)).slice(0,80).map(([k,v])=>k.replace(/\\+/g,' + ')+' → '+(v?.[0]||'')+' '+(v?.[1]||''));print(rows.join('\\n')||'No matching recipes.','hp-ok')}return}
         if(cmd==='/help'){print(help,'hp-ok');return} if(cmd==='/close'){term.classList.remove('open');return}
         if(cmd==='/clear'){out.textContent='';return}
         if(cmd==='/status'){print('Unlocked ✓  •  '+location.pathname.split('/').pop()+'  •  '+clickables().length+' clickable controls','hp-ok');return}
