@@ -74,7 +74,27 @@ const upgrades=[
 {id:"factory",name:"Button Factory",desc:"+8 clicks/sec",base:400,kind:"auto",amount:8,icon:"🏭"},
 {id:"lab",name:"Button Lab",desc:"+45 clicks/sec",base:2500,kind:"auto",amount:45,icon:"🧪"},
 {id:"overclock",name:"Overclock",desc:"×2 click power",base:15000,kind:"multi",amount:2,icon:"⚡"},
-...Array.from({length:34},(_,i)=>({id:"p"+i,name:["Mega Finger","Turbo Finger","Hyper Finger","Quantum Finger","Button Reactor","Neon Factory","Mega Factory","Button Core","Click Collider","Quantum Bot","Singularity Engine","Void Engine","Infinity Engine","Cosmic Button","Galaxy Factory","Universe Factory","Multiverse Lab","Reality Press","Time Machine","Dimension Tap","Black Hole Button","Dark Matter Press","Antimatter Engine","Stellar Forge","Supernova Core","Cosmic Reactor","Omega Factory","Hyperdrive","Reality Engine","Ascension Core","Eternity Press","Infinite Factory","Absolute Button","Final Form"][i],desc:i%3===0?"+25 click power":i%3===1?"+250 clicks/sec":"×1.5 auto production",base:Math.floor(50000*Math.pow(2.15,i)),kind:i%3===0?"click":i%3===1?"auto":"autoMulti",amount:i%3===0?25:i%3===1?250:1.5,icon:["🚀","⚛️","🌌","🌀","💎","☄️","🔮","🛸"][i%8]}))
+{id:"turbo",name:"Turbo Finger",desc:"+15 click power",base:5000,kind:"click",amount:15,icon:"🔥"},
+{id:"mega",name:"Mega Button Bot",desc:"+250 clicks/sec",base:25000,kind:"auto",amount:250,icon:"🤖"},
+{id:"hyper",name:"Hyper Clicker",desc:"×3 click power",base:100000,kind:"multi",amount:3,icon:"💥"},
+{id:"reactor",name:"Button Reactor",desc:"+2,500 clicks/sec",base:500000,kind:"auto",amount:2500,icon:"⚛️"},
+{id:"quantum",name:"Quantum Finger",desc:"+500 click power",base:2500000,kind:"click",amount:500,icon:"🌀"},
+{id:"accelerator",name:"Click Accelerator",desc:"×5 click power",base:15000000,kind:"multi",amount:5,icon:"🚀"},
+{id:"core",name:"Button Core",desc:"+25,000 clicks/sec",base:100000000,kind:"auto",amount:25000,icon:"💎"},
+{id:"cosmic",name:"Cosmic Clicker",desc:"×10 click power",base:750000000,kind:"multi",amount:10,icon:"🌌"},
+{id:"galaxy",name:"Galaxy Factory",desc:"+250,000 clicks/sec",base:5000000000,kind:"auto",amount:250000,icon:"🌠"},
+{id:"reality",name:"Reality Press",desc:"+100,000 click power",base:50000000000,kind:"click",amount:100000,icon:"🪐"},
+{id:"singularity",name:"Singularity Engine",desc:"×25 click power",base:500000000000,kind:"multi",amount:25,icon:"🕳️"},
+{id:"infinity",name:"Infinity Reactor",desc:"+10,000,000 clicks/sec",base:5000000000000,kind:"auto",amount:10000000,icon:"♾️"},
+{id:"dimension",name:"Dimension Tap",desc:"×100 click power",base:100000000000000,kind:"multi",amount:100,icon:"🔮"},
+{id:"eternity",name:"Eternity Factory",desc:"+500,000,000 clicks/sec",base:5000000000000000,kind:"auto",amount:500000000,icon:"✨"},
+{id:"ascension",name:"Ascension Core",desc:"×500 click power",base:250000000000000000,kind:"multi",amount:500,icon:"👑"},
+{id:"absolute",name:"Absolute Button",desc:"+50,000,000,000 click power",base:10000000000000000000,kind:"click",amount:50000000000,icon:"🔱"},
+{id:"final",name:"Final Form",desc:"×2,000 click power",base:1000000000000000000000,kind:"multi",amount:2000,icon:"🌟"},
+{id:"transcendent",name:"Transcendent Engine",desc:"+25,000,000,000 clicks/sec",base:100000000000000000000000,kind:"auto",amount:25000000000,icon:"🛸"},
+{id:"omnipotent",name:"Omnipotent Press",desc:"×10,000 click power",base:10000000000000000000000000,kind:"multi",amount:10000,icon:"☀️"},
+{id:"infinite",name:"Infinite Factory",desc:"+1,000,000,000,000 clicks/sec",base:1000000000000000000000000000,kind:"auto",amount:1000000000000,icon:"🌌"},
+{id:"beyond",name:"Beyond Button",desc:"×100,000 click power",base:100000000000000000000000000000,kind:"multi",amount:100000,icon:"💫"}
 ];
 const achievements=[
 ["first","First Press","Click once",1],["hundred","Warm Up","Reach 100 clicks",100],["thousand","Button Enthusiast","Reach 1,000 clicks",1000],["tenk","No Life Mode","Reach 10,000 clicks",10000],["million","Button Billionaire","Reach 1 billion clicks",1e9],
