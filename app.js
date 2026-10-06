@@ -34,7 +34,7 @@ async function hpAccountBar(){const slot=document.getElementById('account-slot')
       if(!l)return;
       const on=unlocked();
       l.disabled=!on;l.classList.toggle('hp-terminal-locked',!on);l.title=on?'Command Prompt':'Locked • reach 100% danger in Do Not Press';
-      if(!on)term.classList.remove('open');
+      if(!on){term.classList.remove('open');launcher.style.display=''}
     }
     const print=(text,cls='')=>{const d=document.createElement('div');d.className=cls;d.textContent=text;out.appendChild(d);out.scrollTop=out.scrollHeight};
     const help=`COMMANDS
@@ -98,7 +98,21 @@ TIP: /js is the universal cheat and can be used for game-specific cheats too.`;
         print('Unknown command. Type /help.','hp-err');
       }catch(e){print('ERROR: '+(e?.message||e),'hp-err')}
     }
-    launcher.onclick=()=>{if(!unlocked())return;term.classList.add('open');input.focus()};document.getElementById('hp-term-close').onclick=()=>term.classList.remove('open');
+    function openTerminal(){
+  if(!unlocked())return;
+  term.classList.add('open');
+  launcher.style.display='none';
+  setTimeout(()=>input.focus(),0);
+}
+function closeTerminal(){
+  term.classList.remove('open');
+  launcher.style.display='';
+}
+launcher.onclick=openTerminal;
+launcher.addEventListener('pointerup',e=>{e.preventDefault();openTerminal()},{passive:false});
+launcher.addEventListener('touchend',e=>{e.preventDefault();openTerminal()},{passive:false});
+document.getElementById('hp-term-close').onclick=closeTerminal;
+document.getElementById('hp-term-close').addEventListener('touchend',e=>{e.preventDefault();closeTerminal()},{passive:false});
     document.getElementById('hp-term-form').onsubmit=e=>{e.preventDefault();const raw=input.value;input.value='';command(raw)};
     updateTerminalState();
     if(unlocked()){print('Command Prompt unlocked.','hp-ok');print('Type /help for a list of commands.');}
