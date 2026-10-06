@@ -1081,8 +1081,8 @@ window.addEventListener('keyup',e=>{
  if(!isGameOver){
    if(mazeArrowKeys.left) rotation.yaw+=0.045;
    if(mazeArrowKeys.right) rotation.yaw-=0.045;
-   if(mazeArrowKeys.up) rotation.pitch-=0.045;
-   if(mazeArrowKeys.down) rotation.pitch+=0.045;
+   if(mazeArrowKeys.up) rotation.pitch+=0.045;
+   if(mazeArrowKeys.down) rotation.pitch-=0.045;
    rotation.pitch=Math.max(-1.35,Math.min(1.35,rotation.pitch));
  }
  requestAnimationFrame(mazeArrowCamera);
