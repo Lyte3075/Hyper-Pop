@@ -40,6 +40,6 @@ function press(){
  sfx(presses%10===0?"danger":"click");if(presses%3===0)burst();render();
 }
 $("x").onclick=press;
-$("reset").onclick=()=>{sfx("reset");localStorage.removeItem("hyperpop-dont-presses");localStorage.removeItem("hyperpop-dont-danger");presses=0;danger=0;$("r").textContent="Seriously.";render()};
+$("reset").onclick=()=>{sfx("reset");localStorage.removeItem("hyperpop-dont-presses");localStorage.removeItem("hyperpop-dont-danger");localStorage.removeItem("hyperpop-command-prompt-unlocked");if(window.HyperPopCommandPrompt?.disable)window.HyperPopCommandPrompt.disable();presses=0;danger=0;$("r").textContent="Seriously.";render()};
 render();
 </script></main><footer class="foot">Hyper-Pop ✦ tiny internet, big vibes</footer></div><script>document.addEventListener("dblclick",e=>e.preventDefault(),{passive:false});document.addEventListener("gesturestart",e=>e.preventDefault(),{passive:false});</script><script src="app.js"></script></body></html>
