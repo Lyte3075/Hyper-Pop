@@ -11,7 +11,7 @@ async function hpAccountBar(){const slot=document.getElementById('account-slot')
 /* Hyper-Pop Command Prompt Easter Egg */
 (function(){
   const UNLOCK_KEY='hyperpop-command-prompt-unlocked';
-  const unlocked=()=>localStorage.getItem(UNLOCK_KEY)==='1'&&(!/dont\.html$/i.test(location.pathname)||Number(localStorage.getItem('hyperpop-dont-danger')||0)>=100);
+  const unlocked=()=>Number(localStorage.getItem('hyperpop-dont-danger')||0)>=100&&localStorage.getItem(UNLOCK_KEY)==='1';
   function addTerminal(){
     if(document.getElementById('hp-terminal-launcher')){updateTerminalState();return;}
     const style=document.createElement('style');
@@ -34,7 +34,7 @@ async function hpAccountBar(){const slot=document.getElementById('account-slot')
       if(!l)return;
       const on=unlocked();
       l.disabled=!on;l.classList.toggle('hp-terminal-locked',!on);l.style.display=on?'block':'none';l.title='Command Prompt';
-      if(!on){term.classList.remove('open');term.style.display='none';launcher.style.display=''}
+      if(!on){term.classList.remove('open');term.style.display='none';launcher.style.display='none'}
     }
     const print=(text,cls='')=>{const d=document.createElement('div');d.className=cls;d.textContent=text;out.appendChild(d);out.scrollTop=out.scrollHeight};
     const help=`COMMANDS
@@ -119,6 +119,6 @@ document.getElementById('hp-term-close').addEventListener('touchend',e=>{e.preve
     updateTerminalState();
     if(unlocked()){print('Command Prompt unlocked.','hp-ok');print('Type /help for a list of commands.');}
   }
-  window.HyperPopCommandPrompt={unlock:function(){localStorage.setItem(UNLOCK_KEY,'1');addTerminal();updateTerminalState()},disable:function(){localStorage.removeItem(UNLOCK_KEY);const l=document.getElementById('hp-terminal-launcher');const t=document.getElementById('hp-terminal');if(l){l.disabled=true;l.classList.add('hp-terminal-locked');l.style.display='none';l.title='Command Prompt'}if(t){t.classList.remove('open');t.style.display='none'}if(l)l.style.display=''},isUnlocked:unlocked,sync:function(){addTerminal();updateTerminalState()}};
+  window.HyperPopCommandPrompt={unlock:function(){localStorage.setItem(UNLOCK_KEY,'1');addTerminal();updateTerminalState()},disable:function(){localStorage.removeItem(UNLOCK_KEY);const l=document.getElementById('hp-terminal-launcher');const t=document.getElementById('hp-terminal');if(l){l.disabled=true;l.classList.add('hp-terminal-locked');l.style.display='none';l.title='Command Prompt'}if(t){t.classList.remove('open');t.style.display='none'}if(l)l.style.display='none'},isUnlocked:unlocked,sync:function(){addTerminal();updateTerminalState()}};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addTerminal);else addTerminal();
 })();
