@@ -34,7 +34,7 @@ async function hpAccountBar(){const slot=document.getElementById('account-slot')
       if(!l)return;
       const on=unlocked();
       l.disabled=!on;l.classList.toggle('hp-terminal-locked',!on);l.title=on?'Command Prompt':'Locked • reach 100% danger in Do Not Press';
-      if(!on){term.classList.remove('open');launcher.style.display=''}
+      if(!on){term.classList.remove('open');term.style.display='none';launcher.style.display=''}
     }
     const print=(text,cls='')=>{const d=document.createElement('div');d.className=cls;d.textContent=text;out.appendChild(d);out.scrollTop=out.scrollHeight};
     const help=`COMMANDS
@@ -101,11 +101,13 @@ TIP: /js is the universal cheat and can be used for game-specific cheats too.`;
     function openTerminal(){
   if(!unlocked())return;
   term.classList.add('open');
+  term.style.display='flex';
   launcher.style.display='none';
   setTimeout(()=>input.focus(),0);
 }
 function closeTerminal(){
   term.classList.remove('open');
+  term.style.display='none';
   launcher.style.display='';
 }
 launcher.onclick=openTerminal;
@@ -117,6 +119,6 @@ document.getElementById('hp-term-close').addEventListener('touchend',e=>{e.preve
     updateTerminalState();
     if(unlocked()){print('Command Prompt unlocked.','hp-ok');print('Type /help for a list of commands.');}
   }
-  window.HyperPopCommandPrompt={unlock:function(){localStorage.setItem(UNLOCK_KEY,'1');addTerminal();updateTerminalState()},disable:function(){localStorage.removeItem(UNLOCK_KEY);const l=document.getElementById('hp-terminal-launcher');const t=document.getElementById('hp-terminal');if(l){l.disabled=true;l.classList.add('hp-terminal-locked');l.title='Locked • reach 100% danger in Do Not Press'}if(t)t.classList.remove('open')},isUnlocked:unlocked};
+  window.HyperPopCommandPrompt={unlock:function(){localStorage.setItem(UNLOCK_KEY,'1');addTerminal();updateTerminalState()},disable:function(){localStorage.removeItem(UNLOCK_KEY);const l=document.getElementById('hp-terminal-launcher');const t=document.getElementById('hp-terminal');if(l){l.disabled=true;l.classList.add('hp-terminal-locked');l.title='Locked • reach 100% danger in Do Not Press'}if(t){t.classList.remove('open');t.style.display='none'}if(l)l.style.display=''},isUnlocked:unlocked};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addTerminal);else addTerminal();
 })();
