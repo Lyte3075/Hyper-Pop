@@ -339,7 +339,7 @@ function update() {
     player.hp=Math.max(0,Math.min(player.maxHp,Number.isFinite(player.hp)?player.hp:player.maxHp));
     document.getElementById('hp').innerText = Math.floor(player.hp);
     document.getElementById('mhp').innerText = player.maxHp;
-    if(player.hp <= 0) location.reload();
+    if(player.hp <= 0){ player.hp=0; player.isFiring=false; HPAudio.death(); showMsg('YOU DIED'); setTimeout(()=>location.reload(),650); return; }
 
     render();
     renderMap();
