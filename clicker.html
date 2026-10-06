@@ -96,286 +96,102 @@ const upgrades=[
 {id:"infinite",name:"Infinite Factory",desc:"+1,000,000,000,000 clicks/sec",base:1000000000000000000000000000,kind:"auto",amount:1000000000000,icon:"🌌"},
 {id:"beyond",name:"Beyond Button",desc:"×100,000 click power",base:100000000000000000000000000000,kind:"multi",amount:100000,icon:"💫"}
 ];
-const achievements=[
-["first","First Press","Click once",1],["hundred","Warm Up","Reach 100 clicks",100],["thousand","Button Enthusiast","Reach 1,000 clicks",1000],["tenk","No Life Mode","Reach 10,000 clicks",10000],["million","Button Billionaire","Reach 1 billion clicks",1e9],
-["a0","Getting Started 1","Reach 1,000 clicks",1000],
-["a1","Finger Workout 2","Reach 1,778.279 clicks",1778.2794100389228],
-["a2","Button Rookie 3","Reach 3,162.278 clicks",3162.2776601683795],
-["a3","Button Fan 4","Reach 5,623.413 clicks",5623.413251903491],
-["a4","Button Addict 5","Reach 10,000 clicks",10000],
-["a5","Button Maniac 6","Reach 17,782.794 clicks",17782.794100389227],
-["a6","Button Machine 7","Reach 31,622.777 clicks",31622.776601683792],
-["a7","Button Legend 8","Reach 56,234.133 clicks",56234.13251903491],
-["a8","Button Master 9","Reach 100,000 clicks",100000],
-["a9","Button Overlord 10","Reach 177,827.941 clicks",177827.94100389228],
-["a10","Click Commander 11","Reach 316,227.766 clicks",316227.7660168379],
-["a11","Click Captain 12","Reach 562,341.325 clicks",562341.3251903491],
-["a12","Click Emperor 13","Reach 1 million clicks",1000000],
-["a13","Click Titan 14","Reach 1 million clicks",1778279.410038923],
-["a14","Click God 15","Reach 1 million clicks",3162277.6601683795],
-["a15","Click Wizard 16","Reach 1 million clicks",5623413.251903491],
-["a16","Click Sorcerer 17","Reach 10 million clicks",10000000],
-["a17","Click Champion 18","Reach 10 million clicks",17782794.100389227],
-["a18","Click Beast 19","Reach 10 million clicks",31622776.60168379],
-["a19","Click Monster 20","Reach 10 million clicks",56234132.51903491],
-["a20","Click Demon 21","Reach 100 million clicks",100000000],
-["a21","Click Angel 22","Reach 100 million clicks",100000000],
-["a22","Click Hero 23","Reach 100 million clicks",100000000],
-["a23","Click Superstar 24","Reach 100 million clicks",100000000],
-["a24","Click Celebrity 25","Reach 100 million clicks",100000000],
-["a25","Click Icon 26","Reach 100 million clicks",100000000],
-["a26","Click Myth 27","Reach 100 million clicks",100000000],
-["a27","Click Cosmic 28","Reach 100 million clicks",100000000],
-["a28","Click Galactic 29","Reach 100 million clicks",100000000],
-["a29","Click Universal 30","Reach 100 million clicks",100000000],
-["a30","Click Multiversal 31","Reach 10 billion clicks",10000000000],
-["a31","Click Infinite 32","Reach 10 billion clicks",10000000000],
-["a32","Click Eternal 33","Reach 10 billion clicks",10000000000],
-["a33","Click Beyond 34","Reach 10 billion clicks",10000000000],
-["a34","Click Singularity 35","Reach 10 billion clicks",10000000000],
-["a35","Click Reality Breaker 36","Reach 10 billion clicks",10000000000],
-["a36","Click Dimension Lord 37","Reach 10 billion clicks",10000000000],
-["a37","Click Time Lord 38","Reach 10 billion clicks",10000000000],
-["a38","Click Void Walker 39","Reach 10 billion clicks",10000000000],
-["a39","Click Starborn 40","Reach 10 billion clicks",10000000000],
-["a40","Click Ascended 41","Reach 1 trillion clicks",1000000000000],
-["a41","Click Transcendent 42","Reach 1 trillion clicks",1000000000000],
-["a42","Click Omnipotent 43","Reach 1 trillion clicks",1000000000000],
-["a43","Click Absolute 44","Reach 1 trillion clicks",1000000000000],
-["a44","Click Unreachable 45","Reach 1 trillion clicks",1000000000000],
-["a45","Click Impossible 46","Reach 1 trillion clicks",1000000000000],
-["a46","Click Limitless 47","Reach 1 trillion clicks",1000000000000],
-["a47","Click Beyond Beyond 48","Reach 1 trillion clicks",1000000000000],
-["a48","Getting Started 49","Reach 1 trillion clicks",1000000000000],
-["a49","Finger Workout 50","Reach 1 trillion clicks",1000000000000],
-["a50","Button Rookie 51","Reach 100 trillion clicks",100000000000000],
-["a51","Button Fan 52","Reach 100 trillion clicks",100000000000000],
-["a52","Button Addict 53","Reach 100 trillion clicks",100000000000000],
-["a53","Button Maniac 54","Reach 100 trillion clicks",100000000000000],
-["a54","Button Machine 55","Reach 100 trillion clicks",100000000000000],
-["a55","Button Legend 56","Reach 100 trillion clicks",100000000000000],
-["a56","Button Master 57","Reach 100 trillion clicks",100000000000000],
-["a57","Button Overlord 58","Reach 100 trillion clicks",100000000000000],
-["a58","Click Commander 59","Reach 100 trillion clicks",100000000000000],
-["a59","Click Captain 60","Reach 100 trillion clicks",100000000000000],
-["a60","Click Emperor 61","Reach 10 quadrillion clicks",10000000000000000],
-["a61","Click Titan 62","Reach 10 quadrillion clicks",10000000000000000],
-["a62","Click God 63","Reach 10 quadrillion clicks",10000000000000000],
-["a63","Click Wizard 64","Reach 10 quadrillion clicks",10000000000000000],
-["a64","Click Sorcerer 65","Reach 10 quadrillion clicks",10000000000000000],
-["a65","Click Champion 66","Reach 10 quadrillion clicks",10000000000000000],
-["a66","Click Beast 67","Reach 10 quadrillion clicks",10000000000000000],
-["a67","Click Monster 68","Reach 10 quadrillion clicks",10000000000000000],
-["a68","Click Demon 69","Reach 10 quadrillion clicks",10000000000000000],
-["a69","Click Angel 70","Reach 10 quadrillion clicks",10000000000000000],
-["a70","Click Hero 71","Reach 1 quintillion clicks",1000000000000000000],
-["a71","Click Superstar 72","Reach 1 quintillion clicks",1000000000000000000],
-["a72","Click Celebrity 73","Reach 1 quintillion clicks",1000000000000000000],
-["a73","Click Icon 74","Reach 1 quintillion clicks",1000000000000000000],
-["a74","Click Myth 75","Reach 1 quintillion clicks",1000000000000000000],
-["a75","Click Cosmic 76","Reach 1 quintillion clicks",1000000000000000000],
-["a76","Click Galactic 77","Reach 1 quintillion clicks",1000000000000000000],
-["a77","Click Universal 78","Reach 1 quintillion clicks",1000000000000000000],
-["a78","Click Multiversal 79","Reach 1 quintillion clicks",1000000000000000000],
-["a79","Click Infinite 80","Reach 1 quintillion clicks",1000000000000000000],
-["a80","Click Eternal 81","Reach 100 quintillion clicks",100000000000000000000],
-["a81","Click Beyond 82","Reach 100 quintillion clicks",100000000000000000000],
-["a82","Click Singularity 83","Reach 100 quintillion clicks",100000000000000000000],
-["a83","Click Reality Breaker 84","Reach 100 quintillion clicks",100000000000000000000],
-["a84","Click Dimension Lord 85","Reach 100 quintillion clicks",100000000000000000000],
-["a85","Click Time Lord 86","Reach 100 quintillion clicks",100000000000000000000],
-["a86","Click Void Walker 87","Reach 100 quintillion clicks",100000000000000000000],
-["a87","Click Starborn 88","Reach 100 quintillion clicks",100000000000000000000],
-["a88","Click Ascended 89","Reach 100 quintillion clicks",100000000000000000000],
-["a89","Click Transcendent 90","Reach 100 quintillion clicks",100000000000000000000],
-["a90","Click Omnipotent 91","Reach 10 sextillion clicks",1e+22],
-["a91","Click Absolute 92","Reach 10 sextillion clicks",1e+22],
-["a92","Click Unreachable 93","Reach 10 sextillion clicks",1e+22],
-["a93","Click Impossible 94","Reach 10 sextillion clicks",1e+22],
-["a94","Click Limitless 95","Reach 10 sextillion clicks",1e+22],
-["a95","Click Beyond Beyond 96","Reach 10 sextillion clicks",1e+22],
-["a96","Getting Started 97","Reach 10 sextillion clicks",1e+22],
-["a97","Finger Workout 98","Reach 10 sextillion clicks",1e+22],
-["a98","Button Rookie 99","Reach 10 sextillion clicks",1e+22],
-["a99","Button Fan 100","Reach 10 sextillion clicks",1e+22],
-["a100","Button Addict 101","Reach 1 septillion clicks",1e+24],
-["a101","Button Maniac 102","Reach 1 septillion clicks",1e+24],
-["a102","Button Machine 103","Reach 1 septillion clicks",1e+24],
-["a103","Button Legend 104","Reach 1 septillion clicks",1e+24],
-["a104","Button Master 105","Reach 1 septillion clicks",1e+24],
-["a105","Button Overlord 106","Reach 1 septillion clicks",1e+24],
-["a106","Click Commander 107","Reach 1 septillion clicks",1e+24],
-["a107","Click Captain 108","Reach 1 septillion clicks",1e+24],
-["a108","Click Emperor 109","Reach 1 septillion clicks",1e+24],
-["a109","Click Titan 110","Reach 1 septillion clicks",1e+24],
-["a110","Click God 111","Reach 100 septillion clicks",1e+26],
-["a111","Click Wizard 112","Reach 100 septillion clicks",1e+26],
-["a112","Click Sorcerer 113","Reach 100 septillion clicks",1e+26],
-["a113","Click Champion 114","Reach 100 septillion clicks",1e+26],
-["a114","Click Beast 115","Reach 100 septillion clicks",1e+26],
-["a115","Click Monster 116","Reach 100 septillion clicks",1e+26],
-["a116","Click Demon 117","Reach 100 septillion clicks",1e+26],
-["a117","Click Angel 118","Reach 100 septillion clicks",1e+26],
-["a118","Click Hero 119","Reach 100 septillion clicks",1e+26],
-["a119","Click Superstar 120","Reach 100 septillion clicks",1e+26],
-["a120","Click Celebrity 121","Reach 10 octillion clicks",1e+28],
-["a121","Click Icon 122","Reach 10 octillion clicks",1e+28],
-["a122","Click Myth 123","Reach 10 octillion clicks",1e+28],
-["a123","Click Cosmic 124","Reach 10 octillion clicks",1e+28],
-["a124","Click Galactic 125","Reach 10 octillion clicks",1e+28],
-["a125","Click Universal 126","Reach 10 octillion clicks",1e+28],
-["a126","Click Multiversal 127","Reach 10 octillion clicks",1e+28],
-["a127","Click Infinite 128","Reach 10 octillion clicks",1e+28],
-["a128","Click Eternal 129","Reach 10 octillion clicks",1e+28],
-["a129","Click Beyond 130","Reach 10 octillion clicks",1e+28],
-["a130","Click Singularity 131","Reach 1 nonillion clicks",1e+30],
-["a131","Click Reality Breaker 132","Reach 1 nonillion clicks",1e+30],
-["a132","Click Dimension Lord 133","Reach 1 nonillion clicks",1e+30],
-["a133","Click Time Lord 134","Reach 1 nonillion clicks",1e+30],
-["a134","Click Void Walker 135","Reach 1 nonillion clicks",1e+30],
-["a135","Click Starborn 136","Reach 1 nonillion clicks",1e+30],
-["a136","Click Ascended 137","Reach 1 nonillion clicks",1e+30],
-["a137","Click Transcendent 138","Reach 1 nonillion clicks",1e+30],
-["a138","Click Omnipotent 139","Reach 1 nonillion clicks",1e+30],
-["a139","Click Absolute 140","Reach 1 nonillion clicks",1e+30],
-["a140","Click Unreachable 141","Reach 100 nonillion clicks",1e+32],
-["a141","Click Impossible 142","Reach 100 nonillion clicks",1e+32],
-["a142","Click Limitless 143","Reach 100 nonillion clicks",1e+32],
-["a143","Click Beyond Beyond 144","Reach 100 nonillion clicks",1e+32],
-["a144","Getting Started 145","Reach 100 nonillion clicks",1e+32],
-["a145","Finger Workout 146","Reach 100 nonillion clicks",1e+32],
-["a146","Button Rookie 147","Reach 100 nonillion clicks",1e+32],
-["a147","Button Fan 148","Reach 100 nonillion clicks",1e+32],
-["a148","Button Addict 149","Reach 100 nonillion clicks",1e+32],
-["a149","Button Maniac 150","Reach 100 nonillion clicks",1e+32],
-["a150","Button Machine 151","Reach 10 decillion clicks",1e+34],
-["a151","Button Legend 152","Reach 10 decillion clicks",1e+34],
-["a152","Button Master 153","Reach 10 decillion clicks",1e+34],
-["a153","Button Overlord 154","Reach 10 decillion clicks",1e+34],
-["a154","Click Commander 155","Reach 10 decillion clicks",1e+34],
-["a155","Click Captain 156","Reach 10 decillion clicks",1e+34],
-["a156","Click Emperor 157","Reach 10 decillion clicks",1e+34],
-["a157","Click Titan 158","Reach 10 decillion clicks",1e+34],
-["a158","Click God 159","Reach 10 decillion clicks",1e+34],
-["a159","Click Wizard 160","Reach 10 decillion clicks",1e+34],
-["a160","Click Sorcerer 161","Reach 1e36 clicks",1e+36],
-["a161","Click Champion 162","Reach 1e36 clicks",1e+36],
-["a162","Click Beast 163","Reach 1e36 clicks",1e+36],
-["a163","Click Monster 164","Reach 1e36 clicks",1e+36],
-["a164","Click Demon 165","Reach 1e36 clicks",1e+36],
-["a165","Click Angel 166","Reach 1e36 clicks",1e+36],
-["a166","Click Hero 167","Reach 1e36 clicks",1e+36],
-["a167","Click Superstar 168","Reach 1e36 clicks",1e+36],
-["a168","Click Celebrity 169","Reach 1e36 clicks",1e+36],
-["a169","Click Icon 170","Reach 1e36 clicks",1e+36],
-["a170","Click Myth 171","Reach 1e38 clicks",1e+38],
-["a171","Click Cosmic 172","Reach 1e38 clicks",1e+38],
-["a172","Click Galactic 173","Reach 1e38 clicks",1e+38],
-["a173","Click Universal 174","Reach 1e38 clicks",1e+38],
-["a174","Click Multiversal 175","Reach 1e38 clicks",1e+38],
-["a175","Click Infinite 176","Reach 1e38 clicks",1e+38],
-["a176","Click Eternal 177","Reach 1e38 clicks",1e+38],
-["a177","Click Beyond 178","Reach 1e38 clicks",1e+38],
-["a178","Click Singularity 179","Reach 1e38 clicks",1e+38],
-["a179","Click Reality Breaker 180","Reach 1e38 clicks",1e+38],
-["a180","Click Dimension Lord 181","Reach 1e40 clicks",1e+40],
-["a181","Click Time Lord 182","Reach 1e40 clicks",1e+40],
-["a182","Click Void Walker 183","Reach 1e40 clicks",1e+40],
-["a183","Click Starborn 184","Reach 1e40 clicks",1e+40],
-["a184","Click Ascended 185","Reach 1e40 clicks",1e+40],
-["a185","Click Transcendent 186","Reach 1e40 clicks",1e+40],
-["a186","Click Omnipotent 187","Reach 1e40 clicks",1e+40],
-["a187","Click Absolute 188","Reach 1e40 clicks",1e+40],
-["a188","Click Unreachable 189","Reach 1e40 clicks",1e+40],
-["a189","Click Impossible 190","Reach 1e40 clicks",1e+40],
-["a190","Click Limitless 191","Reach 1e42 clicks",1e+42],
-["a191","Click Beyond Beyond 192","Reach 1e42 clicks",1e+42],
-["a192","Getting Started 193","Reach 1e42 clicks",1e+42],
-["a193","Finger Workout 194","Reach 1e42 clicks",1e+42],
-["a194","Button Rookie 195","Reach 1e42 clicks",1e+42],
-["a195","Button Fan 196","Reach 1e42 clicks",1e+42],
-["a196","Button Addict 197","Reach 1e42 clicks",1e+42],
-["a197","Button Maniac 198","Reach 1e42 clicks",1e+42],
-["a198","Button Machine 199","Reach 1e42 clicks",1e+42],
-["a199","Button Legend 200","Reach 1e42 clicks",1e+42],
-["a200","Button Master 201","Reach 1e44 clicks",1e+44],
-["a201","Button Overlord 202","Reach 1e44 clicks",1e+44],
-["a202","Click Commander 203","Reach 1e44 clicks",1e+44],
-["a203","Click Captain 204","Reach 1e44 clicks",1e+44],
-["a204","Click Emperor 205","Reach 1e44 clicks",1e+44],
-["a205","Click Titan 206","Reach 1e44 clicks",1e+44],
-["a206","Click God 207","Reach 1e44 clicks",1e+44],
-["a207","Click Wizard 208","Reach 1e44 clicks",1e+44],
-["a208","Click Sorcerer 209","Reach 1e44 clicks",1e+44],
-["a209","Click Champion 210","Reach 1e44 clicks",1e+44],
-["a210","Click Beast 211","Reach 1e46 clicks",1e+46],
-["a211","Click Monster 212","Reach 1e46 clicks",1e+46],
-["a212","Click Demon 213","Reach 1e46 clicks",1e+46],
-["a213","Click Angel 214","Reach 1e46 clicks",1e+46],
-["a214","Click Hero 215","Reach 1e46 clicks",1e+46],
-["a215","Click Superstar 216","Reach 1e46 clicks",1e+46],
-["a216","Click Celebrity 217","Reach 1e46 clicks",1e+46],
-["a217","Click Icon 218","Reach 1e46 clicks",1e+46],
-["a218","Click Myth 219","Reach 1e46 clicks",1e+46],
-["a219","Click Cosmic 220","Reach 1e46 clicks",1e+46],
-["a220","Click Galactic 221","Reach 1e48 clicks",1e+48],
-["a221","Click Universal 222","Reach 1e48 clicks",1e+48],
-["a222","Click Multiversal 223","Reach 1e48 clicks",1e+48],
-["a223","Click Infinite 224","Reach 1e48 clicks",1e+48],
-["a224","Click Eternal 225","Reach 1e48 clicks",1e+48],
-["a225","Click Beyond 226","Reach 1e48 clicks",1e+48],
-["a226","Click Singularity 227","Reach 1e48 clicks",1e+48],
-["a227","Click Reality Breaker 228","Reach 1e48 clicks",1e+48],
-["a228","Click Dimension Lord 229","Reach 1e48 clicks",1e+48],
-["a229","Click Time Lord 230","Reach 1e48 clicks",1e+48],
-["a230","Click Void Walker 231","Reach 1e50 clicks",1e+50],
-["a231","Click Starborn 232","Reach 1e50 clicks",1e+50],
-["a232","Click Ascended 233","Reach 1e50 clicks",1e+50],
-["a233","Click Transcendent 234","Reach 1e50 clicks",1e+50],
-["a234","Click Omnipotent 235","Reach 1e50 clicks",1e+50],
-["a235","Click Absolute 236","Reach 1e50 clicks",1e+50],
-["a236","Click Unreachable 237","Reach 1e50 clicks",1e+50],
-["a237","Click Impossible 238","Reach 1e50 clicks",1e+50],
-["a238","Click Limitless 239","Reach 1e50 clicks",1e+50],
-["a239","Click Beyond Beyond 240","Reach 1e50 clicks",1e+50],
-["a240","Getting Started 241","Reach 1e52 clicks",1e+52],
-["a241","Finger Workout 242","Reach 1e52 clicks",1e+52],
-["a242","Button Rookie 243","Reach 1e52 clicks",1e+52],
-["a243","Button Fan 244","Reach 1e52 clicks",1e+52],
-["a244","Button Addict 245","Reach 1e52 clicks",1e+52],
-["a245","Button Maniac 246","Reach 1e52 clicks",1e+52],
-["a246","Button Machine 247","Reach 1e52 clicks",1e+52],
-["a247","Button Legend 248","Reach 1e52 clicks",1e+52],
-["a248","Button Master 249","Reach 1e52 clicks",1e+52],
-["a249","Button Overlord 250","Reach 1e52 clicks",1e+52],
-["a250","Click Commander 251","Reach 1e54 clicks",1e+54],
-["a251","Click Captain 252","Reach 1e54 clicks",1e+54],
-["a252","Click Emperor 253","Reach 1e54 clicks",1e+54],
-["a253","Click Titan 254","Reach 1e54 clicks",1e+54],
-["a254","Click God 255","Reach 1e54 clicks",1e+54],
-["a255","Click Wizard 256","Reach 1e54 clicks",1e+54],
-["a256","Click Sorcerer 257","Reach 1e54 clicks",1e+54],
-["a257","Click Champion 258","Reach 1e54 clicks",1e+54],
-["a258","Click Beast 259","Reach 1e54 clicks",1e+54],
-["a259","Click Monster 260","Reach 1e54 clicks",1e+54],
-["decillion","DECILLION PRESS","Reach 1 decillion clicks",1e33]
+upgrades.push(
+{id:"tapmatrix",name:"Tap Matrix",desc:"+1,000 click power",base:5e15,kind:"click",amount:1000,icon:"🧩"},
+{id:"autodrive",name:"Auto Drive",desc:"+5,000,000 clicks/sec",base:2e16,kind:"auto",amount:5e6,icon:"🚗"},
+{id:"hyperbot",name:"Hyper Bot",desc:"+100,000,000 clicks/sec",base:2e18,kind:"auto",amount:1e8,icon:"🤖"},
+{id:"clickstorm",name:"Clickstorm",desc:"+10,000 click power",base:1e19,kind:"click",amount:1e4,icon:"🌩️"},
+{id:"powergrid",name:"Power Grid",desc:"×2 clicks/sec per purchase",base:1e20,kind:"autoMulti",amount:2,icon:"🔌"},
+{id:"megafinger",name:"Mega Finger",desc:"+1,000,000 click power",base:1e21,kind:"click",amount:1e6,icon:"☝️"},
+{id:"warpdrive",name:"Warp Drive",desc:"+1,000,000,000 clicks/sec",base:1e22,kind:"auto",amount:1e9,icon:"🛸"},
+{id:"quantumfactory",name:"Quantum Factory",desc:"+10,000,000,000 clicks/sec",base:1e24,kind:"auto",amount:1e10,icon:"🏭"},
+{id:"quantumgrid",name:"Quantum Grid",desc:"×3 clicks/sec per purchase",base:1e25,kind:"autoMulti",amount:3,icon:"⚡"},
+{id:"realityfinger",name:"Reality Finger",desc:"+1,000,000,000 click power",base:1e26,kind:"click",amount:1e9,icon:"🪐"},
+{id:"starpower",name:"Star Power",desc:"×3 click power",base:1e28,kind:"multi",amount:3,icon:"⭐"},
+{id:"cosmicforge",name:"Cosmic Forge",desc:"+1,000,000,000,000 clicks/sec",base:1e29,kind:"auto",amount:1e12,icon:"🌌"},
+{id:"dimensiongrid",name:"Dimension Grid",desc:"×5 clicks/sec per purchase",base:1e31,kind:"autoMulti",amount:5,icon:"🔮"},
+{id:"voidfinger",name:"Void Finger",desc:"+1,000,000,000,000 click power",base:1e32,kind:"click",amount:1e12,icon:"🕳️"},
+{id:"eternalpress",name:"Eternal Press",desc:"×50 click power",base:1e34,kind:"multi",amount:50,icon:"♾️"},
+{id:"universefactory",name:"Universe Factory",desc:"+1e15 clicks/sec",base:1e35,kind:"auto",amount:1e15,icon:"🌠"},
+{id:"eternalgrid",name:"Eternal Grid",desc:"×10 clicks/sec per purchase",base:1e37,kind:"autoMulti",amount:10,icon:"🌀"},
+{id:"omnifinger",name:"Omni Finger",desc:"+1e18 click power",base:1e38,kind:"click",amount:1e18,icon:"🖐️"},
+{id:"transcendentpress",name:"Transcendent Press",desc:"×100 click power",base:1e40,kind:"multi",amount:100,icon:"👑"},
+{id:"multiversefactory",name:"Multiverse Factory",desc:"+1e21 clicks/sec",base:1e41,kind:"auto",amount:1e21,icon:"🌌"},
+{id:"multiversegrid",name:"Multiverse Grid",desc:"×25 clicks/sec per purchase",base:1e43,kind:"autoMulti",amount:25,icon:"🧬"},
+{id:"absolutehand",name:"Absolute Hand",desc:"+1e24 click power",base:1e44,kind:"click",amount:1e24,icon:"🔱"},
+{id:"absoluteengine",name:"Absolute Engine",desc:"×250 click power",base:1e46,kind:"multi",amount:250,icon:"⚙️"},
+{id:"beyondfactory",name:"Beyond Factory",desc:"+1e27 clicks/sec",base:1e47,kind:"auto",amount:1e27,icon:"🚀"},
+{id:"beyondgrid",name:"Beyond Grid",desc:"×50 clicks/sec per purchase",base:1e49,kind:"autoMulti",amount:50,icon:"💫"},
+{id:"limitlessfinger",name:"Limitless Finger",desc:"+1e30 click power",base:1e50,kind:"click",amount:1e30,icon:"✨"},
+{id:"singularitypress",name:"Singularity Press",desc:"×1,000 click power",base:1e52,kind:"multi",amount:1000,icon:"🕳️"},
+{id:"realityfactory",name:"Reality Factory",desc:"+1e33 clicks/sec",base:1e53,kind:"auto",amount:1e33,icon:"🌍"},
+{id:"realitygrid",name:"Reality Grid",desc:"×100 clicks/sec per purchase",base:1e55,kind:"autoMulti",amount:100,icon:"🔷"},
+{id:"infinityfinger",name:"Infinity Finger",desc:"+1e36 click power",base:1e56,kind:"click",amount:1e36,icon:"∞"},
+{id:"infinitypress",name:"Infinity Press",desc:"×10,000 click power",base:1e58,kind:"multi",amount:1e4,icon:"♾️"},
+{id:"infinityfactory",name:"Infinity Factory",desc:"+1e39 clicks/sec",base:1e59,kind:"auto",amount:1e39,icon:"🏭"},
+{id:"infinitygrid",name:"Infinity Grid",desc:"×250 clicks/sec per purchase",base:1e61,kind:"autoMulti",amount:250,icon:"⚡"},
+{id:"beyondinfinity",name:"Beyond Infinity",desc:"×100,000 click power",base:1e63,kind:"multi",amount:1e5,icon:"💥"},
+{id:"endlessengine",name:"Endless Engine",desc:"+1e45 clicks/sec",base:1e64,kind:"auto",amount:1e45,icon:"🔄"},
+{id:"endlessgrid",name:"Endless Grid",desc:"×1,000 clicks/sec per purchase",base:1e67,kind:"autoMulti",amount:1e3,icon:"🌐"},
+{id:"godfinger",name:"God Finger",desc:"+1e48 click power",base:1e68,kind:"click",amount:1e48,icon:"☝️"},
+{id:"godpress",name:"God Press",desc:"×1,000,000 click power",base:1e70,kind:"multi",amount:1e6,icon:"⚡"},
+{id:"omnifactory",name:"Omni Factory",desc:"+1e51 clicks/sec",base:1e71,kind:"auto",amount:1e51,icon:"🌌"},
+{id:"omnigrid",name:"Omni Grid",desc:"×10,000 clicks/sec per purchase",base:1e74,kind:"autoMulti",amount:1e4,icon:"🔋"},
+{id:"absoluteinfinity",name:"Absolute Infinity",desc:"×1e9 click power",base:1e75,kind:"multi",amount:1e9,icon:"∞"},
+{id:"finalbutton",name:"The Final Button",desc:"+1e60 click power",base:1e78,kind:"click",amount:1e60,icon:"🔘"}
+);
+const achievements=[];
+const ACH_NAMES=[
+ "Button Rookie","Finger Workout","Button Fan","Button Addict","Button Maniac","Button Machine","Button Legend","Button Master","Button Overlord",
+ "Click Commander","Click Captain","Click Emperor","Click Titan","Click God","Click Wizard","Click Sorcerer","Click Champion","Click Beast","Click Monster",
+ "Click Demon","Click Angel","Click Hero","Click Superstar","Click Celebrity","Click Icon","Click Myth","Click Cosmic","Click Galactic","Click Universal",
+ "Click Multiversal","Click Eternal","Click Beyond","Click Singularity","Click Reality Breaker","Click Dimension Lord","Click Time Lord","Click Void Walker",
+ "Click Starborn","Click Ascended","Click Transcendent","Click Omnipotent","Click Absolute","Click Unreachable","Click Impossible","Click Limitless"
 ];
-
+for(let exp=0;exp<=300;exp++){
+  const value=Math.pow(10,exp);
+  achievements.push(["milestone"+exp,exp===0?"First Press":ACH_NAMES[exp%ACH_NAMES.length]+" "+(exp+1),"Reach "+fmtAch(value)+" clicks",value]);
+}
+achievements.push(
+ ["combo25","Combo Starter","Reach a 25-click combo",25,"special"],
+ ["combo100","Combo Monster","Reach a 100-click combo",100,"special"],
+ ["combo1000","Combo Apocalypse","Reach a 1,000-click combo",1000,"special"],
+ ["crit100","Critical Thinking","Land 100 critical clicks",100,"special"],
+ ["crit1000","Critical Overload","Land 1,000 critical clicks",1000,"special"],
+ ["gold10","Golden Hoarder","Collect 10 Golden Buttons",10,"special"],
+ ["gold100","Golden Dragon","Collect 100 Golden Buttons",100,"special"],
+ ["infinity","INFINITY","Reach infinity",Infinity,"infinity"]
+);
 const themes=[["classic","🌈 Neon","Default"],["sunset","🌅 Sunset","Reach 10K"],["ocean","🌊 Deep Sea","Reach 1M"],["space","🚀 Cosmic","Reach 1B"],["void","🕳️ Void","Reach 1T"],["rainbow","🌈 Hyper","Reach 1Qa"]];
 const tasks=[["speed100","⚡ Speedrun 100K","Reach 100,000 total clicks in 60 seconds",100000,60],["speed1m","🏁 Speedrun 1M","Reach 1,000,000 total clicks in 5 minutes",1000000,300],["gold","🌟 Golden Hunter","Collect 3 Golden Buttons",3,0],["combo","🔥 Combo King","Reach a 25-click combo",25,0],["crit","💥 Critical Mass","Land 25 critical clicks",25,0],["hours","⏱️ Stay Awhile","Play for 10 minutes",600,0]];
-let s=JSON.parse(localStorage.getItem(KEY)||"null")||{n:0,total:0,click:1,auto:0,spent:0,owned:{},ach:{},started:Date.now(),combo:0,bestCombo:0,crit:0,golden:0,rewards:0,task:{},theme:"classic"}; let comboTimer=0;
+let s=JSON.parse(localStorage.getItem(KEY)||"null")||{n:0,total:0,click:1,auto:0,spent:0,owned:{},ach:{},started:Date.now(),combo:0,bestCombo:0,crit:0,golden:0,rewards:0,task:{},theme:"classic",infinityReached:false}; let comboTimer=0;
 const $=id=>document.getElementById(id);
+if(s.n===null||s.total===null){s.n=Number.MAX_VALUE;s.total=Number.MAX_VALUE;s.infinityReached=true;}
+const BIG_NAMES=[
+"", "thousand","million","billion","trillion","quadrillion","quintillion","sextillion","septillion","octillion","nonillion","decillion",
+"undecillion","duodecillion","tredecillion","quattuordecillion","quindecillion","sexdecillion","septendecillion","octodecillion","novemdecillion",
+"vigintillion","unvigintillion","duovigintillion","trevigintillion","quattuorvigintillion","quinvigintillion","sexvigintillion","septemvigintillion","octovigintillion","novemvigintillion",
+"trigintillion","untrigintillion","duotrigintillion","tretrigintillion","quattuortrigintillion","quintrigintillion","sextrigintillion","septentrigintillion","octotrigintillion","noventrigintillion",
+"quadragintillion","unquadragintillion","duoquadragintillion","trequadragintillion","quattuorquadragintillion","quinquadragintillion","sexquadragintillion","septenquadragintillion","octoquadragintillion","novemquadragintillion",
+"quinquagintillion","unquinquagintillion","duoquinquagintillion","trequinquagintillion","quattuorquinquagintillion","quinquinquagintillion","sexquinquagintillion","septenquinquagintillion","octoquinquagintillion","novemquinquagintillion",
+"sexagintillion","unsexagintillion","duosexagintillion","tresexagintillion","quattuorsexagintillion","quinsexagintillion","sexsexagintillion","septensexagintillion","octosexagintillion","novemsexagintillion",
+"septuagintillion","unseptuagintillion","duoseptuagintillion","treseptuagintillion","quattuorseptuagintillion","quinseptuagintillion","sexseptuagintillion","septenseptuagintillion","octoseptuagintillion","novemseptuagintillion",
+"octogintillion","unoctogintillion","duooctogintillion","treoctogintillion","quattuoroctogintillion","quinoctogintillion","sexoctogintillion","septemoctogintillion","octooctogintillion","novemoctogintillion",
+"nonagintillion","unnonagintillion","duononagintillion","trenonagintillion","quattuornonagintillion","quinnonagintillion","sexnonagintillion","septemnonagintillion","octononagintillion","novemnonagintillion",
+"centillion"
+];
 function fmt(n){
+ if(n===Infinity||n===-Infinity)return "∞";
  if(!Number.isFinite(n))return "∞";
  n=Math.max(0,n);
  if(n<1000)return Math.floor(n).toLocaleString("en-US");
- const units=["","K","M","B","T","Qa","Qi","Sx","Sp","Oc","No","Dc"];
  const e=Math.floor(Math.log10(n)/3);
- if(e<units.length){
+ if(e<BIG_NAMES.length){
    const v=n/Math.pow(1000,e);
-   return (v>=100?v.toFixed(0):v>=10?v.toFixed(1):v.toFixed(2)).replace(/\\.0+$|(?<=\\.\\d)0+$/,"")+units[e];
+   const digits=v>=100?0:v>=10?1:2;
+   return v.toFixed(digits).replace(/\\.0+$|(?<=\\.\\d)0+$/,"")+" "+BIG_NAMES[e];
  }
- return n.toExponential(2).replace("e+","e");
+ return n.toExponential(3).replace("e+","e");
 }
 function fmtAch(n){
  if(n<1e6)return n.toLocaleString("en-US");
@@ -384,7 +200,13 @@ function fmtAch(n){
  if(idx>=0&&idx<names.length)return (n/Math.pow(1000,idx+2)).toFixed(n>=1e12?0:1).replace(/\\.0$/,"")+" "+names[idx];
  return n.toExponential(0);
 }
-function price(u){const owned=s.owned[u.id]||0;const curves={multi:3.85,click:1.72,auto:1.58,autoMulti:2.35};const growth=curves[u.kind]||1.65;return Math.floor(u.base*Math.pow(growth,owned)*Math.pow(1.08,owned*owned))}
+function price(u){
+ const owned=s.owned[u.id]||0;
+ const curves={multi:12.5,autoMulti:8.5,click:2.15,auto:1.9};
+ const growth=curves[u.kind]||2;
+ const exponent=u.kind==="multi"?owned*owned*0.34:owned*owned*0.055;
+ return Math.max(u.base,Math.floor(u.base*Math.pow(growth,owned)*Math.pow(1.09,exponent)))
+}
 function save(){localStorage.setItem(KEY,JSON.stringify(s))}
 function multiFactor(){let m=1;for(const u of upgrades){if(u.kind==="multi"&&s.owned[u.id])m*=Math.pow(u.amount,s.owned[u.id]);}return m}
 function power(){return s.click*multiFactor()}
@@ -411,11 +233,28 @@ $("themes").innerHTML=themes.map(t=>{let ok=t[0]==="classic"||(t[0]==="sunset"&&
 document.querySelectorAll(".theme").forEach(x=>x.onclick=()=>{if(!x.classList.contains("locked")){s.theme=x.dataset.theme;applyTheme();save();render()}});
  document.querySelectorAll(".buy").forEach(x=>x.onclick=()=>buy(x.dataset.id));
 }
-function buy(id){sound("buy");let u=upgrades.find(x=>x.id===id),p=price(u);if(s.n<p)return;s.n-=p;s.spent+=p;s.owned[id]=(s.owned[id]||0)+1;if(u.kind==="click")s.click+=u.amount;if(u.kind==="auto")s.auto+=u.amount;toast(u.icon+" "+u.name+" upgraded!");save();render()}
+function buy(id){
+ sound("buy");
+ let u=upgrades.find(x=>x.id===id),p=price(u);
+ if(s.n<p)return;
+ s.n-=p;s.spent+=p;s.owned[id]=(s.owned[id]||0)+1;
+ if(u.kind==="click")s.click+=u.amount;
+ if(u.kind==="auto")s.auto+=u.amount;
+ toast(u.icon+" "+u.name+" upgraded!");
+ save();render();
+}
 function toast(t){$("toast").textContent=t;clearTimeout(window.tt);window.tt=setTimeout(()=>{$("toast").textContent="Keep pressing.";},1200)}
 function pop(v){let x=document.createElement("div");x.className="float";x.textContent="+"+fmt(v);x.style.left=(35+Math.random()*30)+"%";x.style.top=(35+Math.random()*25)+"%";$("area").append(x);setTimeout(()=>x.remove(),800)}
 function burst(){for(let i=0;i<10;i++){let x=document.createElement("div");x.className="burst";x.textContent=["✨","💥","⚡","⭐"][i%4];x.style.left="50%";x.style.top="42%";x.style.setProperty("--x",(Math.random()*260-130)+"px");x.style.setProperty("--y",(Math.random()*240-120)+"px");document.body.append(x);setTimeout(()=>x.remove(),700)}}
-function clicker(){sound("bigclick");let now=Date.now();s.combo=(now-comboTimer<1200)?s.combo+1:1;comboTimer=now;s.bestCombo=Math.max(s.bestCombo||0,s.combo);let crit=Math.random()<Math.min(.08+s.combo*.002,.25);let v=effectivePower()*(crit?5:1);s.n+=v;s.total+=v;s.crit=(s.crit||0)+(crit?1:0);$("event").textContent=crit?"💥 CRITICAL! x5":(s.combo>5?"🔥 COMBO x"+s.combo:"Press it again.");$("combo").textContent=s.combo>1?"COMBO ×"+s.combo:"";$("b").classList.remove("hot","superhot");void $("b").offsetWidth;$("b").classList.add("hot");if(s.combo%10===0){$("b").classList.add("superhot");sound("combo");}$("flash").classList.remove("on");void $("flash").offsetWidth;$("flash").classList.add("on");if(crit){sound("crit");burst();}pop(v);check();render()}
+function clicker(){sound("bigclick");let now=Date.now();s.combo=(now-comboTimer<1200)?s.combo+1:1;comboTimer=now;s.bestCombo=Math.max(s.bestCombo||0,s.combo);let crit=Math.random()<Math.min(.08+s.combo*.002,.25);let v=effectivePower()*(crit?5:1);
+if(!Number.isFinite(v)||s.n+v>Number.MAX_VALUE||s.total+v>Number.MAX_VALUE){
+  s.infinityReached=true;
+  s.n=Number.MAX_VALUE;
+  s.total=Number.MAX_VALUE;
+  check();
+}else{
+  s.n+=v;s.total+=v;
+}s.crit=(s.crit||0)+(crit?1:0);$("event").textContent=crit?"💥 CRITICAL! x5":(s.combo>5?"🔥 COMBO x"+s.combo:"Press it again.");$("combo").textContent=s.combo>1?"COMBO ×"+s.combo:"";$("b").classList.remove("hot","superhot");void $("b").offsetWidth;$("b").classList.add("hot");if(s.combo%10===0){$("b").classList.add("superhot");sound("combo");}$("flash").classList.remove("on");void $("flash").offsetWidth;$("flash").classList.add("on");if(crit){sound("crit");burst();}pop(v);check();render()}
 function check(){achievements.forEach(a=>{if(!s.ach[a[0]]&&s.total>=a[3]){s.ach[a[0]]=1;let r=a[3]>=1e33?25:a[3]>=1e24?10:a[3]>=1e15?5:a[3]>=1e9?1:a[3]>=1e6?.5:a[3]>=1e3?.1:.05;s.rewards=(s.rewards||0)+r;celebration();toast("🏆 "+a[1]+"! Permanent power reward unlocked!");}});tasks.forEach(t=>{let done=s.task[t[0]];let ok=t[0]==="gold"?(s.golden||0)>=t[3]:t[0]==="combo"?(s.bestCombo||0)>=t[3]:t[0]==="crit"?(s.crit||0)>=t[3]:t[0]==="hours"?((Date.now()-s.started)/1000)>=t[3]:t[4]?(s.total>=t[3]&&(Date.now()-s.started)/1000<=t[4]):false;if(ok&&!done){s.task[t[0]]=1;s.click*=1.1;toast("🎁 Task complete! +10% permanent click power");}});}
 $("b").onclick=clicker;
 $("reset").onclick=()=>{sound("ui");if(confirm("Reset all Button Bonanza progress?")){sound("no");localStorage.removeItem(KEY);location.reload()}};
@@ -423,7 +262,15 @@ $("save").onclick=()=>{save();toast("💾 Progress saved.")};
 $("upTab").onclick=()=>{tabPop();$("shop").style.display="block";$("stats").style.display="none";$("upTab").classList.add("on");$("achTab").classList.remove("on")};
 $("achTab").onclick=()=>{tabPop();$("shop").style.display="none";$("stats").style.display="block";$("achTab").classList.add("on");$("upTab").classList.remove("on")};
 function spawnGolden(){if(document.querySelector(".golden"))return;let g=document.createElement("button");g.className="golden";g.textContent="⭐";g.title="Golden Button";g.style.left=(15+Math.random()*70)+"%";g.style.top=(20+Math.random()*55)+"%";g.onclick=()=>{let bonus=Math.max(100,effectivePower()*50+production()*30);s.golden=(s.golden||0)+1;taDa();s.n+=bonus;s.total+=bonus;toast("🌟 GOLDEN BUTTON! +"+fmt(bonus));burst();g.remove()};$("area").append(g);setTimeout(()=>g.remove(),8000)}
-setInterval(()=>{let cps=production();if(cps){s.n+=cps;s.total+=cps;check();render()}},1000);setInterval(spawnGolden,22000);
+setInterval(()=>{
+ let cps=production();
+ if(cps){
+   if(!Number.isFinite(cps)||s.n+cps>Number.MAX_VALUE||s.total+cps>Number.MAX_VALUE){
+     s.infinityReached=true;s.n=Number.MAX_VALUE;s.total=Number.MAX_VALUE;check();
+   }else{s.n+=cps;s.total+=cps;check();}
+   render();
+ }
+},1000);setInterval(spawnGolden,22000);
 document.querySelectorAll("button").forEach(b=>{if(b.id!=="sound-toggle")b.addEventListener("click",()=>{if(b.closest(".tabs"))tabPop();else uiSound(b.classList.contains("theme")?"tab":"button")},{capture:true})});document.getElementById("sound-toggle").onclick=()=>{soundOn=!soundOn;localStorage.setItem("hyperpop-button-sound",soundOn?"on":"off");document.getElementById("sound-toggle").textContent=soundOn?"🔊":"🔇";if(soundOn)sound("unlock")};
 document.getElementById("sound-toggle").textContent=soundOn?"🔊":"🔇";
 function applyTheme(){let t=s.theme||"classic";document.body.dataset.theme=t;let bg={classic:"",sunset:"radial-gradient(circle at 50% 10%,#ff7b4d33,transparent 35%)",ocean:"radial-gradient(circle at 50% 10%,#35d9ff33,transparent 35%)",space:"radial-gradient(circle at 50% 10%,#9b6cff33,transparent 35%)",void:"radial-gradient(circle at 50% 10%,#000 0%,#25002f 35%,#0b0b16 70%)",rainbow:"radial-gradient(circle at 20% 20%,#ff4fd833,transparent 30%),radial-gradient(circle at 80% 70%,#4be0e333,transparent 30%)"}[t];if(bg)document.body.style.background=bg+",#0b0b16";else document.body.style.background="";} applyTheme();setInterval(save,5000);render();
