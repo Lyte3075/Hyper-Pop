@@ -147,30 +147,6 @@ upgrades.push(
 {id:"absoluteinfinity",name:"Absolute Infinity",desc:"×1e9 click power",base:1e75,kind:"multi",amount:1e9,icon:"∞"},
 {id:"finalbutton",name:"The Final Button",desc:"+1e60 click power",base:1e78,kind:"click",amount:1e60,icon:"🔘"}
 );
-const achievements=[];
-const ACH_NAMES=[
- "Button Rookie","Finger Workout","Button Fan","Button Addict","Button Maniac","Button Machine","Button Legend","Button Master","Button Overlord",
- "Click Commander","Click Captain","Click Emperor","Click Titan","Click God","Click Wizard","Click Sorcerer","Click Champion","Click Beast","Click Monster",
- "Click Demon","Click Angel","Click Hero","Click Superstar","Click Celebrity","Click Icon","Click Myth","Click Cosmic","Click Galactic","Click Universal",
- "Click Multiversal","Click Eternal","Click Beyond","Click Singularity","Click Reality Breaker","Click Dimension Lord","Click Time Lord","Click Void Walker",
- "Click Starborn","Click Ascended","Click Transcendent","Click Omnipotent","Click Absolute","Click Unreachable","Click Impossible","Click Limitless"
-];
-for(let exp=0;exp<=300;exp++){
-  const value=Math.pow(10,exp);
-  achievements.push(["milestone"+exp,exp===0?"First Press":ACH_NAMES[exp%ACH_NAMES.length]+" "+(exp+1),"Reach "+fmtAch(value)+" clicks",value]);
-}
-achievements.push(
- ["combo25","Combo Starter","Reach a 25-click combo",25,"special"],
- ["combo100","Combo Monster","Reach a 100-click combo",100,"special"],
- ["combo1000","Combo Apocalypse","Reach a 1,000-click combo",1000,"special"],
- ["crit100","Critical Thinking","Land 100 critical clicks",100,"special"],
- ["crit1000","Critical Overload","Land 1,000 critical clicks",1000,"special"],
- ["gold10","Golden Hoarder","Collect 10 Golden Buttons",10,"special"],
- ["gold100","Golden Dragon","Collect 100 Golden Buttons",100,"special"],
- ["infinity","INFINITY","Reach infinity",Infinity,"infinity"]
-);
-const themes=[["classic","🌈 Neon","Default"],["sunset","🌅 Sunset","Reach 10K"],["ocean","🌊 Deep Sea","Reach 1M"],["space","🚀 Cosmic","Reach 1B"],["void","🕳️ Void","Reach 1T"],["rainbow","🌈 Hyper","Reach 1Qa"]];
-const tasks=[["speed100","⚡ Speedrun 100K","Reach 100,000 total clicks in 60 seconds",100000,60],["speed1m","🏁 Speedrun 1M","Reach 1,000,000 total clicks in 5 minutes",1000000,300],["gold","🌟 Golden Hunter","Collect 3 Golden Buttons",3,0],["combo","🔥 Combo King","Reach a 25-click combo",25,0],["crit","💥 Critical Mass","Land 25 critical clicks",25,0],["hours","⏱️ Stay Awhile","Play for 10 minutes",600,0]];
 let s=JSON.parse(localStorage.getItem(KEY)||"null")||{n:0,total:0,click:1,auto:0,spent:0,owned:{},ach:{},started:Date.now(),combo:0,bestCombo:0,crit:0,golden:0,rewards:0,task:{},theme:"classic",infinityReached:false}; let comboTimer=0;
 const $=id=>document.getElementById(id);
 if(s.n===null||s.n==="Infinity"){s.n=Infinity;s.infinityReached=true;}
@@ -202,6 +178,31 @@ function fmt(n){
  return n.toExponential(3).replace("e+","e");
 }
 function fmtAch(n){return fmt(n)}
+
+const achievements=[];
+const ACH_NAMES=[
+ "Button Rookie","Finger Workout","Button Fan","Button Addict","Button Maniac","Button Machine","Button Legend","Button Master","Button Overlord",
+ "Click Commander","Click Captain","Click Emperor","Click Titan","Click God","Click Wizard","Click Sorcerer","Click Champion","Click Beast","Click Monster",
+ "Click Demon","Click Angel","Click Hero","Click Superstar","Click Celebrity","Click Icon","Click Myth","Click Cosmic","Click Galactic","Click Universal",
+ "Click Multiversal","Click Eternal","Click Beyond","Click Singularity","Click Reality Breaker","Click Dimension Lord","Click Time Lord","Click Void Walker",
+ "Click Starborn","Click Ascended","Click Transcendent","Click Omnipotent","Click Absolute","Click Unreachable","Click Impossible","Click Limitless"
+];
+for(let exp=0;exp<=300;exp++){
+  const value=Math.pow(10,exp);
+  achievements.push(["milestone"+exp,exp===0?"First Press":ACH_NAMES[exp%ACH_NAMES.length]+" "+(exp+1),"Reach "+fmtAch(value)+" clicks",value]);
+}
+achievements.push(
+ ["combo25","Combo Starter","Reach a 25-click combo",25,"special"],
+ ["combo100","Combo Monster","Reach a 100-click combo",100,"special"],
+ ["combo1000","Combo Apocalypse","Reach a 1,000-click combo",1000,"special"],
+ ["crit100","Critical Thinking","Land 100 critical clicks",100,"special"],
+ ["crit1000","Critical Overload","Land 1,000 critical clicks",1000,"special"],
+ ["gold10","Golden Hoarder","Collect 10 Golden Buttons",10,"special"],
+ ["gold100","Golden Dragon","Collect 100 Golden Buttons",100,"special"],
+ ["infinity","INFINITY","Reach infinity",Infinity,"infinity"]
+);
+const themes=[["classic","🌈 Neon","Default"],["sunset","🌅 Sunset","Reach 10K"],["ocean","🌊 Deep Sea","Reach 1M"],["space","🚀 Cosmic","Reach 1B"],["void","🕳️ Void","Reach 1T"],["rainbow","🌈 Hyper","Reach 1Qa"]];
+const tasks=[["speed100","⚡ Speedrun 100K","Reach 100,000 total clicks in 60 seconds",100000,60],["speed1m","🏁 Speedrun 1M","Reach 1,000,000 total clicks in 5 minutes",1000000,300],["gold","🌟 Golden Hunter","Collect 3 Golden Buttons",3,0],["combo","🔥 Combo King","Reach a 25-click combo",25,0],["crit","💥 Critical Mass","Land 25 critical clicks",25,0],["hours","⏱️ Stay Awhile","Play for 10 minutes",600,0]];
 function price(u){
  const owned=s.owned[u.id]||0;
  const curves={multi:12.5,autoMulti:8.5,click:2.15,auto:1.9};
