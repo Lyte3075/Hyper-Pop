@@ -39,7 +39,7 @@ canvas{display:block;width:100%;height:auto;touch-action:none}
 <script>
 const c=document.getElementById("game"),ctx=c.getContext("2d"),$=id=>document.getElementById(id);
 let running=false,over=false,last=0,score=0,best=Number(localStorage.getItem("hpDinoBest")||0),speed=310,spawn=0,ground=270,worldIndex=0,worldProgress=0;
-let d={x:130,y:ground-58,w:62,h:58,vy:0,jump:false,duck:false},obs=[],clouds=[],audio=null;
+let d={x:130,y:ground-58,w:62,h:58,vy:0,jump:false,duck:false,jumpTime:0},obs=[],clouds=[],audio=null;
 const worlds=[
  {name:"DESERT",sky:["#f6d78d","#fff0bd"],ground:"#b87945",line:"#d69a62",accent:"#7d5a3b",kind:"desert"},
  {name:"PLAINS",sky:["#8ed8ff","#d9f7b5"],ground:"#6aa34d",line:"#91c86d",accent:"#477a3d",kind:"plains"},
@@ -61,13 +61,13 @@ function sfx(type){
  }catch(e){}
 }
 function reset(){
- running=true;over=false;score=0;speed=310;spawn=.4;worldIndex=0;worldProgress=0;d={x:130,y:ground-58,w:62,h:58,vy:0,jump:false,duck:false};obs=[];clouds=[];
+ running=true;over=false;score=0;speed=310;spawn=.4;worldIndex=0;worldProgress=0;d={x:130,y:ground-58,w:62,h:58,vy:0,jump:false,duck:false,jumpTime:0};obs=[];clouds=[];
  for(let i=0;i<5;i++)clouds.push({x:Math.random()*900,y:35+Math.random()*75,s:.35+Math.random()*.45});
  last=performance.now();sfx("start");$("msg").textContent="RUN!";requestAnimationFrame(loop);
 }
 function jump(){
- if(!running){reset();d.vy=-720;d.jump=true;sfx("jump");return}
- if(!d.jump&&d.y>=ground-d.h){d.vy=-720;d.jump=true;sfx("jump")}
+ if(!running){reset();d.vy=-820;d.jump=true;d.jumpTime=0;sfx("jump");return}
+ if(!d.jump&&d.y>=ground-d.h){d.vy=-820;d.jump=true;d.jumpTime=0;sfx("jump")}
 }
 function duck(v){if(running)d.duck=v}
 function move(dir){if(running)d.x=Math.max(60,Math.min(280,d.x+dir*18))}
@@ -104,8 +104,10 @@ function draw(){
  }
  ctx.save();
  const ducking=d.duck;
- const baseY=ground-d.h;
+ const baseY=d.y;
+ const jumpAnim=d.jump ? Math.sin(Math.min(1,d.jumpTime/0.32)*Math.PI) : 0;
  ctx.translate(d.x,ducking?ground-42:baseY);
+ if(d.jump){ctx.rotate(Math.max(-0.08,Math.min(0.08,d.vy/8200)));ctx.translate(0,-jumpAnim*2)}
  ctx.fillStyle="#f5f5f5";
  if(ducking){
    ctx.fillRect(4,14,48,28);
@@ -128,12 +130,13 @@ function draw(){
 function loop(now){
  if(!running)return;
  const dt=Math.min(.035,(now-last)/1000);last=now;score+=dt*100;speed=310+Math.min(260,score*.028);worldIndex=Math.floor(score/800)%worlds.length;worldProgress=score%800;
- d.vy+=1900*dt;d.y+=d.vy*dt;if(d.y>=ground-d.h){if(d.jump)sfx("land");d.y=ground-d.h;d.vy=0;d.jump=false}
+ d.vy+=2100*dt;d.y+=d.vy*dt;if(d.jump)d.jumpTime+=dt;if(d.y>=ground-d.h){if(d.jump)sfx("land");d.y=ground-d.h;d.vy=0;d.jump=false}
  spawn-=dt;if(spawn<=0){spawnObstacle();spawn=.72+Math.random()*.7-Math.min(.25,score/18000)}
  for(const q of clouds){q.x-=dt*18*q.s;if(q.x<-80)q.x=920}
  for(const o of obs){o.x-=speed*dt;if(!o.passed&&o.x+d.w<d.x){o.passed=true;sfx("score")}}
  obs=obs.filter(o=>o.x>-80);
- const hit=obs.some(o=>collide({x:d.x,y:d.duck?d.y+12:d.y,w:d.w,h:d.duck?d.h-12:d.h},o));
+ const sheepBox={x:d.x+7,y:d.duck?ground-42+4:d.y+5,w:d.duck?55:56,h:d.duck?34:48};
+ const hit=obs.some(o=>collide(sheepBox,o));
  if(hit){running=false;over=true;best=Math.max(best,Math.floor(score));localStorage.setItem("hpDinoBest",best);sfx("hit");$("msg").textContent="💥 BONK! Press JUMP or swipe up to run again.";$("best").textContent="BEST "+String(best).padStart(6,"0");draw();return}
  $("score").textContent=String(Math.floor(score)).padStart(6,"0");draw();requestAnimationFrame(loop)
 }
