@@ -137,9 +137,9 @@ document.getElementById('hp-term-close').addEventListener('touchend',e=>{e.preve
 /* Shared Hyper-Pop back button */
 document.addEventListener('DOMContentLoaded',()=>{
   if(location.pathname.endsWith('/index.html')||location.pathname.endsWith('/'))return;
-  if(document.getElementById('hp-global-back'))return;
-  const b=document.createElement('a');b.id='hp-global-back';b.href='index.html';b.textContent='← Hyper-Pop';
-  Object.assign(b.style,{position:'fixed',left:'14px',top:'14px',zIndex:'99990',padding:'9px 13px',border:'1px solid #ffffff2b',borderRadius:'11px',background:'#080810dd',color:'#fff',textDecoration:'none',font:'700 13px monospace',backdropFilter:'blur(10px)',boxShadow:'0 8px 24px #0008'});
+  ['hp-global-back','hyperpop-back','hp-back'].forEach(id=>document.getElementById(id)?.remove());
+  const b=document.createElement('a');b.id='hp-global-back';b.href='index.html';b.textContent='←';b.setAttribute('aria-label','Back to Hyper-Pop');b.title='Back to Hyper-Pop';
+  Object.assign(b.style,{position:'fixed',right:'14px',top:'14px',zIndex:'99990',width:'42px',height:'42px',display:'flex',alignItems:'center',justifyContent:'center',padding:'0',border:'1px solid #ffffff2b',borderRadius:'50%',background:'#080810dd',color:'#fff',textDecoration:'none',font:'800 24px/1 system-ui,sans-serif',backdropFilter:'blur(10px)',WebkitBackdropFilter:'blur(10px)',boxShadow:'0 8px 24px #0008',cursor:'pointer',touchAction:'manipulation'});
   b.addEventListener('pointerenter',()=>{b.style.borderColor='#7df9ff';b.style.color='#7df9ff'});
   b.addEventListener('pointerleave',()=>{b.style.borderColor='#ffffff2b';b.style.color='#fff'});
   document.body.appendChild(b);
