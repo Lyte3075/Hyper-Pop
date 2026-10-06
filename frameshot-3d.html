@@ -138,70 +138,54 @@ function genMap(size) {
 
 world = genMap(20);
 
-let joy = { x:0, y:0 }, moveId = null, lookId = null, lastX = 0;
-const moveZone = document.getElementById('move-zone');
-const joyBase = document.getElementById('joy-base');
-const joyStick = document.getElementById('joy-stick');
-let activeJoyId=null;
-function moveJoystick(x,y){
+let joy = {x:0,y:0}, moveId=null, lookId=null, lastX=0;
+const moveZone=document.getElementById('move-zone');
+const joyBase=document.getElementById('joy-base');
+const joyStick=document.getElementById('joy-stick');
+function joystickPoint(x,y){
  const b=joyBase.getBoundingClientRect();
- const cx=b.left+b.width/2,cy=b.top+b.height/2;
- let dx=x-cx,dy=y-cy;
- const d=Math.min(30,Math.hypot(dx,dy));
- const a=Math.atan2(dy,dx);
- joy.x=Math.cos(a)*(d/30);
- joy.y=Math.sin(a)*(d/30);
- const sx=dx*(d<30?1:30/d),sy=dy*(d<30?1:30/d);
- joyStick.style.transform=`translate(${sx}px,${sy}px)`;
+ const dx=x-(b.left+b.width/2),dy=y-(b.top+b.height/2);
+ const d=Math.min(32,Math.hypot(dx,dy)),a=Math.atan2(dy,dx);
+ joy.x=Math.cos(a)*(d/32);joy.y=Math.sin(a)*(d/32);
+ const k=d?Math.min(1,32/d):1;
+ joyStick.style.transform=`translate(${dx*k}px,${dy*k}px)`;
 }
-function resetJoystick(){
- activeJoyId=null;
- joy.x=0;joy.y=0;
- joyStick.style.transform='';
+function joystickReset(){
+ moveId=null;joy.x=0;joy.y=0;joyStick.style.transform='';
 }
-function joystickTouchAllowed(t){
- const el=document.elementFromPoint(t.clientX,t.clientY);
- if(el && (el.closest('#hp-terminal')||el.closest('#hp-terminal-launcher')||el.closest('#hp-back'))) return false;
- return t.clientX < innerWidth/2;
-}
-window.addEventListener('touchstart',e=>{
- if(activeJoyId!==null)return;
- const t=[...e.changedTouches].find(joystickTouchAllowed);
+moveZone.addEventListener('touchstart',e=>{
+ const t=e.changedTouches[0];
  if(!t)return;
- activeJoyId=t.identifier;
- moveJoystick(t.clientX,t.clientY);
+ moveId=t.identifier;
+ joystickPoint(t.clientX,t.clientY);
  e.preventDefault();
-},{capture:true,passive:false});
-window.addEventListener('touchmove',e=>{
- if(activeJoyId===null)return;
- const t=[...e.touches].find(t=>t.identifier===activeJoyId);
- if(!t)return;
- moveJoystick(t.clientX,t.clientY);
+},{passive:false});
+moveZone.addEventListener('touchmove',e=>{
+ if(moveId===null)return;
+ for(const t of e.touches)if(t.identifier===moveId){
+  joystickPoint(t.clientX,t.clientY);
+  e.preventDefault();
+  break;
+ }
+},{passive:false});
+moveZone.addEventListener('touchend',e=>{
+ for(const t of e.changedTouches)if(t.identifier===moveId){joystickReset();break}
+},{passive:false});
+moveZone.addEventListener('touchcancel',joystickReset,{passive:false});
+moveZone.addEventListener('pointerdown',e=>{
+ if(e.pointerType!=='touch')return;
+ moveId=e.pointerId;
+ moveZone.setPointerCapture?.(e.pointerId);
+ joystickPoint(e.clientX,e.clientY);
  e.preventDefault();
-},{capture:true,passive:false});
-window.addEventListener('touchend',e=>{
- if([...e.changedTouches].some(t=>t.identifier===activeJoyId))resetJoystick();
-},{capture:true,passive:false});
-window.addEventListener('touchcancel',e=>{
- if([...e.changedTouches].some(t=>t.identifier===activeJoyId))resetJoystick();
-},{capture:true,passive:false});
-window.addEventListener('pointerdown',e=>{
- if(e.pointerType!=='touch'||activeJoyId!==null||e.clientX>=innerWidth/2)return;
- activeJoyId=e.pointerId;
- moveJoystick(e.clientX,e.clientY);
+},{passive:false});
+moveZone.addEventListener('pointermove',e=>{
+ if(e.pointerType!=='touch'||e.pointerId!==moveId)return;
+ joystickPoint(e.clientX,e.clientY);
  e.preventDefault();
-},{capture:true,passive:false});
-window.addEventListener('pointermove',e=>{
- if(e.pointerType!=='touch'||e.pointerId!==activeJoyId)return;
- moveJoystick(e.clientX,e.clientY);
- e.preventDefault();
-},{capture:true,passive:false});
-window.addEventListener('pointerup',e=>{
- if(e.pointerId===activeJoyId)resetJoystick();
-},{capture:true,passive:false});
-window.addEventListener('pointercancel',e=>{
- if(e.pointerId===activeJoyId)resetJoystick();
-},{capture:true,passive:false});
+},{passive:false});
+moveZone.addEventListener('pointerup',e=>{if(e.pointerId===moveId)joystickReset()},{passive:false});
+moveZone.addEventListener('pointercancel',e=>{if(e.pointerId===moveId)joystickReset()},{passive:false});
 window.addEventListener('keydown',e=>{
  const k=e.key.toLowerCase();
  if(['w','a','s','d'].includes(k)){joyKeys[k==='w'?'up':k==='s'?'down':k==='a'?'left':'right']=true;e.preventDefault();}
