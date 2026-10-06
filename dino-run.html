@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Dino Run ✦ Hyper-Pop</title>
+<title>Speedy Sheep ✦ Hyper-Pop</title>
 <link rel="stylesheet" href="style.css">
 <style>
 *{box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
@@ -13,17 +13,17 @@
 .canvas-wrap{position:relative;border-radius:20px;overflow:hidden;background:#dff7ff;border:1px solid #ffffff22;box-shadow:0 18px 60px #0006}
 canvas{display:block;width:100%;height:auto;touch-action:none}
 .controls{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:14px}
-.arrow{width:74px;height:58px;font-size:24px}
+.arrow{width:140px;height:58px;font-size:17px;padding:0 8px;white-space:nowrap}
 .start{min-width:130px}
 .msg{min-height:25px;color:#aaa7c1;margin-top:12px;font-weight:700}
 .help{font:12px "DM Mono";color:#77758b;margin-top:10px}
-@media(max-width:600px){.panel{padding:12px}.arrow{width:70px;height:56px}}
+@media(max-width:600px){.panel{padding:12px}.arrow{width:46%;max-width:180px;height:58px;font-size:16px}}
 </style>
 </head>
 <body>
 <div class="w">
 <nav><a class="back" href="index.html">← Hyper-Pop</a><span class="logo">✦ Hyper-Pop</span><div id="account-slot"></div></nav>
-<header class="hero"><div class="e">🦖</div><h1>Dino Run</h1><p>Run through the neon wilderness. Jump the obstacles. Don't become prehistoric roadkill.</p></header>
+<header class="hero"><div class="e">🐑</div><h1>Speedy Sheep</h1><p>Run, jump, and duck through a never-ending journey across the world.</p></header>
 <main class="box game"><div class="panel">
 <div class="hud"><span id="score">000000</span><span id="best">BEST 000000</span></div>
 <div class="canvas-wrap"><canvas id="game" width="900" height="330"></canvas></div>
@@ -31,7 +31,7 @@ canvas{display:block;width:100%;height:auto;touch-action:none}
 <button class="btn arrow" id="jump">JUMP</button>
 <button class="btn arrow" id="down">DUCK</button>
 </div>
-<div class="msg" id="msg">Press JUMP, SPACE, ↑, or swipe up to start.</div>
+<div class="msg" id="msg">Press JUMP, SPACE, or swipe up to start.</div>
 <div class="help">SPACE / ↑ to jump • ↓ to duck • Swipe up/down</div>
 </div></main>
 </div>
@@ -81,11 +81,10 @@ function collide(a,b){
 }
 function draw(){
  const w=worlds[worldIndex],phase=(score%1200)/1200;
- const t=Math.sin(phase*Math.PI*2)*.5+.5;
  const g=ctx.createLinearGradient(0,0,0,330);g.addColorStop(0,w.sky[0]);g.addColorStop(.65,w.sky[1]);g.addColorStop(1,w.sky[1]);ctx.fillStyle=g;ctx.fillRect(0,0,900,330);
  const night=worldIndex>=4;
  ctx.fillStyle=night?"#ffffff99":"#fffbe055";
- for(let i=0;i<35;i++){const x=(i*173+score*.025)%900,y=18+(i*47)%120;if(night){ctx.fillRect(x,y,2,2)}}
+ for(let i=0;i<35;i++){const x=(i*173+score*.025)%900,y=18+(i*47)%120;if(night)ctx.fillRect(x,y,2,2)}
  ctx.fillStyle=w.accent;
  if(w.kind==="desert"){for(let x=0;x<900;x+=120){ctx.beginPath();ctx.arc(x+35,ground-4,35,Math.PI,0);ctx.fill()}}
  if(w.kind==="plains"){for(let x=0;x<900;x+=38){ctx.fillRect(x,ground-22-(x%17),3,22)}}
@@ -100,16 +99,26 @@ function draw(){
   else if(o.type==="rock"){ctx.beginPath();ctx.moveTo(o.x,o.y+o.h);ctx.lineTo(o.x+10,o.y+5);ctx.lineTo(o.x+26,o.y);ctx.lineTo(o.x+o.w,o.y+o.h);ctx.fill()}
   else{ctx.fillRect(o.x,o.y+9,o.w,8);ctx.fillRect(o.x+8,o.y,o.w-16,10);ctx.fillRect(o.x+2,o.y+16,9,5);ctx.fillRect(o.x+31,o.y+16,9,5)}
  }
- ctx.save();ctx.translate(d.x,d.y);
- if(d.duck)ctx.scale(1,.68);
- ctx.fillStyle="#3b2418";
- ctx.beginPath();ctx.ellipse(29,33,24,21,0,0,Math.PI*2);ctx.fill();
- ctx.fillStyle="#4f2e1d";ctx.beginPath();ctx.moveTo(34,20);ctx.lineTo(46,2);ctx.lineTo(59,7);ctx.lineTo(62,25);ctx.lineTo(49,29);ctx.closePath();ctx.fill();
- ctx.fillStyle="#6b3b24";ctx.fillRect(42,0,6,14);ctx.fillRect(50,3,6,13);
- ctx.fillStyle="#fff";ctx.fillRect(53,9,5,5);ctx.fillStyle="#111";ctx.fillRect(56,11,2,2);
- ctx.fillStyle="#4f2e1d";ctx.beginPath();ctx.moveTo(47,21);ctx.lineTo(65,25);ctx.lineTo(48,30);ctx.fill();
- ctx.fillRect(15,48,9,12);ctx.fillRect(38,48,9,12);
- ctx.fillStyle="#d86b45";ctx.beginPath();ctx.moveTo(7,35);ctx.lineTo(-10,28);ctx.lineTo(9,24);ctx.closePath();ctx.fill();
+ ctx.save();
+ const ducking=d.duck;
+ const baseY=ground-d.h;
+ ctx.translate(d.x,ducking?ground-42:baseY);
+ ctx.fillStyle="#f5f5f5";
+ if(ducking){
+   ctx.fillRect(4,14,48,28);
+   ctx.fillRect(42,5,20,25);
+   ctx.fillRect(50,2,8,8);
+   ctx.fillStyle="#222";ctx.fillRect(53,10,4,4);
+   ctx.fillStyle="#d8d8d8";ctx.fillRect(7,39,11,5);ctx.fillRect(36,39,11,5);
+ }else{
+   ctx.fillRect(8,17,43,35);
+   ctx.fillRect(43,6,20,27);
+   ctx.fillRect(49,1,9,9);
+   ctx.fillStyle="#222";ctx.fillRect(54,12,4,4);
+   ctx.fillStyle="#ddd";ctx.fillRect(10,49,12,9);ctx.fillRect(38,49,12,9);
+   ctx.fillStyle="#f8f8f8";ctx.fillRect(0,25,13,14);
+   ctx.fillStyle="#d0d0d0";ctx.fillRect(7,18,8,8);
+ }
  ctx.restore();
  ctx.fillStyle="#ffffffcc";ctx.font='700 13px "DM Mono"';ctx.fillText(w.name,18,28);
 }
