@@ -26,7 +26,8 @@ function burst(){
  }
 }
 function render(){$("count").textContent="Presses: "+presses+" • Danger: "+Math.min(100,danger)+"%"}
-function unlockCommandPrompt(){localStorage.setItem("hyperpop-command-prompt-unlocked","1");if(window.HyperPopCommandPrompt?.unlock)window.HyperPopCommandPrompt.unlock();}\nfunction press(){
+function unlockCommandPrompt(){localStorage.setItem("hyperpop-command-prompt-unlocked","1");if(window.HyperPopCommandPrompt?.unlock)window.HyperPopCommandPrompt.unlock();}
+function press(){
  presses++;danger=Math.min(100,danger+Math.max(1,Math.floor(presses/10)));\n if(danger>=100){danger=100;unlockCommandPrompt();}
  localStorage.setItem("hyperpop-dont-presses",presses);localStorage.setItem("hyperpop-dont-danger",danger);
  const messages=presses<5?["I warned you.","Seriously.","You pressed it again.","This is becoming a habit."]:presses<15?["STOP.","The button is judging you.","You have chosen chaos.","🚨 BOOP DETECTED 🚨"]:presses<30?["THE DANGER IS RISING.","Why are you like this?","⚠️ BUTTON ANGER: INCREASING ⚠️"]:["💀 YOU HAVE UNLEASHED THE BUTTON.","🚨🚨🚨 BAD IDEA DETECTED 🚨🚨🚨","THE BUTTON KNOWS YOUR SECRETS.","RUN. JUST RUN."];
