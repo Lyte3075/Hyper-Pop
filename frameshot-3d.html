@@ -11,32 +11,24 @@
         #boss-bar-bg { width: 100%; height: 8px; background: #222; border: 1px solid #fff; margin-top: 4px; }
         #boss-bar-fill { width: 100%; height: 100%; background: #f00; transition: width 0.1s; }
         #minimap { position: absolute; top: 10px; right: 10px; width: 80px; height: 80px; background: rgba(0,0,0,0.85); border: 1px solid #444; z-index: 30; border-radius: 2px; }
-        .ctrl-zone { position: absolute; top: 0; bottom: 0; z-index: 10; }
-        #move-zone { position:fixed; left:0; bottom:0; top:0; width:50vw; z-index:50; pointer-events:auto; }
-        #look-zone { position:fixed; right:0; bottom:0; top:0; width:50vw; z-index:49; pointer-events:auto; }
-        #joy-base { position: absolute; bottom: 30px; left: 30px; width: 70px; height: 70px; background: rgba(255,255,255,0.1); border-radius: 50%; border: 1px solid #444; }
-        #joy-stick { position: absolute; top: 20px; left: 20px; width: 30px; height: 30px; background: #fff; border-radius: 50%; }
+        .ctrl-zone { position: absolute; top: 0; bottom: 0; z-index: 10; } #look-zone { right: 0; width: 65%; } #new-joystick{position:fixed;left:28px;bottom:28px;width:78px;height:78px;border-radius:50%;background:rgba(40,40,40,.78);border:2px solid rgba(255,255,255,.25);z-index:10001;pointer-events:none;touch-action:none} #new-joystick-knob{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px;border-radius:50%;background:#fff;box-shadow:0 0 8px #fff;pointer-events:none;transform:translate(0,0)}
         .btn { position: absolute; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid #fff; pointer-events: auto; z-index: 25; text-align: center; }
-        #fire { bottom: 20px; right: 20px; width: 80px; height: 80px; font-size:16px; background: rgba(255,0,0,0.4); }
-        #melee { bottom: 110px; right: 25px; background: rgba(0,255,100,0.3); width: 55px; height: 55px; font-size:10px; }
-        #super { bottom: 25px; right: 115px; background: rgba(0,100,255,0.3); width: 55px; height: 55px; overflow: hidden; font-size:10px; }
-        #switch { bottom: 100px; right: 100px; background: rgba(100,100,100,0.4); width: 45px; height: 45px; font-size:9px; }
-        .btn-label{position:relative;z-index:3;display:block;white-space:nowrap;line-height:1;font-family:monospace;font-weight:900;pointer-events:none;user-select:none;-webkit-user-select:none;transform:scale(var(--label-scale,1));transform-origin:center}
-#super-fill { position: absolute;pointer-events:none;z-index:1; bottom: 0; width: 100%; background: rgba(255,255,255,0.3); height: 0%; }
+        #fire { bottom: 20px; right: 20px; width: 80px; height: 80px; background: rgba(255,0,0,0.4); }
+        #melee { bottom: 110px; right: 25px; background: rgba(0,255,100,0.3); width: 55px; height: 55px; font-size: 10px; }
+        #super { bottom: 25px; right: 115px; background: rgba(0,100,255,0.3); width: 55px; height: 55px; overflow: hidden; font-size: 10px; }
+        #switch { bottom: 100px; right: 100px; background: rgba(100,100,100,0.4); width: 45px; height: 45px; font-size: 9px; }
+        #super-fill { position: absolute; bottom: 0; width: 100%; background: rgba(255,255,255,0.3); height: 0%; }
         #msg { position: absolute; top: 20%; left: 50%; transform: translateX(-50%); color: #0f0; font-weight: bold; pointer-events: none; z-index: 40; text-align: center; }
             #hp-back{position:fixed;left:14px;top:14px;z-index:1000;padding:9px 13px;border:1px solid #ffffff33;border-radius:11px;background:#050505dd;color:#fff;text-decoration:none;font:700 13px monospace;backdrop-filter:blur(8px);box-shadow:0 8px 24px #0008}
         #hp-back:hover{border-color:#0ff;color:#0ff}
         #hp-crosshair{position:fixed;left:50%;top:50%;width:16px;height:16px;transform:translate(-50%,-50%);z-index:900;pointer-events:none;display:none}
         #hp-crosshair:before,#hp-crosshair:after{content:"";position:absolute;background:#fff;box-shadow:0 0 5px #0ff}
         #hp-crosshair:before{left:7px;top:0;width:2px;height:16px}.hp-crosshair:after{left:0;top:7px;width:16px;height:2px}
-        @media(min-width:801px){#move-zone,#look-zone,#fire,#melee,#super,#switch,#joy-base{display:block!important}#hp-crosshair{display:block}}
-@media(max-width:800px){#move-zone,#look-zone{display:block!important}.btn{display:flex!important}.ctrl-zone{pointer-events:auto!important}.btn{touch-action:manipulation!important}}
-#move-zone,#look-zone{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}#hp-new-joystick-zone{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;z-index:10000!important;pointer-events:none!important;touch-action:none!important}
-#hp-new-joystick{position:fixed!important;left:clamp(24px,7vw,90px)!important;bottom:clamp(24px,7vh,80px)!important;width:86px!important;height:86px!important;border-radius:50%!important;background:rgba(40,40,40,.72)!important;border:2px solid rgba(255,255,255,.25)!important;z-index:10001!important;pointer-events:none!important}
-#hp-new-joystick::after{content:"";position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px;border-radius:50%;background:#fff}
-.btn{z-index:10005!important}</style>
+        @media(min-width:801px){#look-zone,#fire,#melee,#super,#switch{display:block!important}#hp-crosshair{display:block}}
+@media(max-width:800px){#look-zone{display:block!important}.btn{display:flex!important}.ctrl-zone{pointer-events:auto!important}.btn{touch-action:manipulation!important}}
+#look-zone{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none} #new-joystick{display:block!important}#fire span,#melee span,#super span,#switch span{position:relative;z-index:3;display:block;white-space:nowrap;line-height:1;text-align:center;pointer-events:none} #super-fill{z-index:1}</style>
 <style id="hyperpop-back-style">#hyperpop-back{position:fixed;top:14px;left:14px;z-index:9999;display:flex;align-items:center;gap:7px;padding:9px 13px;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:rgba(10,10,20,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;text-decoration:none;font:700 13px system-ui,sans-serif;box-shadow:0 8px 30px #0008;cursor:pointer;touch-action:manipulation}#hyperpop-back:hover{background:rgba(255,255,255,.14);transform:translateY(-1px)}@media(max-width:600px){#hyperpop-back{top:10px;left:10px;padding:8px 11px;font-size:12px}}</style><style id="pc-controls-style">#pc-help{position:absolute;left:10px;bottom:10px;z-index:35;background:rgba(0,0,0,.72);border:1px solid #ffffff22;border-radius:8px;padding:7px 9px;color:#ddd;font:10px monospace;pointer-events:none}@media(max-width:700px){#pc-help{display:none}}</style></head>
-<body><div id="hp-new-joystick-zone"><div id="hp-new-joystick"></div></div><a id="hp-global-back" href="index.html">← Hyper-Pop</a><div id="hp-crosshair"></div><a id="hyperpop-back" href="index.html" aria-label="Back to Hyper-Pop">← Hyper-Pop</a>
+<body><a id="hp-global-back" href="index.html">← Hyper-Pop</a><div id="hp-crosshair"></div><a id="hyperpop-back" href="index.html" aria-label="Back to Hyper-Pop">← Hyper-Pop</a>
     <div id="container">
         <canvas id="g"></canvas>
         <canvas id="minimap"></canvas>
@@ -46,12 +38,11 @@
         </div>
         <div id="ui">LVL: <span id="lvl">1</span> | HP: <span id="hp">100</span>/<span id="mhp">100</span><br>WEP: <span id="wep-name">RIFLE</span></div>
         <div id="msg"></div><div id="pc-help">WASD move · Mouse look · Click/Space fire · E melee · R switch · Q super</div>
-        <div id="move-zone" class="ctrl-zone"><div id="joy-base"><div id="joy-stick"></div></div></div>
-        <div id="look-zone" class="ctrl-zone"></div>
-        <div id="fire" class="btn"><span class="btn-label">FIRE</span></div>
-        <div id="melee" class="btn"><span class="btn-label">SWORD</span></div>
-        <div id="super" class="btn"><span class="btn-label">ULTRA</span><div id="super-fill"></div></div>
-        <div id="switch" class="btn"><span class="btn-label">SWAP</span></div>
+        <div id="look-zone" class="ctrl-zone"></div><div id="new-joystick" aria-hidden="true"><div id="new-joystick-knob"></div></div>
+        <div id="fire" class="btn"><span>FIRE</span></div>
+        <div id="melee" class="btn"><span>SWORD</span></div>
+        <div id="super" class="btn"><span>ULTRA</span><div id="super-fill"></div></div>
+        <div id="switch" class="btn"><span>SWAP</span></div>
     </div>
 
 <script>
@@ -136,46 +127,36 @@ function genMap(size) {
 
 world = genMap(20);
 
-let joy = {x:0,y:0}, moveId=null, lookId=null, lastX=0;
-const moveZone=document.getElementById('move-zone');
-const joyBase=document.getElementById('joy-base');
-const joyStick=document.getElementById('joy-stick'let joy={x:0,y:0},moveId=null,lookId=null,lastX=0;
-const newJoy=document.getElementById('hp-new-joystick');
-let newJoyTouch=null;
-function setNewJoy(x,y){
- const r=newJoy.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
- const dx=x-cx,dy=y-cy,d=Math.min(34,Math.hypot(dx,dy)),a=Math.atan2(dy,dx);
- joy.x=Math.cos(a)*(d/34);joy.y=Math.sin(a)*(d/34);
- newJoy.style.setProperty('--jx',(Math.cos(a)*d)+'px');
- newJoy.style.setProperty('--jy',(Math.sin(a)*d)+'px');
- newJoy.style.transform=`translate(${Math.cos(a)*d}px,${Math.sin(a)*d}px)`;
+let joy={x:0,y:0},lookId=null,lastX=0,joystickTouchId=null;
+const newJoystick=document.getElementById('new-joystick');
+const newJoystickKnob=document.getElementById('new-joystick-knob');
+function updateNewJoystick(x,y){
+ const r=newJoystick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+ const dx=x-cx,dy=y-cy,d=Math.min(30,Math.hypot(dx,dy)),a=Math.atan2(dy,dx);
+ joy.x=Math.cos(a)*(d/30);joy.y=Math.sin(a)*(d/30);
+ newJoystickKnob.style.transform=`translate(${Math.cos(a)*d}px,${Math.sin(a)*d}px)`;
 }
-function resetNewJoy(){newJoyTouch=null;joy.x=0;joy.y=0;newJoy.style.transform='';}
+function resetNewJoystick(){
+ joystickTouchId=null;joy.x=0;joy.y=0;newJoystickKnob.style.transform='translate(0,0)';
+}
 document.addEventListener('touchstart',e=>{
- if(newJoyTouch!==null)return;
- const t=e.changedTouches[0]; if(!t)return;
- if(t.clientX>innerWidth*.55)return;
- newJoyTouch=t.identifier;setNewJoy(t.clientX,t.clientY);e.preventDefault();
+ if(joystickTouchId!==null)return;
+ const t=[...e.changedTouches].find(t=>t.clientX<innerWidth*.38);
+ if(!t)return;
+ joystickTouchId=t.identifier;updateNewJoystick(t.clientX,t.clientY);e.preventDefault();
 },{capture:true,passive:false});
 document.addEventListener('touchmove',e=>{
- if(newJoyTouch===null)return;
- for(const t of e.touches)if(t.identifier===newJoyTouch){setNewJoy(t.clientX,t.clientY);e.preventDefault();break}
+ if(joystickTouchId===null)return;
+ const t=[...e.touches].find(t=>t.identifier===joystickTouchId);
+ if(!t)return;
+ updateNewJoystick(t.clientX,t.clientY);e.preventDefault();
 },{capture:true,passive:false});
 document.addEventListener('touchend',e=>{
- if([...e.changedTouches].some(t=>t.identifier===newJoyTouch))resetNewJoy();
+ if([...e.changedTouches].some(t=>t.identifier===joystickTouchId))resetNewJoystick();
 },{capture:true,passive:false});
-document.addEventListener('touchcancel',resetNewJoy,{capture:true,passive:false});Listener('keyup',e=>{
- const k=e.key.toLowerCase();
- if(['w','a','s','d'].includes(k))joyKeys[k==='w'?'up':k==='s'?'down':k==='a'?'left':'right']=false;
-});
-function applyJoyKeys(){
- if(joyKeys.up||joyKeys.down||joyKeys.left||joyKeys.right){
-   let x=(joyKeys.right?1:0)-(joyKeys.left?1:0),y=(joyKeys.down?1:0)-(joyKeys.up?1:0),d=Math.hypot(x,y)||1;
-   joy.x=x/d;joy.y=y/d;
- } else if(activeJoyPointer===null){joy.x=0;joy.y=0;}
-}
-setInterval(applyJoyKeys,16);
-
+document.addEventListener('touchcancel',e=>{
+ if([...e.changedTouches].some(t=>t.identifier===joystickTouchId))resetNewJoystick();
+},{capture:true,passive:false});
 const lookZone = document.getElementById('look-zone');
 lookZone.addEventListener('touchstart', e => { lookId = e.changedTouches[0].identifier; lastX = e.changedTouches[0].clientX; }, {passive: false});
 lookZone.addEventListener('touchmove', e => {
