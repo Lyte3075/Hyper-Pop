@@ -9,9 +9,15 @@ nav{height:72px;display:flex;justify-content:space-between;align-items:center}.b
 .grid{display:grid;grid-template-columns:1fr 330px;gap:16px;margin:18px 0 55px}.box{padding:20px;border:1px solid #ffffff18;background:#151526;border-radius:24px;box-shadow:0 25px 70px #0008}
 .score{text-align:center}.label{color:#aaa7c1;font:12px monospace;text-transform:uppercase;letter-spacing:.12em}.big{font:800 clamp(42px,9vw,72px) monospace;margin:4px 0}.rate{color:#ffe66d;font-weight:800}
 .click-area{min-height:420px;display:grid;place-items:center;position:relative;overflow:hidden}.clicker{width:min(290px,70vw);aspect-ratio:1;border-radius:50%;border:8px solid #fff8;background:radial-gradient(circle at 35% 25%,#fff8,#ffe66d 18%,#ffb400 55%,#ff5c35);box-shadow:0 0 0 12px #ffe66d18,0 0 70px #ffe66d55,0 25px 0 #a85c12;transition:transform .06s;position:relative}.clicker:before,.clicker:after{content:"";position:absolute;inset:-18px;border-radius:50%;border:2px solid #ffe66d55;opacity:.5;pointer-events:none}.clicker:after{inset:-34px;border-color:#ff6be855;animation:ring 1.8s linear infinite}@keyframes ring{to{transform:rotate(360deg) scale(1.08);opacity:0}}.clicker:active{transform:scale(.91) translateY(5px);box-shadow:0 0 0 8px #ffe66d18,0 0 40px #ffe66d44,0 18px 0 #a85c12}.clicker.superhot{animation:superhot .28s ease-out}@keyframes superhot{25%{filter:brightness(1.8) saturate(1.7);transform:scale(1.08)}60%{transform:scale(.94) rotate(-2deg)}100%{transform:scale(1)}}.clicker span{display:block;font-size:34px;font-weight:1000;color:#321900;text-shadow:0 2px #fff5}.float{position:absolute;pointer-events:none;font:900 24px monospace;animation:float .8s ease-out forwards}@keyframes float{to{transform:translateY(-90px) scale(1.2);opacity:0}}
-.shop h2,.ach h2{margin:0 0 12px}.item{width:100%;display:flex;justify-content:space-between;gap:10px;text-align:left;padding:13px;margin:8px 0;border-radius:15px;border:1px solid #ffffff12;background:#ffffff07;color:#fff}.item:disabled{opacity:.42;cursor:not-allowed}.item b{display:block}.item small{display:block;color:#aaa7c1;margin-top:3px}.price{color:#ffe66d;font-weight:900;white-space:nowrap}.tabs{display:flex;gap:6px;margin-bottom:10px}.tab{flex:1;padding:9px;border-radius:10px;border:1px solid #ffffff12;background:#ffffff08;color:#aaa7c1}.tab.on{background:#ffe66d;color:#17100a}.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.stat{background:#ffffff06;border-radius:12px;padding:10px}.stat b{display:block;font-size:18px}.stat span{color:#88869a;font-size:11px}.actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}.btn{padding:10px 14px;border-radius:11px;border:1px solid #ffffff18;background:#fff;color:#111;font-weight:800}.dark{background:#ffffff08;color:#fff}.toast{text-align:center;color:#ffe66d;font-weight:800;min-height:22px;margin:8px}.ach{grid-column:1/-1}.ach-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;max-height:520px;overflow:auto;padding-right:4px}.reward{color:#ffe66d;font-size:11px;margin-top:4px}.tasks{display:grid;gap:8px;margin-top:12px}.task{padding:12px;border:1px solid #ffffff12;border-radius:14px;background:#ffffff06}.task b{display:flex;justify-content:space-between}.task small{color:#aaa7c1}.bar{height:6px;background:#ffffff0d;border-radius:9px;margin-top:8px;overflow:hidden}.bar i{display:block;height:100%;background:#ffe66d;width:0}.theme-row{display:flex;gap:8px;overflow:auto;padding:4px 0}.theme{min-width:115px;padding:12px;border-radius:14px;border:1px solid #ffffff15;background:#ffffff07;color:#fff;text-align:center}.theme.locked{opacity:.45}.theme.active{border-color:#ffe66d;background:#ffe66d12}.badge{padding:11px;border-radius:12px;background:#ffffff06;border:1px solid #ffffff0d;color:#77758a}.badge.done{color:#fff;background:#ffe66d12;border-color:#ffe66d55}.badge strong{display:block}.foot{text-align:center;color:#66647a;font:11px monospace;padding-bottom:35px}
+.shop h2,.ach h2{margin:0 0 12px}.shop{max-height:calc(100vh - 100px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;position:sticky;top:16px}.side-sections{margin-top:18px;border-top:1px solid #ffffff12;padding-top:18px}.side-sections h2{font-size:18px}.item{width:100%;display:flex;justify-content:space-between;gap:10px;text-align:left;padding:13px;margin:8px 0;border-radius:15px;border:1px solid #ffffff12;background:#ffffff07;color:#fff}.item:disabled{opacity:.42;cursor:not-allowed}.item b{display:block}.item small{display:block;color:#aaa7c1;margin-top:3px}.price{color:#ffe66d;font-weight:900;white-space:nowrap}.tabs{display:flex;gap:6px;margin-bottom:10px}.tab{flex:1;padding:9px;border-radius:10px;border:1px solid #ffffff12;background:#ffffff08;color:#aaa7c1}.tab.on{background:#ffe66d;color:#17100a}.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.stat{background:#ffffff06;border-radius:12px;padding:10px}.stat b{display:block;font-size:18px}.stat span{color:#88869a;font-size:11px}.actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}.btn{padding:10px 14px;border-radius:11px;border:1px solid #ffffff18;background:#fff;color:#111;font-weight:800}.dark{background:#ffffff08;color:#fff}.toast{text-align:center;color:#ffe66d;font-weight:800;min-height:22px;margin:8px}.ach{grid-column:1/-1}.ach-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;max-height:520px;overflow:auto;padding-right:4px}.reward{color:#ffe66d;font-size:11px;margin-top:4px}.tasks{display:grid;gap:8px;margin-top:12px}.task{padding:12px;border:1px solid #ffffff12;border-radius:14px;background:#ffffff06}.task b{display:flex;justify-content:space-between}.task small{color:#aaa7c1}.bar{height:6px;background:#ffffff0d;border-radius:9px;margin-top:8px;overflow:hidden}.bar i{display:block;height:100%;background:#ffe66d;width:0}.theme-row{display:flex;gap:8px;overflow:auto;padding:4px 0}.theme{min-width:115px;padding:12px;border-radius:14px;border:1px solid #ffffff15;background:#ffffff07;color:#fff;text-align:center}.theme.locked{opacity:.45}.theme.active{border-color:#ffe66d;background:#ffe66d12}
+body[data-theme="classic"]{background:radial-gradient(circle at 50% 12%,#ffe66d22,transparent 32%),radial-gradient(circle at 10% 80%,#ff4fd822,transparent 28%),#0b0b16!important}
+body[data-theme="sunset"]{background:radial-gradient(circle at 50% 8%,#ff7b4d88,transparent 38%),linear-gradient(135deg,#1b1020,#3a1722 55%,#120c18)!important}
+body[data-theme="ocean"]{background:radial-gradient(circle at 50% 8%,#35d9ff88,transparent 38%),linear-gradient(135deg,#061a2a,#073b52 55%,#07131f)!important}
+body[data-theme="space"]{background:radial-gradient(circle at 20% 20%,#9b6cff66,transparent 25%),radial-gradient(circle at 80% 70%,#4be0e355,transparent 25%),linear-gradient(135deg,#070518,#13082d 55%,#050816)!important}
+body[data-theme="void"]{background:radial-gradient(circle at 50% 10%,#000 0%,#5b006b 28%,#18001f 55%,#050308 100%)!important}
+body[data-theme="rainbow"]{background:radial-gradient(circle at 15% 20%,#ff4fd866,transparent 25%),radial-gradient(circle at 80% 20%,#ffe66d55,transparent 22%),radial-gradient(circle at 70% 80%,#4be0e366,transparent 28%),linear-gradient(135deg,#13061c,#071b28 50%,#160b25)!important}.badge{padding:11px;border-radius:12px;background:#ffffff06;border:1px solid #ffffff0d;color:#77758a}.badge.done{color:#fff;background:#ffe66d12;border-color:#ffe66d55}.badge strong{display:block}.foot{text-align:center;color:#66647a;font:11px monospace;padding-bottom:35px}
  .flash{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(circle,#ffe66d55,transparent 55%);z-index:20}.flash.on{animation:flash .18s ease-out}@keyframes flash{0%{opacity:.8}100%{opacity:0}}.combo{font:900 18px monospace;color:#ff6be8;min-height:24px}.clicker.hot{animation:hot .16s ease-out}@keyframes hot{50%{filter:brightness(1.5) saturate(1.4);transform:scale(.93)}}.golden{position:absolute;z-index:4;width:82px;height:82px;border-radius:50%;border:4px solid #fff;background:radial-gradient(circle,#fff,#ffe66d 30%,#ff9d00 70%);box-shadow:0 0 35px #ffe66d;animation:gold 1s infinite alternate;cursor:pointer;font-size:34px}@keyframes gold{to{transform:scale(1.1) rotate(8deg)}}.event{color:#7df9ff;font:800 13px monospace;min-height:18px}
-@media(max-width:760px){.grid{grid-template-columns:1fr}.click-area{min-height:390px}.ach{grid-column:auto}}
+@media(max-width:760px){.shop{position:relative;top:auto;max-height:65vh}.grid{grid-template-columns:1fr}.click-area{min-height:390px}.ach{grid-column:auto}}
 </style><link rel="stylesheet" href="style.css"><style>
 #sound-toggle{position:fixed;right:14px;bottom:14px;z-index:50;width:44px;height:44px;border-radius:50%;border:1px solid #ffffff20;background:#12121dcc;color:#fff;font-size:20px;backdrop-filter:blur(12px);cursor:pointer}
 #sound-toggle:active{transform:scale(.9)}
@@ -26,8 +32,8 @@ nav{height:72px;display:flex;justify-content:space-between;align-items:center}.b
 <div class="actions"><button class="btn dark" id="save">💾 SAVE</button><button class="btn dark" id="reset">↻ RESET</button><a class="btn dark" href="leaderboard.html">🏆 LEADERBOARD</a><a class="btn dark" href="auth.html">👤 ACCOUNT</a></div>
 </section>
 <aside class="box shop"><div class="tabs"><button class="tab on" id="upTab">UPGRADES</button><button class="tab" id="achTab">STATS</button></div>
-<div id="shop"></div><div id="stats" style="display:none"></div></aside>
-<section class="box ach"><h2>🏆 Achievements</h2><div class="ach-grid" id="achievements"></div><h2 style="margin-top:18px">🎯 Tasks & Challenges</h2><div class="tasks" id="tasks"></div><h2 style="margin-top:18px">🎨 Unlockable Themes</h2><div class="theme-row" id="themes"></div></section>
+<div id="shop"></div><div id="stats" style="display:none"></div><div class="side-sections"><h2>🏆 Achievements</h2><div class="ach-grid" id="achievements"></div><h2 style="margin-top:18px">🎯 Tasks & Challenges</h2><div class="tasks" id="tasks"></div><h2 style="margin-top:18px">🎨 Unlockable Themes</h2><div class="theme-row" id="themes"></div></div></aside>
+
 </main><footer class="foot">Hyper-Pop ✦ tiny internet, increasingly enormous button</footer></div>
 <script>
 const KEY="hyperpop-button-bonanza-v2";
@@ -166,19 +172,20 @@ const themes=[["classic","🌈 Neon","Default"],["sunset","🌅 Sunset","Reach 1
 const tasks=[["speed100","⚡ Speedrun 100K","Reach 100,000 total clicks in 60 seconds",100000,60],["speed1m","🏁 Speedrun 1M","Reach 1,000,000 total clicks in 5 minutes",1000000,300],["gold","🌟 Golden Hunter","Collect 3 Golden Buttons",3,0],["combo","🔥 Combo King","Reach a 25-click combo",25,0],["crit","💥 Critical Mass","Land 25 critical clicks",25,0],["hours","⏱️ Stay Awhile","Play for 10 minutes",600,0]];
 let s=JSON.parse(localStorage.getItem(KEY)||"null")||{n:0,total:0,click:1,auto:0,spent:0,owned:{},ach:{},started:Date.now(),combo:0,bestCombo:0,crit:0,golden:0,rewards:0,task:{},theme:"classic",infinityReached:false}; let comboTimer=0;
 const $=id=>document.getElementById(id);
-if(s.n===null||s.total===null){s.n=Number.MAX_VALUE;s.total=Number.MAX_VALUE;s.infinityReached=true;}
+if(s.n===null||s.n==="Infinity"){s.n=Infinity;s.infinityReached=true;}
+if(s.total===null||s.total==="Infinity"){s.total=Infinity;s.infinityReached=true;}
 const BIG_NAMES=[
-"", "thousand","million","billion","trillion","quadrillion","quintillion","sextillion","septillion","octillion","nonillion","decillion",
-"undecillion","duodecillion","tredecillion","quattuordecillion","quindecillion","sexdecillion","septendecillion","octodecillion","novemdecillion",
-"vigintillion","unvigintillion","duovigintillion","trevigintillion","quattuorvigintillion","quinvigintillion","sexvigintillion","septemvigintillion","octovigintillion","novemvigintillion",
-"trigintillion","untrigintillion","duotrigintillion","tretrigintillion","quattuortrigintillion","quintrigintillion","sextrigintillion","septentrigintillion","octotrigintillion","noventrigintillion",
-"quadragintillion","unquadragintillion","duoquadragintillion","trequadragintillion","quattuorquadragintillion","quinquadragintillion","sexquadragintillion","septenquadragintillion","octoquadragintillion","novemquadragintillion",
-"quinquagintillion","unquinquagintillion","duoquinquagintillion","trequinquagintillion","quattuorquinquagintillion","quinquinquagintillion","sexquinquagintillion","septenquinquagintillion","octoquinquagintillion","novemquinquagintillion",
-"sexagintillion","unsexagintillion","duosexagintillion","tresexagintillion","quattuorsexagintillion","quinsexagintillion","sexsexagintillion","septensexagintillion","octosexagintillion","novemsexagintillion",
-"septuagintillion","unseptuagintillion","duoseptuagintillion","treseptuagintillion","quattuorseptuagintillion","quinseptuagintillion","sexseptuagintillion","septenseptuagintillion","octoseptuagintillion","novemseptuagintillion",
-"octogintillion","unoctogintillion","duooctogintillion","treoctogintillion","quattuoroctogintillion","quinoctogintillion","sexoctogintillion","septemoctogintillion","octooctogintillion","novemoctogintillion",
-"nonagintillion","unnonagintillion","duononagintillion","trenonagintillion","quattuornonagintillion","quinnonagintillion","sexnonagintillion","septemnonagintillion","octononagintillion","novemnonagintillion",
-"centillion"
+"", "K","M","B","T","Qa","Qi","Sx","Sp","Oc","No","Dc",
+"unde","duod","tred","quat","quin","sexd","sept","octo","nove",
+"vigi","unvi","duov","trev","quat","quin","sexv","sept","octo","nove",
+"trig","untr","duot","tret","quat","quin","sext","sept","octo","nove",
+"quad","unqu","duoq","treq","quat","quin","sexq","sept","octo","nove",
+"quin","unqu","duoq","treq","quat","quin","sexq","sept","octo","nove",
+"sexa","unse","duos","tres","quat","quin","sexs","sept","octo","nove",
+"sept","unse","duos","tres","quat","quin","sexs","sept","octo","nove",
+"octo","unoc","duoo","treo","quat","quin","sexo","sept","octo","nove",
+"nona","unno","duon","tren","quat","quin","sexn","sept","octo","nove",
+"cent"
 ];
 function fmt(n){
  if(n===Infinity||n===-Infinity)return "∞";
@@ -189,17 +196,11 @@ function fmt(n){
  if(e<BIG_NAMES.length){
    const v=n/Math.pow(1000,e);
    const digits=v>=100?0:v>=10?1:2;
-   return v.toFixed(digits).replace(/\\.0+$|(?<=\\.\\d)0+$/,"")+" "+BIG_NAMES[e];
+   return v.toFixed(digits).replace(/\\.0+$|(?<=\\.\\d)0+$/,"")+BIG_NAMES[e];
  }
  return n.toExponential(3).replace("e+","e");
 }
-function fmtAch(n){
- if(n<1e6)return n.toLocaleString("en-US");
- const names=["million","billion","trillion","quadrillion","quintillion","sextillion","septillion","octillion","nonillion","decillion"];
- const e=Math.floor(Math.log10(n)),idx=Math.floor(e/3)-2;
- if(idx>=0&&idx<names.length)return (n/Math.pow(1000,idx+2)).toFixed(n>=1e12?0:1).replace(/\\.0$/,"")+" "+names[idx];
- return n.toExponential(0);
-}
+function fmtAch(n){return fmt(n)}
 function price(u){
  const owned=s.owned[u.id]||0;
  const curves={multi:12.5,autoMulti:8.5,click:2.15,auto:1.9};
@@ -207,7 +208,10 @@ function price(u){
  const exponent=u.kind==="multi"?owned*owned*0.34:owned*owned*0.055;
  return Math.max(u.base,Math.floor(u.base*Math.pow(growth,owned)*Math.pow(1.09,exponent)))
 }
-function save(){localStorage.setItem(KEY,JSON.stringify(s))}
+function save(){
+ const out={...s,n:s.n===Infinity?"Infinity":s.n,total:s.total===Infinity?"Infinity":s.total};
+ localStorage.setItem(KEY,JSON.stringify(out));
+}
 function multiFactor(){let m=1;for(const u of upgrades){if(u.kind==="multi"&&s.owned[u.id])m*=Math.pow(u.amount,s.owned[u.id]);}return m}
 function power(){return s.click*multiFactor()}
 function effectivePower(){return power()*(1+(s.rewards||0))}
@@ -249,8 +253,7 @@ function burst(){for(let i=0;i<10;i++){let x=document.createElement("div");x.cla
 function clicker(){sound("bigclick");let now=Date.now();s.combo=(now-comboTimer<1200)?s.combo+1:1;comboTimer=now;s.bestCombo=Math.max(s.bestCombo||0,s.combo);let crit=Math.random()<Math.min(.08+s.combo*.002,.25);let v=effectivePower()*(crit?5:1);
 if(!Number.isFinite(v)||s.n+v>Number.MAX_VALUE||s.total+v>Number.MAX_VALUE){
   s.infinityReached=true;
-  s.n=Number.MAX_VALUE;
-  s.total=Number.MAX_VALUE;
+  s.n=Infinity;s.total=Infinity;
   check();
 }else{
   s.n+=v;s.total+=v;
@@ -266,13 +269,13 @@ setInterval(()=>{
  let cps=production();
  if(cps){
    if(!Number.isFinite(cps)||s.n+cps>Number.MAX_VALUE||s.total+cps>Number.MAX_VALUE){
-     s.infinityReached=true;s.n=Number.MAX_VALUE;s.total=Number.MAX_VALUE;check();
+     s.infinityReached=true;s.n=Infinity;s.total=Infinity;check();
    }else{s.n+=cps;s.total+=cps;check();}
    render();
  }
 },1000);setInterval(spawnGolden,22000);
 document.querySelectorAll("button").forEach(b=>{if(b.id!=="sound-toggle")b.addEventListener("click",()=>{if(b.closest(".tabs"))tabPop();else uiSound(b.classList.contains("theme")?"tab":"button")},{capture:true})});document.getElementById("sound-toggle").onclick=()=>{soundOn=!soundOn;localStorage.setItem("hyperpop-button-sound",soundOn?"on":"off");document.getElementById("sound-toggle").textContent=soundOn?"🔊":"🔇";if(soundOn)sound("unlock")};
 document.getElementById("sound-toggle").textContent=soundOn?"🔊":"🔇";
-function applyTheme(){let t=s.theme||"classic";document.body.dataset.theme=t;let bg={classic:"",sunset:"radial-gradient(circle at 50% 10%,#ff7b4d33,transparent 35%)",ocean:"radial-gradient(circle at 50% 10%,#35d9ff33,transparent 35%)",space:"radial-gradient(circle at 50% 10%,#9b6cff33,transparent 35%)",void:"radial-gradient(circle at 50% 10%,#000 0%,#25002f 35%,#0b0b16 70%)",rainbow:"radial-gradient(circle at 20% 20%,#ff4fd833,transparent 30%),radial-gradient(circle at 80% 70%,#4be0e333,transparent 30%)"}[t];if(bg)document.body.style.background=bg+",#0b0b16";else document.body.style.background="";} applyTheme();setInterval(save,5000);render();
+function applyTheme(){document.body.dataset.theme=s.theme||"classic";} applyTheme();setInterval(save,5000);render();
 document.addEventListener("dblclick",e=>e.preventDefault(),{passive:false});document.addEventListener("gesturestart",e=>e.preventDefault(),{passive:false});
 </script><script src="app.js"></script></body></html>
