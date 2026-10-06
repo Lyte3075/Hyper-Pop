@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>A.I.D.A. - 11 Sectors</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+    body, html { 
+      width: 100%; height: 100%; overflow: hidden; background: #020617; 
+      font-family: 'Courier New', Courier, monospace; color: #38bdf8;
+      display: flex; justify-content: center; align-items: center;
+    }
+    
+    #game-container { 
+      position: relative; width: 100vw; height: 56.25vw;
+      max-height: 100vh; max-width: 177.78vh;
+      background: #020617; border: 1px solid #0284c7; overflow: hidden;
+    }
+    canvas { width: 100%; height: 100%; display: block; }
+
+    #hud {
+      position: absolute; top: 8px; left: 12px; right: 12px;
+      display: flex; justify-content: space-between; align-items: center;
+      background: rgba(15, 23, 42, 0.9); border: 1px solid #0284c7;
+      padding: 6px 12px; border-radius: 6px; pointer-events: none; z-index: 5;
+    }
+    .stat-box { font-size: 11px; font-weight: bold; }
+    .stat-val { color: #f43f5e; }
+
+    #joystick-zone {
+      position: absolute; bottom: 15px; left: 15px;
+      width: 90px; height: 90px; background: rgba(30, 41, 59, 0.5);
+      border: 2px solid rgba(56, 189, 248, 0.5); border-radius: 50%;
+      touch-action: none; display: flex; justify-content: center; align-items: center; z-index: 5;
+    }
+    #joystick-stick {
+      width: 35px; height: 35px; background: rgba(56, 189, 248, 0.8);
+      border: 1px solid #ffffff; border-radius: 50%; position: absolute;
+      box-shadow: 0 0 8px #38bdf8;
+    }
+
+    #action-zone { position: absolute; bottom: 15px; right: 15px; display: flex; gap: 10px; pointer-events: auto; z-index: 5; }
+    .act-btn {
+      width: 48px; height: 48px; background: rgba(16, 185, 129, 0.4);
+      border: 1px solid #10b981; color: #fff; border-radius: 50%;
+      font-size: 10px; font-weight: bold; display: flex; justify-content: center;
+      align-items: center; text-transform: uppercase; cursor: pointer;
+    }
+
+    .overlay-screen {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: #020617; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; z-index: 20; text-align: center; padding: 20px;
+    }
+    .overlay-screen h1 { font-size: 28px; color: #38bdf8; text-shadow: 0 0 12px #0284c7; margin-bottom: 10px; }
+    .overlay-screen p { font-size: 13px; color: #94a3b8; max-width: 500px; line-height: 1.5; margin-bottom: 20px; }
+    .start-btn {
+      background: #0284c7; border: 2px solid #38bdf8; color: #fff;
+      padding: 12px 30px; font-weight: bold; font-family: inherit;
+      font-size: 14px; border-radius: 8px; cursor: pointer;
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
+    }
+
+    #cutscene-overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(2, 6, 23, 0.95); display: none; flex-direction: column;
+      justify-content: center; align-items: center; z-index: 18; text-align: center; padding: 25px;
+    }
+    #cutscene-text { font-size: 14px; color: #f1f5f9; max-width: 550px; line-height: 1.6; margin-bottom: 20px; }
+
+    .modal {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 85%; max-width: 600px; background: rgba(15, 23, 42, 0.95);
+      border: 2px solid #38bdf8; border-radius: 12px; padding: 15px;
+      display: none; flex-direction: column; gap: 10px; box-shadow: 0 0 25px rgba(56, 189, 248, 0.4);
+      z-index: 10;
+    }
+    .modal h2 { color: #38bdf8; text-align: center; border-bottom: 1px solid #0284c7; padding-bottom: 4px; font-size: 14px; }
+    .log-box { background: #090d16; border: 1px solid #1e293b; height: 65px; padding: 8px; font-size: 11px; overflow-y: auto; color: #e2e8f0; border-radius: 4px; line-height: 1.3; }
+    .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .m-btn { background: #0284c7; border: none; color: white; padding: 8px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px; }
+    .m-btn.mercy { background: #eab308; color: #000; }
+
+    #minigame-box {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 220px; height: 160px; background: #000;
+      border: 4px solid #ffffff; border-radius: 4px; display: none;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.3); z-index: 12; touch-action: none;
+    }
+  </style>
+</head>
+<body>
+
+<div id="game-container">
+  <canvas id="canvas"></canvas>
+
+  <div id="title-screen" class="overlay-screen">
+    <h1>A.I.D.A.</h1>
+    <p>11 SECTORS (A THROUGH K). NAVIGATE THE SHIP & SURVIVE THE OVERSEERS.</p>
+    <button class="start-btn" onclick="startIntroCutscene()">PRESS PLAY</button>
+  </div>
+
+  <div id="cutscene-overlay">
+    <div id="cutscene-text">Initializing memory sequence...</div>
+    <button class="start-btn" id="cutscene-btn" onclick="advanceCutscene()">NEXT ></button>
+  </div>
+
+  <div id="hud">
+    <div class="stat-box">HULL: <span id="hp-val" class="stat-val">100</span></div>
+    <div class="stat-box">SECTOR: <span id="sector-val" style="color:#38bdf8">A-1</span></div>
+    <div class="stat-box">KARMA: <span id="karma-val" style="color:#a855f7">PACIFIST</span></div>
+    <div class="stat-box">ENEMIES: <span id="enemy-val" style="color:#f43f5e">0</span></div>
+  </div>
+
+  <div id="joystick-zone">
+    <div id="joystick-stick"></div>
+  </div>
+
+  <div id="action-zone">
+    <div class="act-btn" style="background:rgba(239,68,68,0.4); border-color:#ef4444;" onclick="interactTile()">Scan</div>
+    <div class="act-btn" onclick="toggleStory()">Data</div>
+  </div>
+
+  <div id="combat-modal" class="modal">
+    <h2 id="enemy-name">ROBOTIC UNIT ENCOUNTERED</h2>
+    <div style="display:flex; justify-content:space-between; font-size:11px;">
+      <div>Integrity: <span id="enemy-hp" style="color:#f43f5e">100</span></div>
+      <div>Will to Fight: <span id="enemy-will" style="color:#eab308">100%</span></div>
+    </div>
+    <div id="combat-log" class="log-box">A rogue synth blocks your path!</div>
+    <div id="action-buttons" class="btn-grid">
+      <button class="m-btn" onclick="startAttackTiming()">⚔️ Attack (EMP Laser)</button>
+      <button class="m-btn" onclick="combatAction('act')">💬 Talk / Hack</button>
+      <button class="m-btn" onclick="combatAction('item')">🔧 Repair Nanites</button>
+      <button class="m-btn mercy" onclick="combatAction('spare')">💛 Spare Target</button>
+    </div>
+  </div>
+
+  <div id="minigame-box" onclick="handleTimingClick()">
+    <canvas id="mini-canvas" width="220" height="160"></canvas>
+  </div>
+</div>
+
+<script>
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const miniCanvas = document.getElementById('mini-canvas');
+  const miniCtx = miniCanvas.getContext('2d');
+
+  const SECTORS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
+
+  let state = {
+    player: { x: 100, y: 220, radius: 12, speed: 3.8, hp: 100, maxHp: 100, kills: 0, spared: 0, invuln: 0 },
+    sectorIndex: 0, // 0 to 10 (A to K)
+    roomInSector: 1, // 1 to 5
+    joyVec: { x: 0, y: 0 },
+    keys: {},
+    inCombat: false,
+    enemy: null,
+    obstacles: [],
+    interactables: [],
+    doors: [],
+    damageTexts: []
+  };
+
+  let cutsceneIndex = 0;
+  let currentCutscene = [];
+  let onCutsceneFinish = null;
+
+  const INTRO_CUTSCENE = [
+    "YEAR 2199: Ark-7 ship wide lock-down initialized across Sectors A through K.",
+    "Fast rogue synths roam every deck with wall-avoidance algorithms.",
+    "Each sector ends in a Sector Boss Chamber at Room 5. Defeat or spare them to unlock the transit portal to the next Sector!"
+  ];
+
+  let dodgeState = { active: false, soul: { x: 110, y: 80, r: 6, speed: 2.8 }, bullets: [], timer: 0 };
+  let timingState = { active: false, currentRadius: 60, targetRadius: 20, shrinking: true, speed: 1.1 };
+
+  // --- 15 BASIC ENEMY TYPES ---
+  const BASIC_ENEMIES = [
+    { name: 'Pulse Crawler', hp: 35, speed: 2.2, r: 10, color: '#38bdf8', attack: 'sparks', actMsg: "You pulse a neutral frequency. The Crawler slows down." },
+    { name: 'Barrier Drone', hp: 50, speed: 1.8, r: 12, color: '#60a5fa', attack: 'lasers', actMsg: "You pierce its firewall with override codes!" },
+    { name: 'Viper Scout', hp: 30, speed: 2.8, r: 9, color: '#facc15', attack: 'homing', actMsg: "You mimic its distress signal. It pauses." },
+    { name: 'Spark Welder', hp: 45, speed: 2.0, r: 11, color: '#fb923c', attack: 'sparks', actMsg: "You damp its ignition coil." },
+    { name: 'Laser Turret Drone', hp: 40, speed: 1.6, r: 13, color: '#f87171', attack: 'lasers', actMsg: "You re-align its targeting optics." },
+    { name: 'Hunter Strider', hp: 60, speed: 2.3, r: 14, color: '#c084fc', attack: 'homing', actMsg: "You broadcast peace authorization." },
+    { name: 'Plasma Hopper', hp: 35, speed: 2.6, r: 10, color: '#4ade80', attack: 'sparks', actMsg: "You match its jump harmonics." },
+    { name: 'Gatling Automaton', hp: 65, speed: 1.5, r: 15, color: '#a3e635', attack: 'lasers', actMsg: "You send a disarm directive." },
+    { name: 'Phase Stalker', hp: 40, speed: 2.5, r: 11, color: '#e879f9', attack: 'homing', actMsg: "You trace its teleport vector." },
+    { name: 'Heavy Centurion', hp: 85, speed: 1.4, r: 16, color: '#f43f5e', attack: 'sparks', actMsg: "You disable its aggression logic." },
+    { name: 'Siphon Skimmer', hp: 45, speed: 2.4, r: 10, color: '#22d3ee', attack: 'lasers', actMsg: "You block its siphon beam." },
+    { name: 'Aegis Sentinel', hp: 70, speed: 1.7, r: 14, color: '#818cf8', attack: 'homing', actMsg: "You project an alliance insignia." },
+    { name: 'Blast Mine Bot', hp: 25, speed: 3.0, r: 8, color: '#fbbf24', attack: 'sparks', actMsg: "You defuse its detonator timer." },
+    { name: 'Volt Striker', hp: 50, speed: 2.6, r: 12, color: '#34d399', attack: 'lasers', actMsg: "You discharge its capacitor." },
+    { name: 'Apex Seeker', hp: 75, speed: 2.1, r: 13, color: '#f472b6', attack: 'homing', actMsg: "You upload core friendship logs." }
+  ];
+
+  // --- 11 UNIQUE SECTOR BOSSES (A - K) ---
+  const BOSSES = [    { sector: 'A', name: 'OVERSEER A: Plasma Sentry Prime', hp: 110, r: 20, color: '#38bdf8', shape: 'square', attack: 'lasers', speed: 1.8 },
+    { sector: 'B', name: 'OVERSEER B: Goliath Dread-Drone', hp: 140, r: 24, color: '#facc15', shape: 'circle', attack: 'homing', speed: 1.6 },
+    { sector: 'C', name: 'OVERSEER C: Sub-Core Walker', hp: 180, r: 22, color: '#f87171', shape: 'hexagon', attack: 'sparks', speed: 1.9 },
+    { sector: 'D', name: 'OVERSEER D: Cyber Spectre', hp: 220, r: 20, color: '#c084fc', shape: 'diamond', attack: 'spiral', speed: 2.3 },
+    { sector: 'E', name: 'OVERSEER E: Aegis Fortress Mech', hp: 260, r: 28, color: '#818cf8', shape: 'square', attack: 'ring', speed: 1.4 },
+    { sector: 'F', name: 'OVERSEER F: Nano Hive Mind', hp: 300, r: 21, color: '#4ade80', shape: 'circle', attack: 'cross', speed: 2.1 },
+    { sector: 'G', name: 'OVERSEER G: Titan Vanguard', hp: 350, r: 30, color: '#fb923c', shape: 'hexagon', attack: 'lasers', speed: 1.5 },
+    { sector: 'H', name: 'OVERSEER H: Void Stalker Nexus', hp: 400, r: 22, color: '#e879f9', shape: 'diamond', attack: 'homing', speed: 2.5 },
+    { sector: 'I', name: 'OVERSEER I: Zenith Sentinel', hp: 450, r: 25, color: '#22d3ee', shape: 'square', attack: 'spiral', speed: 2.0 },
+    { sector: 'J', name: 'OVERSEER J: Chaos Engine', hp: 500, r: 27, color: '#f43f5e', shape: 'hexagon', attack: 'ring', speed: 2.2 },
+    { sector: 'K', name: 'OVERSEER K: Ark-7 Core A.R.E.S.', hp: 600, r: 32, color: '#ffffff', shape: 'circle', attack: 'curtain', speed: 2.4 }
+  ];
+
+  // --- ROOM LAYOUT GENERATOR ---
+  function getRoomObstacles(layoutType) {
+    let baseWalls = [
+      { x: 50, y: 50, w: 700, h: 15 }, { x: 50, y: 380, w: 700, h: 15 },
+      { x: 50, y: 50, w: 15, h: 345 }, { x: 735, y: 50, w: 15, h: 345 }
+    ];
+
+    if (layoutType === 1) { // Twin Pillars
+      baseWalls.push({ x: 240, y: 140, w: 40, h: 160 }, { x: 520, y: 140, w: 40, h: 160 });
+    } else if (layoutType === 2) { // Central Block Arena
+      baseWalls.push({ x: 340, y: 160, w: 120, h: 120 });
+    } else if (layoutType === 3) { // Horizontal Dividers
+      baseWalls.push({ x: 180, y: 160, w: 200, h: 30 }, { x: 420, y: 250, w: 200, h: 30 });
+    } else if (layoutType === 4) { // Four Corner Pillars
+      baseWalls.push({ x: 200, y: 120, w: 50, h: 50 }, { x: 550, y: 120, w: 50, h: 50 },
+                      { x: 200, y: 270, w: 50, h: 50 }, { x: 550, y: 270, w: 50, h: 50 });
+    }
+    return baseWalls;
+  }
+
+  function loadRoom(sectorIdx, roomNum) {
+    state.sectorIndex = sectorIdx;
+    state.roomInSector = roomNum;
+    let layoutType = (roomNum === 5) ? 0 : ((sectorIdx + roomNum) % 4) + 1; // Boss rooms are open arena
+    state.obstacles = getRoomObstacles(layoutType);
+    state.interactables = [];
+
+    if (roomNum === 5) {
+      // Boss Room
+      let b = BOSSES[sectorIdx];
+      state.interactables.push({
+        x: 580, y: 220, r: b.r, type: 'enemy', isBoss: true,
+        name: b.name, hp: b.hp, maxHp: b.hp, will: 100,
+        dialogue: `${b.name} engages primary lockdown weapons!`,
+        actMessage: `You overload ${b.name}'s control circuit! Will reduced!`,
+        attackType: b.attackType, color: b.color, shape: b.shape, speed: b.speed
+      });
+    } else {
+      // Regular Sector Rooms (2 to 4 enemies)
+      let enemyCount = 2 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < enemyCount; i++) {
+        let template = BASIC_ENEMIES[(sectorIdx * 2 + i + roomNum) % BASIC_ENEMIES.length];
+        state.interactables.push({
+          x: 350 + i * 80, y: 120 + (i % 2) * 160, r: template.r, type: 'enemy', isBoss: false,
+          name: `${template.name} [Sector ${SECTORS[sectorIdx]}]`,
+          hp: template.hp + sectorIdx * 10, maxHp: template.hp + sectorIdx * 10, will: 100,
+          dialogue: `${template.name} locks on to your energy sign!`,
+          actMessage: template.actMsg, attackType: template.attack, color: template.color,
+          speed: template.speed + (sectorIdx * 0.1)
+        });
+      }
+    }
+
+    state.doors = [{ x: 715, y: 180, w: 20, h: 80, targetSector: sectorIdx, targetRoom: roomNum + 1 }];
+    document.getElementById('sector-val').innerText = `${SECTORS[sectorIdx]}-${roomNum}`;
+    updateHUD();
+  }
+
+  function startIntroCutscene() {
+    document.getElementById('title-screen').style.display = 'none';
+    playCutscene(INTRO_CUTSCENE, () => {
+      resizeCanvas();
+      loadRoom(0, 1);
+      setupJoystick();
+      setupKeyboard();
+      setupDodgeTouch();
+      requestAnimationFrame(gameLoop);
+    });
+  }
+
+  function playCutscene(slides, onFinish) {
+    cutsceneIndex = 0; currentCutscene = slides; onCutsceneFinish = onFinish;
+    document.getElementById('cutscene-overlay').style.display = 'flex';
+    updateCutsceneUI();
+  }
+
+  function advanceCutscene() {
+    cutsceneIndex++;
+    if (cutsceneIndex >= currentCutscene.length) {
+      document.getElementById('cutscene-overlay').style.display = 'none';
+      if (onCutsceneFinish) onCutsceneFinish();
+    } else { updateCutsceneUI(); }
+  }
+
+  function updateCutsceneUI() {
+    document.getElementById('cutscene-text').innerText = currentCutscene[cutsceneIndex];
+    document.getElementById('cutscene-btn').innerText = cutsceneIndex === currentCutscene.length - 1 ? "ENTER SECTORS" : "NEXT >";
+  }
+
+  function resizeCanvas() { canvas.width = 800; canvas.height = 450; }
+
+  function setupJoystick() {
+    const zone = document.getElementById('joystick-zone');
+    const stick = document.getElementById('joystick-stick');
+    let active = false;
+
+    const handleStart = () => { active = true; };
+    const handleMove = (e) => {
+      if (!active) return;
+      let touch = e.touches ? e.touches[0] : e;
+      let rect = zone.getBoundingClientRect();
+      let dx = touch.clientX - (rect.left + rect.width / 2);
+      let dy = touch.clientY - (rect.top + rect.height / 2);
+      let dist = Math.hypot(dx, dy);
+      let maxDist = rect.width / 2;
+
+      if (dist > maxDist) { dx = (dx / dist) * maxDist; dy = (dy / dist) * maxDist; }
+
+      stick.style.transform = `translate(${dx}px, ${dy}px)`;
+      state.joyVec.x = dx / maxDist;
+      state.joyVec.y = dy / maxDist;
+    };
+
+    const handleEnd = () => { active = false; stick.style.transform = `translate(0px, 0px)`; state.joyVec = { x: 0, y: 0 }; };
+
+    zone.addEventListener('touchstart', handleStart); window.addEventListener('touchmove', handleMove); window.addEventListener('touchend', handleEnd);
+    zone.addEventListener('mousedown', handleStart); window.addEventListener('mousemove', handleMove); window.addEventListener('mouseup', handleEnd);
+  }
+
+  function setupDodgeTouch() {
+    const box = document.getElementById('minigame-box');
+    box.addEventListener('touchmove', (e) => {
+      if (!dodgeState.active) return;
+      e.preventDefault();
+      let touch = e.touches[0];
+      let rect = box.getBoundingClientRect();
+      dodgeState.soul.x = Math.max(10, Math.min(210, (touch.clientX - rect.left) * (220 / rect.width)));
+      dodgeState.soul.y = Math.max(10, Math.min(150, (touch.clientY - rect.top) * (160 / rect.height)));
+    });
+  }
+
+  function setupKeyboard() {
+    window.addEventListener('keydown', e => state.keys[e.key.toLowerCase()] = true);
+    window.addEventListener('keyup', e => state.keys[e.key.toLowerCase()] = false);
+  }
+
+  // Check circle vs rectangle wall collision
+  function checkWallCollision(cx, cy, radius) {
+    for (let w of state.obstacles) {
+      let closestX = Math.max(w.x, Math.min(cx, w.x + w.w));
+      let closestY = Math.max(w.y, Math.min(cy, w.y + w.h));
+      let distanceX = cx - closestX;
+      let distanceY = cy - closestY;
+      if ((distanceX * distanceX + distanceY * distanceY) < (radius * radius)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function updatePlayer() {
+    if (state.inCombat) return;
+
+    let vx = state.joyVec.x; let vy = state.joyVec.y;
+    if (state.keys['w'] || state.keys['arrowup']) vy = -1;
+    if (state.keys['s'] || state.keys['arrowdown']) vy = 1;
+    if (state.keys['a'] || state.keys['arrowleft']) vx = -1;
+    if (state.keys['d'] || state.keys['arrowright']) vx = 1;
+
+    let nextX = state.player.x + vx * state.player.speed;
+    let nextY = state.player.y + vy * state.player.speed;
+
+    if (!checkWallCollision(nextX, state.player.y, state.player.radius)) state.player.x = nextX;
+    if (!checkWallCollision(state.player.x, nextY, state.player.radius)) state.player.y = nextY;
+
+    // --- SMART ENEMY PATHFINDING & PURSUIT ---
+    state.interactables.forEach((item, idx) => {
+      if (item.type === 'enemy') {
+        let angle = Math.atan2(state.player.y - item.y, state.player.x - item.x);
+        let ex = item.x + Math.cos(angle) * item.speed;
+        let ey = item.y + Math.sin(angle) * item.speed;
+
+        // Wall obstacle sliding for enemies
+        if (!checkWallCollision(ex, item.y, item.r)) item.x = ex;
+        if (!checkWallCollision(item.x, ey, item.r)) item.y = ey;
+
+        if (Math.hypot(state.player.x - item.x, state.player.y - item.y) < state.player.radius + item.r) {
+          triggerCombat(item, idx);
+        }
+      }
+    });
+
+    // Sector Door Progression
+    if (state.interactables.length === 0) {
+      state.doors.forEach(d => {
+        if (state.player.x > d.x && state.player.x < d.x + d.w &&
+            state.player.y > d.y && state.player.y < d.y + d.h) {          
+          if (state.roomInSector < 5) {
+            loadRoom(state.sectorIndex, state.roomInSector + 1);
+            state.player.x = 90; state.player.y = 220;
+          } else if (state.sectorIndex < 10) {
+            // Sector Boss cleared -> Advance to next Sector!
+            loadRoom(state.sectorIndex + 1, 1);
+            state.player.x = 90; state.player.y = 220;
+          }
+        }
+      });
+    }
+  }
+
+  function triggerCombat(enemy, index) {
+    state.inCombat = true;
+    state.enemy = { ...enemy, index };
+    document.getElementById('enemy-name').innerText = enemy.name;
+    document.getElementById('combat-log').innerText = enemy.dialogue;
+    document.getElementById('combat-modal').style.display = 'flex';
+    document.getElementById('action-buttons').style.display = 'grid';
+    updateCombatUI();
+  }
+
+  function startAttackTiming() {
+    document.getElementById('action-buttons').style.display = 'none';
+    document.getElementById('minigame-box').style.display = 'block';
+    timingState.active = true; timingState.currentRadius = 60; timingState.shrinking = true;
+  }
+
+  function addDamageText(amount, x, y, isCrit) {
+    state.damageTexts.push({
+      text: `-${amount}`, x: x || 400, y: y || 200, opacity: 1.0, color: isCrit ? '#facc15' : '#f43f5e'
+    });
+  }
+
+  function handleTimingClick() {
+    if (!timingState.active) return;
+    timingState.active = false;
+    document.getElementById('minigame-box').style.display = 'none';
+
+    let diff = Math.abs(timingState.currentRadius - timingState.targetRadius);
+    let damage = 0; let rating = ""; let isCrit = false;
+
+    if (diff <= 4) { damage = 60; rating = "PERFECT CRITICAL! 💥"; isCrit = true; }
+    else if (diff <= 12) { damage = 35; rating = "GREAT HIT! ⚡"; }
+    else if (diff <= 22) { damage = 18; rating = "OKAY HIT. 🗡️"; }
+    else { damage = 5; rating = "MISSED! 💨"; }
+
+    state.enemy.hp = Math.max(0, state.enemy.hp - damage);
+    addDamageText(damage, 400, 180, isCrit);
+
+    let log = document.getElementById('combat-log');
+    log.innerText = `${rating}\nDealt ${damage} damage to ${state.enemy.name}!`;
+
+    updateCombatUI();
+
+    if (state.enemy.hp <= 0) {
+      log.innerText = `${state.enemy.name} was destroyed!`;
+      setTimeout(() => { state.player.kills++; endCombat(true); }, 1000);
+      return;
+    }
+
+    setTimeout(() => { startDodgePhase(); }, 800);
+  }
+
+  function updateTimingMinigame() {
+    miniCtx.clearRect(0, 0, 220, 160);
+    miniCtx.strokeStyle = '#10b981'; miniCtx.lineWidth = 3;
+    miniCtx.beginPath(); miniCtx.arc(110, 80, timingState.targetRadius, 0, Math.PI * 2); miniCtx.stroke();
+
+    miniCtx.strokeStyle = '#38bdf8'; miniCtx.lineWidth = 2;
+    miniCtx.beginPath(); miniCtx.arc(110, 80, timingState.currentRadius, 0, Math.PI * 2); miniCtx.stroke();
+
+    miniCtx.fillStyle = '#ffffff'; miniCtx.font = '10px Courier New'; miniCtx.textAlign = 'center';
+    miniCtx.fillText('TAP TO TIME ATTACK!', 110, 150);
+
+    if (timingState.shrinking) {
+      timingState.currentRadius -= timingState.speed;
+      if (timingState.currentRadius <= 5) timingState.shrinking = false;
+    } else {
+      timingState.currentRadius += timingState.speed;
+      if (timingState.currentRadius >= 65) timingState.shrinking = true;
+    }
+  }
+
+  function combatAction(action) {
+    let log = document.getElementById('combat-log');
+
+    if (action === 'act') {
+      state.enemy.will = Math.max(0, state.enemy.will - 50);
+      log.innerText = state.enemy.actMessage;
+    } else if (action === 'item') {
+      state.player.hp = Math.min(state.player.maxHp, state.player.hp + 45);
+      log.innerText = `Nanites restored +45 Hull integrity!`;
+    } else if (action === 'spare') {
+      if (state.enemy.will <= 0 || state.enemy.hp <= 30) {
+        log.innerText = `You spared ${state.enemy.name}!`;
+        setTimeout(() => { state.player.spared++; endCombat(true); }, 1000);
+        return;
+      } else {
+        log.innerText = `${state.enemy.name} is too hostile! Lower WILL first.`;
+      }
+    }
+
+    updateCombatUI();
+    setTimeout(() => { startDodgePhase(); }, 800);
+  }
+
+  function startDodgePhase() {
+    document.getElementById('action-buttons').style.display = 'none';
+    document.getElementById('minigame-box').style.display = 'block';
+    
+    dodgeState.active = true;
+    dodgeState.timer = 180;
+    dodgeState.soul.x = 110; dodgeState.soul.y = 130;
+    dodgeState.bullets = [];
+    state.player.invuln = 25;
+
+    let type = state.enemy.attackType;
+
+    if (type === 'sparks') {
+      for (let i = 0; i < 7; i++) dodgeState.bullets.push({ x: 30 + i * 25, y: 10, vx: (Math.random() - 0.5) * 2, vy: 2, r: 4 });
+    } else if (type === 'lasers') {
+      for (let i = 0; i < 4; i++) dodgeState.bullets.push({ x: 0, y: 20 + i * 30, vx: 2.5, vy: 0, r: 5 });
+    } else if (type === 'homing') {
+      for (let i = 0; i < 3; i++) dodgeState.bullets.push({ x: 20 + i * 80, y: 10, vx: 0, vy: 0, r: 4, homing: true });
+    } else { // Boss patterns
+      for (let i = 0; i < 10; i++) {
+        let angle = (i / 10) * Math.PI;
+        dodgeState.bullets.push({ x: 110, y: 15, vx: Math.cos(angle) * 2, vy: Math.sin(angle) * 2, r: 4 });
+      }
+    }
+  }
+
+  function updateDodgePhase() {
+    miniCtx.clearRect(0, 0, 220, 160);
+
+    let vx = state.joyVec.x; let vy = state.joyVec.y;
+    if (state.keys['w'] || state.keys['arrowup']) vy = -1;
+    if (state.keys['s'] || state.keys['arrowdown']) vy = 1;
+    if (state.keys['a'] || state.keys['arrowleft']) vx = -1;
+    if (state.keys['d'] || state.keys['arrowright']) vx = 1;
+
+    dodgeState.soul.x = Math.max(10, Math.min(210, dodgeState.soul.x + vx * dodgeState.soul.speed));
+    dodgeState.soul.y = Math.max(10, Math.min(150, dodgeState.soul.y + vy * dodgeState.soul.speed));
+
+    if (state.player.invuln > 0) state.player.invuln--;
+
+    miniCtx.fillStyle = state.player.invuln % 4 < 2 ? '#f43f5e' : '#ffffff';
+    miniCtx.beginPath(); miniCtx.arc(dodgeState.soul.x, dodgeState.soul.y, dodgeState.soul.r, 0, Math.PI * 2); miniCtx.fill();
+
+    miniCtx.fillStyle = state.enemy.color || '#38bdf8';
+    dodgeState.bullets.forEach(b => {
+      if (b.homing) {
+        let angle = Math.atan2(dodgeState.soul.y - b.y, dodgeState.soul.x - b.x);
+        b.vx = Math.cos(angle) * 1.3; b.vy = Math.sin(angle) * 1.3;
+      }
+      b.x += b.vx; b.y += b.vy;
+      if (b.x <= 0 || b.x >= 220) b.vx *= -1;
+      if (b.y <= 0 || b.y >= 160) b.vy *= -1;
+
+      miniCtx.beginPath(); miniCtx.arc(b.x, b.y, b.r, 0, Math.PI * 2); miniCtx.fill();
+
+      if (state.player.invuln <= 0 && Math.hypot(dodgeState.soul.x - b.x, dodgeState.soul.y - b.y) < dodgeState.soul.r + b.r) {
+        state.player.hp = Math.max(0, state.player.hp - 8);
+        state.player.invuln = 20; updateHUD();
+        b.vx *= -1; b.vy *= -1;
+      }
+    });
+
+    dodgeState.timer--;
+    if (dodgeState.timer <= 0 || state.player.hp <= 0) endDodgePhase();
+  }
+
+  function endDodgePhase() {
+    dodgeState.active = false;
+    document.getElementById('minigame-box').style.display = 'none';
+    document.getElementById('action-buttons').style.display = 'grid';
+
+    if (state.player.hp <= 0) {
+      alert("HULL BREACH: Rebooting sector node...");
+      state.player.hp = 100;
+      endCombat(false);
+    } else {
+      document.getElementById('combat-log').innerText = "Choose your action!";
+    }
+  }
+
+  function updateCombatUI() {
+    document.getElementById('enemy-hp').innerText = state.enemy.hp;
+    document.getElementById('enemy-will').innerText = `${state.enemy.will}%`;
+  }
+
+  function endCombat(removeEnemy) {
+    if (removeEnemy && state.enemy) {
+      state.interactables.splice(state.enemy.index, 1);
+    }
+    document.getElementById('combat-modal').style.display = 'none';
+    state.inCombat = false;    updateKarma(); updateHUD();
+
+    // Check Sector K Boss Victory
+    if (state.sectorIndex === 10 && state.roomInSector === 5 && state.interactables.length === 0) {
+      triggerEndingCutscene();
+    }
+  }
+
+  function triggerEndingCutscene() {
+    let endingText = [];
+    if (state.player.kills === 0) {
+      endingText = ["ENDING: SUPREME PACIFIST 🕊️", "You saved all 11 Sectors through diplomacy & hacking! Ark-7 reboots in peace."];
+    } else if (state.player.spared === 0) {
+      endingText = ["ENDING: ABSOLUTE PURGE 💀", "You destroyed every synth from Sector A to Sector K. Nothing remains."];
+    } else {
+      endingText = ["ENDING: ARK-7 SURVIVOR ⚖️", "Sector K is cleared. You balance peace and destruction."];
+    }
+    playCutscene(endingText, () => { location.reload(); });
+  }
+
+  function updateKarma() {
+    let karma = document.getElementById('karma-val');
+    if (state.player.kills === 0) { karma.innerText = "PACIFIST"; karma.style.color = "#10b981"; }
+    else if (state.player.spared === 0) { karma.innerText = "GENOCIDE"; karma.style.color = "#f43f5e"; }
+    else { karma.innerText = "NEUTRAL"; karma.style.color = "#facc15"; }
+  }
+
+  function updateHUD() {
+    document.getElementById('hp-val').innerText = state.player.hp;
+    document.getElementById('enemy-val').innerText = state.interactables.length;
+  }
+
+  function interactTile() { alert(`Scanner: Sector ${SECTORS[state.sectorIndex]}-${state.roomInSector}. ${state.interactables.length} targets remain.`); }
+  function toggleStory() { alert(`LOGS:\n- Sector: ${SECTORS[state.sectorIndex]}-${state.roomInSector}\n- Spared: ${state.player.spared}\n- Destroyed: ${state.player.kills}`); }
+
+  function renderEnemyShape(item) {
+    ctx.fillStyle = item.color || '#f43f5e';
+    if (item.shape === 'square') {
+      ctx.fillRect(item.x - item.r, item.y - item.r, item.r * 2, item.r * 2);
+    } else if (item.shape === 'diamond') {
+      ctx.beginPath();
+      ctx.moveTo(item.x, item.y - item.r); ctx.lineTo(item.x + item.r, item.y);
+      ctx.lineTo(item.x, item.y + item.r); ctx.lineTo(item.x - item.r, item.y);
+      ctx.closePath(); ctx.fill();
+    } else { // Circle/Default
+      ctx.beginPath(); ctx.arc(item.x, item.y, item.r, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    updatePlayer();
+
+    // Render Walls
+    ctx.fillStyle = '#1e293b';
+    state.obstacles.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
+
+    // Render Door (Purple = Open, Red = Locked)
+    let roomCleared = state.interactables.length === 0;
+    ctx.fillStyle = roomCleared ? '#a855f7' : '#f43f5e';
+    state.doors.forEach(d => ctx.fillRect(d.x, d.y, d.w, d.h));
+
+    // Render Enemies
+    state.interactables.forEach(item => renderEnemyShape(item));
+
+    // Render Player
+    ctx.fillStyle = '#38bdf8';
+    ctx.beginPath(); ctx.arc(state.player.x, state.player.y, state.player.radius, 0, Math.PI * 2); ctx.fill();
+
+    // Floating Damage Counters Render
+    for (let i = state.damageTexts.length - 1; i >= 0; i--) {
+      let dt = state.damageTexts[i];
+      ctx.fillStyle = dt.color;
+      ctx.font = 'bold 16px Courier New';
+      ctx.fillText(dt.text, dt.x, dt.y);
+      dt.y -= 0.8; dt.opacity -= 0.02;
+      if (dt.opacity <= 0) state.damageTexts.splice(i, 1);
+    }
+
+    // Minigame Loop Renders
+    if (timingState.active) updateTimingMinigame();
+    if (dodgeState.active) updateDodgePhase();
+
+    requestAnimationFrame(gameLoop);
+  }
+</script>
+</body>
+</html>
