@@ -18,10 +18,11 @@ function sfx(kind){
  }catch(e){}
 }
 function burst(){
- const icons=["💥","⚡","🚨","✨","🔥"];
+ const icons=["💥","⚡","🚨","✨","🔥"],origin=$("icon").getBoundingClientRect();
+ const ox=origin.left+origin.width/2,oy=origin.top+origin.height/2;
  for(let i=0;i<8;i++){
   const e=document.createElement("span");e.className="spark";e.textContent=icons[i%icons.length];
-  e.style.left="50%";e.style.top="45%";e.style.setProperty("--x",(Math.random()*260-130)+"px");e.style.setProperty("--y",(Math.random()*240-120)+"px");
+  e.style.left=ox+"px";e.style.top=oy+"px";e.style.setProperty("--x",(Math.random()*260-130)+"px");e.style.setProperty("--y",(Math.random()*240-120)+"px");
   document.body.append(e);setTimeout(()=>e.remove(),750);
  }
 }
