@@ -41,12 +41,12 @@ const c=document.getElementById("game"),ctx=c.getContext("2d"),$=id=>document.ge
 let running=false,over=false,last=0,score=0,best=Number(localStorage.getItem("hpDinoBest")||0),speed=310,spawn=0,ground=270,worldIndex=0,worldProgress=0;
 let d={x:130,y:ground-58,w:62,h:58,vy:0,jump:false,duck:false,jumpTime:0},obs=[],clouds=[],audio=null;
 const worlds=[
- {name:"DESERT",sky:["#f6d78d","#fff0bd"],ground:"#b87945",line:"#d69a62",accent:"#7d5a3b",kind:"desert"},
- {name:"PLAINS",sky:["#8ed8ff","#d9f7b5"],ground:"#6aa34d",line:"#91c86d",accent:"#477a3d",kind:"plains"},
- {name:"FARM",sky:["#78c9ff","#f7e9a8"],ground:"#6d9f4f",line:"#9cc96c",accent:"#8b5a2b",kind:"farm"},
- {name:"SUBURBS",sky:["#9edcff","#f3d5a4"],ground:"#58715d",line:"#8a8a86",accent:"#8b4d42",kind:"suburbs"},
- {name:"METRO",sky:["#59658a","#c1a5c8"],ground:"#343847",line:"#6b7188",accent:"#4be0e3",kind:"metro"},
- {name:"CITY",sky:["#171b3b","#8b4b7d"],ground:"#20243d",line:"#454b6b",accent:"#ff5db1",kind:"city"}
+ {name:"DESERT",sky:["#f6d78d","#fff0bd"],ground:"#b87945",line:"#d69a62",accent:"#7d5a3b",kind:"desert",obstacles:["cactus","tumbleweed"],ceil:["vulture","canyon"]},
+ {name:"FOREST",sky:["#78c98b","#d9f7b5"],ground:"#3f7445",line:"#6ea95a",accent:"#244b2c",kind:"forest",obstacles:["log","stump","mushroom"],ceil:["lowbranch","owl"]},
+ {name:"FARM",sky:["#78c9ff","#f7e9a8"],ground:"#6d9f4f",line:"#9cc96c",accent:"#8b5a2b",kind:"farm",obstacles:["haybale","fence","tractor"],ceil:["barnbeam","windmill"]},
+ {name:"MOUNTAINS",sky:["#a8d8ff","#e8f1f7"],ground:"#66727d",line:"#9aa6ad",accent:"#52606b",kind:"mountains",obstacles:["boulder","pine","snowrock"],ceil:["rockoverhang","eagle"]},
+ {name:"METRO",sky:["#59658a","#c1a5c8"],ground:"#343847",line:"#6b7188",accent:"#4be0e3",kind:"metro",obstacles:["barrier","trash","cone"],ceil:["sign","pipe"]},
+ {name:"CITY",sky:["#171b3b","#8b4b7d"],ground:"#20243d",line:"#454b6b",accent:"#ff5db1",kind:"city",obstacles:["car","hydrant","barrier"],ceil:["billboard","beam"]}
 ];
 function sfx(type){
  try{
@@ -72,93 +72,44 @@ function jump(){
 function duck(v){if(running)d.duck=v}
 function move(dir){if(running)d.x=Math.max(60,Math.min(280,d.x+dir*18))}
 function spawnObstacle(){
- const fly=Math.random()<Math.min(.22,score/9000);
- const type=fly?"bird":Math.random()<.5?"cactus":"rock";
- const h=type==="cactus"?45:type==="rock"?30:28,w=type==="cactus"?25:type==="rock"?38:42;
- obs.push({x:920,y:ground-h,w,h,type,passed:false});
+ const w=worlds[worldIndex];
+ const wantCeiling=Math.random()<.30;
+ const type=(wantCeiling?w.ceil:w.obstacles)[Math.floor(Math.random()*(wantCeiling?w.ceil.length:w.obstacles.length))];
+ const specs={
+  cactus:[30,50,28,"ground"],tumbleweed:[38,30,38,"ground"],
+  log:[58,25,52,"ground"],stump:[34,38,34,"ground"],mushroom:[38,28,42,"ground"],
+  haybale:[48,42,48,"ground"],fence:[62,48,16,"ground"],tractor:[62,46,58,"ground"],
+  boulder:[50,38,50,"ground"],pine:[38,72,40,"ground"],snowrock:[44,28,44,"ground"],
+  barrier:[62,34,42,"ground"],trash:[38,44,34,"ground"],cone:[30,34,26,"ground"],
+  car:[78,38,70,"ground"],hydrant:[30,48,28,"ground"],
+  vulture:[46,26,44,"air"],lowbranch:[90,24,44,"air"],owl:[42,28,50,"air"],
+  barnbeam:[105,22,48,"air"],windmill:[76,24,55,"air"],rockoverhang:[105,26,54,"air"],eagle:[48,25,46,"air"],
+  sign:[110,20,48,"air"],pipe:[100,24,48,"air"],billboard:[125,22,50,"air"],beam:[115,20,46,"air"]
+ };
+ const [ww,hh,_,zone]=specs[type]||[40,35,40,"ground"];
+ const y=zone==="air"?ground-105:ground-hh;
+ obs.push({x:920,y,w:ww,h:hh,type,zone,passed:false});
 }
-function collide(a,b){
- const ax=a.x+6,ay=a.y+5,aw=a.w-12,ah=a.h-8;
- const bx=b.x+3,by=b.y+3,bw=b.w-6,bh=b.h-6;
- return ax<bx+bw&&ax+aw>bx&&ay<by+bh&&ay+ah>by;
-}
-function draw(){
- const w=worlds[worldIndex],phase=(score%1200)/1200;
- const g=ctx.createLinearGradient(0,0,0,330);g.addColorStop(0,w.sky[0]);g.addColorStop(.65,w.sky[1]);g.addColorStop(1,w.sky[1]);ctx.fillStyle=g;ctx.fillRect(0,0,900,330);
- const night=worldIndex>=4;
- ctx.fillStyle=night?"#ffffff99":"#fffbe055";
- for(let i=0;i<35;i++){const x=(i*173+score*.025)%900,y=18+(i*47)%120;if(night)ctx.fillRect(x,y,2,2)}
- ctx.fillStyle=w.accent;
- if(w.kind==="desert"){for(let x=0;x<900;x+=120){ctx.beginPath();ctx.arc(x+35,ground-4,35,Math.PI,0);ctx.fill()}}
- if(w.kind==="plains"){for(let x=0;x<900;x+=38){ctx.fillRect(x,ground-22-(x%17),3,22)}}
- if(w.kind==="farm"){for(let x=30;x<900;x+=150){ctx.fillRect(x,ground-80,5,80);ctx.fillRect(x-28,ground-105,60,5)}}
- if(w.kind==="suburbs"){for(let x=20;x<900;x+=130){ctx.fillRect(x,ground-72,70,72);ctx.fillStyle="#e9d4b5";ctx.fillRect(x+10,ground-58,18,18);ctx.fillStyle=w.accent;ctx.fillRect(x+25,ground-100,20,28);ctx.fillStyle=w.accent}}
- if(w.kind==="metro"){for(let x=0;x<900;x+=115){ctx.fillRect(x,ground-120,72,120);ctx.fillStyle="#8a91aa";ctx.fillRect(x+10,ground-100,14,20);ctx.fillRect(x+38,ground-100,14,20);ctx.fillStyle=w.accent}}
- if(w.kind==="city"){for(let x=0;x<900;x+=90){const h=70+(x%110);ctx.fillRect(x,ground-h,65,h);ctx.fillStyle="#ffe66d99";for(let y=ground-h+12;y<ground-8;y+=20)ctx.fillRect(x+12,y,8,8);ctx.fillStyle=w.accent}}
- ctx.fillStyle=w.ground;ctx.fillRect(0,ground,900,60);ctx.fillStyle=w.line;for(let x=0;x<900;x+=28)ctx.fillRect((x-(score*speed/180)%28),ground+13,13,3);
  for(const o of obs){
-  ctx.fillStyle=o.type==="cactus"?"#2e704d":o.type==="rock"?"#665d78":"#7b3f77";
-  if(o.type==="cactus"){ctx.fillRect(o.x+10,o.y,12,o.h);ctx.fillRect(o.x,o.y+17,11,9);ctx.fillRect(o.x+21,o.y+25,11,9)}
-  else if(o.type==="rock"){ctx.beginPath();ctx.moveTo(o.x,o.y+o.h);ctx.lineTo(o.x+10,o.y+5);ctx.lineTo(o.x+26,o.y);ctx.lineTo(o.x+o.w,o.y+o.h);ctx.fill()}
-  else{ctx.fillRect(o.x,o.y+9,o.w,8);ctx.fillRect(o.x+8,o.y,o.w-16,10);ctx.fillRect(o.x+2,o.y+16,9,5);ctx.fillRect(o.x+31,o.y+16,9,5)}
+  const colors={cactus:"#2e704d",tumbleweed:"#9a693c",log:"#70452b",stump:"#79512f",mushroom:"#d94d62",haybale:"#d9a83f",fence:"#8b5a2b",tractor:"#4f7b57",boulder:"#555b65",pine:"#2e6540",snowrock:"#b9c9d3",barrier:"#e34f62",trash:"#777b88",cone:"#ff8b35",car:"#cf4665",hydrant:"#e34d4d",vulture:"#55405e",lowbranch:"#5b4029",owl:"#5b493e",barnbeam:"#7c4a2c",windmill:"#6a7280",rockoverhang:"#59636d",eagle:"#5a5d6e",sign:"#4be0e3",pipe:"#7c8792",billboard:"#ff5db1",beam:"#777f8b"};
+  ctx.fillStyle=colors[o.type]||w.accent;
+  if(["cactus"].includes(o.type)){ctx.fillRect(o.x+9,o.y,12,o.h);ctx.fillRect(o.x,o.y+15,10,9);ctx.fillRect(o.x+21,o.y+23,10,9)}
+  else if(["tumbleweed","mushroom","boulder","snowrock","trash"].includes(o.type)){ctx.beginPath();ctx.arc(o.x+o.w/2,o.y+o.h/2,Math.min(o.w,o.h)/2,0,Math.PI*2);ctx.fill()}
+  else if(o.type==="pine"){ctx.beginPath();ctx.moveTo(o.x+o.w/2,o.y);ctx.lineTo(o.x,o.y+o.h);ctx.lineTo(o.x+o.w,o.y+o.h);ctx.fill();ctx.fillRect(o.x+o.w/2-5,o.y+o.h-18,10,18)}
+  else if(["fence","barrier","beam","barnbeam","pipe"].includes(o.type)){ctx.fillRect(o.x,o.y,o.w,8);ctx.fillRect(o.x,o.y+o.h-8,8,8);ctx.fillRect(o.x+o.w-8,o.y+o.h-8,8,8)}
+  else if(["lowbranch","rockoverhang"].includes(o.type)){ctx.fillRect(o.x,o.y,o.w,o.h);ctx.fillRect(o.x+10,o.y+o.h,10,18)}
+  else if(["sign","billboard"].includes(o.type)){ctx.fillRect(o.x,o.y,o.w,o.h);ctx.fillStyle="#111a";ctx.fillRect(o.x+8,o.y+7,o.w-16,o.h-14)}
+  else if(o.type==="car"){ctx.fillRect(o.x,o.y+12,o.w,o.h-12);ctx.fillRect(o.x+14,o.y,o.w-28,18);ctx.fillStyle="#bdefff";ctx.fillRect(o.x+22,o.y+5,18,9)}
+  else if(o.type==="tractor"){ctx.fillRect(o.x+8,o.y+12,o.w-16,o.h-12);ctx.fillRect(o.x+24,o.y,o.w-30,20);ctx.fillStyle="#222";ctx.fillRect(o.x,o.y+o.h-15,15,15);ctx.fillRect(o.x+o.w-15,o.y+o.h-18,18,18)}
+  else if(o.type==="hydrant"){ctx.fillRect(o.x+8,o.y,o.w-16,o.h);ctx.fillRect(o.x,o.y+10,o.w,8)}
+  else if(o.type==="cone"){ctx.beginPath();ctx.moveTo(o.x+o.w/2,o.y);ctx.lineTo(o.x,o.y+o.h);ctx.lineTo(o.x+o.w,o.y+o.h);ctx.fill()}
+  else {ctx.fillRect(o.x,o.y,o.w,o.h)}
  }
- ctx.save();
- const ducking=d.duck;
- const baseY=d.y;
- const jumpAnim=d.jump ? Math.sin(Math.min(1,d.jumpTime/0.32)*Math.PI) : 0;
- ctx.translate(d.x,ducking?ground-42:baseY);
- if(d.jump){ctx.rotate(Math.max(-0.08,Math.min(0.08,d.vy/8200)));ctx.translate(0,-jumpAnim*2)}
- ctx.fillStyle="#f5f5f5";
- if(ducking){
-   ctx.fillRect(4,14,48,28);
-   ctx.fillRect(42,5,20,25);
-   ctx.fillRect(50,2,8,8);
-   ctx.fillStyle="#222";ctx.fillRect(53,10,4,4);
-   ctx.fillStyle="#d8d8d8";ctx.fillRect(7,39,11,5);ctx.fillRect(36,39,11,5);
- }else{
-   ctx.fillRect(8,17,43,35);
-   ctx.fillRect(43,6,20,27);
-   ctx.fillRect(49,1,9,9);
-   ctx.fillStyle="#222";ctx.fillRect(54,12,4,4);
-   ctx.fillStyle="#ddd";ctx.fillRect(10,49,12,9);ctx.fillRect(38,49,12,9);
-   ctx.fillStyle="#f8f8f8";ctx.fillRect(0,25,13,14);
-   ctx.fillStyle="#d0d0d0";ctx.fillRect(7,18,8,8);
- }
- ctx.restore();
- ctx.fillStyle="#ffffffcc";ctx.font='700 13px "DM Mono"';ctx.fillText(w.name,18,28);
-}
-function loop(now){
- if(!running)return;
- const dt=Math.min(.035,(now-last)/1000);last=now;score+=dt*100;speed=310+Math.min(260,score*.028);worldIndex=Math.floor(score/800)%worlds.length;worldProgress=score%800;
- d.vy+=2100*dt;d.y+=d.vy*dt;if(d.jump)d.jumpTime+=dt;if(d.y>=ground-d.h){if(d.jump)sfx("land");d.y=ground-d.h;d.vy=0;d.jump=false}
- spawn-=dt;if(spawn<=0){spawnObstacle();spawn=.72+Math.random()*.7-Math.min(.25,score/18000)}
- for(const q of clouds){q.x-=dt*18*q.s;if(q.x<-80)q.x=920}
- for(const o of obs){o.x-=speed*dt;if(!o.passed&&o.x+d.w<d.x){o.passed=true;sfx("score")}}
- obs=obs.filter(o=>o.x>-80);
- const sheepBox={x:d.x+7,y:d.duck?ground-42+4:d.y+5,w:d.duck?55:56,h:d.duck?34:48};
- const hit=obs.some(o=>collide(sheepBox,o));
- if(hit){running=false;over=true;best=Math.max(best,Math.floor(score));localStorage.setItem("hpDinoBest",best);sfx("hit");$("msg").textContent="💥 BONK! Press JUMP or swipe up to run again.";$("best").textContent="BEST "+String(best).padStart(6,"0");draw();return}
- $("score").textContent=String(Math.floor(score)).padStart(6,"0");draw();requestAnimationFrame(loop)
-}
-function action(key){if(key==="jump")jump();if(key==="down")duck(true)}
-function release(key){if(key==="down")duck(false)}
-document.addEventListener("keydown",e=>{
- const k=e.key.toLowerCase();
- if([" ","arrowup","w"].includes(k)){e.preventDefault();jump()}
- if(["arrowdown","s"].includes(k)){e.preventDefault();duck(true)}
- 
-});
-document.addEventListener("keyup",e=>{const k=e.key.toLowerCase();if(["arrowdown","s"].includes(k))duck(false)});
-document.querySelectorAll(".controls .btn").forEach(b=>{
- const key=b.id;
- b.addEventListener("pointerdown",e=>{e.preventDefault();b.setPointerCapture?.(e.pointerId);action(key)});
- b.addEventListener("pointerup",e=>{e.preventDefault();release(key)});
- b.addEventListener("pointercancel",()=>release(key));
-});
-let sx=0,sy=0;
-c.addEventListener("touchstart",e=>{const t=e.changedTouches[0];sx=t.clientX;sy=t.clientY},{passive:true});
-c.addEventListener("touchend",e=>{const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;if(Math.max(Math.abs(dx),Math.abs(dy))<25)return;if(Math.abs(dy)>Math.abs(dx)){if(dy<0)jump();else duck(true);setTimeout(()=>duck(false),250)}else move(dx>0?1:-1)},{passive:true});
-$("score").textContent="000000";$("best").textContent="BEST "+String(best).padStart(6,"0");draw();
-</script>
-</body>
-</html>
+ ctx.fillStyle=w.accent;
+ if(w.kind==="desert"){for(let x=0;x<900;x+=150){ctx.beginPath();ctx.arc(x+45,ground-4,45,Math.PI,0);ctx.fill()}}
+ if(w.kind==="forest"){for(let x=30;x<900;x+=95){ctx.fillRect(x,ground-90,10,90);ctx.beginPath();ctx.moveTo(x+5,ground-135);ctx.lineTo(x-25,ground-70);ctx.lineTo(x+35,ground-70);ctx.fill()}}
+ if(w.kind==="farm"){for(let x=20;x<900;x+=170){ctx.fillRect(x,ground-85,6,85);ctx.fillRect(x-25,ground-110,56,6)}}
+ if(w.kind==="mountains"){ctx.beginPath();ctx.moveTo(0,ground);ctx.lineTo(130,100);ctx.lineTo(250,ground);ctx.lineTo(410,80);ctx.lineTo(600,ground);ctx.lineTo(760,110);ctx.lineTo(900,ground);ctx.fill()}}
+ if(w.kind==="metro"){for(let x=0;x<900;x+=115){ctx.fillRect(x,ground-120,72,120);ctx.fillStyle="#8a91aa";ctx.fillRect(x+10,ground-100,14,20);ctx.fillRect(x+38,ground-100,14,20);ctx.fillStyle=w.accent)}}
+ if(w.kind==="city"){for(let x=0;x<900;x+=90){const h=70+(x%110);ctx.fillRect(x,ground-h,65,h);ctx.fillStyle="#ffe66d99";for(let y=ground-h+12;y<ground-8;y+=20)ctx.fillRect(x+12,y,8,8);ctx.fillStyle=w.accent}}
+>
