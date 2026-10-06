@@ -109,7 +109,7 @@ function draw(){
  if(w.kind==="desert"){for(let x=0;x<900;x+=150){ctx.beginPath();ctx.arc(x+45,ground-4,45,Math.PI,0);ctx.fill()}}
  if(w.kind==="forest"){for(let x=30;x<900;x+=95){ctx.fillRect(x,ground-90,10,90);ctx.beginPath();ctx.moveTo(x+5,ground-135);ctx.lineTo(x-25,ground-70);ctx.lineTo(x+35,ground-70);ctx.fill()}}
  if(w.kind==="farm"){for(let x=20;x<900;x+=170){ctx.fillRect(x,ground-85,6,85);ctx.fillRect(x-25,ground-110,56,6)}}
- if(w.kind==="mountains"){ctx.beginPath();ctx.moveTo(0,ground);ctx.lineTo(130,100);ctx.lineTo(250,ground);ctx.lineTo(410,80);ctx.lineTo(600,ground);ctx.lineTo(760,110);ctx.lineTo(900,ground);ctx.fill()}}
+ if(w.kind==="mountains"){ctx.beginPath();ctx.moveTo(0,ground);ctx.lineTo(130,100);ctx.lineTo(250,ground);ctx.lineTo(410,80);ctx.lineTo(600,ground);ctx.lineTo(760,110);ctx.lineTo(900,ground);ctx.fill()}
  if(w.kind==="metro"){for(let x=0;x<900;x+=115){ctx.fillRect(x,ground-120,72,120);ctx.fillStyle="#8a91aa";ctx.fillRect(x+10,ground-100,14,20);ctx.fillRect(x+38,ground-100,14,20);ctx.fillStyle=w.accent)}}
  if(w.kind==="city"){for(let x=0;x<900;x+=90){const h=70+(x%110);ctx.fillRect(x,ground-h,65,h);ctx.fillStyle="#ffe66d99";for(let y=ground-h+12;y<ground-8;y+=20)ctx.fillRect(x+12,y,8,8);ctx.fillStyle=w.accent}}
  ctx.fillStyle=w.ground;ctx.fillRect(0,ground,900,60);
