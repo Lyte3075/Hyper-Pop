@@ -30,7 +30,7 @@
         #hp-crosshair:before{left:7px;top:0;width:2px;height:16px}.hp-crosshair:after{left:0;top:7px;width:16px;height:2px}
         @media(min-width:801px){#move-zone,#look-zone,#fire,#melee,#super,#switch,#joy-base{display:none!important}#hp-crosshair{display:block}}
 </style>
-<style id="hyperpop-back-style">#hyperpop-back{position:fixed;top:14px;left:14px;z-index:9999;display:flex;align-items:center;gap:7px;padding:9px 13px;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:rgba(10,10,20,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;text-decoration:none;font:700 13px system-ui,sans-serif;box-shadow:0 8px 30px #0008;cursor:pointer;touch-action:manipulation}#hyperpop-back:hover{background:rgba(255,255,255,.14);transform:translateY(-1px)}@media(max-width:600px){#hyperpop-back{top:10px;left:10px;padding:8px 11px;font-size:12px}}</style></head>
+<style id="hyperpop-back-style">#hyperpop-back{position:fixed;top:14px;left:14px;z-index:9999;display:flex;align-items:center;gap:7px;padding:9px 13px;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:rgba(10,10,20,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;text-decoration:none;font:700 13px system-ui,sans-serif;box-shadow:0 8px 30px #0008;cursor:pointer;touch-action:manipulation}#hyperpop-back:hover{background:rgba(255,255,255,.14);transform:translateY(-1px)}@media(max-width:600px){#hyperpop-back{top:10px;left:10px;padding:8px 11px;font-size:12px}}</style><style id="pc-controls-style">#pc-help{position:absolute;left:10px;bottom:10px;z-index:35;background:rgba(0,0,0,.72);border:1px solid #ffffff22;border-radius:8px;padding:7px 9px;color:#ddd;font:10px monospace;pointer-events:none}@media(max-width:700px){#pc-help{display:none}}</style></head>
 <body><a id="hp-back" href="index.html">← Hyper-Pop</a><div id="hp-crosshair"></div><a id="hyperpop-back" href="index.html" aria-label="Back to Hyper-Pop">← Hyper-Pop</a>
     <div id="container">
         <canvas id="g"></canvas>
@@ -40,7 +40,7 @@
             <div id="boss-bar-bg"><div id="boss-bar-fill"></div></div>
         </div>
         <div id="ui">LVL: <span id="lvl">1</span> | HP: <span id="hp">100</span>/<span id="mhp">100</span><br>WEP: <span id="wep-name">RIFLE</span></div>
-        <div id="msg"></div>
+        <div id="msg"></div><div id="pc-help">WASD move · Mouse look · Click/Space fire · E melee · R switch · Q super</div>
         <div id="move-zone" class="ctrl-zone"><div id="joy-base"><div id="joy-stick"></div></div></div>
         <div id="look-zone" class="ctrl-zone"></div>
         <div id="fire" class="btn">FIRE</div>
@@ -158,6 +158,7 @@ fireBtn.addEventListener('touchend', () => { player.isFiring = false; });
 
 function tryShoot() {
     if (player.fireT > 0) return;
+    HPAudio.shoot();
     let w = WEAPONS[player.currentWep];
     gunKick = 8;
     const spawn = (a) => bullets.push({ 
@@ -172,12 +173,12 @@ function tryShoot() {
 
 document.getElementById('melee').ontouchstart = e => {
     e.preventDefault(); if(player.swordT > 0) return;
-    player.swordT = 15;
+    HPAudio.melee(); player.swordT = 15;
     enemies.forEach(en => { if(Math.sqrt((en.x-player.x)**2+(en.y-player.y)**2) < 1.8) en.hp -= 200; });
 };
 
 document.getElementById('switch').ontouchstart = e => {
-    e.preventDefault();
+    e.preventDefault(); HPAudio.switch();
     let original = player.currentWep;
     do { player.currentWep = (player.currentWep + 1) % WEAPONS.length; 
     } while (!player.unlocked[player.currentWep] && player.currentWep !== original);
@@ -185,7 +186,7 @@ document.getElementById('switch').ontouchstart = e => {
 };
 
 document.getElementById('super').ontouchstart = e => {
-    e.preventDefault(); if(superCd > 0) return;
+    e.preventDefault(); HPAudio.super(); if(superCd > 0) return;
     superCd = 600;
     for(let i=0; i<25; i++) setTimeout(() => {
         bullets.push({ x:player.x, y:player.y, vx:Math.cos(player.dir+(Math.random()-0.5))*0.4, vy:Math.sin(player.dir+(Math.random()-0.5))*0.4, dmg:200, c:"#fff", pierces:10 });
@@ -199,6 +200,7 @@ function nextLevel() {
 }
 
 function update() {
+    if(window.HyperPopFrameShotPCMove) HyperPopFrameShotPCMove();
     let spd = 0.075;
     let sx = (Math.cos(player.dir)*-joy.y + Math.cos(player.dir+1.57)*joy.x)*spd;
     let sy = (Math.sin(player.dir)*-joy.y + Math.sin(player.dir+1.57)*joy.x)*spd;
@@ -315,15 +317,15 @@ function update() {
             if(!isSolid(en.x+moveX, en.y)) en.x += moveX;
             if(!isSolid(en.x, en.y+moveY)) en.y += moveY;
         }
-        if(dist < 0.5) player.hp -= 0.6;
+        if(dist < 0.5) { player.hp=Math.max(0,player.hp-0.6); HPAudio.hurt(); }
         return true;
     });
 
     powerups = powerups.filter(p => {
         if(Math.sqrt((p.x-player.x)**2+(p.y-player.y)**2) < 0.6) {
-            if(p.t==='WEP') { player.unlocked[p.id]=true; showMsg("UNLOCKED: " + WEAPONS[p.id].name); }
-            if(p.t==='MAX') { player.maxHp+=25; player.hp+=25; showMsg("MAX HP UP"); }
-            if(p.t==='HEAL') { player.hp=Math.min(player.maxHp, player.hp+50); showMsg("REPAIRED"); }
+            if(p.t==='WEP') { player.unlocked[p.id]=true; HPAudio.pickup(); showMsg("UNLOCKED: " + WEAPONS[p.id].name); }
+            if(p.t==='MAX') { player.maxHp=Math.min(500,player.maxHp+25); player.hp=Math.min(player.maxHp,player.hp+25); HPAudio.pickup(); showMsg("MAX HP UP"); }
+            if(p.t==='HEAL') { player.hp=Math.min(player.maxHp, player.hp+50); HPAudio.pickup(); showMsg("REPAIRED"); }
             return false;
         }
         return true;
@@ -334,6 +336,7 @@ function update() {
     if(gunKick > 0) gunKick--; if(player.swordT > 0) player.swordT--;
     
     player.hp=Math.max(0,Math.min(player.maxHp,player.hp));
+    player.hp=Math.max(0,Math.min(player.maxHp,Number.isFinite(player.hp)?player.hp:player.maxHp));
     document.getElementById('hp').innerText = Math.floor(player.hp);
     document.getElementById('mhp').innerText = player.maxHp;
     if(player.hp <= 0) location.reload();
@@ -408,5 +411,5 @@ document.addEventListener('mousemove',e=>{if(document.pointerLockElement===canva
 const oldUpdate=update;
 update=function(){const desktop=window.innerWidth>800;if(desktop){joy.x=(hpKeys.d?1:0)-(hpKeys.a?1:0);joy.y=(hpKeys.s?1:0)-(hpKeys.w?1:0);if(joy.x||joy.y)player.bob+=.22}oldUpdate()};
 document.addEventListener('click',()=>{if(window.innerWidth<=800)HPFX.click()},{passive:true});
-</script></body>
+</script><script>const HPAudio=(()=>{let ctx=null;function init(){try{if(!ctx)ctx=new(window.AudioContext||window.webkitAudioContext)();if(ctx.state==="suspended")ctx.resume()}catch(e){}}function tone(f,d=.07,t="square",v=.035,s=0){init();if(!ctx)return;const o=ctx.createOscillator(),g=ctx.createGain();o.type=t;o.frequency.setValueAtTime(f,ctx.currentTime);if(s)o.frequency.exponentialRampToValueAtTime(Math.max(30,f+s),ctx.currentTime+d);g.gain.setValueAtTime(v,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+d);o.connect(g).connect(ctx.destination);o.start();o.stop(ctx.currentTime+d)}return{init,shoot:()=>tone(150,.055,"sawtooth",.045,-80),hit:()=>tone(75,.06,"square",.04,-25),melee:()=>tone(260,.09,"sawtooth",.04,180),switch:()=>tone(520,.07,"triangle",.03,120),super:()=>{tone(90,.18,"sawtooth",.06,300);setTimeout(()=>tone(420,.18,"square",.035,-120),70)},pickup:()=>tone(700,.12,"triangle",.04,350),hurt:()=>tone(90,.12,"sawtooth",.05,-35),death:()=>tone(70,.35,"square",.04,-30)}})();window.addEventListener("pointerdown",()=>HPAudio.init());window.addEventListener("keydown",()=>HPAudio.init());</script><script>(()=>{const keys={};let locked=false;window.addEventListener("keydown",e=>{const k=e.key.toLowerCase();keys[k]=true;if([" ","w","a","s","d","e","q","r"].includes(k))e.preventDefault();if(k==="e")document.getElementById("melee").dispatchEvent(new Event("touchstart"));if(k==="r")document.getElementById("switch").dispatchEvent(new Event("touchstart"));if(k==="q")document.getElementById("super").dispatchEvent(new Event("touchstart"))});window.addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);canvas.addEventListener("click",()=>{if(!locked)canvas.requestPointerLock?.();tryShoot()});document.addEventListener("pointerlockchange",()=>locked=document.pointerLockElement===canvas);document.addEventListener("mousemove",e=>{if(document.pointerLockElement===canvas)player.dir+=e.movementX*.0025});window.addEventListener("mousedown",e=>{if(e.button===0&&document.pointerLockElement===canvas)player.isFiring=true});window.addEventListener("mouseup",e=>{if(e.button===0)player.isFiring=false});function move(){let dx=0,dy=0;if(keys.w){dx+=Math.cos(player.dir)*.045;dy+=Math.sin(player.dir)*.045}if(keys.s){dx-=Math.cos(player.dir)*.045;dy-=Math.sin(player.dir)*.045}if(keys.a){dx+=Math.cos(player.dir-Math.PI/2)*.045;dy+=Math.sin(player.dir-Math.PI/2)*.045}if(keys.d){dx+=Math.cos(player.dir+Math.PI/2)*.045;dy+=Math.sin(player.dir+Math.PI/2)*.045}if(dx||dy){if(!isSolid(player.x+dx,player.y))player.x+=dx;if(!isSolid(player.x,player.y+dy))player.y+=dy}if(keys[" "]&&player.fireT<=0)tryShoot()}window.HyperPopFrameShotPCMove=move})();</script></body>
 </html>
