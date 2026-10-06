@@ -11,7 +11,7 @@
         #boss-bar-bg { width: 100%; height: 8px; background: #222; border: 1px solid #fff; margin-top: 4px; }
         #boss-bar-fill { width: 100%; height: 100%; background: #f00; transition: width 0.1s; }
         #minimap { position: absolute; top: 10px; right: 10px; width: 80px; height: 80px; background: rgba(0,0,0,0.85); border: 1px solid #444; z-index: 30; border-radius: 2px; }
-        .ctrl-zone { position: absolute; top: 0; bottom: 0; z-index: 10; } #look-zone { right: 0; width: 65%; } #new-joystick{position:fixed;left:28px;bottom:28px;width:78px;height:78px;border-radius:50%;background:rgba(40,40,40,.78);border:2px solid rgba(255,255,255,.25);z-index:10001;pointer-events:none;touch-action:none} #new-joystick-knob{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px;border-radius:50%;background:#fff;box-shadow:0 0 8px #fff;pointer-events:none;transform:translate(0,0)}
+        .ctrl-zone { position: absolute; top: 0; bottom: 0; z-index: 10; } #look-zone { right: 0; width: 65%; } #joystick-touch-zone{position:fixed!important;left:0!important;top:0!important;width:45vw!important;height:100dvh!important;z-index:10000!important;pointer-events:auto!important;touch-action:none!important;-webkit-user-select:none!important;user-select:none!important} #new-joystick{position:fixed;left:28px;bottom:28px;width:78px;height:78px;border-radius:50%;background:rgba(40,40,40,.78);border:2px solid rgba(255,255,255,.25);z-index:10001;pointer-events:none;touch-action:none} #new-joystick-knob{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px;border-radius:50%;background:#fff;box-shadow:0 0 8px #fff;pointer-events:none;transform:translate(0,0)}
         .btn { position: absolute; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid #fff; pointer-events: auto; z-index: 25; text-align: center; }
         #fire { bottom: 20px; right: 20px; width: 80px; height: 80px; background: rgba(255,0,0,0.4); }
         #melee { bottom: 110px; right: 25px; background: rgba(0,255,100,0.3); width: 55px; height: 55px; font-size: 10px; }
@@ -38,7 +38,7 @@
         </div>
         <div id="ui">LVL: <span id="lvl">1</span> | HP: <span id="hp">100</span>/<span id="mhp">100</span><br>WEP: <span id="wep-name">RIFLE</span></div>
         <div id="msg"></div><div id="pc-help">WASD move · Mouse look · Click/Space fire · E melee · R switch · Q super</div>
-        <div id="look-zone" class="ctrl-zone"></div><div id="new-joystick" aria-hidden="true"><div id="new-joystick-knob"></div></div>
+        <div id="joystick-touch-zone"></div><div id="look-zone" class="ctrl-zone"></div><div id="new-joystick" aria-hidden="true"><div id="new-joystick-knob"></div></div>
         <div id="fire" class="btn"><span>FIRE</span></div>
         <div id="melee" class="btn"><span>SWORD</span></div>
         <div id="super" class="btn"><span>ULTRA</span><div id="super-fill"></div></div>
@@ -128,35 +128,41 @@ function genMap(size) {
 world = genMap(20);
 
 let joy={x:0,y:0},lookId=null,lastX=0,joystickTouchId=null;
+const joystickZone=document.getElementById('joystick-touch-zone');
 const newJoystick=document.getElementById('new-joystick');
 const newJoystickKnob=document.getElementById('new-joystick-knob');
 function updateNewJoystick(x,y){
  const r=newJoystick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
- const dx=x-cx,dy=y-cy,d=Math.min(30,Math.hypot(dx,dy)),a=Math.atan2(dy,dx);
- joy.x=Math.cos(a)*(d/30);joy.y=Math.sin(a)*(d/30);
+ const dx=x-cx,dy=y-cy,d=Math.min(32,Math.hypot(dx,dy)),a=Math.atan2(dy,dx);
+ joy.x=Math.cos(a)*(d/32);joy.y=Math.sin(a)*(d/32);
  newJoystickKnob.style.transform=`translate(${Math.cos(a)*d}px,${Math.sin(a)*d}px)`;
 }
 function resetNewJoystick(){
  joystickTouchId=null;joy.x=0;joy.y=0;newJoystickKnob.style.transform='translate(0,0)';
 }
-document.addEventListener('touchstart',e=>{
+joystickZone.addEventListener('touchstart',e=>{
  if(joystickTouchId!==null)return;
- const t=[...e.changedTouches].find(t=>t.clientX<innerWidth*.38);
- if(!t)return;
+ const t=e.changedTouches[0];if(!t)return;
  joystickTouchId=t.identifier;updateNewJoystick(t.clientX,t.clientY);e.preventDefault();
-},{capture:true,passive:false});
-document.addEventListener('touchmove',e=>{
+},{passive:false});
+joystickZone.addEventListener('touchmove',e=>{
  if(joystickTouchId===null)return;
- const t=[...e.touches].find(t=>t.identifier===joystickTouchId);
- if(!t)return;
- updateNewJoystick(t.clientX,t.clientY);e.preventDefault();
-},{capture:true,passive:false});
-document.addEventListener('touchend',e=>{
+ for(const t of e.touches)if(t.identifier===joystickTouchId){updateNewJoystick(t.clientX,t.clientY);e.preventDefault();break}
+},{passive:false});
+joystickZone.addEventListener('touchend',e=>{
  if([...e.changedTouches].some(t=>t.identifier===joystickTouchId))resetNewJoystick();
-},{capture:true,passive:false});
-document.addEventListener('touchcancel',e=>{
- if([...e.changedTouches].some(t=>t.identifier===joystickTouchId))resetNewJoystick();
-},{capture:true,passive:false});
+},{passive:false});
+joystickZone.addEventListener('touchcancel',resetNewJoystick,{passive:false});
+joystickZone.addEventListener('pointerdown',e=>{
+ if(e.pointerType!=='touch'||joystickTouchId!==null)return;
+ joystickTouchId=e.pointerId;joystickZone.setPointerCapture?.(e.pointerId);updateNewJoystick(e.clientX,e.clientY);e.preventDefault();
+},{passive:false});
+joystickZone.addEventListener('pointermove',e=>{
+ if(e.pointerType!=='touch'||e.pointerId!==joystickTouchId)return;
+ updateNewJoystick(e.clientX,e.clientY);e.preventDefault();
+},{passive:false});
+joystickZone.addEventListener('pointerup',e=>{if(e.pointerId===joystickTouchId)resetNewJoystick()},{passive:false});
+joystickZone.addEventListener('pointercancel',e=>{if(e.pointerId===joystickTouchId)resetNewJoystick()},{passive:false});
 const lookZone = document.getElementById('look-zone');
 lookZone.addEventListener('touchstart', e => { lookId = e.changedTouches[0].identifier; lastX = e.changedTouches[0].clientX; }, {passive: false});
 lookZone.addEventListener('touchmove', e => {
