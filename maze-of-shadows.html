@@ -1059,7 +1059,7 @@ window.addEventListener('keydown',e=>{
  if(k==='shift')HPFX.step();
 },{passive:true});
 let hpLastHealth=health,hpLastDanger=0,hpLastStep=0;
-const mazeArrowKeys={left:false,right:false};
+const mazeArrowKeys={left:false,right:false,up:false,down:false};
 window.addEventListener('keydown',e=>{
  const k=e.key.toLowerCase();
  if(k==='f'){
@@ -1067,19 +1067,23 @@ window.addEventListener('keydown',e=>{
    document.getElementById('flashlight-btn')?.click();
    HPFX.use();
  }
- if(k==='arrowleft'||k==='arrowright'){
+ if(k==='arrowleft'||k==='arrowright'||k==='arrowup'||k==='arrowdown'){
    e.preventDefault();
-   mazeArrowKeys[k==='arrowleft'?'left':'right']=true;
+   if(k==='arrowleft'||k==='arrowright') mazeArrowKeys[k==='arrowleft'?'left':'right']=true;
+   if(k==='arrowup'||k==='arrowdown') mazeArrowKeys[k==='arrowup'?'up':'down']=true;
  }
 },{passive:false});
 window.addEventListener('keyup',e=>{
  const k=e.key.toLowerCase();
- if(k==='arrowleft'||k==='arrowright')mazeArrowKeys[k==='arrowleft'?'left':'right']=false;
+ if(k==='arrowleft'||k==='arrowright'||k==='arrowup'||k==='arrowdown')mazeArrowKeys[k==='arrowleft'?'left':k==='arrowright'?'right':k==='arrowup'?'up':'down']=false;
 });
 (function mazeArrowCamera(){
  if(!isGameOver){
-   if(mazeArrowKeys.left) rotation.yaw-=0.045;
-   if(mazeArrowKeys.right) rotation.yaw+=0.045;
+   if(mazeArrowKeys.left) rotation.yaw+=0.045;
+   if(mazeArrowKeys.right) rotation.yaw-=0.045;
+   if(mazeArrowKeys.up) rotation.pitch-=0.045;
+   if(mazeArrowKeys.down) rotation.pitch+=0.045;
+   rotation.pitch=Math.max(-1.35,Math.min(1.35,rotation.pitch));
  }
  requestAnimationFrame(mazeArrowCamera);
 })();
