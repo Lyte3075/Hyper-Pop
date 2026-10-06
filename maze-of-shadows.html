@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Maze of Shadows - Progressive Nightmare</title>
+    <style>
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            overflow: hidden; background: #000;
+            font-family: monospace; user-select: none; -webkit-user-select: none;
+            touch-action: none;
+        }
+        #game-container { width: 100%; height: 100%; position: absolute; }
+        
+        #fx-canvas {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none; z-index: 5;
+        }
+
+        #touch-overlay {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%; z-index: 10; display: flex;
+            touch-action: none;
+        }
+        #touch-move-zone { width: 50%; height: 100%; touch-action: none; }
+        #touch-look-zone { width: 50%; height: 100%; touch-action: none; }
+        
+        #joystick-base {
+            position: fixed;
+            width: 100px; height: 100px;
+            margin-left: -50px; margin-top: -50px;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            display: none; pointer-events: none;
+            z-index: 50; box-sizing: border-box;
+        }
+
+        #joystick-stick {
+            position: absolute; top: 50%; left: 50%;
+            width: 40px; height: 40px;
+            margin-left: -20px; margin-top: -20px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%; pointer-events: none;
+            transform: translate(0px, 0px);
+        }
+
+        #ui {
+            position: absolute; top: 15px; left: 15px;
+            color: #ff3333; font-size: 13px; z-index: 20;
+            pointer-events: none; text-shadow: 0 0 5px #000;
+        }
+        .bar-bg { width: 140px; height: 8px; background: #222; border: 1px solid #555; margin: 3px 0 6px 0; }
+        #health-bar { width: 100%; height: 100%; background: #ff0000; }
+        #stamina-bar { width: 100%; height: 100%; background: #00ff88; }
+        #battery-bar { width: 100%; height: 100%; background: #ffff00; }
+
+        #key-tracker {
+            color: #ffd700; font-weight: bold; font-size: 15px; margin-bottom: 4px;
+            text-shadow: 0 0 8px #ffaa00;
+        }
+        #danger-level {
+            color: #ff3300; font-weight: bold; font-size: 12px; margin-bottom: 8px;
+            text-shadow: 0 0 5px #ff0000;
+        }
+
+        .game-btn {
+            position: absolute; width: 65px; height: 65px; border-radius: 50%;
+            background: rgba(0, 0, 0, 0.6); border: 2px solid #fff; color: #fff;
+            font-size: 11px; font-weight: bold; z-index: 25;
+            display: flex; align-items: center; justify-content: center;
+            touch-action: manipulation;
+        }
+        #flashlight-btn { bottom: 25px; right: 15px; }
+        #sprint-btn { bottom: 100px; right: 15px; }
+        #hide-btn { bottom: 25px; right: 90px; background: rgba(0, 150, 255, 0.6); display: none; }
+        #use-item-btn { bottom: 100px; right: 90px; background: rgba(0, 255, 100, 0.6); display: none; }
+
+        #game-over {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(20, 0, 0, 0.95); color: #ff0000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 30; font-size: 24px; display: none; text-align: center; padding: 20px;
+            box-sizing: border-box;
+        }
+        #death-hint {
+            color: #ffaaaa; font-size: 15px; max-width: 450px; margin-top: 15px;
+            line-height: 1.4; border-top: 1px solid #550000; padding-top: 15px;
+        }
+        #start-btn {
+            padding: 12px 28px; font-size: 16px; background: #330000;
+            color: #fff; border: 1px solid #ff0000; margin-top: 25px; cursor: pointer;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <div id="game-container"></div>
+    <canvas id="fx-canvas"></canvas>
+
+    <div id="ui">
+        <div id="key-tracker">KEYS FOUND: 0 / 9</div>
+        <div id="danger-level">THREAT LEVEL: LOW</div>
+        <div>Health:</div>
+        <div class="bar-bg"><div id="health-bar"></div></div>
+        <div>Stamina:</div>
+        <div class="bar-bg"><div id="stamina-bar"></div></div>
+        <div>Flashlight:</div>
+        <div class="bar-bg"><div id="battery-bar"></div></div>
+        <div id="status-msg" style="color: #00ffff; font-weight: bold; margin-top: 5px;"></div>
+        <div id="inventory-msg" style="color: #00ff88; font-weight: bold; margin-top: 2px;"></div>
+    </div>
+
+    <button id="flashlight-btn" class="game-btn">LIGHT</button>
+    <button id="sprint-btn" class="game-btn">RUN</button>
+    <button id="hide-btn" class="game-btn">HIDE</button>
+    <button id="use-item-btn" class="game-btn">ITEM</button>
+
+    <div id="touch-overlay">
+        <div id="touch-move-zone"></div>
+        <div id="touch-look-zone"></div>
+    </div>
+
+    <div id="joystick-base"><div id="joystick-stick"></div></div>
+
+    <div id="game-over">
+        <h1 id="status-text">YOU WERE CONSUMED</h1>
+        <div id="death-hint">Hint goes here...</div>
+        <button id="start-btn" onclick="location.reload()">RETRY</button>
+    </div>
+
+    <script>
+        // --- GAME SYSTEM ---
+        let scene, camera, renderer;
+        let flashlight, ambientLight;
+        let fxCanvas, fxCtx;
+        let isGameOver = false;
+
+        // Player Stats & Inventory
+        let maxHealth = 100, health = maxHealth;
+        let maxStamina = 200, stamina = maxStamina;
+        let battery = 100;
+        let isSprinting = false, isHidden = false, flashlightOn = true;
+        let adrenalineTimer = 0;
+        let currentLocker = null;
+        let preHideYaw = 0;
+        let keysFound = 0;
+        const totalKeys = 9;
+
+        let inventory = { medkit: 0, battery: 0, adrenaline: 0 };
+        let nearbyPickup = null;
+
+        // Controls & Camera
+        let moveVector = { x: 0, z: 0 };
+        let rotation = { yaw: 0, pitch: 0 };
+        let breathTimer = 0;
+        let shakeIntensity = 0;
+        const walkSpeed = 0.07, sprintSpeed = 0.14;
+
+        // Entities & World Arrays
+        let lockers = [], monsters = [], wallBoxes = [], keys = [], items = [], exitGate = null;
+        let exitGlowLight = null, exitDoorMesh = null;
+        let guideArrows = [], trailPoints = [];
+
+        // Input Tracking
+        let moveTouchId = null, lookTouchId = null;
+        let moveStart = { x: 0, y: 0 }, lookLast = { x: 0, y: 0 };
+
+        // DOM Controls
+        const moveZone = document.getElementById('touch-move-zone');
+        const lookZone = document.getElementById('touch-look-zone');
+        const joystickBase = document.getElementById('joystick-base');
+        const joystickStick = document.getElementById('joystick-stick');
+        const hideBtn = document.getElementById('hide-btn');
+        const sprintBtn = document.getElementById('sprint-btn');
+        const flashBtn = document.getElementById('flashlight-btn');
+        const useItemBtn = document.getElementById('use-item-btn');
+
+        const deathHints = {
+            'brute': "HINT: The Brute is easy to avoid early on. Keep your distance and do not make sprinting sounds!",
+            'stalker': "HINT: The Stalker becomes enraged if hit with light! Turn your light OFF around it.",
+            'crawler': "HINT: The Shadow Crawler freezes under flashlight illumination. Keep your flashlight ON!",
+            'phantasm': "HINT: The Phantasm phases through walls. Hide inside a LOCKER to banish it instantly!",
+            'wraith': "HINT: The Wraith freezes when you look at it. Keep line of sight on it to escape!",
+            'phantom': "HINT: The Phantom is nearly invisible. Look for its faint purple glow and tread quietly!",
+            'banshee': "HINT: The Banshee moves super fast when it hears sprinting! Walk slowly when near it.",
+            'devourer': "HINT: The Devourer is an ultimate apex predator. Use Adrenaline shots to outrun it!"
+        };
+
+        // Huge 21x21 Grid (3 = Exit Wall)
+        const mazeGrid = [
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,0,0,0,1,0,2,0,0,0,1,0,0,0,0,0,1,0,0,0,1],
+            [1,0,1,0,1,0,1,1,1,0,1,0,1,1,1,0,1,0,1,0,1],
+            [1,0,1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,1,0,1],
+            [1,0,1,1,1,1,0,1,1,1,1,0,1,1,1,1,1,0,1,0,1],
+            [1,2,0,0,0,1,0,2,0,0,1,0,2,0,0,0,1,0,2,0,1],            [1,1,1,1,0,1,1,0,1,0,1,1,1,0,1,1,1,0,1,1,1],
+            [1,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1],
+            [1,0,1,1,1,1,1,0,1,1,1,1,1,0,1,0,1,1,1,0,1],
+            [1,0,2,0,0,0,1,0,0,0,2,0,0,0,1,0,2,0,0,0,1],
+            [1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1],
+            [1,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1],
+            [1,0,1,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,1,0,1],
+            [1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1],
+            [1,1,1,1,1,0,1,1,1,0,1,0,1,1,1,1,1,0,1,1,1],
+            [1,0,2,0,0,0,0,0,1,0,1,0,2,0,0,0,1,0,2,0,1],
+            [1,0,1,1,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,0,1],
+            [1,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1],
+            [1,0,1,0,1,1,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1],
+            [1,0,0,0,1,0,0,0,0,0,2,0,0,0,1,0,0,0,0,0,3],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ];
+        const cellSize = 4;
+
+        // Pathfinding Algorithm
+        function findAStarPath(startCell, targetCell) {
+            let openSet = [startCell];
+            let cameFrom = {};
+            let gScore = {}, fScore = {};
+
+            let key = c => `${c.r},${c.c}`;
+            gScore[key(startCell)] = 0;
+            fScore[key(startCell)] = Math.hypot(startCell.r - targetCell.r, startCell.c - targetCell.c);
+
+            while (openSet.length > 0) {
+                openSet.sort((a, b) => fScore[key(a)] - fScore[key(b)]);
+                let current = openSet.shift();
+
+                if (current.r === targetCell.r && current.c === targetCell.c) {
+                    let path = [current];
+                    while (cameFrom[key(current)]) {
+                        current = cameFrom[key(current)];
+                        path.unshift(current);
+                    }
+                    return path;
+                }
+
+                const dirs = [{r:-1,c:0}, {r:1,c:0}, {r:0,c:-1}, {r:0,c:1}];
+                for (let d of dirs) {
+                    let neighbor = { r: current.r + d.r, c: current.c + d.c };
+                    if (neighbor.r >= 0 && neighbor.r < mazeGrid.length && neighbor.c >= 0 && neighbor.c < mazeGrid[0].length) {
+                        if (mazeGrid[neighbor.r][neighbor.c] !== 1 && mazeGrid[neighbor.r][neighbor.c] !== 3) {
+                            let tentativeG = gScore[key(current)] + 1;
+                            if (tentativeG < (gScore[key(neighbor)] ?? Infinity)) {
+                                cameFrom[key(neighbor)] = current;
+                                gScore[key(neighbor)] = tentativeG;
+                                fScore[key(neighbor)] = tentativeG + Math.hypot(neighbor.r - targetCell.r, neighbor.c - targetCell.c);
+                                if (!openSet.some(n => n.r === neighbor.r && n.c === neighbor.c)) openSet.push(neighbor);
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        function worldToCell(x, z) {
+            return {
+                c: Math.min(mazeGrid[0].length - 1, Math.max(0, Math.round(x / cellSize))),
+                r: Math.min(mazeGrid.length - 1, Math.max(0, Math.round(z / cellSize)))
+            };
+        }
+
+        function cellToWorld(c, r) {
+            return new THREE.Vector3(c * cellSize, 0, r * cellSize);
+        }
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0908);
+            scene.fog = new THREE.FogExp2(0x181512, 0.035);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(4, 1.6, 4);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('game-container').appendChild(renderer.domElement);
+
+            fxCanvas = document.getElementById('fx-canvas');
+            fxCtx = fxCanvas.getContext('2d');
+            resizeFxCanvas();
+
+            ambientLight = new THREE.AmbientLight(0x665b4c, 1.4);
+            scene.add(ambientLight);
+
+            flashlight = new THREE.SpotLight(0xfff0dd, 3.5, 40, Math.PI / 3, 0.5, 1);
+            camera.add(flashlight);
+            flashlight.position.set(0, 0, 0);
+            flashlight.target.position.set(0, 0, -1);
+            camera.add(flashlight.target);
+            scene.add(camera);
+
+            buildMaze();
+            spawnKeys();
+            spawnItems();
+
+            spawnMonster('brute', 64, 64);
+
+            setupTouchControls();
+            setupKeyboardControls();
+            window.addEventListener('resize', onWindowResize);
+
+            sprintBtn.addEventListener('touchstart', (e) => { e.preventDefault(); isSprinting = true; });
+            sprintBtn.addEventListener('touchend', (e) => { e.preventDefault(); isSprinting = false; });
+            sprintBtn.addEventListener('mousedown', () => isSprinting = true);
+            sprintBtn.addEventListener('mouseup', () => isSprinting = false);
+
+            flashBtn.addEventListener('click', () => {
+                if (battery > 0) {
+                    flashlightOn = !flashlightOn;
+                    flashlight.intensity = flashlightOn ? 3.5 : 0;
+                }
+            });
+
+            hideBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                toggleHideInLocker();
+            });
+
+            useItemBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (nearbyPickup) collectItem(nearbyPickup);
+                else useInventoryItem();
+            });
+
+            animate();
+        }
+
+        function resizeFxCanvas() {
+            fxCanvas.width = window.innerWidth;
+            fxCanvas.height = window.innerHeight;
+        }
+
+        function createExitSignCanvas() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, 256, 128);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 10;
+            ctx.strokeRect(10, 10, 236, 108);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 64px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('EXIT', 128, 64);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function buildMaze() {
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0x333338, roughness: 0.8 });
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x1a1a20, roughness: 0.7 });
+            const roofMat = new THREE.MeshStandardMaterial({ color: 0x222228, roughness: 0.9 });
+            const lockerMat = new THREE.MeshStandardMaterial({ color: 0x1c3b2b, metalness: 0.6, roughness: 0.4 });
+
+            const mazeWidth = mazeGrid[0].length * cellSize;
+            const mazeHeight = mazeGrid.length * cellSize;
+
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(mazeWidth, mazeHeight), floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.set(mazeWidth/2 - cellSize/2, 0, mazeHeight/2 - cellSize/2);
+            scene.add(floor);
+
+            const roof = new THREE.Mesh(new THREE.PlaneGeometry(mazeWidth, mazeHeight), roofMat);
+            roof.rotation.x = Math.PI / 2;
+            roof.position.set(mazeWidth/2 - cellSize/2, 3.5, mazeHeight/2 - cellSize/2);
+            scene.add(roof);
+
+            const wallGeo = new THREE.BoxGeometry(cellSize, 3.5, cellSize);
+            const lockerGeo = new THREE.BoxGeometry(1.0, 2.6, 0.5);
+
+            for (let r = 0; r < mazeGrid.length; r++) {
+                for (let c = 0; c < mazeGrid[r].length; c++) {
+                    const x = c * cellSize;
+                    const z = r * cellSize;
+
+                    if (mazeGrid[r][c] === 1) {
+                        const wall = new THREE.Mesh(wallGeo, wallMat);
+                        wall.position.set(x, 1.75, z);
+                        scene.add(wall);
+                        wallBoxes.push(new THREE.Box3().setFromObject(wall));
+                    } 
+                    else if (mazeGrid[r][c] === 2) {
+                        const locker = new THREE.Mesh(lockerGeo, lockerMat);
+                        let offsetX = 0, offsetZ = -1.6;
+
+                        if (r > 0 && mazeGrid[r-1][c] === 1) offsetZ = -1.6;
+                        else if (r < mazeGrid.length-1 && mazeGrid[r+1][c] === 1) offsetZ = 1.6;
+                        else if (c > 0 && mazeGrid[r][c-1] === 1) { offsetX = -1.6; offsetZ = 0; locker.rotation.y = Math.PI/2; }
+                        else if (c < mazeGrid[0].length-1 && mazeGrid[r][c+1] === 1) { offsetX = 1.6; offsetZ = 0; locker.rotation.y = Math.PI/2; }
+
+                        locker.position.set(x + offsetX, 1.3, z + offsetZ);
+                        scene.add(locker);
+                        lockers.push(locker);                    }
+                    else if (mazeGrid[r][c] === 3) {
+                        // EXIT BUILT INTO THE OUTER PERIMETER WALL
+                        const outerWall = new THREE.Mesh(wallGeo, wallMat);
+                        outerWall.position.set(x, 1.75, z);
+                        scene.add(outerWall);
+                        wallBoxes.push(new THREE.Box3().setFromObject(outerWall));
+
+                        // Bright Glowing White Archway Mounted directly to Wall Face
+                        const doorFrameGeo = new THREE.PlaneGeometry(2.2, 3.2);
+                        const doorMat = new THREE.MeshStandardMaterial({ 
+                            color: 0xffffff, 
+                            emissive: 0xffffff, 
+                            emissiveIntensity: 2.5,
+                            roughness: 0.1
+                        });
+                        exitDoorMesh = new THREE.Mesh(doorFrameGeo, doorMat);
+                        exitDoorMesh.position.set(x - 1.99, 1.6, z); // Flushed to inner facing wall surface
+                        exitDoorMesh.rotation.y = Math.PI / 2;
+                        scene.add(exitDoorMesh);
+
+                        // Inner Black Door Recess
+                        const innerRecessGeo = new THREE.PlaneGeometry(1.8, 2.8);
+                        const innerRecessMat = new THREE.MeshBasicMaterial({ color: 0x050505 });
+                        const innerRecess = new THREE.Mesh(innerRecessGeo, innerRecessMat);
+                        innerRecess.position.set(x - 1.98, 1.5, z);
+                        innerRecess.rotation.y = Math.PI / 2;
+                        scene.add(innerRecess);
+
+                        // Glowing Overhead EXIT Sign Wall Plaque
+                        const signGeo = new THREE.PlaneGeometry(1.6, 0.8);
+                        const signTex = createExitSignCanvas();
+                        const signMat = new THREE.MeshStandardMaterial({ 
+                            map: signTex, 
+                            emissiveMap: signTex, 
+                            emissive: 0xffffff, 
+                            emissiveIntensity: 3.0 
+                        });
+                        const exitSign = new THREE.Mesh(signGeo, signMat);
+                        exitSign.position.set(x - 1.98, 3.1, z);
+                        exitSign.rotation.y = Math.PI / 2;
+                        scene.add(exitSign);
+
+                        // Point light casting white ambient beam from wall onto floor
+                        exitGlowLight = new THREE.PointLight(0xffffff, 5.0, 15);
+                        exitGlowLight.position.set(x - 1.2, 2.0, z);
+                        scene.add(exitGlowLight);
+
+                        // Interaction trigger target
+                        exitGate = { position: new THREE.Vector3(x - 1.5, 1.6, z) };
+                    }
+                }
+            }
+        }
+
+        function spawnKeys() {
+            const keyGeo = new THREE.TorusGeometry(0.2, 0.05, 8, 16);
+            const keyMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.8, roughness: 0.2, emissive: 0xaa7700 });
+
+            const validSpawns = [
+                {c: 1, r: 7}, {c: 7, r: 1}, {c: 13, r: 3},
+                {c: 19, r: 5}, {c: 3, r: 13}, {c: 11, r: 9},
+                {c: 17, r: 11}, {c: 9, r: 17}, {c: 15, r: 17}
+            ];
+
+            validSpawns.forEach((loc) => {
+                const keyMesh = new THREE.Mesh(keyGeo, keyMat);
+                keyMesh.position.set(loc.c * cellSize, 1.2, loc.r * cellSize);
+                scene.add(keyMesh);
+                keys.push({ mesh: keyMesh, collected: false, cell: loc });
+            });
+
+            updateGuideIndicators();
+        }
+
+        function spawnItems() {
+            const itemSpawns = [
+                {c: 3, r: 1, type: 'medkit'}, {c: 15, r: 1, type: 'battery'},
+                {c: 1, r: 15, type: 'adrenaline'}, {c: 17, r: 7, type: 'medkit'},
+                {c: 9, r: 11, type: 'battery'}, {c: 5, r: 17, type: 'adrenaline'}
+            ];
+
+            itemSpawns.forEach(loc => {
+                let geo, mat;
+                if (loc.type === 'medkit') {
+                    geo = new THREE.BoxGeometry(0.4, 0.3, 0.4);
+                    mat = new THREE.MeshStandardMaterial({ color: 0xff3333, emissive: 0xaa0000 });
+                } else if (loc.type === 'battery') {
+                    geo = new THREE.CylinderGeometry(0.12, 0.12, 0.4, 8);
+                    mat = new THREE.MeshStandardMaterial({ color: 0xffff00, emissive: 0xaaaa00 });
+                } else { // adrenaline
+                    geo = new THREE.CylinderGeometry(0.08, 0.08, 0.5, 8);
+                    mat = new THREE.MeshStandardMaterial({ color: 0x00ff88, emissive: 0x00aa44 });
+                }
+
+                const itemMesh = new THREE.Mesh(geo, mat);
+                itemMesh.position.set(loc.c * cellSize, 0.4, loc.r * cellSize);
+                scene.add(itemMesh);
+                items.push({ mesh: itemMesh, type: loc.type, collected: false });
+            });
+        }
+
+        function updateGuideIndicators() {
+            guideArrows.forEach(a => scene.remove(a));
+            trailPoints.forEach(t => scene.remove(t));
+            guideArrows = [];
+            trailPoints = [];
+
+            let uncollectedKeys = keys.filter(k => !k.collected);
+            if (uncollectedKeys.length === 0) return;
+
+            let pCell = worldToCell(camera.position.x, camera.position.z);
+            let targetKey = uncollectedKeys[0];
+            let path = findAStarPath(pCell, targetKey.cell);
+
+            if (path && path.length > 2) {
+                const dotGeo = new THREE.CircleGeometry(0.25, 8);
+                const dotMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, side: THREE.DoubleSide });
+
+                for (let i = 1; i < Math.min(path.length, 6); i++) {
+                    let dot = new THREE.Mesh(dotGeo, dotMat);
+                    let worldPos = cellToWorld(path[i].c, path[i].r);
+                    dot.position.set(worldPos.x, 0.02, worldPos.z);
+                    dot.rotation.x = Math.PI / 2;
+                    scene.add(dot);
+                    trailPoints.push(dot);
+                }
+
+                const arrowGeo = new THREE.ConeGeometry(0.3, 0.8, 3);
+                const arrowMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+                const arrow = new THREE.Mesh(arrowGeo, arrowMat);
+
+                let nextCellPos = cellToWorld(path[1].c, path[1].r);
+                arrow.position.set(nextCellPos.x, 1.8, nextCellPos.z);
+                arrow.rotation.x = Math.PI / 2;
+                scene.add(arrow);
+                guideArrows.push(arrow);
+            }
+        }
+
+        function spawnMonster(type, x, z) {
+            let height = 2.4, radius = 0.35;
+            let eyeColor = 0xff0000;
+
+            if (type === 'crawler') eyeColor = 0xffff00;
+            if (type === 'phantasm') eyeColor = 0xaa00ff;
+            if (type === 'wraith') eyeColor = 0x00ffff;
+            if (type === 'phantom') eyeColor = 0xff00ff;
+            if (type === 'banshee') eyeColor = 0xff8800;
+            if (type === 'devourer') { eyeColor = 0xff0033; height = 3.5; radius = 0.65; }
+            if (type === 'brute') { eyeColor = 0xff6600; height = 3.0; radius = 0.55; }
+
+            const bodyGeo = new THREE.CylinderGeometry(radius, radius * 0.6, height, 8);
+            const bodyMat = new THREE.MeshStandardMaterial({ 
+                color: (type === 'phantom') ? 0x110022 : 0x080808, 
+                transparent: (type === 'phantom'), 
+                opacity: (type === 'phantom') ? 0.4 : 1.0,
+                roughness: 0.5 
+            });
+            const monster = new THREE.Mesh(bodyGeo, bodyMat);
+
+            const eyeGeo = new THREE.SphereGeometry(0.07, 8, 8);
+            const eyeMat = new THREE.MeshBasicMaterial({ color: eyeColor });
+            const eye1 = new THREE.Mesh(eyeGeo, eyeMat);
+            const eye2 = new THREE.Mesh(eyeGeo, eyeMat);
+            eye1.position.set(-0.14, height/2 - 0.3, radius - 0.05);
+            eye2.position.set(0.14, height/2 - 0.3, radius - 0.05);
+            monster.add(eye1); monster.add(eye2);
+
+            monster.position.set(x, height/2, z);
+            monster.userData = { 
+                type: type, 
+                baseSpeed: 0.035, 
+                isEnraged: false, 
+                dps: 20,
+                path: [],
+                state: 'patrol'
+            };
+
+            if (type === 'brute') monster.userData.dps = 35;
+            if (type === 'banshee') monster.userData.baseSpeed = 0.025;
+            if (type === 'devourer') { monster.userData.dps = 60; monster.userData.baseSpeed = 0.05; }
+
+            scene.add(monster);
+            monsters.push(monster);
+        }
+
+        function checkProgressiveDifficulty() {
+            const dangerElem = document.getElementById('danger-level');
+            if (keysFound === 1 && monsters.length === 1) {
+                spawnMonster('stalker', 28, 12);
+                dangerElem.innerText = "THREAT LEVEL: LOW-MEDIUM";
+            } else if (keysFound === 2 && monsters.length === 2) {
+                spawnMonster('crawler', 40, 28);
+            } else if (keysFound === 3 && monsters.length === 3) {
+                spawnMonster('phantasm', 16, 28);
+                dangerElem.innerText = "THREAT LEVEL: MEDIUM";
+            } else if (keysFound === 4 && monsters.length === 4) {
+                spawnMonster('wraith', 8, 32);
+            } else if (keysFound === 5 && monsters.length === 5) {                spawnMonster('phantom', 32, 8);
+                dangerElem.innerText = "THREAT LEVEL: HIGH";
+            } else if (keysFound === 6 && monsters.length === 6) {
+                spawnMonster('banshee', 60, 20);
+            } else if (keysFound === 7 && monsters.length === 7) {
+                spawnMonster('devourer', 20, 60);
+                dangerElem.innerText = "THREAT LEVEL: EXTREME";
+            }
+        }
+
+        function checkCollisions(newPosition, radius = 0.28) {
+            const playerBox = new THREE.Box3(
+                new THREE.Vector3(newPosition.x - radius, 0.2, newPosition.z - radius),
+                new THREE.Vector3(newPosition.x + radius, 2.0, newPosition.z + radius)
+            );
+
+            for (let i = 0; i < wallBoxes.length; i++) {
+                if (playerBox.intersectsBox(wallBoxes[i])) return true;
+            }
+            return false;
+        }
+
+        function collectItem(item) {
+            item.collected = true;
+            scene.remove(item.mesh);
+            inventory[item.type]++;
+            updateInventoryUI();
+        }
+
+        function useInventoryItem() {
+            if (inventory.medkit > 0 && health < maxHealth) {
+                health = Math.min(maxHealth, health + 50);
+                inventory.medkit--;
+            } else if (inventory.battery > 0 && battery < 100) {
+                battery = 100;
+                flashlightOn = true;
+                flashlight.intensity = 3.5;
+                inventory.battery--;
+            } else if (inventory.adrenaline > 0) {
+                adrenalineTimer = 10.0;
+                inventory.adrenaline--;
+            }
+            updateInventoryUI();
+        }
+
+        function updateInventoryUI() {
+            let invText = `INV: Meds:${inventory.medkit} Bat:${inventory.battery} Adr:${inventory.adrenaline}`;
+            document.getElementById('inventory-msg').innerText = invText;
+        }
+
+        function toggleHideInLocker() {
+            const phantasm = monsters.find(m => m.userData.type === 'phantasm');
+
+            if (!isHidden && currentLocker) {
+                isHidden = true;
+                preHideYaw = rotation.yaw;
+                camera.position.set(currentLocker.position.x, 1.6, currentLocker.position.z);
+                document.getElementById('status-msg').innerText = "HIDDEN IN LOCKER";
+                hideBtn.innerText = "EXIT";
+
+                monsters.forEach(m => {
+                    if (m.userData.type !== 'phantasm') m.userData.state = 'patrol';
+                });
+
+                if (phantasm) {
+                    phantasm.visible = false;
+                    phantasm.position.set(-999, -999, -999);
+                }
+            } 
+            else if (isHidden) {
+                isHidden = false;
+                let backVector = new THREE.Vector3(0, 0, 1.6).applyAxisAngle(new THREE.Vector3(0, 1, 0), preHideYaw);
+                let targetExitPos = (currentLocker ? currentLocker.position.clone() : camera.position.clone()).add(backVector);
+                targetExitPos.y = 1.6;
+
+                if (checkCollisions(targetExitPos, 0.25)) {
+                    let defaultFront = new THREE.Vector3(0, 0, 1.6).applyAxisAngle(new THREE.Vector3(0, 1, 0), currentLocker ? currentLocker.rotation.y : 0);
+                    targetExitPos = currentLocker.position.clone().add(defaultFront);
+                    targetExitPos.y = 1.6;
+                }
+
+                camera.position.copy(targetExitPos);
+                rotation.yaw = preHideYaw;
+                document.getElementById('status-msg').innerText = "";
+                hideBtn.innerText = "HIDE";
+
+                if (phantasm) {
+                    phantasm.visible = true;
+                    phantasm.position.set(16, 1.2, 28);
+                }
+            }
+        }
+
+        function setupTouchControls() {
+            moveZone.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.changedTouches[0];
+                moveTouchId = touch.identifier;
+                moveStart = { x: touch.clientX, y: touch.clientY };
+
+                joystickBase.style.left = `${moveStart.x}px`;
+                joystickBase.style.top = `${moveStart.y}px`;
+                joystickStick.style.transform = `translate(0px, 0px)`;
+                joystickBase.style.display = 'block';
+            }, { passive: false });
+
+            moveZone.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    let touch = e.changedTouches[i];
+                    if (touch.identifier === moveTouchId) {
+                        let dx = touch.clientX - moveStart.x;
+                        let dy = touch.clientY - moveStart.y;
+                        let dist = Math.hypot(dx, dy);
+                        let maxDist = 40;
+
+                        if (dist > maxDist) {
+                            dx = (dx / dist) * maxDist;
+                            dy = (dy / dist) * maxDist;
+                        }
+
+                        joystickStick.style.transform = `translate(${dx}px, ${dy}px)`;
+                        moveVector.x = dx / maxDist;
+                        moveVector.z = dy / maxDist;
+                    }
+                }
+            }, { passive: false });
+
+            const stopMove = (e) => {
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === moveTouchId) {
+                        moveTouchId = null;
+                        moveVector.x = 0; moveVector.z = 0;
+                        joystickStick.style.transform = `translate(0px, 0px)`;
+                        joystickBase.style.display = 'none';
+                    }
+                }
+            };
+
+            moveZone.addEventListener('touchend', stopMove);
+            moveZone.addEventListener('touchcancel', stopMove);
+
+            lookZone.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.changedTouches[0];
+                lookTouchId = touch.identifier;
+                lookLast = { x: touch.clientX, y: touch.clientY };
+            }, { passive: false });
+
+            lookZone.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    let touch = e.changedTouches[i];
+                    if (touch.identifier === lookTouchId) {
+                        let dx = touch.clientX - lookLast.x;
+                        let dy = touch.clientY - lookLast.y;
+
+                        rotation.yaw -= dx * 0.005;
+                        rotation.pitch -= dy * 0.005;
+                        rotation.pitch = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, rotation.pitch));
+
+                        lookLast = { x: touch.clientX, y: touch.clientY };
+                    }
+                }
+            }, { passive: false });
+
+            const stopLook = (e) => {
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === lookTouchId) lookTouchId = null;
+                }
+            };
+
+            lookZone.addEventListener('touchend', stopLook);
+            lookZone.addEventListener('touchcancel', stopLook);
+        }
+
+        let keysPressed = {};
+        function setupKeyboardControls() {
+            window.addEventListener('keydown', (e) => {
+                keysPressed[e.code] = true;
+                if (e.code === 'KeyE') {
+                    if (currentLocker || isHidden) toggleHideInLocker();
+                    else if (nearbyPickup) collectItem(nearbyPickup);
+                    else useInventoryItem();
+                }
+            });
+            window.addEventListener('keyup', (e) => keysPressed[e.code] = false);
+        }
+
+        function renderProximityOverlay(closestDist, closestType) {
+            fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+            if (closestDist > 12) return;
+
+            const w = fxCanvas.width, h = fxCanvas.height;
+            const factor = Math.min(1, (12 - closestDist) / 10);
+
+            if (closestType === 'stalker') {
+                const pulse = 0.4 + Math.sin(performance.now() * 0.01) * 0.2;
+                const grad = fxCtx.createRadialGradient(w/2, h/2, w*0.2, w/2, h/2, w*0.7);
+                grad.addColorStop(0, 'rgba(0,0,0,0)');                grad.addColorStop(1, `rgba(200, 0, 0, ${factor * pulse})`);
+                fxCtx.fillStyle = grad;
+                fxCtx.fillRect(0, 0, w, h);
+            } else if (closestType === 'crawler') {
+                fxCtx.fillStyle = `rgba(255, 255, 100, ${factor * 0.08})`;
+                for (let i = 0; i < 40 * factor; i++) {
+                    let rx = Math.random() * w;
+                    let ry = Math.random() * h;
+                    let rw = Math.random() * 80 + 20;
+                    fxCtx.fillRect(rx, ry, rw, 2);
+                }
+            } else if (closestType === 'banshee') {
+                const grad = fxCtx.createRadialGradient(w/2, h/2, w*0.2, w/2, h/2, w*0.7);
+                grad.addColorStop(0, 'rgba(0,0,0,0)');
+                grad.addColorStop(1, `rgba(255, 120, 0, ${factor * 0.5})`);
+                fxCtx.fillStyle = grad;
+                fxCtx.fillRect(0, 0, w, h);
+            }
+        }
+
+        let lastTime = performance.now();
+
+        function animate() {
+            if (isGameOver) return;
+            requestAnimationFrame(animate);
+
+            const now = performance.now();
+            const delta = (now - lastTime) / 1000;
+            lastTime = now;
+
+            if (adrenalineTimer > 0) adrenalineTimer -= delta;
+
+            // Pulsate White Wall Exit Portal intensity
+            if (exitGlowLight && exitDoorMesh) {
+                const pulseVal = 3.5 + Math.sin(now * 0.005) * 1.5;
+                exitGlowLight.intensity = pulseVal;
+                exitDoorMesh.material.emissiveIntensity = pulseVal * 0.8;
+            }
+
+            let speed = walkSpeed;
+            const hasKeyboardMove = keysPressed['KeyW'] || keysPressed['KeyS'] || keysPressed['KeyA'] || keysPressed['KeyD'];
+            const hasJoystickMove = Math.abs(moveVector.x) > 0.01 || Math.abs(moveVector.z) > 0.01;
+            const isMoving = (hasKeyboardMove || hasJoystickMove);
+
+            if ((isSprinting || keysPressed['ShiftLeft'] || adrenalineTimer > 0) && !isHidden) {
+                if ((stamina > 0 || adrenalineTimer > 0) && isMoving) {
+                    speed = sprintSpeed * (adrenalineTimer > 0 ? 1.25 : 1.0);
+                    if (adrenalineTimer <= 0) stamina = Math.max(0, stamina - 0.6);
+                }
+            } else {
+                stamina = Math.min(maxStamina, stamina + 0.8);
+            }
+            document.getElementById('stamina-bar').style.width = `${(stamina / maxStamina) * 100}%`;
+
+            if (flashlightOn) {
+                battery = Math.max(0, battery - 0.012);
+                if (battery === 0) { flashlightOn = false; flashlight.intensity = 0; }
+                document.getElementById('battery-bar').style.width = `${battery}%`;
+            }
+
+            // Key Collection
+            keys.forEach(k => {
+                if (!k.collected) {
+                    k.mesh.rotation.y += 0.03;
+                    if (camera.position.distanceTo(k.mesh.position) < 1.5) {
+                        k.collected = true;
+                        scene.remove(k.mesh);
+                        keysFound++;
+                        document.getElementById('key-tracker').innerText = `KEYS FOUND: ${keysFound} / ${totalKeys}`;
+                        checkProgressiveDifficulty();
+                        updateGuideIndicators();
+                    }
+                }
+            });
+
+            // Pickup Item Detection
+            nearbyPickup = null;
+            items.forEach(it => {
+                if (!it.collected) {
+                    it.mesh.rotation.y += 0.02;
+                    if (camera.position.distanceTo(it.mesh.position) < 1.8) nearbyPickup = it;
+                }
+            });
+
+            if (nearbyPickup) {
+                useItemBtn.style.display = 'flex';
+                useItemBtn.innerText = `GET ${nearbyPickup.type.toUpperCase()}`;
+            } else if (inventory.medkit > 0 || inventory.battery > 0 || inventory.adrenaline > 0) {
+                useItemBtn.style.display = 'flex';
+                useItemBtn.innerText = 'USE ITEM';
+            } else {
+                useItemBtn.style.display = 'none';
+            }
+
+            // Exit Wall Door Trigger
+            if (exitGate && camera.position.distanceTo(exitGate.position) < 2.5) {
+                if (keysFound >= totalKeys) {
+                    isGameOver = true;
+                    document.getElementById('status-text').innerText = "YOU ESCAPED THE MAZE!";
+                    document.getElementById('status-text').style.color = "#ffffff";
+                    document.getElementById('death-hint').innerText = "You unlocked the white exit wall and survived the nightmare!";
+                    document.getElementById('game-over').style.display = 'flex';
+                } else {
+                    document.getElementById('status-msg').innerText = `EXIT LOCKED: NEED ${totalKeys - keysFound} MORE KEYS!`;
+                }
+            }
+
+            // Locker Detection
+            currentLocker = null;
+            if (!isHidden) {
+                for (let locker of lockers) {
+                    if (camera.position.distanceTo(locker.position) < 2.2) {
+                        currentLocker = locker;
+                        break;
+                    }
+                }
+            }
+            hideBtn.style.display = (currentLocker || isHidden) ? 'flex' : 'none';
+
+            // Movement
+            if (!isHidden) {
+                let forward = 0, side = 0;
+                if (keysPressed['KeyW']) forward = -1;
+                if (keysPressed['KeyS']) forward = 1;
+                if (keysPressed['KeyA']) side = -1;
+                if (keysPressed['KeyD']) side = 1;
+
+                let moveX = (forward !== 0 || side !== 0) ? side : moveVector.x;
+                let moveZ = (forward !== 0 || side !== 0) ? forward : moveVector.z;
+
+                if (Math.abs(moveX) > 0.01 || Math.abs(moveZ) > 0.01) {
+                    const forwardDir = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), rotation.yaw);
+                    const sideDir = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), rotation.yaw);
+
+                    const totalVelocity = forwardDir.multiplyScalar(-moveZ).add(sideDir.multiplyScalar(moveX)).normalize().multiplyScalar(speed);
+
+                    let testPosX = camera.position.clone(); testPosX.x += totalVelocity.x;
+                    if (!checkCollisions(testPosX)) camera.position.x = testPosX.x;
+
+                    let testPosZ = camera.position.clone(); testPosZ.z += totalVelocity.z;
+                    if (!checkCollisions(testPosZ)) camera.position.z = testPosZ.z;
+                }
+            }
+
+            // Monster AI Logic
+            let activeAttacker = null;
+            let closestDistance = 999;
+            let closestMonsterType = null;
+            const playerCell = worldToCell(camera.position.x, camera.position.z);
+            const noiseRadius = isHidden ? 0 : (speed === sprintSpeed ? 18 : (isMoving ? 8 : 2));
+
+            for (let monster of monsters) {
+                if (!monster.visible) continue;
+
+                monster.lookAt(camera.position.x, monster.position.y, camera.position.z);
+                const distToPlayer = monster.position.distanceTo(camera.position);
+
+                if (distToPlayer < closestDistance) {
+                    closestDistance = distToPlayer;
+                    closestMonsterType = monster.userData.type;
+                }
+
+                const cameraDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                const toMonster = monster.position.clone().sub(camera.position).normalize();
+                const angleToLight = cameraDir.angleTo(toMonster);
+
+                const isInFOV = angleToLight < Math.PI / 3;
+                const isInFlashlight = flashlightOn && (angleToLight < Math.PI / 4) && (distToPlayer < 25);
+
+                let mSpeed = monster.userData.baseSpeed;
+
+                if (!isHidden && (distToPlayer <= noiseRadius || (isInFOV && distToPlayer < 12))) {
+                    monster.userData.state = 'chase';
+                }
+
+                if (monster.userData.state === 'chase' && !isHidden) {
+                    const mCell = worldToCell(monster.position.x, monster.position.z);
+                    monster.userData.path = findAStarPath(mCell, playerCell) || [];
+                }
+
+                if (monster.userData.type === 'stalker') {
+                    if (isInFlashlight) monster.userData.isEnraged = true;
+                    if (monster.userData.isEnraged) mSpeed = 0.075;
+                } else if (monster.userData.type === 'crawler') {
+                    mSpeed = isInFlashlight ? 0 : 0.08;
+                } else if (monster.userData.type === 'wraith') {
+                    mSpeed = isInFOV ? 0 : 0.095;
+                } else if (monster.userData.type === 'banshee') {
+                    if (speed === sprintSpeed) mSpeed = 0.11;
+                }
+
+                if (mSpeed > 0 && monster.userData.path && monster.userData.path.length > 1) {
+                    let nextCell = monster.userData.path[1];
+                    let targetPos = cellToWorld(nextCell.c, nextCell.r);
+                    targetPos.y = monster.position.y;
+
+                    let moveDir = targetPos.clone().sub(monster.position).normalize();
+                    monster.position.add(moveDir.multiplyScalar(mSpeed));
+
+                    if (monster.position.distanceTo(targetPos) < 0.6) {                        monster.userData.path.shift();
+                    }
+                } else if (monster.userData.state === 'patrol' || (monster.userData.path && monster.userData.path.length <= 1)) {
+                    monster.userData.state = 'patrol';
+                    let randomC = Math.floor(Math.random() * (mazeGrid[0].length - 2)) + 1;
+                    let randomR = Math.floor(Math.random() * (mazeGrid.length - 2)) + 1;
+                    if (mazeGrid[randomR][randomC] !== 1 && mazeGrid[randomR][randomC] !== 3) {
+                        let mCell = worldToCell(monster.position.x, monster.position.z);
+                        monster.userData.path = findAStarPath(mCell, { r: randomR, c: randomC }) || [];
+                    }
+                }
+
+                if (!isHidden && distToPlayer < 1.4) {
+                    health -= monster.userData.dps * delta;
+                    activeAttacker = monster.userData.type;
+                }
+            }
+
+            shakeIntensity = (closestDistance < 12) ? Math.min(1.0, (12 - closestDistance) / 10) : 0;
+            breathTimer += delta * (1.5 + shakeIntensity * 4.0);
+
+            const breathSwayY = Math.sin(breathTimer) * (0.02 + shakeIntensity * 0.08);
+            const breathSwayX = Math.cos(breathTimer * 0.5) * (0.01 + shakeIntensity * 0.04);
+            let shakeX = (Math.random() - 0.5) * 0.04 * shakeIntensity;
+            let shakeY = (Math.random() - 0.5) * 0.04 * shakeIntensity;
+
+            camera.rotation.order = "YXZ";
+            camera.rotation.y = rotation.yaw + breathSwayX + shakeX;
+            camera.rotation.x = rotation.pitch + breathSwayY + shakeY;
+
+            renderProximityOverlay(closestDistance, closestMonsterType);
+            document.getElementById('health-bar').style.width = `${Math.max(0, (health / maxHealth) * 100)}%`;
+
+            if (health <= 0) {
+                isGameOver = true;
+                document.getElementById('death-hint').innerText = deathHints[activeAttacker] || "Stay quiet and don't sprint near monsters!";
+                document.getElementById('game-over').style.display = 'flex';
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            resizeFxCanvas();
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
