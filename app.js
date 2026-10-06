@@ -133,3 +133,14 @@ document.getElementById('hp-term-close').addEventListener('touchend',e=>{e.preve
   window.HyperPopCommandPrompt={unlock:function(){localStorage.setItem(UNLOCK_KEY,'1');addTerminal();updateTerminalState()},disable:function(){localStorage.removeItem(UNLOCK_KEY);const l=document.getElementById('hp-terminal-launcher');const t=document.getElementById('hp-terminal');if(l){l.disabled=true;l.classList.add('hp-terminal-locked');l.style.display='none';l.title='Command Prompt'}if(t){t.classList.remove('open');t.style.display='none'}if(l)l.style.display='none'},isUnlocked:unlocked,sync:function(){addTerminal();updateTerminalState()}};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addTerminal);else addTerminal();
 })();
+
+/* Shared Hyper-Pop back button */
+document.addEventListener('DOMContentLoaded',()=>{
+  if(location.pathname.endsWith('/index.html')||location.pathname.endsWith('/'))return;
+  if(document.getElementById('hp-global-back'))return;
+  const b=document.createElement('a');b.id='hp-global-back';b.href='index.html';b.textContent='← Hyper-Pop';
+  Object.assign(b.style,{position:'fixed',left:'14px',top:'14px',zIndex:'99990',padding:'9px 13px',border:'1px solid #ffffff2b',borderRadius:'11px',background:'#080810dd',color:'#fff',textDecoration:'none',font:'700 13px monospace',backdropFilter:'blur(10px)',boxShadow:'0 8px 24px #0008'});
+  b.addEventListener('pointerenter',()=>{b.style.borderColor='#7df9ff';b.style.color='#7df9ff'});
+  b.addEventListener('pointerleave',()=>{b.style.borderColor='#ffffff2b';b.style.color='#fff'});
+  document.body.appendChild(b);
+});
