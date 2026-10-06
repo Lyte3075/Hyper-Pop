@@ -12,16 +12,16 @@
         #boss-bar-fill { width: 100%; height: 100%; background: #f00; transition: width 0.1s; }
         #minimap { position: absolute; top: 10px; right: 10px; width: 80px; height: 80px; background: rgba(0,0,0,0.85); border: 1px solid #444; z-index: 30; border-radius: 2px; }
         .ctrl-zone { position: absolute; top: 0; bottom: 0; z-index: 10; }
-        #move-zone { left: 0; width: 35%; }
-        #look-zone { right: 0; width: 65%; }
+        #move-zone { position:fixed; left:0; bottom:0; top:0; width:50vw; z-index:50; pointer-events:auto; }
+        #look-zone { position:fixed; right:0; bottom:0; top:0; width:50vw; z-index:49; pointer-events:auto; }
         #joy-base { position: absolute; bottom: 30px; left: 30px; width: 70px; height: 70px; background: rgba(255,255,255,0.1); border-radius: 50%; border: 1px solid #444; }
         #joy-stick { position: absolute; top: 20px; left: 20px; width: 30px; height: 30px; background: #fff; border-radius: 50%; }
         .btn { position: absolute; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid #fff; pointer-events: auto; z-index: 25; text-align: center; }
-        #fire { bottom: 20px; right: 20px; width: 80px; height: 80px; font-size:clamp(11px,1.8vh,17px); background: rgba(255,0,0,0.4); }
-        #melee { bottom: 110px; right: 25px; background: rgba(0,255,100,0.3); width: 55px; height: 55px; font-size:clamp(9px,1.55vh,13px); }
-        #super { bottom: 25px; right: 115px; background: rgba(0,100,255,0.3); width: 55px; height: 55px; overflow: hidden; font-size:clamp(9px,1.55vh,13px); }
-        #switch { bottom: 100px; right: 100px; background: rgba(100,100,100,0.4); width: 45px; height: 45px; font-size:clamp(8px,1.4vh,11px); }
-        .btn-label{position:relative;z-index:3;display:block;white-space:nowrap;line-height:1;font-family:monospace;font-weight:900;pointer-events:none;user-select:none;-webkit-user-select:none}
+        #fire { bottom: 20px; right: 20px; width: 80px; height: 80px; font-size:16px; background: rgba(255,0,0,0.4); }
+        #melee { bottom: 110px; right: 25px; background: rgba(0,255,100,0.3); width: 55px; height: 55px; font-size:10px; }
+        #super { bottom: 25px; right: 115px; background: rgba(0,100,255,0.3); width: 55px; height: 55px; overflow: hidden; font-size:10px; }
+        #switch { bottom: 100px; right: 100px; background: rgba(100,100,100,0.4); width: 45px; height: 45px; font-size:9px; }
+        .btn-label{position:relative;z-index:3;display:block;white-space:nowrap;line-height:1;font-family:monospace;font-weight:900;pointer-events:none;user-select:none;-webkit-user-select:none;transform:scale(var(--label-scale,1));transform-origin:center}
 #super-fill { position: absolute;pointer-events:none;z-index:1; bottom: 0; width: 100%; background: rgba(255,255,255,0.3); height: 0%; }
         #msg { position: absolute; top: 20%; left: 50%; transform: translateX(-50%); color: #0f0; font-weight: bold; pointer-events: none; z-index: 40; text-align: center; }
             #hp-back{position:fixed;left:14px;top:14px;z-index:1000;padding:9px 13px;border:1px solid #ffffff33;border-radius:11px;background:#050505dd;color:#fff;text-decoration:none;font:700 13px monospace;backdrop-filter:blur(8px);box-shadow:0 8px 24px #0008}
@@ -135,31 +135,40 @@ world = genMap(20);
 
 let joy = { x:0, y:0 }, moveId = null, lookId = null, lastX = 0;
 const moveZone = document.getElementById('move-zone');
-let activeJoyTouch=null;
+let activeJoyPointer=null;
+const joyKeys={up:false,down:false,left:false,right:false};
 function moveJoystick(x,y){
- const b=document.getElementById('joy-base').getBoundingClientRect(),cx=b.left+b.width/2,cy=b.top+b.height/2;
+ const b=document.getElementById('joy-base').getBoundingClientRect();
+ const cx=b.left+b.width/2,cy=b.top+b.height/2;
  let dx=x-cx,dy=y-cy,d=Math.min(30,Math.hypot(dx,dy)),a=Math.atan2(dy,dx);
  joy.x=Math.cos(a)*(d/30);joy.y=Math.sin(a)*(d/30);
  const sx=dx*(d<30?1:30/d),sy=dy*(d<30?1:30/d);
  document.getElementById('joy-stick').style.transform=`translate(${sx}px,${sy}px)`;
 }
-function resetJoystick(){activeJoyTouch=null;joy.x=0;joy.y=0;document.getElementById('joy-stick').style.transform='';}
-document.addEventListener('touchstart',e=>{
- if(activeJoyTouch!==null)return;
- for(const t of e.changedTouches){
-   const r=document.getElementById('container').getBoundingClientRect();
-   const x=t.clientX,y=t.clientY;
-   if(x>=r.left&&x<=r.left+r.width*0.45&&y>=r.top&&y<=r.bottom){
-     activeJoyTouch=t.identifier;moveJoystick(x,y);e.preventDefault();break;
-   }
- }
+function resetJoystick(){activeJoyPointer=null;joy.x=0;joy.y=0;document.getElementById('joy-stick').style.transform='';}
+moveZone.addEventListener('pointerdown',e=>{
+ e.preventDefault();activeJoyPointer=e.pointerId;moveZone.setPointerCapture?.(e.pointerId);moveJoystick(e.clientX,e.clientY);
 },{passive:false});
-document.addEventListener('touchmove',e=>{
- if(activeJoyTouch===null)return;
- for(const t of e.changedTouches)if(t.identifier===activeJoyTouch){moveJoystick(t.clientX,t.clientY);e.preventDefault();break}
+moveZone.addEventListener('pointermove',e=>{
+ if(e.pointerId!==activeJoyPointer)return;e.preventDefault();moveJoystick(e.clientX,e.clientY);
 },{passive:false});
-document.addEventListener('touchend',e=>{for(const t of e.changedTouches)if(t.identifier===activeJoyTouch){resetJoystick();break}},{passive:false});
-document.addEventListener('touchcancel',e=>{for(const t of e.changedTouches)if(t.identifier===activeJoyTouch){resetJoystick();break}},{passive:false});
+moveZone.addEventListener('pointerup',e=>{if(e.pointerId===activeJoyPointer)resetJoystick()},{passive:false});
+moveZone.addEventListener('pointercancel',e=>{if(e.pointerId===activeJoyPointer)resetJoystick()},{passive:false});
+window.addEventListener('keydown',e=>{
+ const k=e.key.toLowerCase();
+ if(['w','a','s','d'].includes(k)){joyKeys[k==='w'?'up':k==='s'?'down':k==='a'?'left':'right']=true;e.preventDefault();}
+});
+window.addEventListener('keyup',e=>{
+ const k=e.key.toLowerCase();
+ if(['w','a','s','d'].includes(k))joyKeys[k==='w'?'up':k==='s'?'down':k==='a'?'left':'right']=false;
+});
+function applyJoyKeys(){
+ if(joyKeys.up||joyKeys.down||joyKeys.left||joyKeys.right){
+   let x=(joyKeys.right?1:0)-(joyKeys.left?1:0),y=(joyKeys.down?1:0)-(joyKeys.up?1:0),d=Math.hypot(x,y)||1;
+   joy.x=x/d;joy.y=y/d;
+ } else if(activeJoyPointer===null){joy.x=0;joy.y=0;}
+}
+setInterval(applyJoyKeys,16);
 
 const lookZone = document.getElementById('look-zone');
 lookZone.addEventListener('touchstart', e => { lookId = e.changedTouches[0].identifier; lastX = e.changedTouches[0].clientX; }, {passive: false});
