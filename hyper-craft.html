@@ -12,133 +12,7 @@
 const base=[
 ['🌍','Earth'],['💧','Water'],['🔥','Fire'],['💨','Air']
 ];
-const recipes=Object.assign({},window.HYPERCRAFT_BASE_RECIPES||{});const RECIPE_LIST_PRIORITY=Object.assign({},recipes);
-Object.assign(recipes,window.HYPERCRAFT_EXTRA||{});
-
-Object.assign(recipes,window.HYPERCRAFT_EASY_RECIPES||{});
-
-
-/* Restore the original recipe list after every generated/product layer. */
-Object.assign(recipes,RECIPE_LIST_PRIORITY);
-
-/* User-requested sensible progression overrides. */
-Object.assign(recipes,{
-  'metal+battery':['📱','Phone'],
-  'battery+metal':['📱','Phone'],
-  'idea+computer':['💻','Software'],
-  'computer+idea':['💻','Software']
-});
-
-/* Final easy-material progression: core crafting resources have direct, reachable recipes. */
-Object.assign(recipes,{
-  'computer+air':['🌐','Internet'],
-  'air+computer':['🌐','Internet'],
-  'computer+computer':['🌐','Network'],
-  'computer+network':['🌐','Internet'],
-  'network+computer':['🌐','Internet'],
-  'tree+water':['🪵','Wood'],
-  'water+tree':['🪵','Wood'],
-  'wood+wood':['📄','Paper'],
-  'paper+wood':['📄','Paper'],
-  'wood+paper':['📖','Book'],
-  'paper+wood':['📖','Book'],
-  'book+human':['📚','Knowledge'],
-  'human+book':['📚','Knowledge'],
-  'human+knowledge':['💡','Idea'],
-  'knowledge+human':['💡','Idea'],
-
-  'life+fire':['🐾','Animal'],
-  'fire+life':['🐾','Animal'],
-  'animal+human':['🐾','Pet'],
-  'human+animal':['🐾','Pet'],
-
-  'cloud+cloud':['❄️','Snow'],
-  'cloud+ice':['❄️','Snow'],
-  'ice+cloud':['❄️','Snow'],
-  'water+snow':['🧊','Ice'],
-  'snow+water':['🧊','Ice'],
-  'water+ice':['🧊','Ice'],
-  'ice+water':['🧊','Ice'],
-
-  'plant+sun':['🌳','Tree'],
-  'sun+plant':['🌳','Tree'],
-  'tree+water':['🪵','Wood'],
-  'water+tree':['🪵','Wood'],
-  'tree+earth':['🌳','Forest'],
-  'earth+tree':['🌳','Forest'],
-
-  'earth+metal':['⛏️','Ore'],
-  'metal+earth':['⛏️','Ore'],
-  'ore+fire':['🥉','Copper'],
-  'fire+ore':['🥉','Copper'],
-  'ore+sun':['🥇','Gold'],
-  'sun+ore':['🥇','Gold'],
-  'copper+fire':['🧵','Wire'],
-  'fire+copper':['🧵','Wire'],
-  'metal+electricity':['🧵','Wire'],
-  'electricity+metal':['🧵','Wire'],
-  'wire+electricity':['🔌','Circuit'],
-  'electricity+wire':['🔌','Circuit'],
-
-  'stone+energy':['💎','Crystal'],
-  'energy+stone':['💎','Crystal'],
-  'crystal+coal':['💎','Diamond'],
-  'coal+crystal':['💎','Diamond'],
-  'coal+fire':['🔥','Charcoal'],
-  'fire+coal':['🔥','Charcoal'],
-  'wood+fire':['🔥','Charcoal'],
-  'fire+wood':['🔥','Charcoal'],
-  'charcoal+energy':['💎','Diamond'],
-  'energy+charcoal':['💎','Diamond'],
-
-  'plant+human':['🌾','Farmer'],
-  'human+plant':['🌾','Farmer'],
-  'farmer+plant':['🌾','Wheat'],
-  'plant+farmer':['🌾','Wheat'],
-  'farm+plant':['🌾','Wheat'],
-  'wheat+stone':['🌾','Flour'],
-  'stone+wheat':['🌾','Flour'],
-  'wheat+water':['🌾','Dough'],
-  'water+wheat':['🌾','Dough'],
-  'flour+water':['🌾','Dough'],
-  'water+flour':['🌾','Dough'],
-  'dough+fire':['🍞','Bread'],
-  'fire+dough':['🍞','Bread'],
-  'flour+fire':['🍞','Bread'],
-  'fire+flour':['🍞','Bread'],
-  'animal+fire':['🍖','Food'],
-  'fire+animal':['🍖','Food'],
-  'meat+fire':['🍖','Food'],
-  'fire+meat':['🍖','Food'],
-  'plant+animal':['🍎','Food'],
-  'animal+plant':['🍎','Food'],
-  'food+fire':['🍳','Cooked Food'],
-  'fire+food':['🍳','Cooked Food']
-});
-
-
-/* Reliable core progression: reachable from the four base elements without Night. */
-Object.assign(recipes,{
-  'charcoal+earth':['🪨','Coal'],
-  'earth+charcoal':['🪨','Coal'],
-  'dust+air':['🌍','Atmosphere'],
-  'air+dust':['🌍','Atmosphere'],
-  'air+air':['🌤️','Sky'],
-  'sky+earth':['🪐','Planet'],
-  'earth+sky':['🪐','Planet'],
-  'planet+fire':['☀️','Sun'],
-  'fire+planet':['☀️','Sun'],
-  'sun+air':['🌌','Night Sky'],
-  'air+sun':['🌌','Night Sky'],
-  'night sky+stone':['🌙','Moon'],
-  'stone+night sky':['🌙','Moon'],
-  'moon+space':['🌙','Moon'],
-  'sun+night sky':['🌗','Eclipse'],
-  'night sky+star':['🌌','Constellation'],
-  'star+night sky':['🌌','Constellation'],
-  'sun+air':['🌌','Night Sky'],
-  'air+sun':['🌌','Night Sky']
-});
+const recipes=Object.assign({},window.HYPERCRAFT_RECIPES||{});
 
 /* Local AI layer: deterministic, offline combination knowledge. No network or account required. */
 const emojiPool=['✨','🌀','🔭','🧬','🧿','🌠','🪄','🧩','🛰️','🗿','🛠️','🎲','🎮','📡','🌐','💠','🔬','🌟','🧊','🔥','🌪️','🌈','🪐','👽','🤯','🧙','🏆','💫'];
@@ -213,23 +87,7 @@ function importProgress(file){
   reader.onerror=()=>showResult('❌','Import failed','The progress file could not be read.');
   reader.readAsText(file);
 }
-/* Semantic recipe repair: recipes must be both reachable and logically related. */
-(function repairRecipeProgression(){
-  const BASE=new Set(['earth','water','fire','air']);
-  const clean=v=>String(v||'').trim().toLowerCase();
-  const key=(a,b)=>[clean(a),clean(b)].sort().join('+');
-
-  /*
-   * These are the canonical chains for the concepts that were most often
-   * broken by the generated recipe layer. They intentionally use ordinary,
-   * understandable combinations instead of arbitrary reachable pairs.
-   */
-  const sensible=window.HYPERCRAFT_CANONICAL_RECIPES||{};
-
-const bridges=window.HYPERCRAFT_BRIDGE_RECIPES||{};
-  Object.assign(recipes,bridges);
-
-  /* Final graph audit.
+/* Final graph audit.
      The recipe table is treated as a directed dependency graph whose only
      roots are the four starting elements. A recipe is valid only when both
      ingredients are reachable from those roots and the result is not one of
