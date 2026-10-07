@@ -26,11 +26,11 @@ header{text-align:center;padding:45px 0 24px}.eyebrow{font:11px "DM Mono";letter
 .payline{height:4px;margin:-4px 28px 14px;border-radius:99px;background:linear-gradient(90deg,transparent,var(--yellow),transparent);box-shadow:0 0 18px #ffe66d99;position:relative;z-index:5}
 .display{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:15px;padding:11px 14px;border-radius:13px;background:#070710;border:1px solid #ffffff16;font:12px "DM Mono";color:var(--muted)}.display strong{color:#fff}.result{color:var(--yellow);text-align:right}
 .base{margin-top:15px;padding:12px 15px;border-radius:15px;background:linear-gradient(180deg,#121222,#0b0b14);border:1px solid #ffffff12;text-align:center;color:#6f6c80;font:10px "DM Mono";letter-spacing:.1em}
-.lever-wrap{display:flex;justify-content:center;align-items:center;min-height:300px}.lever{position:relative;width:92px;height:275px;cursor:pointer;touch-action:manipulation;filter:drop-shadow(0 18px 20px #0008);user-select:none}.lever:focus-visible{outline:3px solid var(--cyan);outline-offset:7px;border-radius:20px}.post{position:absolute;left:38px;top:34px;width:16px;height:205px;border-radius:12px;background:linear-gradient(90deg,#555,#d9d7e5 45%,#555);transform-origin:50% 100%;transition:transform .3s cubic-bezier(.2,.8,.2,1)}.knob{position:absolute;left:21px;top:2px;width:50px;height:50px;border-radius:50%;background:radial-gradient(circle at 35% 28%,#fff,#ff7ac0 22%,#ff5db1 54%,#8c1d5b);border:3px solid #fff5;box-shadow:0 0 24px #ff5db177;transition:transform .3s cubic-bezier(.2,.8,.2,1)}.foot{position:absolute;left:0;bottom:0;width:92px;height:44px;border-radius:16px;background:linear-gradient(#2d2a43,#12111f);border:1px solid #ffffff20}.lever.pulled .post{transform:translateY(22px)}.lever.pulled .knob{transform:translateY(22px)}
+.lever-wrap{display:flex;justify-content:center;align-items:center;min-height:300px}.lever{position:relative;width:118px;height:286px;cursor:grab;touch-action:none;filter:drop-shadow(0 18px 20px #0008);user-select:none;background:transparent;border:0;padding:0}.lever:active{cursor:grabbing}.lever:focus-visible{outline:3px solid var(--cyan);outline-offset:7px;border-radius:20px}.rail{position:absolute;left:54px;top:25px;width:10px;height:226px;border-radius:999px;background:linear-gradient(90deg,#3f3d4d,#d9d7e5 48%,#4a4858);box-shadow:inset 0 0 8px #0008,0 4px 12px #0006}.rail:after{content:"";position:absolute;left:-5px;bottom:-3px;width:20px;height:20px;border-radius:50%;background:#242232;border:1px solid #ffffff18}.handle{position:absolute;left:7px;top:17px;width:104px;height:54px;border-radius:18px;background:linear-gradient(180deg,#ff86c7,#ff5db1 48%,#b52d78);border:2px solid #ffffff55;box-shadow:inset 0 5px 8px #ffffff2a,inset 0 -7px 10px #7c164f,0 0 24px #ff5db155,0 9px 18px #0008;transition:transform .18s cubic-bezier(.2,.8,.2,1)}.handle:before{content:"";position:absolute;left:16px;right:16px;top:10px;height:8px;border-radius:99px;background:#fff4}.handle:after{content:"";position:absolute;left:50%;top:13px;bottom:13px;width:4px;transform:translateX(-50%);border-radius:99px;background:#8f1d5e55}.foot{position:absolute;left:17px;bottom:0;width:84px;height:44px;border-radius:16px;background:linear-gradient(#2d2a43,#12111f);border:1px solid #ffffff20}.lever.pulled .handle{transform:translateY(142px)}
 .rules{max-width:820px;margin:20px auto 45px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.rule{padding:12px;border:1px solid var(--line);border-radius:15px;background:#ffffff06;text-align:center}.rule b{display:block;color:#fff;font-size:14px}.rule span{display:block;margin-top:4px;color:var(--muted);font:10px "DM Mono"}
 .action-row{display:flex;justify-content:center;margin-top:14px}.spin-btn{min-height:48px;padding:12px 20px;border:0;border-radius:14px;background:#fff;color:#11111f;font-weight:800;font-family:inherit;cursor:pointer;box-shadow:0 8px 25px #0005}.spin-btn:disabled{opacity:.45;cursor:not-allowed}
 footer{text-align:center;padding:8px 0 36px;color:#6f6c80;font:10px "DM Mono"}
-@media(max-width:720px){.casino{grid-template-columns:1fr;gap:4px}.lever-wrap{min-height:125px}.lever{transform:scale(.62);transform-origin:top center;height:165px}.rules{grid-template-columns:1fr}.machine{padding:14px;border-radius:26px}.reel{height:118px}.symbol{font-size:48px}}
+@media(max-width:720px){.casino{grid-template-columns:1fr;gap:4px}.lever-wrap{min-height:125px}.lever{transform:scale(.62);transform-origin:top center;height:176px}.rules{grid-template-columns:1fr}.machine{padding:14px;border-radius:26px}.reel{height:118px}.symbol{font-size:48px}}
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
 </head>
@@ -50,7 +50,7 @@ footer{text-align:center;padding:8px 0 36px;color:#6f6c80;font:10px "DM Mono"}
 <div class="base">NO COINS • NO BETS • JUST SPINNING</div>
 <div class="action-row"><button class="spin-btn" id="spin" type="button">SPIN THE MACHINE</button></div>
 </div>
-<div class="lever-wrap"><button class="lever" id="lever" type="button" aria-label="Pull the slot machine lever"><span class="post"></span><span class="knob"></span><span class="foot"></span></button></div>
+<div class="lever-wrap"><button class="lever" id="lever" type="button" aria-label="Drag the slot machine lever down"><span class="rail"></span><span class="handle"></span><span class="foot"></span></button></div>
 </section>
 <section class="rules" aria-label="Payouts">
 <div class="rule"><b>💎 💎 💎</b><span>JACKPOT • 1000 pts</span></div>
@@ -60,19 +60,38 @@ footer{text-align:center;padding:8px 0 36px;color:#6f6c80;font:10px "DM Mono"}
 </main>
 <footer>Lucky Pop is a fictional game using virtual points only. ✦</footer>
 </div>
+<script src="app.js"></script>
 <script>
 (()=>{const root=document.body;if(root.dataset.ready)return;root.dataset.ready="1";
 const symbols=["🍒","🍋","🍊","🍉","⭐","🔔","💎","7️⃣"];
 const weights=[20,18,16,12,10,9,4,2];const reels=[...document.querySelectorAll(".reel")];const lever=document.getElementById("lever");const spin=document.getElementById("spin");const result=document.getElementById("result");
 let busy=false,score=0;
 function pick(){let total=weights.reduce((a,b)=>a+b,0),r=Math.random()*total;for(let i=0;i<symbols.length;i++){r-=weights[i];if(r<0)return symbols[i]}return symbols[0]}
-function tone(freq,duration=.08,type="sine"){try{const A=window.AudioContext||window.webkitAudioContext;if(!A)return;const a=new A(),o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(.035,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+duration);o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+duration)}catch(e){}}
+let audio=null;
+function ctx(){try{if(!audio){const A=window.AudioContext||window.webkitAudioContext;if(!A)return null;audio=new A()}if(audio.state==="suspended")audio.resume();return audio}catch(e){return null}}
+function tone(freq,duration=.08,type="sine",volume=.035){try{const a=ctx();if(!a)return;const o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.setValueAtTime(freq,a.currentTime);g.gain.setValueAtTime(volume,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+duration);o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+duration)}catch(e){}}
+function leverSfx(){tone(155,.09,"square",.05);setTimeout(()=>tone(95,.12,"sawtooth",.035),55)}
+function reelTick(i){tone(210+i*35,.045,"square",.018)}
+function winSfx(jackpot=false){const notes=jackpot?[523,659,784,1047,1319]:[440,554,659,880];notes.forEach((n,i)=>setTimeout(()=>tone(n,.16,"triangle",.045),i*75))}
 function setSymbols(values){values.forEach((v,i)=>reels[i].querySelector(".symbol").textContent=v)}
 function finish(values){busy=false;spin.disabled=false;lever.classList.remove("pulled");reels.forEach(r=>r.classList.remove("spinning"));setSymbols(values);const [a,b,c]=values;let msg="NO WIN • TRY AGAIN",points=0;
 if(a==="💎"&&b==="💎"&&c==="💎"){msg="💎 JACKPOT! +1000";points=1000}else if(a==="⭐"&&b==="⭐"&&c==="⭐"){msg="⭐ BIG WIN! +250";points=250}else if(a===b&&b===c){msg="🎉 MATCH! +100";points=100}else if(a===b||b===c||a===c){msg="✨ TWO MATCH! +25";points=25}
-score+=points;result.textContent=msg+(score?" • SCORE "+score:"");if(points){document.getElementById("reels").classList.add("win");tone(points===1000?880:660,.22,"triangle");setTimeout(()=>document.getElementById("reels").classList.remove("win"),1500)}else tone(180,.12,"square")}
-function doSpin(){if(busy)return;busy=true;spin.disabled=true;lever.classList.add("pulled");result.textContent="SPINNING…";tone(320,.06);const values=[pick(),pick(),pick()];let t=0;reels.forEach((r,i)=>{const el=r.querySelector(".symbol");r.classList.add("spinning");let ticks=0;const tick=setInterval(()=>{el.textContent=symbols[Math.floor(Math.random()*symbols.length)];tone(250+Math.random()*260,.035,"square");ticks++;if(ticks>=10+i*3){clearInterval(tick);r.classList.remove("spinning");el.textContent=values[i];tone(430+i*90,.09,"triangle");if(i===2)finish(values)}},105);});}
-lever.addEventListener("click",doSpin);spin.addEventListener("click",doSpin);lever.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();doSpin()}});
+score+=points;result.textContent=msg+(score?" • SCORE "+score:"");if(points){document.getElementById("reels").classList.add("win");winSfx(points===1000);setTimeout(()=>document.getElementById("reels").classList.remove("win"),1500)}else tone(180,.12,"square")}
+function doSpin(forcedValues=null){if(busy)return;busy=true;spin.disabled=true;lever.classList.add("pulled");result.textContent="SPINNING…";leverSfx();const values=forcedValues||[pick(),pick(),pick()];reels.forEach((r,i)=>{const el=r.querySelector(".symbol");r.classList.add("spinning");let ticks=0;const tick=setInterval(()=>{el.textContent=symbols[Math.floor(Math.random()*symbols.length)];reelTick(i);ticks++;if(ticks>=10+i*3){clearInterval(tick);r.classList.remove("spinning");el.textContent=values[i];tone(430+i*90,.09,"triangle",.035);if(i===2)finish(values)}},105);});}
+let dragging=false,startY=0,dragDistance=0;
+lever.addEventListener("pointerdown",e=>{if(busy)return;dragging=true;startY=e.clientY;dragDistance=0;lever.setPointerCapture?.(e.pointerId);ctx();e.preventDefault()});
+lever.addEventListener("pointermove",e=>{if(!dragging||busy)return;dragDistance=Math.max(0,e.clientY-startY);const visual=Math.min(142,dragDistance);lever.querySelector(".handle").style.transform="translateY("+visual+"px)";});
+lever.addEventListener("pointerup",e=>{if(!dragging)return;dragging=false;const pulled=dragDistance>=55;lever.querySelector(".handle").style.transform="";if(pulled){e.preventDefault();doSpin()}else leverSfx();});
+lever.addEventListener("click",e=>{if(dragDistance>=55)e.preventDefault()});
+lever.addEventListener("pointercancel",()=>{dragging=false;lever.querySelector(".handle").style.transform=""});
+spin.addEventListener("click",doSpin);
+lever.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();doSpin()}});
+window.addEventListener("hyperpop-cheat",e=>{
+  const d=e.detail||{};
+  if(d.type==="score"||d.type==="coins"){score=Number(d.value)||0;result.textContent="CHEAT SCORE "+score}
+  if(d.type==="win"){doSpin(["💎","💎","💎"])}
+});
+window.hyperpopSlot={spin:doSpin,setScore:n=>{score=Number(n)||0;result.textContent="CHEAT SCORE "+score}};
 })();</script>
 </body>
 </html>
