@@ -134,3 +134,32 @@ document.getElementById('hp-term-close').addEventListener('touchend',e=>{e.preve
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addTerminal);else addTerminal();
 })();
 
+
+/* Shared Hyper-Pop header + floating back button */
+document.addEventListener('DOMContentLoaded',()=>{
+  const path=location.pathname;
+  const excluded=/a\.i\.d\.a|aida|frameshot|maze[-_ ]of[-_ ]shadows/i.test(path);
+  if(excluded)return;
+
+  document.querySelectorAll('nav .back').forEach(el=>el.remove());
+  document.querySelectorAll('nav').forEach(nav=>{
+    if(!nav.querySelector('.logo')){
+      const logo=document.createElement('span');
+      logo.className='logo';
+      logo.textContent='✦ Hyper-Pop';
+      nav.insertBefore(logo,nav.firstChild);
+    }
+  });
+
+  document.getElementById('hp-global-back')?.remove();
+  const b=document.createElement('a');
+  b.id='hp-global-back';
+  b.href='index.html';
+  b.textContent='←';
+  b.setAttribute('aria-label','Back to Hyper-Pop');
+  b.title='Back to Hyper-Pop';
+  Object.assign(b.style,{position:'fixed',right:'14px',top:'14px',zIndex:'99990',width:'42px',height:'42px',display:'flex',alignItems:'center',justifyContent:'center',padding:'0',border:'1px solid #ffffff2b',borderRadius:'50%',background:'#080810dd',color:'#fff',textDecoration:'none',font:'800 24px/1 system-ui,sans-serif',backdropFilter:'blur(10px)',WebkitBackdropFilter:'blur(10px)',boxShadow:'0 8px 24px #0008',cursor:'pointer',touchAction:'manipulation'});
+  b.addEventListener('pointerenter',()=>{b.style.borderColor='#7df9ff';b.style.color='#7df9ff'});
+  b.addEventListener('pointerleave',()=>{b.style.borderColor='#ffffff2b';b.style.color='#fff'});
+  document.body.appendChild(b);
+});
