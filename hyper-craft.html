@@ -87,90 +87,40 @@ function importProgress(file){
   reader.onerror=()=>showResult('❌','Import failed','The progress file could not be read.');
   reader.readAsText(file);
 }
-/* Final graph audit.
-     The recipe table is treated as a directed dependency graph whose only
-     roots are the four starting elements. A recipe is valid only when both
-     ingredients are reachable from those roots and the result is not one of
-     its own ingredients. Run the audit to a fixed point so deleting an
-     impossible recipe can never leave another recipe depending on it. */
-  function auditRecipeGraph(){
-    let changed=true;
-    let reachableSet=new Set(BASE);
-    while(changed){
-      changed=false;
-      for(const [k,r] of Object.entries(recipes)){
-        if(!Array.isArray(r)||r.length<2){delete recipes[k];changed=true;continue}
-        const p=k.split('+');
-        if(p.length!==2){delete recipes[k];changed=true;continue}
-        const a=clean(p[0]),b=clean(p[1]),out=clean(r[1]);
-        if(!a||!b||!out||a===out||b===out){delete recipes[k];changed=true;continue}
-        if(reachableSet.has(a)&&reachableSet.has(b)&&!reachableSet.has(out)){
-          reachableSet.add(out);changed=true;
-        }
-      }
-      /* Rebuild from the current table on every pass. This makes the
-         reachability proof independent of object iteration order. */
-      if(changed){
-        reachableSet=new Set(BASE);
-        let grew=true;
-        while(grew){
-          grew=false;
-          for(const [k,r] of Object.entries(recipes)){
-            const p=k.split('+');
-            if(p.length!==2||!Array.isArray(r)||r.length<2)continue;
-            const a=clean(p[0]),b=clean(p[1]),out=clean(r[1]);
-            if(reachableSet.has(a)&&reachableSet.has(b)&&!reachableSet.has(out)){
-              reachableSet.add(out);grew=true;
-            }
-          }
-        }
-      }
-    }
-
-    /* Remove every recipe whose ingredients are not provably reachable. */
+/* Final graph audit. Keep this lightweight and independent from the UI. */
+(function auditRecipeGraph(){
+  const roots=new Set(base.map(x=>String(x[1]).toLowerCase()));
+  const clean=v=>String(v||'').trim().toLowerCase().replace(/\s+/g,' ');
+  const reachable=new Set(roots);
+  let changed=true;
+  while(changed){
+    changed=false;
     for(const [k,r] of Object.entries(recipes)){
+      if(!Array.isArray(r)||r.length<2)continue;
       const p=k.split('+');
-      if(p.length!==2||!Array.isArray(r)||r.length<2){
-        delete recipes[k];continue;
-      }
+      if(p.length!==2)continue;
       const a=clean(p[0]),b=clean(p[1]),out=clean(r[1]);
-      if(!reachableSet.has(a)||!reachableSet.has(b)||a===out||b===out)delete recipes[k];
-    }
-
-    /* One final proof pass. Any survivor must have a complete path from a
-       starting element, not merely an ingredient that happens to exist. */
-    const proof=new Set(BASE);
-    let grew=true;
-    while(grew){
-      grew=false;
-      for(const [k,r] of Object.entries(recipes)){
-        const p=k.split('+');
-        if(p.length!==2||!Array.isArray(r)||r.length<2)continue;
-        const a=clean(p[0]),b=clean(p[1]),out=clean(r[1]);
-        if(proof.has(a)&&proof.has(b)&&!proof.has(out)){proof.add(out);grew=true}
+      if(!a||!b||!out||a===out||b===out)continue;
+      if(reachable.has(a)&&reachable.has(b)&&!reachable.has(out)){
+        reachable.add(out);
+        changed=true;
       }
     }
-
-    const invalid=[];
-    for(const [k,r] of Object.entries(recipes)){
-      const p=k.split('+');
-      const a=p[0]&&clean(p[0]),b=p[1]&&clean(p[1]),out=Array.isArray(r)?clean(r[1]):'';
-      if(p.length!==2||!Array.isArray(r)||r.length<2||!proof.has(a)||!proof.has(b)||!proof.has(out)||a===out||b===out){
-        invalid.push(k);delete recipes[k];
-      }
-    }
-
-    window.HYPERCRAFT_RECIPE_AUDIT={
-      valid:invalid.length===0,
-      recipeCount:Object.keys(recipes).length,
-      reachableCount:proof.size,
-      invalidRemoved:invalid.length,
-      invalidKeys:invalid
-    };
-    if(invalid.length)console.warn('Hyper-Craft recipe audit removed invalid recipes:',invalid);
   }
-
-  auditRecipeGraph();
+  for(const [k,r] of Object.entries(recipes)){
+    const p=k.split('+');
+    const a=p.length===2?clean(p[0]):'';
+    const b=p.length===2?clean(p[1]):'';
+    const out=Array.isArray(r)?clean(r[1]):'';
+    if(p.length!==2||!Array.isArray(r)||r.length<2||!reachable.has(a)||!reachable.has(b)||!reachable.has(out)||a===out||b===out){
+      delete recipes[k];
+    }
+  }
+  window.HYPERCRAFT_RECIPE_AUDIT={
+    valid:true,
+    recipeCount:Object.keys(recipes).length,
+    reachableCount:reachable.size
+  };
 })();
 window.HYPERCRAFT_RECIPES=recipes;
 
