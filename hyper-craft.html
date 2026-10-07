@@ -381,6 +381,8 @@ function importProgress(file){
   reader.onerror=()=>showResult('❌','Import failed','The progress file could not be read.');
   reader.readAsText(file);
 }
+window.HYPERCRAFT_RECIPES=recipes;
+
 function keyOf(a,b){return [a.name.toLowerCase(),b.name.toLowerCase()].sort().join('+')}
 function renderSlots(){for(const [id,v,n] of [['slot1',s1,1],['slot2',s2,2]]){const e=document.getElementById(id);if(v){e.classList.add('has');e.innerHTML='<span class="icon">'+v.icon+'</span><span class="name">'+v.name+'</span>'}else{e.classList.remove('has');e.textContent='Pick an element for slot '+n}}}
 function render(){const q=document.getElementById('search').value.toLowerCase();const list=discovered.filter(x=>x.name.toLowerCase().includes(q));document.getElementById('count').textContent=discovered.length+' discovered element'+(discovered.length===1?'':'s');document.getElementById('grid').innerHTML=list.map(x=>{const i=discovered.indexOf(x);return '<div class="element" data-i="'+i+'" tabindex="0"><button class="element-info" data-info="'+i+'" aria-label="Show recipe for '+esc(x.name)+'" title="View recipe">ⓘ</button><div class="icon">'+esc(x.icon)+'</div><div class="name">'+esc(x.name)+'</div></div>'}).join('');document.querySelectorAll('.element').forEach(e=>{e.onclick=ev=>{if(ev.target.closest('.element-info'))return;pick(discovered[+e.dataset.i])}});document.querySelectorAll('.element-info').forEach(e=>e.onclick=ev=>{ev.stopPropagation();showRecipe(discovered[+e.dataset.info])});renderSlots()}
