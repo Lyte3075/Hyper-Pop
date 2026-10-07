@@ -316,14 +316,13 @@ Object.assign(window.HYPERCRAFT_EXTRA, (() => {
   const ruleFor=(ca,cb)=>rules[[ca,cb].sort().join("+")];
   for(const ca of cats)for(const cb of cats){
     if(ca>cb)continue;
-    const rule=ruleFor(ca,cb)||fallback[ca];
+    const rule=ruleFor(ca,cb);
+    if(!rule&&ca!==cb)continue;
     for(const a of V[ca])for(const b of V[cb]){
       const k=key(a,b);
       if(used.has(k))continue;
-      let icon,name;
-      if(rule){[icon,name]=rule;}
-      else if(ca===cb){[icon,name]=fallback[ca];}
-      else {[icon,name]=fallback[ca];}
+      const [icon,name]=rule||fallback[ca];
+      if(!name)continue;
       add(a,b,icon,name);
       if(used.size>=10000)return Object.fromEntries(Object.entries(out).slice(0,10000));
     }
