@@ -189,6 +189,14 @@ Object.assign(recipes,{
   'machine+energy':['⚙️','Engine'],
   'energy+machine':['⚙️','Engine']
 });
+/* User-requested sensible progression overrides. */
+Object.assign(recipes,{
+  'metal+battery':['📱','Phone'],
+  'battery+metal':['📱','Phone'],
+  'idea+computer':['💻','Software'],
+  'computer+idea':['💻','Software']
+});
+
 /* Final easy-material progression: core crafting resources have direct, reachable recipes. */
 Object.assign(recipes,{
   'computer+air':['🌐','Internet'],
