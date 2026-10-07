@@ -539,16 +539,14 @@ function importProgress(file){
      modern/technology branch without circular dependencies. */
   const bridges={
     'computer+knowledge':['🧠','Artificial Intelligence'],
-    'computer+code':['🎮','Game'],
-    'code+computer':['🎮','Game'],
+    /* Computer + Code is intentionally NOT Game: it is used to make Software
+       through the separate Program branch below. */
+    'code+code':['💻','Program'],
+    'code+program':['🎮','Game'],
+    'program+computer':['💾','Software'],
     'software+phone':['📱','App'],
-    'phone+software':['📱','App'],
     'tree+sun':['🍎','Fruit'],
-    'sun+tree':['🍎','Fruit'],
     'programmer+computer':['💻','Code'],
-    'computer+programmer':['💻','Code'],
-    'code+computer':['💾','Software'],
-    'computer+software':['📱','App'],
     'engine+metal':['⚙️','Machine'],
     'plant+sun':['🌳','Tree'],
     'tree+water':['🪵','Wood'],
