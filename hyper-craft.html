@@ -386,6 +386,85 @@ function importProgress(file){
   reader.onerror=()=>showResult('❌','Import failed','The progress file could not be read.');
   reader.readAsText(file);
 }
+/* Progression repair: every non-base product must be reachable from the four starting elements. */
+(function repairRecipeProgression(){
+  const BASE=new Set(['earth','water','fire','air']);
+  const cleanName=v=>String(v||'').trim().toLowerCase();
+  const outputToKeys=new Map();
+  for(const [k,r] of Object.entries(recipes)){
+    if(!Array.isArray(r)||r.length<2||!r[1])continue;
+    const out=cleanName(r[1]);
+    if(!outputToKeys.has(out))outputToKeys.set(out,[]);
+    outputToKeys.get(out).push(k);
+  }
+
+  function findReachable(){
+    const reachable=new Set(BASE);
+    let changed=true;
+    while(changed){
+      changed=false;
+      for(const [k,r] of Object.entries(recipes)){
+        if(!Array.isArray(r)||r.length<2||!r[1])continue;
+        const parts=k.split('+');
+        if(parts.length!==2)continue;
+        const a=cleanName(parts[0]),b=cleanName(parts[1]),out=cleanName(r[1]);
+        if(reachable.has(a)&&reachable.has(b)&&!reachable.has(out)){
+          reachable.add(out);changed=true;
+        }
+      }
+    }
+    return reachable;
+  }
+
+  let reachable=findReachable();
+
+  /* Keep a recipe only if it can actually be reached. If an item's current
+     recipes all depend on an unreachable item, replace one with a reachable pair. */
+  const products=[...outputToKeys.keys()].filter(x=>!BASE.has(x));
+  for(const product of products){
+    if(reachable.has(product))continue;
+
+    let fixed=false;
+    const names=[...reachable];
+    for(let i=0;i<names.length&&!fixed;i++)for(let j=i;j<names.length&&!fixed;j++){
+      const a=names[i],b=names[j],k=[a,b].sort().join('+');
+      const existing=recipes[k];
+      if(!existing || cleanName(existing[1])===product){
+        recipes[k]=['✨',product.replace(/w/g,ch=>ch.toUpperCase())];
+        fixed=true;
+      }
+    }
+    if(fixed)reachable=findReachable();
+  }
+
+  /* Remove recipes that still point from an item to itself or to an
+     unreachable dependency. A valid replacement above will be used instead. */
+  for(const [k,r] of Object.entries(recipes)){
+    if(!Array.isArray(r)||r.length<2)continue;
+    const parts=k.split('+');
+    if(parts.length!==2)continue;
+    const a=cleanName(parts[0]),b=cleanName(parts[1]),out=cleanName(r[1]);
+    if(a===out||b===out||!reachable.has(a)||!reachable.has(b))delete recipes[k];
+  }
+
+  /* Re-run once after cleanup so repaired products stay in the reachable graph. */
+  reachable=findReachable();
+  const stillMissing=products.filter(x=>!reachable.has(x));
+  if(stillMissing.length){
+    const names=[...reachable];
+    for(const product of stillMissing){
+      let made=false;
+      for(let i=0;i<names.length&&!made;i++)for(let j=i;j<names.length&&!made;j++){
+        const k=[names[i],names[j]].sort().join('+');
+        if(!recipes[k]){
+          recipes[k]=['✨',product.replace(/w/g,ch=>ch.toUpperCase())];
+          made=true;
+        }
+      }
+      if(made)reachable.add(product);
+    }
+  }
+})();
 window.HYPERCRAFT_RECIPES=recipes;
 
 function keyOf(a,b){return [a.name.toLowerCase(),b.name.toLowerCase()].sort().join('+')}
