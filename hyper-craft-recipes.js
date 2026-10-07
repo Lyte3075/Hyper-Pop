@@ -1,6 +1,6 @@
 /* Hyper-Craft authoritative recipe database.
    Every recipe is reachable from Earth, Water, Fire, or Air.
-   One recipe per ingredient pair and one primary recipe per item keeps the graph deterministic and prevents reverse/circular recipes. */
+   One primary recipe per item prevents impossible dependencies and reverse/circular recipe chains. */
 window.HYPERCRAFT_RECIPES={
   "air+water": [
     "☁️",
@@ -653,5 +653,21 @@ window.HYPERCRAFT_RECIPES={
   "game+human": [
     "🎉",
     "Fun"
+  ],
+  "electricity+fire": [
+    "💡",
+    "Light"
+  ],
+  "cloud+cloud": [
+    "❄️",
+    "Snow"
+  ],
+  "night sky+sun": [
+    "⭐",
+    "Star"
+  ],
+  "animal+water": [
+    "🥛",
+    "Milk"
   ]
 };
