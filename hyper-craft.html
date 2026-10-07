@@ -539,8 +539,10 @@ function importProgress(file){
   /* A few high-value bridges that are easy to understand and unlock the
      modern/technology branch without circular dependencies. */
   const bridges={
-    /* Explicit technology/media bridges use unique ingredient pairs so they
-       cannot be shadowed by the older generated recipes. */
+    /* These are authoritative late-stage recipes. They are applied after the
+       generated recipe layer, so an old generated pair cannot shadow a
+       required progression path. Every ingredient below is itself reachable
+       from Earth, Water, Fire, or Air. */
     'fire+cloud':['⚡','Lightning'],
     'air+lightning':['⚡','Energy'],
     'lightning+metal':['⚡','Electricity'],
@@ -552,21 +554,51 @@ function importProgress(file){
     'plant+stone':['🧬','Life'],
     'earth+life':['🧑','Human'],
     'computer+knowledge':['🧠','Artificial Intelligence'],
-    /* Computer + Code is intentionally NOT Game: it is used to make Software
-       through the separate Program branch below. */
+
+    /* Core computing path */
     'code+code':['💻','Program'],
     'code+program':['🎮','Game'],
     'program+computer':['💾','Software'],
     'software+phone':['📱','App'],
+    'computer+paper':['⌨️','Keyboard'],
+    'computer+screen':['🖥️','Monitor'],
+    'camera+computer':['🎬','Video'],
+
+    /* Core media path */
+    'phone+light':['📷','Camera'],
+    'camera+light':['📸','Photo'],
+    'music+electricity':['🎧','Headphones'],
+    'music+video':['🎵','Video Music'],
+    'sound+radio':['🔊','Audio'],
+    'musician+sound':['🎤','Singer'],
+    'human+idea':['🎨','Art'],
+    'human+art':['🎨','Artist'],
+    'human+game':['🎉','Fun'],
+
+    /* Nature/food path */
     'tree+sun':['🍎','Fruit'],
-    'programmer+computer':['💻','Code'],
-    'engine+metal':['⚙️','Machine'],
+    'fruit+tree':['🍎','Apple'],
     'plant+sun':['🌳','Tree'],
     'tree+water':['🪵','Wood'],
     'wood+water':['📄','Paper'],
     'paper+wood':['📖','Book'],
+
+    /* Knowledge/programming path */
     'book+human':['📚','Knowledge'],
-    'human+knowledge':['💡','Idea']
+    'human+knowledge':['💡','Idea'],
+    'programmer+computer':['💻','Code'],
+
+    /* Machines and transport */
+    'engine+metal':['⚙️','Machine'],
+    'engine+electricity':['⚙️','Motor'],
+    'machine+metal':['🖥️','Hardware'],
+    'machine+computer':['🤖','Robot'],
+
+    /* Basic media/display prerequisites */
+    'glass+electricity':['🖥️','Screen'],
+    'electricity+signal':['📻','Radio'],
+    'electricity+air':['📡','Signal'],
+    'human+signal':['📡','Communication']
   };
   Object.assign(recipes,bridges);
 
