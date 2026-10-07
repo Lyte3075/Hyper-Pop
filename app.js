@@ -70,4 +70,4 @@ async function hpAccountBar(){const slot=document.getElementById('account-slot')
   function boot(){try{hpAccountBar();addTerminal()}catch(e){console.error('Hyper-Pop shared UI failed:',e)}}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:false});else boot();
   window.addEventListener('pageshow',boot);
-})();\n
+})();
