@@ -70,21 +70,23 @@ function pick(){let total=weights.reduce((a,b)=>a+b,0),r=Math.random()*total;for
 let audio=null;
 function ctx(){try{if(!audio){const A=window.AudioContext||window.webkitAudioContext;if(!A)return null;audio=new A()}if(audio.state==="suspended")audio.resume();return audio}catch(e){return null}}
 function tone(freq,duration=.08,type="sine",volume=.035){try{const a=ctx();if(!a)return;const o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.setValueAtTime(freq,a.currentTime);g.gain.setValueAtTime(volume,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+duration);o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+duration)}catch(e){}}
-function leverSfx(){tone(155,.09,"square",.05);setTimeout(()=>tone(95,.12,"sawtooth",.035),55)}
+function unlockAudio(){const a=ctx();if(a){const o=a.createOscillator(),g=a.createGain();g.gain.value=.00001;o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+.01)}}
+function leverSfx(){unlockAudio();tone(155,.09,"square",.05);setTimeout(()=>tone(95,.12,"sawtooth",.035),55)}
+function spinSfx(){tone(120,.12,"sawtooth",.025);setTimeout(()=>tone(165,.12,"sawtooth",.02),90);setTimeout(()=>tone(210,.1,"sawtooth",.018),180)}
 function reelTick(i){tone(210+i*35,.045,"square",.018)}
 function winSfx(jackpot=false){const notes=jackpot?[523,659,784,1047,1319]:[440,554,659,880];notes.forEach((n,i)=>setTimeout(()=>tone(n,.16,"triangle",.045),i*75))}
 function setSymbols(values){values.forEach((v,i)=>reels[i].querySelector(".symbol").textContent=v)}
 function finish(values){busy=false;spin.disabled=false;lever.classList.remove("pulled");reels.forEach(r=>r.classList.remove("spinning"));setSymbols(values);const [a,b,c]=values;let msg="NO WIN • TRY AGAIN",points=0;
 if(a==="💎"&&b==="💎"&&c==="💎"){msg="💎 JACKPOT! +1000";points=1000}else if(a==="⭐"&&b==="⭐"&&c==="⭐"){msg="⭐ BIG WIN! +250";points=250}else if(a===b&&b===c){msg="🎉 MATCH! +100";points=100}else if(a===b||b===c||a===c){msg="✨ TWO MATCH! +25";points=25}
 score+=points;result.textContent=msg+(score?" • SCORE "+score:"");if(points){document.getElementById("reels").classList.add("win");winSfx(points===1000);setTimeout(()=>document.getElementById("reels").classList.remove("win"),1500)}else tone(180,.12,"square")}
-function doSpin(forcedValues=null){if(busy)return;busy=true;spin.disabled=true;lever.classList.add("pulled");result.textContent="SPINNING…";leverSfx();const values=forcedValues||[pick(),pick(),pick()];reels.forEach((r,i)=>{const el=r.querySelector(".symbol");r.classList.add("spinning");let ticks=0;const tick=setInterval(()=>{el.textContent=symbols[Math.floor(Math.random()*symbols.length)];reelTick(i);ticks++;if(ticks>=10+i*3){clearInterval(tick);r.classList.remove("spinning");el.textContent=values[i];tone(430+i*90,.09,"triangle",.035);if(i===2)finish(values)}},105);});}
+function doSpin(forcedValues=null){if(busy)return;busy=true;spin.disabled=true;lever.classList.add("pulled");result.textContent="SPINNING…";leverSfx();spinSfx();const values=forcedValues||[pick(),pick(),pick()];reels.forEach((r,i)=>{const el=r.querySelector(".symbol");r.classList.add("spinning");let ticks=0;const tick=setInterval(()=>{el.textContent=symbols[Math.floor(Math.random()*symbols.length)];reelTick(i);ticks++;if(ticks>=10+i*3){clearInterval(tick);r.classList.remove("spinning");el.textContent=values[i];tone(430+i*90,.09,"triangle",.035);if(i===2)finish(values)}},105);});}
 let dragging=false,startY=0,dragDistance=0;
-lever.addEventListener("pointerdown",e=>{if(busy)return;dragging=true;startY=e.clientY;dragDistance=0;lever.setPointerCapture?.(e.pointerId);ctx();e.preventDefault()});
+lever.addEventListener("pointerdown",e=>{unlockAudio();if(busy)return;dragging=true;startY=e.clientY;dragDistance=0;lever.setPointerCapture?.(e.pointerId);ctx();e.preventDefault()});
 lever.addEventListener("pointermove",e=>{if(!dragging||busy)return;dragDistance=Math.max(0,e.clientY-startY);const visual=Math.min(142,dragDistance);lever.querySelector(".handle").style.transform="translateY("+visual+"px)";});
 lever.addEventListener("pointerup",e=>{if(!dragging)return;dragging=false;const pulled=dragDistance>=55;lever.querySelector(".handle").style.transform="";if(pulled){e.preventDefault();doSpin()}else leverSfx();});
 lever.addEventListener("click",e=>{if(dragDistance>=55)e.preventDefault()});
 lever.addEventListener("pointercancel",()=>{dragging=false;lever.querySelector(".handle").style.transform=""});
-spin.addEventListener("click",doSpin);
+spin.addEventListener("click",()=>{unlockAudio();doSpin()});
 lever.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();doSpin()}});
 window.addEventListener("hyperpop-cheat",e=>{
   const d=e.detail||{};
