@@ -52,23 +52,13 @@ TIP: /js is the universal cheat and can be used for game-specific cheats too.`;
   window.HyperPopCommandPrompt={unlock:function(){localStorage.setItem(UNLOCK_KEY,'1');addTerminal();updateTerminalState()},disable:function(){localStorage.removeItem(UNLOCK_KEY);const l=document.getElementById('hp-terminal-launcher');const t=document.getElementById('hp-terminal');if(l){l.disabled=true;l.classList.add('hp-terminal-locked');l.style.display='none';l.title='Command Prompt'}if(t){t.classList.remove('open');t.style.display='none'}if(l)l.style.display='none'},isUnlocked:unlocked,sync:function(){addTerminal();updateTerminalState()}};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addTerminal);else addTerminal();
 })();
 
-/* Shared Hyper-Pop header + floating back button */
+/* Shared Hyper-Pop floating back button */
 document.addEventListener('DOMContentLoaded',()=>{
   const path=location.pathname;
   const file=path.split('/').pop().toLowerCase();
-  const excluded=/a\.i\.d\.a|aida|frameshot|maze[-_ ]of[-_ ]shadows/i.test(path);
+  const excluded=/a\\.i\\.d\\.a|aida|frameshot|maze[-_ ]of[-_ ]shadows/i.test(path);
   const homepage=file===''||file==='index.html';
   if(excluded||homepage)return;
-
-  document.querySelectorAll('nav .back').forEach(el=>el.remove());
-  document.querySelectorAll('nav').forEach(nav=>{
-    if(!nav.querySelector('.logo')){
-      const logo=document.createElement('span');
-      logo.className='logo';
-      logo.textContent='✦ Hyper-Pop';
-      nav.insertBefore(logo,nav.firstChild);
-    }
-  });
 
   document.getElementById('hp-global-back')?.remove();
   const b=document.createElement('a');
@@ -77,7 +67,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   b.textContent='←';
   b.setAttribute('aria-label','Back to Hyper-Pop');
   b.title='Back to Hyper-Pop';
-  Object.assign(b.style,{position:'fixed',left:'14px',top:'14px',right:'auto',zIndex:'99990',width:'42px',height:'42px',display:'flex',alignItems:'center',justifyContent:'center',padding:'0',border:'1px solid #ffffff2b',borderRadius:'50%',background:'#080810dd',color:'#fff',textDecoration:'none',font:'800 24px/1 system-ui,sans-serif',backdropFilter:'blur(10px)',WebkitBackdropFilter:'blur(10px)',boxShadow:'0 8px 24px #0008',cursor:'pointer',touchAction:'manipulation'});
+  Object.assign(b.style,{position:'fixed',right:'14px',top:'14px',left:'auto',zIndex:'99990',width:'42px',height:'42px',display:'flex',alignItems:'center',justifyContent:'center',padding:'0',border:'1px solid #ffffff2b',borderRadius:'50%',background:'#080810dd',color:'#fff',textDecoration:'none',font:'800 24px/1 system-ui,sans-serif',backdropFilter:'blur(10px)',WebkitBackdropFilter:'blur(10px)',boxShadow:'0 8px 24px #0008',cursor:'pointer',touchAction:'manipulation'});
   b.addEventListener('pointerenter',()=>{b.style.borderColor='#7df9ff';b.style.color='#7df9ff'});
   b.addEventListener('pointerleave',()=>{b.style.borderColor='#ffffff2b';b.style.color='#fff'});
   document.body.appendChild(b);
