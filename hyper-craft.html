@@ -79,6 +79,8 @@ const recipes={
 'volcano+sand':['🥃','Glass'],'drawing+tree':['✏️','Pencil'],'charcoal+water':['✏️','Pencil'],
 'fire+steam':['🚗','Engine'],'fire+water':['💨','Steam'],'oasis+plant':['💑','Date']
 };
+/* The hand-written recipe list is authoritative. Generated/product recipes never overwrite it. */
+const RECIPE_LIST_PRIORITY=Object.assign({},recipes);
 Object.assign(recipes,window.HYPERCRAFT_EXTRA||{});
 
 /* Easy progression layer: common discoveries have short, intuitive alternate paths. */
@@ -189,6 +191,9 @@ Object.assign(recipes,{
   'machine+energy':['⚙️','Engine'],
   'energy+machine':['⚙️','Engine']
 });
+/* Restore the original recipe list after every generated/product layer. */
+Object.assign(recipes,RECIPE_LIST_PRIORITY);
+
 /* User-requested sensible progression overrides. */
 Object.assign(recipes,{
   'metal+battery':['📱','Phone'],
@@ -421,21 +426,8 @@ async function combine(){
     s1=null;s2=null;render();return;
   }
   showResult('🧠','Thinking...','Trying the local Hyper-Craft AI first.');
-  const ai=aiCombine(a,b);
-  if(ai){
-    ai.note='Locally Generated';
-    addDiscovery(ai,a,b);
-    showResult(ai.icon,ai.name,ai.note);
-    s1=null;s2=null;render();return;
-  }
-  showResult('☁️','Thinking...','Local AI had no strong match. Trying the Pollinations AI fallback.');
-  const remote=await pollinationsCombine(a,b);
-  if(remote){
-    addDiscovery(remote,a,b);
-    showResult(remote.icon,remote.name,remote.note);
-  }else{
-    showResult('❌','No sensible combination','Neither the local AI nor the Pollinations AI found a strong established combination.');
-  }
+  /* The recipe database is the only product maker. Unknown pairs never invent an item. */
+  showResult('❌','No recipe found','That combination is not in the Hyper-Craft recipe list yet.');
   s1=null;s2=null;render();
 }
 document.getElementById('combine').onclick=combine;document.getElementById('clear').onclick=()=>{s1=s2=null;renderSlots()};document.getElementById('export-progress').onclick=exportProgress;document.getElementById('import-progress').onclick=()=>document.getElementById('import-file').click();document.getElementById('import-file').onchange=e=>{importProgress(e.target.files&&e.target.files[0]);e.target.value=''};document.getElementById('search').oninput=render;
