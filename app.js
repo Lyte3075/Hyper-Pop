@@ -11,7 +11,7 @@ async function hpAccountBar(){const slot=document.getElementById('account-slot')
 /* Hyper-Pop Command Prompt Easter Egg */
 (function(){
   const UNLOCK_KEY='hyperpop-command-prompt-unlocked';
-  const unlocked=()=>Number(localStorage.getItem('hyperpop-dont-danger')||0)>=100;
+  const unlocked=()=>Number(localStorage.getItem('hyperpop-dont-danger')||0)>=99;
   function addTerminal(){
     if(document.getElementById('hp-terminal-launcher')){updateTerminalState();return;}
     const style=document.createElement('style');
