@@ -44,7 +44,7 @@ function press(){
   sfx(presses%10===0?"danger":"click");
   if(presses%3===0)burst();
  }catch(e){console.error("Do Not Press effect error:",e)}
- if(presses>=100)unlockCommandPrompt();
+ if(presses>=99)unlockCommandPrompt();
  render();
 }
 $("x").onclick=press;
