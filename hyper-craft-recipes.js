@@ -1,6 +1,6 @@
 /* Hyper-Craft authoritative recipe database.
-   Every recipe is reachable from Earth, Water, Fire, or Air.
-   One primary recipe per item prevents impossible dependencies and reverse/circular recipe chains. */
+   Every recipe in this file is reachable from Earth, Water, Fire, or Air.
+   Each discovered item has one primary recipe, preventing reverse/circular dependency chains. */
 window.HYPERCRAFT_RECIPES={
   "air+water": [
     "☁️",
@@ -669,5 +669,45 @@ window.HYPERCRAFT_RECIPES={
   "animal+water": [
     "🥛",
     "Milk"
+  ],
+  "snow+water": [
+    "🧊",
+    "Ice"
+  ],
+  "ice+mountain": [
+    "🧊",
+    "Glacier"
+  ],
+  "mountain+snow": [
+    "🏔️",
+    "Snow Mountain"
+  ],
+  "night sky+star": [
+    "🌌",
+    "Constellation"
+  ],
+  "fire+milk": [
+    "🧀",
+    "Cheese"
+  ],
+  "bread+cheese": [
+    "🥪",
+    "Sandwich"
+  ],
+  "light+phone": [
+    "📷",
+    "Camera"
+  ],
+  "camera+computer": [
+    "🎬",
+    "Video"
+  ],
+  "camera+light": [
+    "📸",
+    "Photo"
+  ],
+  "music+video": [
+    "🎵",
+    "Video Music"
   ]
 };
