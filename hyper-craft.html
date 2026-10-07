@@ -386,83 +386,187 @@ function importProgress(file){
   reader.onerror=()=>showResult('❌','Import failed','The progress file could not be read.');
   reader.readAsText(file);
 }
-/* Progression repair: every non-base product must be reachable from the four starting elements. */
+/* Semantic recipe repair: recipes must be both reachable and logically related. */
 (function repairRecipeProgression(){
   const BASE=new Set(['earth','water','fire','air']);
-  const cleanName=v=>String(v||'').trim().toLowerCase();
-  const outputToKeys=new Map();
-  for(const [k,r] of Object.entries(recipes)){
-    if(!Array.isArray(r)||r.length<2||!r[1])continue;
-    const out=cleanName(r[1]);
-    if(!outputToKeys.has(out))outputToKeys.set(out,[]);
-    outputToKeys.get(out).push(k);
+  const clean=v=>String(v||'').trim().toLowerCase();
+  const key=(a,b)=>[clean(a),clean(b)].sort().join('+');
+
+  /*
+   * These are the canonical chains for the concepts that were most often
+   * broken by the generated recipe layer. They intentionally use ordinary,
+   * understandable combinations instead of arbitrary reachable pairs.
+   */
+  const sensible={
+    'plant':['🌱','earth','water'],'mud':['🟫','earth','water'],'lava':['🌋','earth','fire'],
+    'steam':['💨','fire','water'],'smoke':['💨','fire','air'],'cloud':['☁️','water','air'],
+    'rain':['🌧️','cloud','water'],'stone':['🪨','lava','water'],'mountain':['⛰️','earth','stone'],
+    'metal':['🔩','fire','stone'],'machine':['⚙️','metal','energy'],'energy':['⚡','fire','lightning'],
+    'electricity':['⚡','lightning','metal'],'circuit':['🔌','wire','electricity'],
+    'life':['🧬','plant','stone'],'human':['🧑','life','earth'],'animal':['🐾','life','earth'],
+    'bird':['🐦','animal','air'],'fish':['🐟','animal','water'],'tree':['🌳','plant','sun'],
+    'wood':['🪵','tree','water'],'charcoal':['🔥','wood','fire'],'paper':['📄','wood','water'],
+    'book':['📖','paper','wood'],'knowledge':['📚','book','human'],'idea':['💡','human','knowledge'],
+    'programmer':['👨‍💻','human','computer'],'code':['💻','programmer','computer'],
+    'software':['💾','code','computer'],'computer':['💻','machine','electricity'],
+    'internet':['🌐','computer','communication'],'website':['🌐','web','internet'],
+    'web':['🌐','computer','internet'],'database':['🗄️','server','data'],
+    'server':['🖥️','computer','internet'],'data':['💾','computer','information'],
+    'artificial intelligence':['🧠','computer','knowledge'],'ai':['🧠','computer','knowledge'],
+    'game':['🎮','computer','code'],'video game':['🎮','game','computer'],
+    'online game':['🌐','game','internet'],'app':['📱','software','phone'],
+    'smartphone':['📱','phone','internet'],'phone':['📱','battery','computer'],
+    'battery':['🔋','energy','metal'],'camera':['📷','phone','light'],
+    'photo':['📸','camera','light'],'television':['📺','screen','signal'],
+    'radio':['📻','signal','electricity'],'headphones':['🎧','music','electricity'],
+    'music':['🎵','sound','human'],'sound':['🔊','music','air'],'song':['🎵','singer','music'],
+    'artist':['🎨','human','art'],'musician':['🎵','human','music'],'singer':['🎤','human','music'],
+    'performance':['🎭','art','music'],'science':['🔬','human','knowledge'],
+    'technology':['💻','science','computer'],'hardware':['🖥️','computer','metal'],
+    'engine':['⚙️','machine','energy'],'motor':['⚙️','machine','electricity'],
+    'robot':['🤖','machine','computer'],'android':['🤖','robot','human'],
+    'program':['💻','code','computer'],'language':['📝','human','communication'],
+    'server':['🖥️','computer','internet'],'network':['🌐','computer','communication'],
+    'communication':['📡','human','signal'],'signal':['📡','electricity','air'],
+    'solar car':['🚗','car','sun'],'car':['🚗','engine','metal'],'electric car':['🚗','car','battery'],
+    'tractor':['🚜','engine','farm'],'farm':['🌾','farmer','plant'],'barn':['🏚️','farm','wood'],
+    'forest':['🌲','tree','earth'],'rainforest':['🌴','rain','forest'],'garden':['🌷','plant','water'],
+    'flower':['🌺','plant','sun'],'sunflower':['🌻','flower','sun'],'fruit':['🍎','tree','sun'],
+    'coconut':['🥥','palm tree','fruit'],'palm tree':['🌴','tree','oasis'],'crop':['🌾','plant','earth'],
+    'growth':['🌱','plant','life'],'ecosystem':['🌎','plant','animal'],'nature':['🌿','earth','life'],
+    'habitat':['🏡','animal','home'],'species':['🐾','animal','life'],'aquatic life':['🐟','life','water'],
+    'food':['🍽️','plant','animal'],'meal':['🍽️','food','human'],'nutrition':['🥗','food','life'],
+    'bread':['🍞','dough','fire'],'dough':['🥣','flour','water'],'flour':['🌾','wheat','stone'],
+    'wheat':['🌾','plant','farmer'],'milk':['🥛','animal','water'],'cheese':['🧀','milk','fire'],
+    'sandwich':['🥪','bread','cheese'],'submarine sandwich':['🥪','sandwich','meat'],
+    'soup':['🥣','water','vegetable'],'coffee':['☕','coffee bean','water'],'latte':['☕','coffee','milk'],
+    'iced coffee':['🥤','coffee','ice'],'cake':['🎂','flour','fire'],'pie':['🥧','fruit','dough'],
+    'candy':['🍬','sugar','fruit'],'syrup':['🍯','sugar','water'],'tea':['🍵','plant','water'],
+    'honey':['🍯','bee','flower'],'honey toast':['🍯','honey','bread'],'honey water':['🍯','honey','water'],
+    'cooked food':['🍳','food','fire'],'cooked meal':['🍳','meal','fire'],'cooked meat':['🥩','meat','fire'],
+    'grilled cheese':['🧀','cheese','fire'],'omelet':['🍳','egg','fire'],'tadpole':['🐸','egg','water'],
+    'hatchling':['🐣','egg','bird'],'pet':['🐾','animal','human'],'parrot':['🦜','bird','human'],
+    'duck':['🦆','bird','water'],'whale':['🐋','fish','water'],'penguin':['🐧','bird','ice'],
+    'fishing':['🎣','fish','human'],'herbivore':['🐄','animal','plant'],'food chain':['🔗','plant','animal'],
+    'snow':['❄️','cloud','water'],'ice':['🧊','water','snow'],'glacier':['🧊','ice','mountain'],
+    'snow mountain':['🏔️','mountain','snow'],'snowman':['⛄','snow','human'],'meltwater':['💧','ice','fire'],
+    'desert':['🏜️','sand','earth'],'sand':['🏖️','dust','fire'],'sandstorm':['🌪️','sand','air'],
+    'oasis':['🏝️','desert','water'],'beach':['🏖️','sand','water'],'ocean':['🌊','sea','water'],
+    'sea':['🌊','salt','water'],'island':['🏝️','sea','earth'],'volcanic island':['🌋','island','volcano'],
+    'river':['🌊','rain','earth'],'lake':['🏞️','river','water'],'waterfall':['💦','river','mountain'],
+    'spring':['💦','water','mountain'],'fjord':['🏞️','lake','mountain'],'delta':['🌾','river','earth'],
+    'nile':['🐊','delta','river'],'erosion':['🪨','water','stone'],'soil':['🟫','earth','plant'],
+    'seedling':['🌱','seed','water'],'pollination':['🌼','flower','bee'],'driftwood':['🪵','wood','water'],
+    'rock':['🪨','stone','earth'],'fossil':['🦴','stone','life'],'brick':['🧱','mud','fire'],
+    'house':['🏠','brick','brick'],'home':['🏠','house','human'],'structure':['🏗️','wood','stone'],
+    'woodworker':['🪚','human','wood'],'carpenter':['🪚','human','wood'],'blacksmith':['⚒️','human','metal'],
+    'builder':['🏗️','human','stone'],'farmer':['🌾','human','plant'],'gardener':['🌱','human','garden'],
+    'ranger':['🧭','human','forest'],'firefighter':['👨‍🚒','human','firefighting'],'firefighting':['🚒','fire','water'],
+    'cooking':['🍳','human','fire'],'bath':['🚿','human','water'],'kite':['🪁','human','air'],
+    'tool':['🔧','metal','wood'],'axe':['🪓','metal','wood'],'pencil':['✏️','charcoal','wood'],
+    'glass':['🪟','sand','fire'],'ceramic':['🏺','clay','fire'],'metalwork':['🔧','metal','fire'],
+    'woodwork':['🪵','wood','tool'],'stonework':['🪨','stone','tool'],'utensil':['🍴','metal','wood'],
+    'heat':['🔥','fire','energy'],'light':['💡','fire','electricity'],'lightning':['⚡','cloud','energy'],
+    'firestorm':['🌪️','fire','storm'],'storm':['🌩️','rain','air'],'thunderstorm':['⛈️','storm','lightning'],
+    'hurricane':['🌀','storm','water'],'tornado':['🌪️','storm','air'],'rainbow':['🌈','rain','sun'],
+    'fog':['🌫️','cloud','air'],'ash cloud':['🌫️','smoke','cloud'],'wildfire':['🔥','fire','forest'],
+    'sky':['🌤️','air','air'],'night':['🌙','sky','time'],'night sky':['🌌','night','sky'],
+    'star':['⭐','sun','night'],'galaxy':['🌌','star','space'],'planet':['🪐','earth','space'],
+    'moon':['🌙','night','stone'],'solar system':['☀️','sun','planet'],'black hole':['🕳️','star','space'],
+    'comet':['☄️','ice','space'],'meteor':['☄️','stone','space'],'rocket':['🚀','engine','space'],
+    'spaceship':['🚀','rocket','space'],'spacecraft':['🚀','rocket','technology'],'satellite':['🛰️','rocket','computer'],
+    'astronaut':['👨‍🚀','human','rocket'],'moon mission':['🚀','astronaut','moon'],'space mission':['🚀','astronaut','planet'],
+    'space-time':['🌀','space','time'],'cosmic life':['👽','life','space'],'space animal':['👽','animal','space'],
+    'space computer':['🛰️','computer','space'],'archive':['🗄️','computer','history'],'history':['📜','human','time'],
+    'humanity':['🌍','human','life'],'aging':['👴','human','time'],'breath':['🫁','life','air'],
+    'wisdom':['🧠','knowledge','human'],'education':['📚','book','human'],'person':['🧑','human','life'],
+    'age':['👴','human','time'],'time machine':['⏳','machine','time'],'time':['⏳','clock','human'],
+    'liquid':['💧','water','water'],'land':['🌍','earth','earth'],'energy':['⚡','fire','lightning'],
+    'hydroelectricity':['⚡','water','electricity'],'bioelectricity':['⚡','life','electricity'],
+    'inventor':['💡','human','idea'],'engineer':['🧑‍🔧','human','machine'],'communication':['📡','human','signal'],
+    'population':['👥','human','human'],'neighborhood':['🏘️','house','city'],'smart city':['🏙️','city','computer'],
+    'city lights':['🌃','city','electricity'],'traffic':['🚦','car','city'],'city':['🏙️','house','house']
+  };
+
+  const outputs=new Set();
+  for(const r of Object.values(recipes))if(Array.isArray(r)&&r[1])outputs.add(clean(r[1]));
+  for(const name of Object.keys(sensible))outputs.add(clean(name));
+
+  /* Normalize the canonical recipes first. */
+  for(const [name,v] of Object.entries(sensible)){
+    const out=clean(name);
+    if(v&&v.length===3)recipes[key(v[1],v[2])]=[v[0],name];
   }
 
-  function findReachable(){
-    const reachable=new Set(BASE);
+  function reachable(){
+    const ok=new Set(BASE);
     let changed=true;
     while(changed){
       changed=false;
       for(const [k,r] of Object.entries(recipes)){
-        if(!Array.isArray(r)||r.length<2||!r[1])continue;
-        const parts=k.split('+');
-        if(parts.length!==2)continue;
-        const a=cleanName(parts[0]),b=cleanName(parts[1]),out=cleanName(r[1]);
-        if(reachable.has(a)&&reachable.has(b)&&!reachable.has(out)){
-          reachable.add(out);changed=true;
-        }
+        if(!Array.isArray(r)||r.length<2)continue;
+        const p=k.split('+'); if(p.length!==2)continue;
+        const a=clean(p[0]),b=clean(p[1]),out=clean(r[1]);
+        if(ok.has(a)&&ok.has(b)&&!ok.has(out)){ok.add(out);changed=true}
       }
     }
-    return reachable;
+    return ok;
   }
 
-  let reachable=findReachable();
-
-  /* Keep a recipe only if it can actually be reached. If an item's current
-     recipes all depend on an unreachable item, replace one with a reachable pair. */
-  const products=[...outputToKeys.keys()].filter(x=>!BASE.has(x));
-  for(const product of products){
-    if(reachable.has(product))continue;
-
-    let fixed=false;
-    const names=[...reachable];
-    for(let i=0;i<names.length&&!fixed;i++)for(let j=i;j<names.length&&!fixed;j++){
-      const a=names[i],b=names[j],k=[a,b].sort().join('+');
-      const existing=recipes[k];
-      if(!existing || cleanName(existing[1])===product){
-        recipes[k]=['✨',product.replace(/w/g,ch=>ch.toUpperCase())];
-        fixed=true;
-      }
-    }
-    if(fixed)reachable=findReachable();
-  }
-
-  /* Remove recipes that still point from an item to itself or to an
-     unreachable dependency. A valid replacement above will be used instead. */
+  /* Keep only recipes that can actually be made, then restore one sensible
+     canonical recipe for every important output. */
+  let ok=reachable();
   for(const [k,r] of Object.entries(recipes)){
-    if(!Array.isArray(r)||r.length<2)continue;
-    const parts=k.split('+');
-    if(parts.length!==2)continue;
-    const a=cleanName(parts[0]),b=cleanName(parts[1]),out=cleanName(r[1]);
-    if(a===out||b===out||!reachable.has(a)||!reachable.has(b))delete recipes[k];
+    const p=k.split('+');
+    if(p.length!==2||!Array.isArray(r)||r.length<2)continue;
+    if(!ok.has(clean(p[0]))||!ok.has(clean(p[1]))||clean(p[0])===clean(r[1])||clean(p[1])===clean(r[1]))delete recipes[k];
   }
 
-  /* Re-run once after cleanup so repaired products stay in the reachable graph. */
-  reachable=findReachable();
-  const stillMissing=products.filter(x=>!reachable.has(x));
-  if(stillMissing.length){
-    const names=[...reachable];
-    for(const product of stillMissing){
-      let made=false;
-      for(let i=0;i<names.length&&!made;i++)for(let j=i;j<names.length&&!made;j++){
-        const k=[names[i],names[j]].sort().join('+');
-        if(!recipes[k]){
-          recipes[k]=['✨',product.replace(/w/g,ch=>ch.toUpperCase())];
-          made=true;
-        }
-      }
-      if(made)reachable.add(product);
-    }
+  ok=reachable();
+  for(const [name,v] of Object.entries(sensible)){
+    const k=key(v[1],v[2]);
+    if(ok.has(clean(v[1]))&&ok.has(clean(v[2])))recipes[k]=[v[0],name];
+  }
+
+  /* A few high-value bridges that are easy to understand and unlock the
+     modern/technology branch without circular dependencies. */
+  const bridges={
+    'computer+knowledge':['🧠','Artificial Intelligence'],
+    'computer+code':['🎮','Game'],
+    'code+computer':['🎮','Game'],
+    'software+phone':['📱','App'],
+    'phone+software':['📱','App'],
+    'tree+sun':['🍎','Fruit'],
+    'sun+tree':['🍎','Fruit'],
+    'programmer+computer':['💻','Code'],
+    'computer+programmer':['💻','Code'],
+    'code+computer':['💾','Software'],
+    'computer+software':['📱','App'],
+    'engine+metal':['⚙️','Machine'],
+    'plant+sun':['🌳','Tree'],
+    'tree+water':['🪵','Wood'],
+    'wood+water':['📄','Paper'],
+    'paper+wood':['📖','Book'],
+    'book+human':['📚','Knowledge'],
+    'human+knowledge':['💡','Idea']
+  };
+  Object.assign(recipes,bridges);
+
+  /* Recompute and remove any remaining self-recipes or recipes that depend
+     on an unreachable ingredient. This prevents the old generated layer from
+     reintroducing impossible loops. */
+  ok=reachable();
+  for(const [k,r] of Object.entries(recipes)){
+    const p=k.split('+');
+    if(p.length!==2||!Array.isArray(r)||r.length<2)continue;
+    const a=clean(p[0]),b=clean(p[1]),out=clean(r[1]);
+    if(a===out||b===out||!ok.has(a)||!ok.has(b))delete recipes[k];
+  }
+
+  /* Restore canonical recipes one last time after cleanup. */
+  for(const [name,v] of Object.entries(sensible)){
+    const k=key(v[1],v[2]);
+    if(ok.has(clean(v[1]))&&ok.has(clean(v[2])))recipes[k]=[v[0],name];
   }
 })();
 window.HYPERCRAFT_RECIPES=recipes;
