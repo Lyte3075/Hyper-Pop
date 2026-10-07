@@ -7,3 +7,6 @@
 .chess-layout,.chess-layout>div,.snakebox,.snake-board,#arena,.board3{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
 .chessboard,.snake-board,.board3,#arena{margin-left:auto;margin-right:auto;box-sizing:border-box}
 @media(max-width:580px){.w{width:100%;max-width:100%;padding-left:12px;padding-right:12px}.box{padding:14px!important;border-radius:20px!important}.chess-layout{gap:12px;grid-template-columns:minmax(0,1fr)}.chessboard{width:min(100%,520px);max-width:100%;height:auto}.snake-board{width:100%;height:auto}.board3{width:min(100%,390px)}#arena{width:100%!important}}
+
+/* Individual page title back links */
+.hp-page-nav .logo{color:var(--ink)!important;text-decoration:none!important;font-family:"Space Grotesk",sans-serif!important;font-weight:800}
