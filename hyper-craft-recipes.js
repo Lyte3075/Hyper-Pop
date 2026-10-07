@@ -1,12 +1,22 @@
-/* Hyper-Craft authoritative recipe database. Every recipe below is reachable from Earth, Water, Fire, or Air. */
+/* Hyper-Craft authoritative recipe database.
+   Every recipe is reachable from Earth, Water, Fire, or Air.
+   One recipe per ingredient pair and one primary recipe per item keeps the graph deterministic and prevents reverse/circular recipes. */
 window.HYPERCRAFT_RECIPES={
   "air+water": [
     "☁️",
     "Cloud"
   ],
+  "air+fire": [
+    "⚡",
+    "Energy"
+  ],
   "earth+fire": [
     "🌋",
     "Lava"
+  ],
+  "cloud+fire": [
+    "⚡",
+    "Lightning"
   ],
   "earth+water": [
     "🌱",
@@ -15,6 +25,10 @@ window.HYPERCRAFT_RECIPES={
   "cloud+water": [
     "🌧️",
     "Rain"
+  ],
+  "air+air": [
+    "🌤️",
+    "Sky"
   ],
   "fire+water": [
     "💨",
@@ -28,6 +42,14 @@ window.HYPERCRAFT_RECIPES={
     "⛈️",
     "Thunderstorm"
   ],
+  "earth+plant": [
+    "🌳",
+    "Tree"
+  ],
+  "tree+water": [
+    "🪵",
+    "Wood"
+  ],
   "plant+water": [
     "🌿",
     "Algae"
@@ -36,9 +58,17 @@ window.HYPERCRAFT_RECIPES={
     "🔥",
     "Ash"
   ],
+  "energy+stone": [
+    "💎",
+    "Crystal"
+  ],
   "air+earth": [
     "🌫️",
     "Dust"
+  ],
+  "fire+steam": [
+    "⚙️",
+    "Engine"
   ],
   "stone+water": [
     "🪨",
@@ -48,9 +78,9 @@ window.HYPERCRAFT_RECIPES={
     "🌋",
     "Eruption"
   ],
-  "air+fire": [
-    "🌪️",
-    "Firestorm"
+  "earth+tree": [
+    "🌳",
+    "Forest"
   ],
   "plant+rain": [
     "🌺",
@@ -60,17 +90,41 @@ window.HYPERCRAFT_RECIPES={
     "🌋",
     "Geysir"
   ],
+  "energy+fire": [
+    "🔥",
+    "Heat"
+  ],
+  "air+tree": [
+    "🍃",
+    "Leaf"
+  ],
+  "earth+energy": [
+    "🧲",
+    "Magnet"
+  ],
   "earth+stone": [
     "⛰️",
     "Mountain"
+  ],
+  "dust+water": [
+    "🟫",
+    "Mud"
   ],
   "lava+stone": [
     "🖤",
     "Obsidian"
   ],
+  "ash+tree": [
+    "✏️",
+    "Pencil"
+  ],
   "air+plant": [
     "🌿",
     "Pollen"
+  ],
+  "crystal+energy": [
+    "💎",
+    "Quartz"
   ],
   "rain+water": [
     "🌊",
@@ -88,77 +142,81 @@ window.HYPERCRAFT_RECIPES={
     "🍵",
     "Tea"
   ],
-  "earth+plant": [
-    "🌳",
-    "Tree"
+  "earth+engine": [
+    "🚜",
+    "Tractor"
   ],
   "earth+lava": [
     "🌋",
     "Volcano"
   ],
-  "plant+stone": [
-    "🧬",
-    "Life"
-  ],
-  "cloud+fire": [
+  "air+energy": [
     "⚡",
-    "Lightning"
+    "Wind"
   ],
-  "tree+water": [
-    "🪵",
-    "Wood"
-  ],
-  "fire+wood": [
-    "🔥",
-    "Charcoal"
-  ],
-  "fire+lightning": [
-    "⚡",
-    "Energy"
-  ],
-  "fire+steam": [
-    "⚙️",
-    "Engine"
-  ],
-  "earth+tree": [
-    "🌳",
-    "Forest"
-  ],
-  "life+plant": [
-    "🧑",
-    "Human"
-  ],
-  "air+human": [
-    "🪁",
-    "Kite"
-  ],
-  "fire+stone": [
-    "🔩",
-    "Metal"
-  ],
-  "dust+water": [
-    "🟫",
-    "Mud"
-  ],
-  "air+metal": [
-    "✈️",
-    "Aircraft"
+  "engine+wind": [
+    "🌬️",
+    "Windmill"
   ],
   "energy+water": [
     "🔋",
     "Battery"
   ],
+  "fire+wood": [
+    "🔥",
+    "Charcoal"
+  ],
+  "charcoal+earth": [
+    "🪨",
+    "Coal"
+  ],
+  "plant+stone": [
+    "🧬",
+    "Life"
+  ],
+  "fire+stone": [
+    "🔩",
+    "Metal"
+  ],
+  "water+wood": [
+    "📄",
+    "Paper"
+  ],
+  "earth+sky": [
+    "🪐",
+    "Planet"
+  ],
+  "air+stone": [
+    "🏖️",
+    "Sand"
+  ],
+  "fire+planet": [
+    "☀️",
+    "Sun"
+  ],
+  "air+metal": [
+    "✈️",
+    "Aircraft"
+  ],
+  "mountain+wind": [
+    "🌨️",
+    "Avalanche"
+  ],
   "air+life": [
     "🐦",
     "Bird"
+  ],
+  "fire+mud": [
+    "🧱",
+    "Brick"
   ],
   "engine+plant": [
     "🚗",
     "Car"
   ],
-  "energy+stone": [
-    "💎",
-    "Crystal"
+  "plant+wind": [
+    "🌼",
+    "Dandelion"
   ],
   "bird+water": [
     "🦆",
@@ -170,23 +228,19 @@ window.HYPERCRAFT_RECIPES={
   ],
   "car+energy": [
     "🚗",
-    "Electric car"
+    "Electric Car"
   ],
-  "earth+human": [
-    "🌾",
-    "Farmer"
+  "plant+tractor": [
+    "🐄",
+    "Farm"
   ],
   "car+fire": [
     "🚒",
-    "Fire truck"
+    "Fire Truck"
   ],
   "life+water": [
     "🐟",
     "Fish"
-  ],
-  "fish+human": [
-    "🎣",
-    "Fishing"
   ],
   "fire+metal": [
     "🔩",
@@ -200,21 +254,29 @@ window.HYPERCRAFT_RECIPES={
     "🥃",
     "Glass"
   ],
-  "energy+fire": [
-    "🔥",
-    "Heat"
+  "brick+brick": [
+    "🏠",
+    "House"
   ],
-  "air+tree": [
-    "🍃",
-    "Leaf"
+  "life+plant": [
+    "🧑",
+    "Human"
   ],
-  "earth+energy": [
+  "air+human": [
+    "🪁",
+    "Kite"
+  ],
+  "magnet+stone": [
     "🧲",
-    "Magnet"
+    "Lodestone"
   ],
   "lava+metal": [
     "🔩",
-    "Molten metal"
+    "Molten Metal"
+  ],
+  "dandelion+mountain": [
+    "💧",
+    "Mountain Dew"
   ],
   "bird+earth": [
     "🐦",
@@ -228,169 +290,25 @@ window.HYPERCRAFT_RECIPES={
     "🦜",
     "Parrot"
   ],
-  "ash+tree": [
-    "✏️",
-    "Pencil"
-  ],
-  "crystal+energy": [
-    "💎",
-    "Quartz"
+  "house+water": [
+    "🚿",
+    "Plumbing"
   ],
   "air+car": [
     "🏎️",
-    "Race car"
+    "Race Car"
   ],
   "metal+water": [
     "🦀",
     "Rust"
   ],
-  "metal+stone": [
-    "🔧",
-    "Tool"
-  ],
-  "earth+engine": [
-    "🚜",
-    "Tractor"
-  ],
-  "fish+water": [
-    "🐋",
-    "Whale"
-  ],
-  "air+energy": [
-    "⚡",
-    "Wind"
-  ],
-  "engine+wind": [
-    "🌬️",
-    "Windmill"
-  ],
-  "human+tree": [
-    "🧑",
-    "Woodworker"
-  ],
-  "lightning+metal": [
-    "⚡",
-    "Electricity"
-  ],
-  "electricity+metal": [
-    "⚙️",
-    "Machine"
-  ],
-  "electricity+engine": [
-    "⚙️",
-    "Motor"
-  ],
-  "water+wood": [
-    "📄",
-    "Paper"
-  ],
-  "electricity+glass": [
-    "🖥️",
-    "Screen"
-  ],
-  "air+electricity": [
-    "📡",
-    "Signal"
-  ],
-  "air+signal": [
-    "🔊",
-    "Sound"
-  ],
-  "metal+wood": [
-    "🪓",
-    "Axe"
-  ],
-  "human+water": [
-    "🚿",
-    "Bath"
-  ],
-  "human+metal": [
-    "🛠️",
-    "Blacksmith"
-  ],
-  "fire+mud": [
-    "🧱",
-    "Brick"
-  ],
-  "human+stone": [
-    "🏗️",
-    "Builder"
-  ],
-  "human+wood": [
-    "🪚",
-    "Carpenter"
-  ],
-  "energy+metal": [
-    "🔌",
-    "Circuit"
-  ],
-  "fire+human": [
-    "🍳",
-    "Cooking"
-  ],
-  "brick+brick": [
-    "🏠",
-    "House"
-  ],
-  "fire+machine": [
-    "🚀",
-    "Rocket"
-  ],
-  "mountain+wind": [
-    "🌨️",
-    "Avalanche"
-  ],
-  "house+wood": [
-    "🏠",
-    "Cabin"
-  ],
-  "human+machine": [
-    "🤖",
-    "Cyborg"
-  ],
-  "plant+wind": [
-    "🌼",
-    "Dandelion"
-  ],
-  "air+fish": [
-    "🐬",
-    "Dolphin"
-  ],
-  "electricity+magnet": [
-    "🧲",
-    "Electromagnet"
-  ],
-  "plant+tractor": [
-    "🐄",
-    "Farm"
-  ],
-  "fire+house": [
-    "🔥",
-    "Fireplace"
-  ],
-  "house+human": [
-    "🏠",
-    "Home"
-  ],
-  "magnet+stone": [
-    "🧲",
-    "Lodestone"
-  ],
-  "dandelion+mountain": [
-    "💧",
-    "Mountain dew"
-  ],
-  "house+water": [
-    "🚿",
-    "Plumbing"
-  ],
   "fire+wind": [
     "💨",
     "Smoke"
   ],
-  "energy+rocket": [
-    "🚀",
-    "Spaceship"
+  "metal+stone": [
+    "🔧",
+    "Tool"
   ],
   "air+wind": [
     "🌪️",
@@ -404,29 +322,113 @@ window.HYPERCRAFT_RECIPES={
     "🌊",
     "Wave"
   ],
+  "fish+water": [
+    "🐋",
+    "Whale"
+  ],
   "dandelion+water": [
     "🍷",
     "Wine"
+  ],
+  "human+tree": [
+    "🧑",
+    "Woodworker"
+  ],
+  "fire+life": [
+    "🐾",
+    "Animal"
+  ],
+  "metal+wood": [
+    "🪓",
+    "Axe"
+  ],
+  "human+metal": [
+    "⚒️",
+    "Blacksmith"
   ],
   "paper+wood": [
     "📖",
     "Book"
   ],
-  "human+signal": [
-    "📡",
-    "Communication"
+  "human+stone": [
+    "🏗️",
+    "Builder"
   ],
-  "machine+metal": [
-    "🖥️",
-    "Hardware"
+  "human+wood": [
+    "🪚",
+    "Carpenter"
+  ],
+  "fire+human": [
+    "🍳",
+    "Cooking"
+  ],
+  "lightning+metal": [
+    "⚡",
+    "Electricity"
+  ],
+  "human+plant": [
+    "🌾",
+    "Farmer"
+  ],
+  "animal+plant": [
+    "🍽️",
+    "Food"
+  ],
+  "sun+tree": [
+    "🍎",
+    "Fruit"
   ],
   "book+human": [
     "📚",
     "Knowledge"
   ],
-  "electricity+signal": [
-    "📻",
-    "Radio"
+  "energy+metal": [
+    "⚙️",
+    "Machine"
+  ],
+  "food+human": [
+    "🍽️",
+    "Meal"
+  ],
+  "animal+fire": [
+    "🥩",
+    "Meat"
+  ],
+  "air+sun": [
+    "🌌",
+    "Night Sky"
+  ],
+  "animal+human": [
+    "🐾",
+    "Pet"
+  ],
+  "rain+sun": [
+    "🌈",
+    "Rainbow"
+  ],
+  "human+machine": [
+    "🤖",
+    "Robot"
+  ],
+  "electricity+glass": [
+    "🖥️",
+    "Screen"
+  ],
+  "air+electricity": [
+    "📡",
+    "Signal"
+  ],
+  "car+sun": [
+    "🚗",
+    "Solar Car"
+  ],
+  "air+signal": [
+    "🔊",
+    "Sound"
+  ],
+  "farmer+plant": [
+    "🌾",
+    "Wheat"
   ],
   "wind+wine": [
     "🎈",
@@ -436,29 +438,141 @@ window.HYPERCRAFT_RECIPES={
     "🍖",
     "Barbecue"
   ],
+  "human+water": [
+    "🚿",
+    "Bath"
+  ],
+  "house+wood": [
+    "🏠",
+    "Cabin"
+  ],
+  "air+fish": [
+    "🐬",
+    "Dolphin"
+  ],
   "book+knowledge": [
     "📚",
     "Education"
+  ],
+  "electricity+magnet": [
+    "🧲",
+    "Electromagnet"
+  ],
+  "fire+house": [
+    "🔥",
+    "Fireplace"
+  ],
+  "fish+human": [
+    "🎣",
+    "Fishing"
   ],
   "smoke+water": [
     "🌫️",
     "Fog"
   ],
+  "machine+metal": [
+    "🖥️",
+    "Hardware"
+  ],
+  "house+human": [
+    "🏠",
+    "Home"
+  ],
+  "electricity+engine": [
+    "⚙️",
+    "Motor"
+  ],
+  "fire+machine": [
+    "🚀",
+    "Rocket"
+  ],
   "air+smoke": [
     "🌫️",
     "Smog"
   ],
-  "radio+sound": [
-    "🔊",
-    "Audio"
+  "energy+rocket": [
+    "🚀",
+    "Spaceship"
+  ],
+  "human+robot": [
+    "🤖",
+    "Android"
+  ],
+  "fruit+tree": [
+    "🍎",
+    "Apple"
+  ],
+  "human+signal": [
+    "📡",
+    "Communication"
+  ],
+  "electricity+machine": [
+    "💻",
+    "Computer"
+  ],
+  "fire+meat": [
+    "🍖",
+    "Cooked Meat"
+  ],
+  "stone+wheat": [
+    "🌾",
+    "Flour"
   ],
   "human+knowledge": [
     "💡",
     "Idea"
   ],
+  "communication+computer": [
+    "🌐",
+    "Internet"
+  ],
+  "computer+paper": [
+    "⌨️",
+    "Keyboard"
+  ],
+  "computer+screen": [
+    "🖥️",
+    "Monitor"
+  ],
+  "night sky+stone": [
+    "🌙",
+    "Moon"
+  ],
   "idea+sound": [
     "🎵",
     "Music"
+  ],
+  "human+music": [
+    "🎵",
+    "Musician"
+  ],
+  "battery+computer": [
+    "📱",
+    "Phone"
+  ],
+  "computer+human": [
+    "👨‍💻",
+    "Programmer"
+  ],
+  "electricity+signal": [
+    "📻",
+    "Radio"
+  ],
+  "musician+sound": [
+    "🎤",
+    "Singer"
+  ],
+  "internet+phone": [
+    "📱",
+    "Smartphone"
+  ],
+  "computer+internet": [
+    "🌐",
+    "Web"
+  ],
+  "internet+web": [
+    "🌐",
+    "Website"
   ],
   "energy+idea": [
     "💡",
@@ -468,25 +582,41 @@ window.HYPERCRAFT_RECIPES={
     "⚙️",
     "Invention"
   ],
-  "human+music": [
-    "🎵",
-    "Musician"
-  ],
   "human+idea": [
     "🎨",
     "Art"
+  ],
+  "computer+knowledge": [
+    "🧠",
+    "Artificial Intelligence"
   ],
   "art+human": [
     "🎨",
     "Artist"
   ],
+  "computer+music": [
+    "🎵",
+    "Audio"
+  ],
+  "computer+programmer": [
+    "💻",
+    "Code"
+  ],
+  "flour+water": [
+    "🥣",
+    "Dough"
+  ],
   "electricity+music": [
     "🎧",
     "Headphones"
   ],
-  "musician+sound": [
-    "🎤",
-    "Singer"
+  "code+code": [
+    "💻",
+    "Program"
+  ],
+  "computer+program": [
+    "💾",
+    "Software"
   ],
   "art+fire": [
     "🏺",
@@ -499,5 +629,29 @@ window.HYPERCRAFT_RECIPES={
   "art+stone": [
     "🗿",
     "Sculpture"
+  ],
+  "phone+software": [
+    "📱",
+    "App"
+  ],
+  "dough+fire": [
+    "🍞",
+    "Bread"
+  ],
+  "code+program": [
+    "🎮",
+    "Game"
+  ],
+  "game+internet": [
+    "🌐",
+    "Online Game"
+  ],
+  "computer+game": [
+    "🎮",
+    "Video Game"
+  ],
+  "game+human": [
+    "🎉",
+    "Fun"
   ]
 };
