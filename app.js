@@ -15,130 +15,28 @@ async function hpAccountBar(){const slot=document.getElementById('account-slot')
   function addTerminal(){
     if(document.getElementById('hp-terminal-launcher')){updateTerminalState();return;}
     const style=document.createElement('style');
-    style.textContent=`
-      #hp-terminal-launcher{position:fixed;left:14px;bottom:14px;z-index:99999;width:42px;height:42px;border:1px solid #ffffff22;border-radius:12px;background:#0b0b12eF;color:#7df9ff;font:800 18px monospace;box-shadow:0 8px 30px #0008;backdrop-filter:blur(12px);transition:.15s}.hp-terminal-locked{opacity:.45;filter:grayscale(.7);cursor:not-allowed}.hp-terminal-locked:hover{opacity:.6}
-      #hp-terminal{position:fixed;left:14px;bottom:14px;z-index:99998;width:min(430px,calc(100vw - 28px));height:min(520px,calc(100vh - 28px));display:none;flex-direction:column;overflow:hidden;border:1px solid #7df9ff55;border-radius:16px;background:#07090deF;color:#dffcff;box-shadow:0 20px 70px #000C;font:13px/1.45 "DM Mono",ui-monospace,monospace;backdrop-filter:blur(16px)}
-      #hp-terminal.open{display:flex}#hp-term-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #ffffff15;background:#0d1119}
-      #hp-term-out{flex:1;overflow:auto;padding:12px;white-space:pre-wrap;word-break:break-word}#hp-term-form{display:flex;border-top:1px solid #ffffff15;background:#0d1119}
-      #hp-term-form span{padding:10px 0 10px 12px;color:#7df9ff}#hp-term-input{min-width:0;flex:1;padding:10px;border:0;outline:0;background:transparent;color:#fff;font:inherit}
-      #hp-term-close{border:0;background:transparent;color:#aaa;padding:2px 6px;font:inherit}.hp-ok{color:#7dffb2}.hp-warn{color:#ffe66d}.hp-err{color:#ff718d}.hp-cmd{color:#7df9ff}
-    `;
+    style.textContent=`#hp-terminal-launcher{position:fixed;left:14px;bottom:14px;z-index:99999;width:42px;height:42px;border:1px solid #ffffff22;border-radius:12px;background:#0b0b12eF;color:#7df9ff;font:800 18px monospace;box-shadow:0 8px 30px #0008;backdrop-filter:blur(12px);transition:.15s}.hp-terminal-locked{opacity:.45;filter:grayscale(.7);cursor:not-allowed}.hp-terminal-locked:hover{opacity:.6}#hp-terminal{position:fixed;left:14px;bottom:14px;z-index:99998;width:min(430px,calc(100vw - 28px));height:min(520px,calc(100vh - 28px));display:none;flex-direction:column;overflow:hidden;border:1px solid #7df9ff55;border-radius:16px;background:#07090deF;color:#dffcff;box-shadow:0 20px 70px #000C;font:13px/1.45 "DM Mono",ui-monospace,monospace;backdrop-filter:blur(16px)}#hp-terminal.open{display:flex}#hp-term-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #ffffff15;background:#0d1119}#hp-term-out{flex:1;overflow:auto;padding:12px;white-space:pre-wrap;word-break:break-word}#hp-term-form{display:flex;border-top:1px solid #ffffff15;background:#0d1119}#hp-term-form span{padding:10px 0 10px 12px;color:#7df9ff}#hp-term-input{min-width:0;flex:1;padding:10px;border:0;outline:0;background:transparent;color:#fff;font:inherit}#hp-term-close{border:0;background:transparent;color:#aaa;padding:2px 6px;font:inherit}.hp-ok{color:#7dffb2}.hp-warn{color:#ffe66d}.hp-err{color:#ff718d}.hp-cmd{color:#7df9ff}`;
     document.head.appendChild(style);
     const launcher=document.createElement('button');launcher.id='hp-terminal-launcher';launcher.title='Command Prompt';launcher.textContent='>_';launcher.style.display='none';
-    const term=document.createElement('div');term.id='hp-terminal';
-    term.innerHTML='<div id="hp-term-head"><b>⌘ Hyper-Pop Command Prompt</b><button id="hp-term-close">×</button></div><div id="hp-term-out"></div><form id="hp-term-form"><span>&gt;</span><input id="hp-term-input" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="/help"></form>';
+    const term=document.createElement('div');term.id='hp-terminal';term.innerHTML='<div id="hp-term-head"><b>⌘ Hyper-Pop Command Prompt</b><button id="hp-term-close">×</button></div><div id="hp-term-out"></div><form id="hp-term-form"><span>&gt;</span><input id="hp-term-input" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="/help"></form>';
     document.body.append(launcher,term);
     const out=document.getElementById('hp-term-out'),input=document.getElementById('hp-term-input');
-    function updateTerminalState(){
-      const l=document.getElementById('hp-terminal-launcher');
-      if(!l)return;
-      const on=unlocked();
-      l.disabled=!on;l.classList.toggle('hp-terminal-locked',!on);l.style.display=on?'block':'none';l.title='Command Prompt';
-      if(!on){term.classList.remove('open');term.style.display='none';launcher.style.display='none'}
-    }
+    function updateTerminalState(){const l=document.getElementById('hp-terminal-launcher');if(!l)return;const on=unlocked();l.disabled=!on;l.classList.toggle('hp-terminal-locked',!on);l.style.display=on?'block':'none';l.title='Command Prompt';if(!on){term.classList.remove('open');term.style.display='none';launcher.style.display='none'}}
     const print=(text,cls='')=>{const d=document.createElement('div');d.className=cls;d.textContent=text;out.appendChild(d);out.scrollTop=out.scrollHeight};
-    const help=`COMMANDS
-/help                  Show all commands
-/close                 Close the terminal
-/clear                 Clear terminal output
-/recipes                Search the Hyper-Craft recipe database
-/status                Show cheat status and current page
-/click [n]             Press the main game control n times
-/spam [n]              Rapid-fire the main game control
-/win                   Trigger common win/finish controls
-/score <n>             Set common score/counter values
-/clicks <n>            Set Button Bonanza clicks, then reload
-/coins <n>             Set common coins/currency values
-/set <key> <value>     Set a localStorage value
-/get <key>              Read a localStorage value
-/del <key>              Delete a localStorage value
-/keys                  List localStorage keys
-/theme <name>           Set a page theme when supported
-/reset                 Reload the current game
-/reload                Reload the page
-/js <code>             Run JavaScript on this page
-
-TIP: /js is the universal cheat and can be used for game-specific cheats too.`;
+    const help=`COMMANDS\n/help                  Show all commands\n/close                 Close the terminal\n/clear                 Clear terminal output\n/recipes                Search the Hyper-Craft recipe database\n/status                Show cheat status and current page\n/click [n]             Press the main game control n times\n/spam [n]              Rapid-fire the main game control\n/win                   Trigger common win/finish controls\n/score <n>             Set common score/counter values\n/clicks <n>            Set Button Bonanza clicks, then reload\n/coins <n>             Set common coins/currency values\n/set <key> <value>     Set a localStorage value\n/get <key>              Read a localStorage value\n/del <key>              Delete a localStorage value\n/keys                  List localStorage keys\n/theme <name>           Set a page theme when supported\n/reset                 Reload the current game\n/reload                Reload the page\n/js <code>             Run JavaScript on this page\n\nTIP: /js is the universal cheat and can be used for game-specific cheats too.`;
     const clickables=()=>Array.from(document.querySelectorAll('button:not([disabled]),[role="button"],[onclick],a[href],canvas')).filter(x=>x.id!=='hp-terminal-launcher'&&!x.closest('#hp-terminal'));
-    function setCommon(n){
-      const value=Number(n);if(!Number.isFinite(value))return false;
-      const ids=['score','n','count','points','coins','money','clicks','best','high','total'];let touched=0;
-      ids.forEach(id=>{const el=document.getElementById(id);if(el){el.textContent=String(value);if('value' in el)el.value=String(value);touched++}});
-      ['score','points','coins','money','clicks','hyperpop-score'].forEach(k=>localStorage.setItem('hyperpop-'+k,String(value)));
-      return touched;
-    }
-    async function command(raw){
-      const parts=raw.trim().split(/\s+/),cmd=(parts.shift()||'').toLowerCase(),arg=parts.join(' ');if(!cmd)return;
-      print('> '+raw,'hp-cmd');
-      try{
-        if(cmd==='/recipes'){
- const q=arg.trim().toLowerCase();
- print('HYPER-CRAFT RECIPE LOOKUP\\n'+(q?'Searching for: '+arg:'Showing recipe database')+'\\n','hp-ok');
- const parse=src=>{const map=new Map();const re=/['"]([^'"]+\\+[^'"]+)['"]\\s*:\\s*\\[['"]([^'"]*)['"]\\s*,\\s*['"]([^'"]+)['"]\\]/g;let m;while((m=re.exec(src)))map.set(m[1].toLowerCase(),[m[2],m[3]]);return map};
- const show=map=>{const rows=[...map.entries()].filter(([k,v])=>!q||k.includes(q)||v[1].toLowerCase().includes(q)).sort((a,b)=>a[0].localeCompare(b[0])).slice(0,120).map(([k,v])=>k.split('+').join(' + ')+' → '+v[0]+' '+v[1]);print(rows.join('\\n')||'No matching recipes found.','hp-ok');if(rows.length===120)print('Showing first 120 matches. Narrow the search for more.','hp-warn')};
- const map=new Map();
- try{const page=await fetch('hyper-craft.html',{cache:'no-store'});if(page.ok)parse(await page.text()).forEach((v,k)=>map.set(k,v));const extra=await fetch('hyper-craft-recipes.js',{cache:'no-store'});if(extra.ok)parse(await extra.text()).forEach((v,k)=>map.set(k,v))}catch(e){}
- if(map.size)show(map);else print('Could not load the Hyper-Craft recipe database.','hp-err');return;
-} if(cmd==='/help'){print(help,'hp-ok');return} if(cmd==='/close'){term.classList.remove('open');return}
-        if(cmd==='/clear'){out.textContent='';return}
-        if(cmd==='/status'){print('Unlocked ✓  •  '+location.pathname.split('/').pop()+'  •  '+clickables().length+' clickable controls','hp-ok');return}
-        if(cmd==='/click'){const n=Math.max(1,Math.min(10000,Number(parts[0])||1)),els=clickables(),target=els.find(x=>/click|press|start|go|roll|flip|tap|play|game|target/i.test(x.id+' '+x.textContent+' '+x.getAttribute('aria-label')))||els[0];if(!target){print('No interactive game control found. Try /inspect or /js.','hp-err');return}for(let i=0;i<n;i++){target.click();target.dispatchEvent(new PointerEvent('pointerup',{bubbles:true}));}print('Pressed '+n+'×: '+(target.textContent||target.id||target.tagName),'hp-ok');return}
-        if(cmd==='/spam'){const n=Math.max(1,Math.min(5000,Number(parts[0])||100)),els=clickables(),target=els.find(x=>/click|press|start|go|roll|flip|tap|play|game|target/i.test(x.id+' '+x.textContent+' '+x.getAttribute('aria-label')))||els[0];if(!target){print('No interactive game control found. Try /inspect or /js.','hp-err');return}let i=0;const timer=setInterval(()=>{target.click();try{target.dispatchEvent(new PointerEvent('pointerup',{bubbles:true}))}catch(e){}if(++i>=n)clearInterval(timer)},0);print('Spamming '+n+'×: '+(target.textContent||target.id||target.tagName),'hp-ok');return}
-        if(cmd==='/win'){let n=0;clickables().forEach(x=>{if(/win|finish|complete|submit|claim|next|done|victory|success/i.test(x.id+' '+x.textContent+' '+x.getAttribute('aria-label'))){x.click();n++}});window.hyperpopWin=true;localStorage.setItem('hyperpop-win','1');document.dispatchEvent(new CustomEvent('hyperpop-cheat',{detail:{type:'win'}}));print(n?'Triggered '+n+' likely win/finish controls and sent the universal win hook.':'Sent universal win hook. If the game has no finish control, use /js for its specific state.','hp-ok');return}
-        if(cmd==='/score'){if(!parts[0]){print('Usage: /score <n>','hp-warn');return}const n=Number(parts[0]);if(!Number.isFinite(n)){print('Score must be a number.','hp-warn');return}const touched=setCommon(n);Object.keys(localStorage).forEach(k=>{if(/score|points|best|high|record|streak|level/i.test(k))localStorage.setItem(k,String(n))});window.hyperpopScore=n;document.dispatchEvent(new CustomEvent('hyperpop-cheat',{detail:{type:'score',value:n}}));print('Set '+touched+' visible score fields and common saved scores to '+n+'. Games with cheat hooks will update immediately.','hp-ok');return}
-        if(cmd==='/clicks'){const n=Number(parts[0]),key='hyperpop-button-bonanza-v2',raw=localStorage.getItem(key);if(!Number.isFinite(n)){print('Usage: /clicks <n>','hp-warn');return}if(raw){const s=JSON.parse(raw);s.n=n;s.total=n;localStorage.setItem(key,JSON.stringify(s));print('Button Bonanza set to '+n+' clicks. Reloading…','hp-ok');setTimeout(()=>location.reload(),250)}else print('Button Bonanza save was not found.','hp-err');return}
-        if(cmd==='/coins'){if(!parts[0]){print('Usage: /coins <n>','hp-warn');return}const n=Number(parts[0]);if(!Number.isFinite(n)){print('Coins must be a number.','hp-warn');return}
-          if(/stocks\.html$/i.test(location.pathname)){const key='hyperpop-stock-pop-v1';try{const s=JSON.parse(localStorage.getItem(key)||'null');if(s&&typeof s.cash==='number'){s.cash=n;localStorage.setItem(key,JSON.stringify(s));print('Stock Pop cash set to '+n+'. Reloading…','hp-ok');setTimeout(()=>location.reload(),200);return}}catch(e){}}
-          setCommon(n);Object.keys(localStorage).forEach(k=>{if(/coin|gold|token|gem|currency/i.test(k))localStorage.setItem(k,String(n))});window.hyperpopCoins=n;document.dispatchEvent(new CustomEvent('hyperpop-cheat',{detail:{type:'coins',value:n}}));print('Set common coin/currency values to '+n+'.','hp-ok');return}
-        if(cmd==='/money'){if(!parts[0]){print('Usage: /money <n>','hp-warn');return}const n=Number(parts[0]);if(!Number.isFinite(n)){print('Money must be a number.','hp-warn');return}
-          if(/stocks\.html$/i.test(location.pathname)){const key='hyperpop-stock-pop-v1';try{const s=JSON.parse(localStorage.getItem(key)||'null');if(s&&typeof s.cash==='number'){s.cash=n;localStorage.setItem(key,JSON.stringify(s));print('Stock Pop cash set to '+n+'. Reloading…','hp-ok');setTimeout(()=>location.reload(),200);return}}catch(e){}}
-          setCommon(n);['money','cash','balance','funds'].forEach(k=>localStorage.setItem(k,String(n)));print('Common money fields set to '+n+'.','hp-ok');return}
-        if(cmd==='/max'){const n=999999999;setCommon(n);Object.keys(localStorage).forEach(k=>{if(/score|coin|cash|money|click|gold|point|streak/i.test(k))localStorage.setItem(k,String(n))});print('Applied max values where possible.','hp-ok');return}
-        if(cmd==='/god'){localStorage.setItem('hyperpop-god-mode','1');document.body.dataset.god='1';document.dispatchEvent(new CustomEvent('hyperpop-cheat',{detail:{type:'god'}}));print('God-mode flag enabled.','hp-ok');return}
-        if(cmd==='/freeze'){window.__hyperpopFreezeTimers=true;localStorage.setItem('hyperpop-freeze','1');print('Freeze flag enabled for supported games.','hp-ok');return}
-        if(cmd==='/unfreeze'){window.__hyperpopFreezeTimers=false;localStorage.removeItem('hyperpop-freeze');print('Freeze flag disabled.','hp-ok');return}
-        if(cmd==='/rand'){let min=0,max=100;if(parts[0]!==undefined)min=Number(parts[0]);if(parts[1]!==undefined)max=Number(parts[1]);if(!Number.isFinite(min)||!Number.isFinite(max)){print('Usage: /rand [min] [max]','hp-warn');return}if(min>max)[min,max]=[max,min];print(String(Math.floor(Math.random()*(max-min+1))+min),'hp-ok');return}
-        if(cmd==='/inspect'){const ids=Array.from(document.querySelectorAll('[id]')).map(x=>x.id).filter(x=>!/^hp-terminal/.test(x)).slice(0,150);print('PAGE ELEMENT IDS\\n'+(ids.join('\\n')||'(none)'),'hp-ok');return}
-        if(cmd==='/set'){const key=parts.shift(),value=parts.join(' ');if(!key){print('Usage: /set <key> <value>','hp-warn');return}localStorage.setItem(key,value);print('Saved '+key+'.','hp-ok');return}
-        if(cmd==='/get'){const key=parts[0];if(!key){print('Usage: /get <key>','hp-warn');return}print(key+': '+(localStorage.getItem(key)??'null'));return}
-        if(cmd==='/del'){const key=parts[0];if(!key){print('Usage: /del <key>','hp-warn');return}localStorage.removeItem(key);print('Deleted '+key+'.','hp-ok');return}
-        if(cmd==='/keys'){print(Object.keys(localStorage).join('\n')||'(none)','hp-ok');return}
-        if(cmd==='/theme'){const name=parts[0];if(!name){print('Usage: /theme <name>','hp-warn');return}document.body.dataset.theme=name;localStorage.setItem('hyperpop-theme',name);document.dispatchEvent(new CustomEvent('hyperpop-cheat',{detail:{type:'theme',name}}));print('Theme set to '+name+'.','hp-ok');return}
-        if(cmd==='/reset'||cmd==='/reload'){location.reload();return}
-        if(cmd==='/js'){if(!arg){print('Usage: /js <code>','hp-warn');return}const result=Function('"use strict";'+arg)();print(result===undefined?'Executed.':String(result),'hp-ok');return}
-        print('Unknown command. Type /help.','hp-err');
-      }catch(e){print('ERROR: '+(e?.message||e),'hp-err')}
-    }
-    function openTerminal(){
-  if(!unlocked())return;
-  term.classList.add('open');
-  term.style.display='flex';
-  launcher.style.display='none';
-  setTimeout(()=>input.focus(),0);
-}
-function closeTerminal(){
-  term.classList.remove('open');
-  term.style.display='none';
-  launcher.style.display='';
-}
-launcher.onclick=openTerminal;
-launcher.addEventListener('pointerup',e=>{e.preventDefault();openTerminal()},{passive:false});
-launcher.addEventListener('touchend',e=>{e.preventDefault();openTerminal()},{passive:false});
-document.getElementById('hp-term-close').onclick=closeTerminal;
-document.getElementById('hp-term-close').addEventListener('touchend',e=>{e.preventDefault();closeTerminal()},{passive:false});
-    document.getElementById('hp-term-form').onsubmit=e=>{e.preventDefault();const raw=input.value;input.value='';command(raw)};
-    updateTerminalState();
-    if(unlocked()){print('Command Prompt unlocked.','hp-ok');print('Type /help for a list of commands.');}
-  }
-  window.HyperPopCommandPrompt={unlock:function(){localStorage.setItem(UNLOCK_KEY,'1');addTerminal();updateTerminalState()},disable:function(){localStorage.removeItem(UNLOCK_KEY);const l=document.getElementById('hp-terminal-launcher');const t=document.getElementById('hp-terminal');if(l){l.disabled=true;l.classList.add('hp-terminal-locked');l.style.display='none';l.title='Command Prompt'}if(t){t.classList.remove('open');t.style.display='none'}if(l)l.style.display='none'},isUnlocked:unlocked,sync:function(){addTerminal();updateTerminalState()}};
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addTerminal);else addTerminal();
+    function setCommon(n){const value=Number(n);if(!Number.isFinite(value))return false;const ids=['score','n','count','points','coins','money','clicks','best','high','total'];let touched=0;ids.forEach(id=>{const el=document.getElementById(id);if(el){el.textContent=String(value);if('value' in el)el.value=String(value);touched++}});['score','points','coins','money','clicks','hyperpop-score'].forEach(k=>localStorage.setItem('hyperpop-'+k,String(value)));return touched}
+    async function command(raw){const parts=raw.trim().split(/\\s+/),cmd=(parts.shift()||'').toLowerCase(),arg=parts.join(' ');if(!cmd)return;print('> '+raw,'hp-cmd');try{if(cmd==='/recipes'){const q=arg.trim().toLowerCase();print('HYPER-CRAFT RECIPE LOOKUP\\n'+(q?'Searching for: '+arg:'Showing recipe database')+'\\n','hp-ok');const parse=src=>{const map=new Map();const re=/['"]([^'"]+\\+[^'"]+)['"]\\s*:\\s*\\[['"]([^'"]*)['"]\\s*,\\s*['"]([^'"]+)['"]\\]/g;let m;while((m=re.exec(src)))map.set(m[1].toLowerCase(),[m[2],m[3]]);return map};const show=map=>{const rows=[...map.entries()].filter(([k,v])=>!q||k.includes(q)||v[1].toLowerCase().includes(q)).sort((a,b)=>a[0].localeCompare(b[0])).slice(0,120).map(([k,v])=>k.split('+').join(' + ')+' → '+v[0]+' '+v[1]);print(rows.join('\\n')||'No matching recipes found.','hp-ok');if(rows.length===120)print('Showing first 120 matches. Narrow the search for more.','hp-warn')};const map=new Map();try{const page=await fetch('hyper-craft.html',{cache:'no-store'});if(page.ok)parse(await page.text()).forEach((v,k)=>map.set(k,v));const extra=await fetch('hyper-craft-recipes.js',{cache:'no-store'});if(extra.ok)parse(await extra.text()).forEach((v,k)=>map.set(k,v))}catch(e){}if(map.size)show(map);else print('Could not load the Hyper-Craft recipe database.','hp-err');return;}if(cmd==='/help'){print(help,'hp-ok');return}if(cmd==='/close'){term.classList.remove('open');return}if(cmd==='/clear'){out.textContent='';return}if(cmd==='/status'){print('Unlocked ✓  •  '+location.pathname.split('/').pop()+'  •  '+clickables().length+' clickable controls','hp-ok');return}if(cmd==='/click'){const n=Math.max(1,Math.min(10000,Number(parts[0])||1)),els=clickables(),target=els.find(x=>/click|press|start|go|roll|flip|tap|play|game|target/i.test(x.id+' '+x.textContent+' '+x.getAttribute('aria-label')))||els[0];if(!target){print('No interactive game control found. Try /inspect or /js.','hp-err');return}for(let i=0;i<n;i++){target.click();target.dispatchEvent(new PointerEvent('pointerup',{bubbles:true}))}print('Pressed '+n+'×: '+(target.textContent||target.id||target.tagName),'hp-ok');return}if(cmd==='/spam'){const n=Math.max(1,Math.min(5000,Number(parts[0])||100)),els=clickables(),target=els.find(x=>/click|press|start|go|roll|flip|tap|play|game|target/i.test(x.id+' '+x.textContent+' '+x.getAttribute('aria-label')))||els[0];if(!target){print('No interactive game control found. Try /inspect or /js.','hp-err');return}let i=0;const timer=setInterval(()=>{target.click();try{target.dispatchEvent(new PointerEvent('pointerup',{bubbles:true}))}catch(e){}if(++i>=n)clearInterval(timer)},0);print('Spamming '+n+'×: '+(target.textContent||target.id||target.tagName),'hp-ok');return}if(cmd==='/win'){let n=0;clickables().forEach(x=>{if(/win|finish|complete|submit|claim|next|done|victory|success/i.test(x.id+' '+x.textContent+' '+x.getAttribute('aria-label'))){x.click();n++}});window.hyperpopWin=true;localStorage.setItem('hyperpop-win','1');document.dispatchEvent(new CustomEvent('hyperpop-cheat',{detail:{type:'win'}}));print(n?'Triggered '+n+' likely win/finish controls and sent the universal win hook.':'Sent universal win hook. If the game has no finish control, use /js for its specific state.','hp-ok');return}if(cmd==='/score'){if(!parts[0]){print('Usage: /score <n>','hp-warn');return}const n=Number(parts[0]);if(!Number.isFinite(n)){print('Score must be a number.','hp-warn');return}const touched=setCommon(n);Object.keys(localStorage).forEach(k=>{if(/score|points|best|high|record|streak|level/i.test(k))localStorage.setItem(k,String(n))});window.hyperpopScore=n;document.dispatchEvent(new CustomEvent('hyperpop-cheat',{detail:{type:'score',value:n}}));print('Set '+touched+' visible score fields and common saved scores to '+n+'. Games with cheat hooks will update immediately.','hp-ok');return}if(cmd==='/clicks'){const n=Number(parts[0]),key='hyperpop-button-bonanza-v2',raw=localStorage.getItem(key);if(!Number.isFinite(n)){print('Usage: /clicks <n>','hp-warn');return}if(raw){const s=JSON.parse(raw);s.n=n;s.total=n;localStorage.setItem(key,JSON.stringify(s));print('Button Bonanza set to '+n+' clicks. Reloading…','hp-ok');setTimeout(()=>location.reload(),250)}else print('Button Bonanza save was not found.','hp-err');return}if(cmd==='/coins'){if(!parts[0]){print('Usage: /coins <n>','hp-warn');return}const n=Number(parts[0]);if(!Number.isFinite(n)){print('Coins must be a number.','hp-warn');return}if(/stocks\\.html$/i.test(location.pathname)){const key='hyperpop-stock-pop-v1';try{const s=JSON.parse(localStorage.getItem(key)||'null');if(s&&typeof s.cash==='number'){s.cash=n;localStorage.setItem(key,JSON.stringify(s));print('Stock Pop cash set to '+n+'. Reloading…','hp-ok');setTimeout(()=>location.reload(),200);return}}catch(e){}}setCommon(n);Object.keys(localStorage).forEach(k=>{if(/coin|gold|token|gem|currency/i.test(k))localStorage.setItem(k,String(n))});window.hyperpopCoins=n;document.dispatchEvent(new CustomEvent('hyperpop-cheat',{detail:{type:'coins',value:n}}));print('Set common coin/currency values to '+n+'.','hp-ok');return}if(cmd==='/money'){if(!parts[0]){print('Usage: /money <n>','hp-warn');return}const n=Number(parts[0]);if(!Number.isFinite(n)){print('Money must be a number.','hp-warn');return}if(/stocks\\.html$/i.test(location.pathname)){const key='hyperpop-stock-pop-v1';try{const s=JSON.parse(localStorage.getItem(key)||'null');if(s&&typeof s.cash==='number'){s.cash=n;localStorage.setItem(key,JSON.stringify(s));print('Stock Pop cash set to '+n+'. Reloading…','hp-ok');setTimeout(()=>location.reload(),200);return}}catch(e){}}setCommon(n);['money','cash','balance','funds'].forEach(k=>localStorage.setItem(k,String(n)));print('Common money fields set to '+n+'.','hp-ok');return}if(cmd==='/max'){const n=999999999;setCommon(n);Object.keys(localStorage).forEach(k=>{if(/score|coin|cash|money|click|gold|point|streak/i.test(k))localStorage.setItem(k,String(n))});print('Applied max values where possible.','hp-ok');return}if(cmd==='/god'){localStorage.setItem('hyperpop-god-mode','1');document.body.dataset.god='1';document.dispatchEvent(new CustomEvent('hyperpop-cheat',{detail:{type:'god'}}));print('God-mode flag enabled.','hp-ok');return}if(cmd==='/freeze'){window.__hyperpopFreezeTimers=true;localStorage.setItem('hyperpop-freeze','1');print('Freeze flag enabled for supported games.','hp-ok');return}if(cmd==='/unfreeze'){window.__hyperpopFreezeTimers=false;localStorage.removeItem('hyperpop-freeze');print('Freeze flag disabled.','hp-ok');return}if(cmd==='/rand'){let min=0,max=100;if(parts[0]!==undefined)min=Number(parts[0]);if(parts[1]!==undefined)max=Number(parts[1]);if(!Number.isFinite(min)||!Number.isFinite(max)){print('Usage: /rand [min] [max]','hp-warn');return}if(min>max)[min,max]=[max,min];print(String(Math.floor(Math.random()*(max-min+1))+min),'hp-ok');return}if(cmd==='/inspect'){const ids=Array.from(document.querySelectorAll('[id]')).map(x=>x.id).filter(x=>!/^hp-terminal/.test(x)).slice(0,150);print('PAGE ELEMENT IDS\\n'+(ids.join('\\n')||'(none)'),'hp-ok');return}if(cmd==='/set'){const key=parts.shift(),value=parts.join(' ');if(!key){print('Usage: /set <key> <value>','hp-warn');return}localStorage.setItem(key,value);print('Saved '+key+'.','hp-ok');return}if(cmd==='/get'){const key=parts[0];if(!key){print('Usage: /get <key>','hp-warn');return}print(key+': '+(localStorage.getItem(key)??'null'));return}if(cmd==='/del'){const key=parts[0];if(!key){print('Usage: /del <key>','hp-warn');return}localStorage.removeItem(key);print('Deleted '+key+'.','hp-ok');return}if(cmd==='/keys'){print(Object.keys(localStorage).join('\\n')||'(none)','hp-ok');return}if(cmd==='/theme'){const name=parts[0];if(!name){print('Usage: /theme <name>','hp-warn');return}document.body.dataset.theme=name;localStorage.setItem('hyperpop-theme',name);document.dispatchEvent(new CustomEvent('hyperpop-cheat',{detail:{type:'theme',name}}));print('Theme set to '+name+'.','hp-ok');return}if(cmd==='/reset'||cmd==='/reload'){location.reload();return}if(cmd==='/js'){if(!arg){print('Usage: /js <code>','hp-warn');return}const result=Function('"use strict";'+arg)();print(result===undefined?'Executed.':String(result),'hp-ok');return}print('Unknown command. Type /help.','hp-err')}catch(e){print('ERROR: '+(e?.message||e),'hp-err')}}
+    function openTerminal(){if(!unlocked())return;term.classList.add('open');term.style.display='flex';launcher.style.display='none';setTimeout(()=>input.focus(),0)}function closeTerminal(){term.classList.remove('open');term.style.display='none';launcher.style.display=''}launcher.onclick=openTerminal;launcher.addEventListener('pointerup',e=>{e.preventDefault();openTerminal()},{passive:false});launcher.addEventListener('touchend',e=>{e.preventDefault();openTerminal()},{passive:false});document.getElementById('hp-term-close').onclick=closeTerminal;document.getElementById('hp-term-close').addEventListener('touchend',e=>{e.preventDefault();closeTerminal()},{passive:false});document.getElementById('hp-term-form').onsubmit=e=>{e.preventDefault();const raw=input.value;input.value='';command(raw)};updateTerminalState();if(unlocked()){print('Command Prompt unlocked.','hp-ok');print('Type /help for a list of commands.')}}
+  window.HyperPopCommandPrompt={unlock:function(){localStorage.setItem(UNLOCK_KEY,'1');addTerminal();updateTerminalState()},disable:function(){localStorage.removeItem(UNLOCK_KEY);const l=document.getElementById('hp-terminal-launcher');const t=document.getElementById('hp-terminal');if(l){l.disabled=true;l.classList.add('hp-terminal-locked');l.style.display='none';l.title='Command Prompt'}if(t){t.classList.remove('open');t.style.display='none'}if(l)l.style.display='none'},isUnlocked:unlocked,sync:function(){addTerminal();updateTerminalState()}};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addTerminal);else addTerminal();
 })();
-
 
 /* Shared Hyper-Pop header + floating back button */
 document.addEventListener('DOMContentLoaded',()=>{
   const path=location.pathname;
+  const file=path.split('/').pop().toLowerCase();
   const excluded=/a\.i\.d\.a|aida|frameshot|maze[-_ ]of[-_ ]shadows/i.test(path);
+  const homepage=file===''||file==='index.html';
   if(excluded)return;
 
   document.querySelectorAll('nav .back').forEach(el=>el.remove());
@@ -152,13 +50,15 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
 
   document.getElementById('hp-global-back')?.remove();
+  if(homepage)return;
+
   const b=document.createElement('a');
   b.id='hp-global-back';
   b.href='index.html';
   b.textContent='←';
   b.setAttribute('aria-label','Back to Hyper-Pop');
   b.title='Back to Hyper-Pop';
-  Object.assign(b.style,{position:'fixed',right:'14px',top:'14px',zIndex:'99990',width:'42px',height:'42px',display:'flex',alignItems:'center',justifyContent:'center',padding:'0',border:'1px solid #ffffff2b',borderRadius:'50%',background:'#080810dd',color:'#fff',textDecoration:'none',font:'800 24px/1 system-ui,sans-serif',backdropFilter:'blur(10px)',WebkitBackdropFilter:'blur(10px)',boxShadow:'0 8px 24px #0008',cursor:'pointer',touchAction:'manipulation'});
+  Object.assign(b.style,{position:'fixed',left:'14px',top:'14px',right:'auto',zIndex:'99990',width:'42px',height:'42px',display:'flex',alignItems:'center',justifyContent:'center',padding:'0',border:'1px solid #ffffff2b',borderRadius:'50%',background:'#080810dd',color:'#fff',textDecoration:'none',font:'800 24px/1 system-ui,sans-serif',backdropFilter:'blur(10px)',WebkitBackdropFilter:'blur(10px)',boxShadow:'0 8px 24px #0008',cursor:'pointer',touchAction:'manipulation'});
   b.addEventListener('pointerenter',()=>{b.style.borderColor='#7df9ff';b.style.color='#7df9ff'});
   b.addEventListener('pointerleave',()=>{b.style.borderColor='#ffffff2b';b.style.color='#fff'});
   document.body.appendChild(b);
