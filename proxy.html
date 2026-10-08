@@ -87,8 +87,8 @@ async function load(url,push=true){
   const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||"Proxy request failed");
   t.url=d.url||url;t.title=new URL(t.url).hostname;
   if(push){t.history=t.history.slice(0,t.pos+1);t.history.push(t.url);t.pos=t.history.length-1}
-  const frame=document.createElement("iframe");frame.title="Browser page";frame.setAttribute("sandbox","allow-scripts allow-forms allow-popups");
-  frame.srcdoc=d.html||"<p>Nothing returned.</p>";
+  const frame=document.createElement("iframe");frame.title="Browser page";frame.setAttribute("sandbox","allow-scripts allow-forms allow-popups allow-pointer-lock allow-modals allow-downloads");frame.allow="fullscreen; autoplay; gamepad";frame.allowFullscreen=true;
+  frame.srcdoc=addLocalStorageShim(d.html||"<p>Nothing returned.</p>",t.url);
   frame.addEventListener("load",()=>{try{const title=frame.contentDocument&&frame.contentDocument.title;if(title)t.title=title;renderTabs()}catch{}});
   t.frame=frame;render();status.textContent="Loaded "+new URL(t.url).hostname+" · HTTP "+d.status;
  }catch(e){status.textContent=e.message||"Could not load page."}
