@@ -104,29 +104,61 @@ function rewriteHtml(html: string, baseUrl: URL) {
     }
   }
 
-  // Keep page JavaScript, but route its externally loaded files through this proxy.
-  out = out.replace(/(<script\\b[^>]*\\bsrc\\s*=\\s*)(["'])(.*?)(\\2)/gis, (m, p, q, raw) => p + q + rewriteUrl(raw, baseUrl, true) + q);
-  out = out.replace(/(<img\\b[^>]*\\bsrc\\s*=\\s*)(["'])(.*?)(\\2)/gis, (m, p, q, raw) => p + q + rewriteUrl(raw, baseUrl, true) + q);
-  out = out.replace(/(<(?:source|video|audio|track|input)\\b[^>]*\\bsrc\\s*=\\s*)(["'])(.*?)(\\2)/gis, (m, p, q, raw) => p + q + rewriteUrl(raw, baseUrl, true) + q);
-  out = out.replace(/(<link\\b[^>]*\\bhref\\s*=\\s*)(["'])(.*?)(\\2)/gis, (m, p, q, raw) => p + q + rewriteUrl(raw, baseUrl, true) + q);
-  out = out.replace(/(<(?:a|area)\\b[^>]*\\bhref\\s*=\\s*)(["'])(.*?)(\\2)/gis, (m, p, q, raw) => p + q + rewriteUrl(raw, baseUrl, false) + q);
-  out = out.replace(/(<form\\b[^>]*\\baction\\s*=\\s*)(["'])(.*?)(\\2)/gis, (m, p, q, raw) => p + q + rewriteUrl(raw, baseUrl, false) + q);
-  out = out.replace(/(\\bsrcset\\s*=\\s*)(["'])(.*?)(\\2)/gis, (m, p, q, raw) => {
+  const resource = (raw: string) => rewriteUrl(raw, baseUrl, true);
+  const page = (raw: string) => raw.trim().startsWith("#") ? raw : rewriteUrl(raw, baseUrl, false);
+
+  out = out.replace(/(<script\\b[^>]*\\bsrc\\s*=\\s*)(["'])(.*?)(\\2)/gis, (_m, p, q, raw) => p + q + resource(raw) + q);
+  out = out.replace(/(<img\\b[^>]*\\bsrc\\s*=\\s*)(["'])(.*?)(\\2)/gis, (_m, p, q, raw) => p + q + resource(raw) + q);
+  out = out.replace(/(<(?:source|video|audio|track|input)\\b[^>]*\\bsrc\\s*=\\s*)(["'])(.*?)(\\2)/gis, (_m, p, q, raw) => p + q + resource(raw) + q);
+  out = out.replace(/(<link\\b[^>]*\\bhref\\s*=\\s*)(["'])(.*?)(\\2)/gis, (_m, p, q, raw) => p + q + resource(raw) + q);
+  out = out.replace(/(<(?:a|area)\\b[^>]*\\bhref\\s*=\\s*)(["'])(.*?)(\\2)/gis, (_m, p, q, raw) => p + q + page(raw) + q);
+  out = out.replace(/(<form\\b[^>]*\\baction\\s*=\\s*)(["'])(.*?)(\\2)/gis, (_m, p, q, raw) => p + q + page(raw) + q);
+  out = out.replace(/(\\bsrcset\\s*=\\s*)(["'])(.*?)(\\2)/gis, (_m, p, q, raw) => {
     const value = raw.split(",").map((part: string) => {
       const bits = part.trim().split(/\\s+/);
       if (!bits[0]) return part;
-      bits[0] = rewriteUrl(bits[0], baseUrl, true);
+      bits[0] = resource(bits[0]);
       return bits.join(" ");
     }).join(", ");
     return p + q + value + q;
   });
+
   out = out.replace(/\\s+on[a-z0-9_-]+\\s*=\\s*(?:"[^"]*"|'[^']*'|[^\\s>]+)/gi, "");
   out = out.replace(/\\s+srcdoc\\s*=\\s*(?:"[^"]*"|'[^']*'|[^\\s>]+)/gi, "");
   out = out.replace(/<base\\b[^>]*>/gi, "");
 
+  const bridge = `<script>
+(function(){
+  function send(url){ try { parent.postMessage({type:"hyperpop-navigate",url:new URL(url,document.baseURI).href},"*"); } catch(e){} }
+  document.addEventListener("click",function(e){
+    var a=e.target.closest&&e.target.closest("a[href]");
+    if(!a)return;
+    var href=a.getAttribute("href");
+    if(!href||href[0]==="#"||/^(mailto:|tel:|javascript:|data:|blob:)/i.test(href))return;
+    e.preventDefault();
+    send(href);
+  },true);
+  document.addEventListener("submit",function(e){
+    var f=e.target;
+    if(!f||String(f.method||"get").toLowerCase()!=="get")return;
+    e.preventDefault();
+    var action=f.getAttribute("action")||document.location.href;
+    var u=new URL(action,document.baseURI);
+    var q=new URLSearchParams(new FormData(f));
+    u.search=q.toString();
+    send(u.href);
+  },true);
+  window.addEventListener("error",function(){});
+})();
+</script>`;
+
+  const lower = out.toLowerCase();
+  const bodyEnd = lower.lastIndexOf("</body>");
+  if (bodyEnd >= 0) out = out.slice(0, bodyEnd) + bridge + out.slice(bodyEnd);
+  else out += bridge;
+
   return "<!doctype html>\\n" + out;
 }
-
 function rewriteCss(css: string, baseUrl: URL) {
   return css.replace(/url\\(\\s*(["']?)(.*?)\\1\\s*\\)/gi, (m, q, raw) =>
     "url(" + q + rewriteUrl(raw, baseUrl, true) + q + ")"
