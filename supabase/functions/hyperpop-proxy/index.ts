@@ -105,7 +105,16 @@ function rewriteHtml(html: string, baseUrl: URL) {
   }
 
   const resource = (raw: string) => rewriteUrl(raw, baseUrl, true);
-  const page = (raw: string) => raw.trim().startsWith("#") ? raw : rewriteUrl(raw, baseUrl, false);
+  const page = (raw: string) => {
+    const value = raw.trim();
+    if (!value || value.startsWith("#")) return value;
+    try {
+      const absolute = new URL(value, baseUrl);
+      return ["http:", "https:"].includes(absolute.protocol) ? absolute.toString() : value;
+    } catch {
+      return value;
+    }
+  };
 
   out = out.replace(/(<script\b[^>]*\bsrc\s*=\s*)(["'])(.*?)(\2)/gis, (_m, p, q, raw) => p + q + resource(raw) + q);
   out = out.replace(/(<img\b[^>]*\bsrc\s*=\s*)(["'])(.*?)(\2)/gis, (_m, p, q, raw) => p + q + resource(raw) + q);
