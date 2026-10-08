@@ -133,8 +133,9 @@ function rewriteHtml(html: string, baseUrl: URL) {
     return p + q + value + q;
   });
 
-  out = out.replace(/\s+on[a-z0-9_-]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "");
+  // Keep inline event handlers because interactive sites and games often depend on them.
   out = out.replace(/\s+srcdoc\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "");
+  out = out.replace(/<meta\b[^>]*http-equiv\s*=\s*(["'])?content-security-policy\1?[^>]*>/gi, "");
   out = out.replace(/<base\b[^>]*>/gi, "");
 
   const bridge = `<script>
