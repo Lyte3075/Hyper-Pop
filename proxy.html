@@ -81,7 +81,7 @@ function makeTab(url=""){return{id:++serial,url,title:"New Tab",history:[],pos:-
 function activeTab(){return tabs[active]}
 function renderTabs(){tabsEl.replaceChildren(...tabs.map((t,i)=>{const b=document.createElement("button");b.className="tab"+(i===active?" active":"");b.type="button";b.innerHTML='<span class="tab-title"></span><span class="tab-x">×</span>';b.querySelector(".tab-title").textContent=t.title;b.addEventListener("click",e=>{if(e.target.classList.contains("tab-x")){closeTab(i)}else{active=i;render()}});return b}))}
 function closeTab(i){if(tabs.length===1){tabs[0]=makeTab();active=0}else{tabs.splice(i,1);if(active>=tabs.length)active=tabs.length-1;if(active>i)active--}render()}
-function render(){const t=activeTab();renderTabs();address.value=t.url||"";back.disabled=t.pos<=0;forward.disabled=t.pos<0||t.pos>=t.history.length-1;viewport.querySelectorAll("iframe").forEach(x=>x.remove());if(t.frame){viewport.appendChild(t.frame);empty.style.display="none"}else empty.style.display="grid";status.textContent=t.url?("Loaded "+new URL(t.url).hostname):"New tab"}
+function render(){const t=activeTab();if(!t)return;renderTabs();address.value=t.url||"";back.disabled=t.pos<=0;forward.disabled=t.pos<0||t.pos>=t.history.length-1;viewport.querySelectorAll("iframe").forEach(x=>x.remove());if(t.frame){viewport.appendChild(t.frame);empty.style.display="none"}else empty.style.display="grid";status.textContent=t.url?("Loaded "+new URL(t.url).hostname):"New tab"}
 function showBusy(v){loading.classList.toggle("show",v);go.disabled=v}
 async function getPage(url){
   const key="hyperpop-page-cache:"+encodeURIComponent(url);
@@ -136,6 +136,6 @@ home.addEventListener("click",()=>{const t=activeTab();t.url="";t.title="New Tab
 newtab.addEventListener("click",()=>{tabs.push(makeTab());active=tabs.length-1;render();address.focus()});
 tabs=[makeTab()];render();
 </script>
-<script src="app.js?v=browser-1"></script>
+
 </body>
 </html>
