@@ -36,7 +36,7 @@
     <button class="ctrl" id="forward" type="button" aria-label="Forward">›</button>
     <button class="ctrl" id="reload" type="button" aria-label="Reload">↻</button>
     <button class="ctrl" id="home" type="button" aria-label="Home">⌂</button>
-    <input id="address" class="address" inputmode="url" autocomplete="url" spellcheck="false" placeholder="Search or enter web address">
+    <input id="address" class="address" inputmode="url" autocomplete="url" spellcheck="false" placeholder="Search DuckDuckGo or enter a web address">
     <button class="go" id="go" type="button">Go</button>
   </div>
   <div class="status" id="status">New tab</div>
@@ -59,20 +59,27 @@ function writeSiteStore(host,kind,data){try{localStorage.setItem("hyperpop:"+kin
 function addLocalStorageShim(html,url){
  const origin=siteOrigin(url),host=siteHost(url);
  if(!origin||!host)return html;
+ // A site's own CSP meta tag can block the local compatibility shim, so remove it before injection.
+ html=html.replace(/<meta\\b[^>]*http-equiv\\s*=\\s*(["'])?content-security-policy\\1?[^>]*>/gi,"");
  const local=readSiteStore(url,"storage"),cookies=readSiteStore(url,"cookies");
- const payload=JSON.stringify({origin,host,local,cookies}).replace(/</g,"\\u003c");
- const shim=`<script>(function(){
+ const payload=JSON.stringify({origin,host,local,cookies}).replace(/</g,"\\\\u003c");
+ const script=`<script>(function(){
  const cfg=${payload};
  let values=Object.assign({},cfg.local||{}),jar=Object.assign({},cfg.cookies||{});
  function notify(kind,data){try{parent.postMessage({type:"hyperpop-storage",host:kind==="cookies"?cfg.host:cfg.origin,kind,data},"*")}catch(e){}}
- const store={getItem(k){k=String(k);return Object.prototype.hasOwnProperty.call(values,k)?String(values[k]):null},setItem(k,v){values[String(k)]=String(v);notify("storage",values)},removeItem(k){delete values[String(k)];notify("storage",values)},clear(){values={};notify("storage",values)},key(i){return Object.keys(values)[i]??null}};
- Object.defineProperty(store,"length",{get(){return Object.keys(values).length}});
- try{Object.defineProperty(window,"localStorage",{configurable:true,value:store})}catch(e){}
- try{Object.defineProperty(document,"cookie",{configurable:true,get(){return Object.keys(jar).map(k=>k+"="+jar[k]).join("; ")},set(v){const pair=String(v).split(";")[0],i=pair.indexOf("=");if(i<1)return;const k=pair.slice(0,i).trim(),val=pair.slice(i+1).trim();if(!k)return;jar[k]=val;notify("cookies",jar)}})}catch(e){}
- window.addEventListener("storage",function(){});
-})();<\/script>`;
- const head=html.search(/<head\b[^>]*>/i);
- return head>=0?html.slice(0,head+html.slice(head).match(/^<head\b[^>]*>/i)[0].length)+shim+html.slice(head+html.slice(head).match(/^<head\b[^>]*>/i)[0].length):shim+html;
+ function makeStore(source,kind){let values=Object.assign({},source||{});const store={getItem(k){k=String(k);return Object.prototype.hasOwnProperty.call(values,k)?String(values[k]):null},setItem(k,v){values[String(k)]=String(v);notify(kind,values)},removeItem(k){delete values[String(k)];notify(kind,values)},clear(){values={};notify(kind,values)},key(i){return Object.keys(values)[i]??null}};Object.defineProperty(store,"length",{get(){return Object.keys(values).length}});return store}
+ try{Object.defineProperty(window,"localStorage",{configurable:true,value:makeStore(values,"storage")})}catch(e){}
+ try{Object.defineProperty(document,"cookie",{configurable:true,get(){return Object.keys(jar).filter(k=>jar[k]&&typeof jar[k]==="object"?(!jar[k].expires||jar[k].expires>Date.now()):true).map(k=>k+"="+(jar[k]&&typeof jar[k]==="object"?jar[k].value:jar[k])).join("; ")},set(v){
+  const parts=String(v).split(";"),pair=parts.shift()||"",i=pair.indexOf("=");if(i<1)return;
+  const k=pair.slice(0,i).trim(),val=pair.slice(i+1).trim();if(!k)return;
+  let expires=0,remove=false;
+  for(const part of parts){const p=part.trim(),lower=p.toLowerCase();if(lower.startsWith("max-age=")){const n=Number(p.slice(8));if(Number.isFinite(n)){if(n<=0)remove=true;else expires=Date.now()+n*1000}}else if(lower.startsWith("expires=")){const d=Date.parse(p.slice(8));if(Number.isFinite(d)){expires=d;if(d<=Date.now())remove=true}}}
+  if(remove)delete jar[k];else jar[k]={value:val,expires:expires||0};
+  notify("cookies",jar)
+ }})}catch(e){}
+})();<\\/script>`;
+ const headMatch=html.match(/<head\\b[^>]*>/i);
+ return headMatch?html.replace(headMatch[0],headMatch[0]+script):script+html;
 }
 function renderTabs(){tabsEl.replaceChildren(...tabs.map((t,i)=>{const b=document.createElement("button");b.className="tab"+(i===active?" active":"");b.type="button";b.innerHTML='<span class="tab-title"></span><span class="tab-x">×</span>';b.querySelector(".tab-title").textContent=t.title;b.addEventListener("click",e=>{if(e.target.classList.contains("tab-x")){closeTab(i)}else{active=i;render()}});return b}))}
 function closeTab(i){if(tabs.length===1){tabs[0]=makeTab();active=0}else{tabs.splice(i,1);if(active>=tabs.length)active=tabs.length-1;if(active>i)active--}render()}
