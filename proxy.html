@@ -49,7 +49,7 @@
 const ENDPOINT="https://iapnejlttsqqefkpmelp.supabase.co/functions/v1/hyperpop-proxy";
 const tabsEl=document.getElementById("tabs"),newtab=document.getElementById("newtab"),address=document.getElementById("address"),go=document.getElementById("go"),back=document.getElementById("back"),forward=document.getElementById("forward"),reload=document.getElementById("reload"),home=document.getElementById("home"),status=document.getElementById("status"),viewport=document.getElementById("viewport"),empty=document.getElementById("empty"),loading=document.getElementById("loading");
 let tabs=[],active=0,serial=0;
-function normalize(v){v=v.trim();if(!v)return"";if(!/^(https?|about):\/\//i.test(v)){if(/^[^\s.]+\.[^\s.]+/.test(v)||v.includes("/"))v="https://"+v;else v="https://html.duckduckgo.com/html/?q="+encodeURIComponent(v)}return v}
+function normalize(v){v=v.trim();if(!v)return"";if(!/^(https?|about):\/\//i.test(v)){if(/^[^\s.]+\.[^\s.]+/.test(v)||v.includes("/"))v="https://"+v;else v="https://www.bing.com/search?q="+encodeURIComponent(v)}return v}
 function makeTab(url=""){return{id:++serial,url,title:"New Tab",history:[],pos:-1,frame:null}}
 function activeTab(){return tabs[active]}
 function siteOrigin(url){try{return new URL(url).origin}catch{return ""}}
