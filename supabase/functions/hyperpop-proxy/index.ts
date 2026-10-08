@@ -62,7 +62,7 @@ async function fetchPage(start: URL) {
 
 function sanitizeHtml(html: string, baseUrl: URL) {
   let out = html;
-  const blockedTags = ["script", "iframe", "object", "applet", "noscript"];
+  const blockedTags = ["iframe", "object", "applet", "noscript"];
 
   for (const tag of blockedTags) {
     const openTag = "<" + tag;
