@@ -49,84 +49,30 @@
 const ENDPOINT="https://iapnejlttsqqefkpmelp.supabase.co/functions/v1/hyperpop-proxy";
 const tabsEl=document.getElementById("tabs"),newtab=document.getElementById("newtab"),address=document.getElementById("address"),go=document.getElementById("go"),back=document.getElementById("back"),forward=document.getElementById("forward"),reload=document.getElementById("reload"),home=document.getElementById("home"),status=document.getElementById("status"),viewport=document.getElementById("viewport"),empty=document.getElementById("empty"),loading=document.getElementById("loading");
 let tabs=[],active=0,serial=0;
-const PAGE_CACHE_TTL=10*60*1000;
-function siteKey(url){try{return new URL(url).hostname.toLowerCase()}catch{return "unknown"}}
-function readSiteState(url){
-  try{return JSON.parse(localStorage.getItem("hyperpop-browser:"+siteKey(url))||"{}")||{};}catch{return {}}
-}
-function saveSiteState(url,state){
-  try{localStorage.setItem("hyperpop-browser:"+siteKey(url),JSON.stringify(state));}catch{}
-}
-function injectDeviceState(html,url){
-  const state=readSiteState(url);
-  const payload=JSON.stringify({storage:state.storage||{},cookies:state.cookies||{}}).replace(/</g,"\\u003c");
-  const bridge=`<script>
-  (function(){
-    var state=${payload},storage=state.storage||{},cookies=state.cookies||{};
-    function save(){
-      try{parent.postMessage({type:"hyperpop-storage-save",url:location.href,storage:storage,cookies:cookies},"*")}catch(e){}
-    }
-    var ls={get length(){return Object.keys(storage).length},key:function(i){return Object.keys(storage)[i]||null},getItem:function(k){return Object.prototype.hasOwnProperty.call(storage,k)?String(storage[k]):null},setItem:function(k,v){storage[String(k)]=String(v);save()},removeItem:function(k){delete storage[k];save()},clear:function(){storage={};save()}};
-    try{Object.defineProperty(window,"localStorage",{value:ls})}catch(e){}
-    try{Object.defineProperty(window,"sessionStorage",{value:ls})}catch(e){}
-    try{Object.defineProperty(document,"cookie",{get:function(){return Object.entries(cookies).map(function(x){return x[0]+"="+x[1]}).join("; ")},set:function(v){var p=String(v).split(";")[0],i=p.indexOf("=");if(i>0){cookies[p.slice(0,i).trim()]=p.slice(i+1).trim();save()}}})}catch(e){}
-  })();
-  </script>`;
-  const media=html;  const head=media.search(/<head\b[^>]*>/i);
-  if(head>=0){const end=media.indexOf(">",head)+1;return media.slice(0,end)+bridge+media.slice(end)}
-  return bridge+media;
-}
 function normalize(v){v=v.trim();if(!v)return"";if(!/^(https?|about):\/\//i.test(v)){if(/^[^\s.]+\.[^\s.]+/.test(v)||v.includes("/"))v="https://"+v;else v="https://www.google.com/search?q="+encodeURIComponent(v)}return v}
 function makeTab(url=""){return{id:++serial,url,title:"New Tab",history:[],pos:-1,frame:null}}
 function activeTab(){return tabs[active]}
 function renderTabs(){tabsEl.replaceChildren(...tabs.map((t,i)=>{const b=document.createElement("button");b.className="tab"+(i===active?" active":"");b.type="button";b.innerHTML='<span class="tab-title"></span><span class="tab-x">×</span>';b.querySelector(".tab-title").textContent=t.title;b.addEventListener("click",e=>{if(e.target.classList.contains("tab-x")){closeTab(i)}else{active=i;render()}});return b}))}
 function closeTab(i){if(tabs.length===1){tabs[0]=makeTab();active=0}else{tabs.splice(i,1);if(active>=tabs.length)active=tabs.length-1;if(active>i)active--}render()}
-function render(){const t=activeTab();if(!t)return;renderTabs();address.value=t.url||"";back.disabled=t.pos<=0;forward.disabled=t.pos<0||t.pos>=t.history.length-1;viewport.querySelectorAll("iframe").forEach(x=>x.remove());if(t.frame){viewport.appendChild(t.frame);empty.style.display="none"}else empty.style.display="grid";status.textContent=t.url?("Loaded "+new URL(t.url).hostname):"New tab"}
+function render(){const t=activeTab();renderTabs();address.value=t.url||"";back.disabled=t.pos<=0;forward.disabled=t.pos<0||t.pos>=t.history.length-1;viewport.querySelectorAll("iframe").forEach(x=>x.remove());if(t.frame){viewport.appendChild(t.frame);empty.style.display="none"}else empty.style.display="grid";status.textContent=t.url?("Loaded "+new URL(t.url).hostname):"New tab"}
 function showBusy(v){loading.classList.toggle("show",v);go.disabled=v}
-async function getPage(url){
-  const key="hyperpop-page-cache:"+encodeURIComponent(url);
-  if("caches" in window){
-    try{
-      const c=await caches.open("hyperpop-pages-v1"),hit=await c.match(key);
-      if(hit){
-        const saved=Number(hit.headers.get("x-hyperpop-cached-at")||0);
-        if(Date.now()-saved<PAGE_CACHE_TTL)return await hit.json();
-      }
-    }catch{}
-  }
-  const r=await fetch(ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url})});
-  const d=await r.json().catch(()=>({}));
-  if(!r.ok||!d.ok)throw new Error(d.error||"Proxy request failed");
-  if("caches" in window){
-    try{
-      const c=await caches.open("hyperpop-pages-v1");
-      await c.put(key,new Response(JSON.stringify(d),{headers:{"Content-Type":"application/json","x-hyperpop-cached-at":String(Date.now())}}));
-    }catch{}
-  }
-  return d;
-}
 async function load(url,push=true){
  const t=activeTab();url=normalize(url);if(!url)return;
  try{new URL(url)}catch{status.textContent="Invalid URL";return}
  showBusy(true);status.textContent="Fetching "+url+"…";
  try{
-  const d=await getPage(url);
+  const r=await fetch(ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url})});
+  const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||"Proxy request failed");
   t.url=d.url||url;t.title=new URL(t.url).hostname;
   if(push){t.history=t.history.slice(0,t.pos+1);t.history.push(t.url);t.pos=t.history.length-1}
   const frame=document.createElement("iframe");frame.title="Browser page";frame.setAttribute("sandbox","allow-scripts allow-forms allow-popups");
-  frame.srcdoc=injectDeviceState(d.html||"<p>Nothing returned.</p>",t.url);
+  frame.srcdoc=d.html||"<p>Nothing returned.</p>";
   frame.addEventListener("load",()=>{try{const title=frame.contentDocument&&frame.contentDocument.title;if(title)t.title=title;renderTabs()}catch{}});
   t.frame=frame;render();status.textContent="Loaded "+new URL(t.url).hostname+" · HTTP "+d.status;
  }catch(e){status.textContent=e.message||"Could not load page."}
  finally{showBusy(false)}
 }
-window.addEventListener("message",e=>{if(!e.data)return;
- if(e.data.type==="hyperpop-storage-save"&&e.data.url){
-  saveSiteState(e.data.url,{storage:e.data.storage||{},cookies:e.data.cookies||{}});
-  return;
- }
- if(e.data.type==="hyperpop-navigate"&&typeof e.data.url==="string")load(e.data.url,true);
-});
+window.addEventListener("message",e=>{if(!e.data||e.data.type!=="hyperpop-navigate"||typeof e.data.url!=="string")return;load(e.data.url,true)});
 go.addEventListener("click",()=>load(address.value,true));
 address.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();load(address.value,true)}});
 back.addEventListener("click",()=>{const t=activeTab();if(t.pos>0){t.pos--;load(t.history[t.pos],false)}});
@@ -136,6 +82,6 @@ home.addEventListener("click",()=>{const t=activeTab();t.url="";t.title="New Tab
 newtab.addEventListener("click",()=>{tabs.push(makeTab());active=tabs.length-1;render();address.focus()});
 tabs=[makeTab()];render();
 </script>
-
+<script src="app.js?v=browser-1"></script>
 </body>
 </html>
