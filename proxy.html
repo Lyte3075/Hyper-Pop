@@ -1,34 +1,71 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#0b0b16"><title>Hyper-Pop Proxy ✦</title><style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap');
-:root{--bg:#0b0b16;--ink:#f7f4ff;--muted:#aaa7c1;--pink:#ff5db1;--cyan:#4be0e3;--purple:#9b7bff;--line:#ffffff18}*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:radial-gradient(circle at 15% 0,#382052 0,transparent 30%),radial-gradient(circle at 90% 15%,#064450 0,transparent 30%),var(--bg);color:var(--ink);font-family:"Space Grotesk",system-ui,sans-serif}body{overflow-x:hidden}a{color:inherit;text-decoration:none}.wrap{max-width:1200px;margin:auto;padding:0 16px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 0}.logo{font-weight:700;font-size:18px}.accountbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.accountbar a{display:flex;align-items:center;gap:7px;padding:8px 11px;border:1px solid var(--line);border-radius:999px;background:#ffffff08;color:var(--ink);font-size:12px;white-space:nowrap}.profile-img{width:25px;height:25px;border-radius:50%;object-fit:cover}.profile-dot{width:25px;height:25px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,var(--pink),var(--purple),var(--cyan));font-weight:800}.shell{padding:42px 0 20px;text-align:center}.eyebrow{font:11px "DM Mono";letter-spacing:.14em;text-transform:uppercase;color:var(--cyan)}h1{font-size:clamp(44px,11vw,92px);line-height:.9;letter-spacing:-.07em;margin:18px 0;background:linear-gradient(100deg,#fff,var(--pink),var(--yellow,#ffe66d),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}.sub{max-width:650px;margin:0 auto 24px;color:var(--muted);line-height:1.55}.bar{display:flex;gap:8px;max-width:900px;margin:0 auto;flex-wrap:wrap}.url{flex:1;min-width:220px;padding:15px 16px;border-radius:14px;border:1px solid var(--line);outline:none;background:#ffffff09;color:#fff;font:14px "DM Mono"}.url:focus{border-color:#9b7bff88}.go,.tool{min-height:48px;padding:0 16px;border-radius:14px;border:1px solid var(--line);cursor:pointer;font-weight:700}.go{background:#fff;color:#111}.tool{background:#ffffff09;color:#fff}.status{min-height:24px;margin:12px auto;color:var(--muted);font:12px "DM Mono"}.viewer{height:min(72vh,760px);min-height:420px;border:1px solid var(--line);border-radius:22px;overflow:hidden;background:#f7f4ff;box-shadow:0 25px 80px #0008;position:relative}.viewer iframe{width:100%;height:100%;border:0;background:#fff}.placeholder{height:100%;display:grid;place-items:center;padding:30px;color:#625f70;text-align:center}.placeholder strong{display:block;color:#242131;font-size:22px;margin-bottom:8px}.note{max-width:800px;margin:16px auto 40px;color:#77738a;font-size:11px;line-height:1.55;text-align:center}.busy{opacity:.65;pointer-events:none}@media(max-width:600px){.shell{padding-top:28px}.viewer{height:65vh;min-height:360px}.go,.tool{flex:1}.url{flex-basis:100%}}
-</style></head><body><div class="wrap"><div class="top"><a class="logo" href="index.html">← Hyper-Pop</a><div id="account-slot"></div></div><main class="shell"><div class="eyebrow">experimental web viewer ✦</div><h1>PROXY</h1><p class="sub">A lightweight Hyper-Pop web viewer. Enter a public HTTP or HTTPS page and let the tiny internet do some paperwork.</p><form class="bar" id="form"><input id="url" class="url" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://example.com"><button class="go" id="go" type="submit">Go →</button><button class="tool" id="back" type="button">← Back</button><button class="tool" id="reload" type="button">↻ Reload</button></form><div class="status" id="status" aria-live="polite">Ready.</div><section class="viewer" id="viewer"><div class="placeholder" id="placeholder"><div><strong>Nothing loaded yet.</strong>Type a URL above to start.</div></div></section><p class="note">For safety and bandwidth, this first version is intentionally limited: HTTP/HTTPS only, public hosts only, HTML pages only, capped responses, redirects checked, and active page scripts/forms are disabled.</p></main></div><script>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#09090f">
+<title>Hyper-Pop Browser ✦</title>
+<style>
+:root{--bg:#09090f;--panel:#11121b;--panel2:#171925;--ink:#f8f7ff;--muted:#9c99b2;--line:#ffffff16;--cyan:#4be0e3;--pink:#ff5db1;--purple:#9b7bff}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}body{overflow:hidden}button,input{font:inherit}.browser{height:100%;display:flex;flex-direction:column;background:radial-gradient(circle at 10% 0,#302044 0,transparent 28%),radial-gradient(circle at 90% 0,#063b42 0,transparent 30%),var(--bg)}.top{height:48px;display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid var(--line);background:#0b0b13ee}.brand{font-weight:800;white-space:nowrap;margin-right:4px}.brand span{color:var(--cyan)}.top a{color:var(--muted);text-decoration:none;font-size:13px}.tabs{height:40px;display:flex;align-items:end;gap:4px;padding:0 8px;overflow-x:auto;background:#0d0e16}.tab{height:34px;min-width:150px;max-width:240px;padding:0 10px;border:1px solid var(--line);border-bottom:0;border-radius:10px 10px 0 0;background:#14151f;color:var(--muted);display:flex;align-items:center;gap:8px;cursor:pointer}.tab.active{background:var(--panel2);color:var(--ink)}.tab-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}.tab-x{border:0;background:none;color:inherit;cursor:pointer;font-size:18px;padding:2px}.newtab{width:34px;height:34px;border:0;background:transparent;color:var(--ink);font-size:23px;cursor:pointer}.toolbar{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--line);background:var(--panel)}.navbtn{width:40px;height:38px;border:1px solid var(--line);border-radius:10px;background:#ffffff08;color:var(--ink);cursor:pointer;font-size:18px}.navbtn:disabled{opacity:.3;cursor:default}.homebtn{font-size:15px}.address{height:38px;min-width:0;flex:1;border:1px solid var(--line);border-radius:20px;background:#090a11;color:var(--ink);padding:0 15px;outline:none;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}.address:focus{border-color:#9b7bff88}.go{height:38px;padding:0 16px;border:0;border-radius:20px;background:#fff;color:#111;font-weight:800;cursor:pointer}.more{font-size:22px}.status{height:25px;padding:5px 12px;color:var(--muted);font:11px ui-monospace,SFMono-Regular,Menlo,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:#0c0d14}.view{position:relative;flex:1;min-height:0;background:#fff}.view iframe{width:100%;height:100%;border:0;background:#fff}.welcome{height:100%;display:grid;place-items:center;text-align:center;padding:30px;background:radial-gradient(circle at 50% 35%,#2b1a3c,transparent 35%),#0c0d14}.welcome-card{max-width:600px}.welcome h1{font-size:clamp(42px,10vw,88px);letter-spacing:-.07em;margin:0 0 12px;background:linear-gradient(100deg,#fff,var(--pink),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}.welcome p{color:var(--muted);line-height:1.5}.quick{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:20px}.quick button{border:1px solid var(--line);background:#ffffff08;color:#fff;border-radius:999px;padding:10px 14px;cursor:pointer}.menu{position:absolute;right:10px;top:98px;width:210px;padding:8px;border:1px solid var(--line);border-radius:14px;background:#151621f5;backdrop-filter:blur(18px);z-index:20;box-shadow:0 20px 60px #0008}.menu button{display:block;width:100%;padding:11px;border:0;border-radius:9px;background:none;color:#fff;text-align:left;cursor:pointer}.menu button:hover{background:#ffffff0d}.hidden{display:none!important}@media(max-width:650px){.brand{display:none}.tab{min-width:130px}.toolbar{gap:5px}.navbtn{width:36px}.go{padding:0 12px}.address{font-size:12px}.menu{top:96px}}
+</style>
+</head>
+<body>
+<div class="browser">
+  <header class="top">
+    <a href="index.html" class="brand">Hyper-Pop <span>✦</span> Browser</a>
+    <div id="account-slot"></div>
+  </header>
+  <div class="tabs" id="tabs"></div>
+  <div class="toolbar">
+    <button class="navbtn" id="back" title="Back">‹</button>
+    <button class="navbtn" id="forward" title="Forward">›</button>
+    <button class="navbtn" id="reload" title="Reload">↻</button>
+    <button class="navbtn homebtn" id="home" title="Home">⌂</button>
+    <input class="address" id="address" inputmode="url" autocomplete="url" spellcheck="false" placeholder="Search or enter a web address">
+    <button class="go" id="go">Go</button>
+    <button class="navbtn more" id="more" title="Browser menu">⋯</button>
+  </div>
+  <div class="status" id="status" aria-live="polite">New tab</div>
+  <main class="view" id="view"></main>
+  <div class="menu hidden" id="menu">
+    <button id="newTabMenu">＋ New tab</button>
+    <button id="duplicate">⧉ Duplicate tab</button>
+    <button id="fullscreen">⛶ Fullscreen</button>
+    <button id="copyUrl">Copy current URL</button>
+    <button id="closeTab">× Close tab</button>
+  </div>
+</div>
+<script>
 const ENDPOINT='https://iapnejlttsqqefkpmelp.supabase.co/functions/v1/hyperpop-proxy';
-const form=document.getElementById('form'),url=document.getElementById('url'),go=document.getElementById('go'),status=document.getElementById('status'),viewer=document.getElementById('viewer'),placeholder=document.getElementById('placeholder'),back=document.getElementById('back'),reload=document.getElementById('reload');
-let current='',historyStack=[];
-function normalize(v){v=v.trim();if(!v)return '';if(!/^https?:\/\//i.test(v))v='https://'+v;return v}
-function setBusy(b){form.classList.toggle('busy',b);go.disabled=b}
-function showStatus(t){status.textContent=t}
-async function load(target,push=true){
- target=normalize(target);if(!target){showStatus('Enter a URL first.');return}
- try{new URL(target)}catch{showStatus('That URL is not valid.');return}
- setBusy(true);showStatus('Fetching page…');
- try{
-  const r=await fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:target})});
-  const d=await r.json().catch(()=>({}));
-  if(!r.ok||!d.ok)throw new Error(d.error||('Proxy returned HTTP '+r.status));
-  current=d.url||target;url.value=current;
-  if(push&&current!==historyStack.at(-1))historyStack.push(current);
-  const frame=document.createElement('iframe');frame.setAttribute('title','Proxied website');frame.setAttribute('sandbox','allow-scripts allow-forms');
-  const safeBase=(current||target).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const pageHtml=d.html||'<p>No HTML returned.</p>';
-  frame.srcdoc=pageHtml.replace(/<head([^>]*)>/i,'<head$1><base href="'+safeBase+'">');
-  viewer.replaceChildren(frame);showStatus('Loaded '+new URL(current).hostname+' · HTTP '+d.status);
- }catch(e){showStatus(e.message||'Could not load that page.');if(!viewer.querySelector('.placeholder'))viewer.replaceChildren(placeholder)}
- finally{setBusy(false)}
-}
-form.addEventListener('submit',e=>{e.preventDefault();load(url.value)});
-reload.addEventListener('click',()=>{if(current)load(current,false);else showStatus('Nothing to reload yet.')});
-back.addEventListener('click',()=>{if(historyStack.length>1){historyStack.pop();load(historyStack.at(-1),false)}else showStatus('No previous page in this session.')});
-url.addEventListener('keydown',e=>{if(e.key==='Escape'){url.value=current}});
-</script><script src="app.js"></script></body></html>
+const tabsEl=document.getElementById('tabs'),view=document.getElementById('view'),address=document.getElementById('address'),status=document.getElementById('status'),menu=document.getElementById('menu');
+let tabs=[],activeId=0,nextId=1;
+
+function normalize(v){v=v.trim();if(!v)return '';if(/^https?:\/\//i.test(v))return v;if(/^[a-z0-9.-]+\.[a-z]{2,}(?:\/|$)/i.test(v))return 'https://'+v;return 'https://www.google.com/search?q='+encodeURIComponent(v)}
+function homePage(){return '<div class="welcome"><div class="welcome-card"><h1>Hyper-Pop</h1><p>Your tiny internet browser. Type a URL or a search above.</p><div class="quick"><button data-url="https://www.google.com/">Google</button><button data-url="https://www.wikipedia.org/">Wikipedia</button><button data-url="https://example.com/">Example</button></div></div></div>'}
+function newTab(url=''){const t={id:nextId++,url:'',title:'New Tab',history:[],pos:-1,html:''};tabs.push(t);activeId=t.id;renderTabs();renderActive();if(url)load(url);return t}
+function active(){return tabs.find(t=>t.id===activeId)}
+function renderTabs(){tabsEl.replaceChildren(...tabs.map(t=>{const b=document.createElement('button');b.className='tab'+(t.id===activeId?' active':'');b.innerHTML='<span class="tab-title"></span><span class="tab-x">×</span>';b.querySelector('.tab-title').textContent=t.title;b.addEventListener('click',e=>{if(e.target.classList.contains('tab-x')){closeTab(t.id)}else{activeId=t.id;renderTabs();renderActive()}});return b}),Object.assign(document.createElement('button'),{className:'newtab',textContent:'+'}));tabsEl.lastChild.addEventListener('click',()=>newTab())}
+function renderActive(){const t=active();if(!t)return;if(t.html){view.innerHTML='';const frame=document.createElement('iframe');frame.title=t.title;frame.setAttribute('sandbox','allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox');frame.srcdoc=t.html;view.appendChild(frame)}else view.innerHTML=homePage();address.value=t.url||'';status.textContent=t.url?'Loaded '+new URL(t.url).hostname:'New tab';document.querySelectorAll('.quick button').forEach(b=>b.addEventListener('click',()=>load(b.dataset.url)));document.getElementById('back').disabled=t.pos<=0;document.getElementById('forward').disabled=t.pos<0||t.pos>=t.history.length-1}
+async function load(raw,push=true){const t=active();const target=normalize(raw);if(!target)return;try{new URL(target)}catch{status.textContent='Invalid address';return}address.value=target;status.textContent='Loading '+target+'…';document.querySelector('.toolbar').style.opacity='.7';
+try{const r=await fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:target})});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||('Proxy returned HTTP '+r.status));t.url=d.url||target;t.title=new URL(t.url).hostname;if(push){t.history=t.history.slice(0,t.pos+1);t.history.push(t.url);t.pos=t.history.length-1}t.html=d.html||'<h1>Empty page</h1>';renderTabs();renderActive()}catch(e){status.textContent=e.message||'Could not load page'}finally{document.querySelector('.toolbar').style.opacity='1'}}
+function goBack(){const t=active();if(t&&t.pos>0){t.pos--;load(t.history[t.pos],false)}}
+function goForward(){const t=active();if(t&&t.pos<t.history.length-1){t.pos++;load(t.history[t.pos],false)}}
+function closeTab(id){if(tabs.length===1){tabs[0].url='';tabs[0].html='';tabs[0].history=[];tabs[0].pos=-1;tabs[0].title='New Tab';renderTabs();renderActive();return}const i=tabs.findIndex(t=>t.id===id);tabs=tabs.filter(t=>t.id!==id);if(activeId===id)activeId=tabs[Math.max(0,i-1)].id;renderTabs();renderActive()}
+document.getElementById('go').onclick=()=>load(address.value);
+address.addEventListener('keydown',e=>{if(e.key==='Enter')load(address.value)});
+document.getElementById('back').onclick=goBack;
+document.getElementById('forward').onclick=goForward;
+document.getElementById('reload').onclick=()=>{const t=active();if(t?.url)load(t.url,false)};
+document.getElementById('home').onclick=()=>{const t=active();t.url='';t.html='';t.history=[];t.pos=-1;t.title='New Tab';renderTabs();renderActive()};
+document.getElementById('more').onclick=()=>menu.classList.toggle('hidden');
+document.getElementById('newTabMenu').onclick=()=>{menu.classList.add('hidden');newTab()};
+document.getElementById('duplicate').onclick=()=>{const t=active();menu.classList.add('hidden');newTab(t?.url||'')};
+document.getElementById('closeTab').onclick=()=>{menu.classList.add('hidden');closeTab(activeId)};
+document.getElementById('fullscreen').onclick=()=>{menu.classList.add('hidden');document.documentElement.requestFullscreen?.()};
+document.getElementById('copyUrl').onclick=async()=>{menu.classList.add('hidden');if(active()?.url)address.select();status.textContent='URL selected'};
+newTab();
+</script>
+<script src="app.js"></script>
+</body>
+</html>
