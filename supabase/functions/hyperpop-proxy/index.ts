@@ -92,7 +92,7 @@ function rewriteUrl(raw: string, baseUrl: URL, resource: boolean) {
 function rewriteHtml(html: string, baseUrl: URL) {
   let out = html;
 
-  for (const tag of ["iframe", "object", "applet", "noscript"]) {
+  for (const tag of ["object", "applet", "noscript"]) {
     const open = "<" + tag;
     const close = "</" + tag + ">";
     while (true) {
@@ -117,6 +117,7 @@ function rewriteHtml(html: string, baseUrl: URL) {
   };
 
   out = out.replace(/(<script\b[^>]*\bsrc\s*=\s*)(["'])(.*?)(\2)/gis, (_m, p, q, raw) => p + q + resource(raw) + q);
+  out = out.replace(/(<iframe\b[^>]*\bsrc\s*=\s*)(["'])(.*?)(\2)/gis, (_m, p, q, raw) => p + q + page(raw) + q);
   out = out.replace(/(<img\b[^>]*\bsrc\s*=\s*)(["'])(.*?)(\2)/gis, (_m, p, q, raw) => p + q + resource(raw) + q);
   out = out.replace(/(<(?:source|video|audio|track|input)\b[^>]*\bsrc\s*=\s*)(["'])(.*?)(\2)/gis, (_m, p, q, raw) => p + q + resource(raw) + q);
   out = out.replace(/(<link\b[^>]*\bhref\s*=\s*)(["'])(.*?)(\2)/gis, (_m, p, q, raw) => p + q + resource(raw) + q);
@@ -169,9 +170,9 @@ function rewriteHtml(html: string, baseUrl: URL) {
   return "<!doctype html>\n" + out;
 }
 function rewriteCss(css: string, baseUrl: URL) {
-  return css.replace(/url\\(\\s*(["']?)(.*?)\\1\\s*\\)/gi, (m, q, raw) =>
+  return css.replace(/url\(\s*(["']?)(.*?)\1\s*\)/gi, (_m, q, raw) =>
     "url(" + q + rewriteUrl(raw, baseUrl, true) + q + ")"
-  ).replace(/@import\\s+(["'])(.*?)\\1/gi, (m, q, raw) =>
+  ).replace(/@import\s+(["'])(.*?)\1/gi, (_m, q, raw) =>
     "@import " + q + rewriteUrl(raw, baseUrl, true) + q
   );
 }
