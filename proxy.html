@@ -60,9 +60,9 @@ function addLocalStorageShim(html,url){
  const origin=siteOrigin(url),host=siteHost(url);
  if(!origin||!host)return html;
  // A site's own CSP meta tag can block the local compatibility shim, so remove it before injection.
- html=html.replace(/<meta\\b[^>]*http-equiv\\s*=\\s*(["'])?content-security-policy\\1?[^>]*>/gi,"");
+ html=html.replace(/<meta\b[^>]*http-equiv\s*=\s*(["'])?content-security-policy\1?[^>]*>/gi,"");
  const local=readSiteStore(url,"storage"),cookies=readSiteStore(url,"cookies");
- const payload=JSON.stringify({origin,host,local,cookies}).replace(/</g,"\\\\u003c");
+ const payload=JSON.stringify({origin,host,local,cookies}).replace(/</g,"\\u003c");
  const script=`<script>(function(){
  const cfg=${payload};
  let values=Object.assign({},cfg.local||{}),jar=Object.assign({},cfg.cookies||{});
