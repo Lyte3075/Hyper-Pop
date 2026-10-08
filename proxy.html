@@ -36,7 +36,7 @@
     <button class="ctrl" id="forward" type="button" aria-label="Forward">›</button>
     <button class="ctrl" id="reload" type="button" aria-label="Reload">↻</button>
     <button class="ctrl" id="home" type="button" aria-label="Home">⌂</button>
-    <input id="address" class="address" inputmode="url" autocomplete="url" spellcheck="false" placeholder="Search the web or enter a web address">
+    <input id="address" class="address" inputmode="url" autocomplete="url" spellcheck="false" placeholder="Search Wikipedia or enter a web address">
     <button class="go" id="go" type="button">Go</button>
   </div>
   <div class="status" id="status">New tab</div>
@@ -49,7 +49,37 @@
 const ENDPOINT="https://iapnejlttsqqefkpmelp.supabase.co/functions/v1/hyperpop-proxy";
 const tabsEl=document.getElementById("tabs"),newtab=document.getElementById("newtab"),address=document.getElementById("address"),go=document.getElementById("go"),back=document.getElementById("back"),forward=document.getElementById("forward"),reload=document.getElementById("reload"),home=document.getElementById("home"),status=document.getElementById("status"),viewport=document.getElementById("viewport"),empty=document.getElementById("empty"),loading=document.getElementById("loading");
 let tabs=[],active=0,serial=0;
-function normalize(v){v=v.trim();if(!v)return"";if(!/^(https?|about):\/\//i.test(v)){if(/^[^\s.]+\.[^\s.]+/.test(v)||v.includes("/"))v="https://"+v;else v="https://www.mojeek.com/search?q="+encodeURIComponent(v)}return v}
+function isSearchQuery(v){v=v.trim();return !!v&&!/^(https?|about):\/\//i.test(v)&&!(/^[^\s.]+\.[^\s.]+/.test(v)||v.includes("/"))}
+function normalize(v){v=v.trim();if(!v)return"";if(!/^(https?|about):\/\//i.test(v)){if(/^[^\s.]+\.[^\s.]+/.test(v)||v.includes("/"))v="https://"+v;else return "search:"+v}return v}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+async function searchWikipedia(query){
+ const t=activeTab();showBusy(true);status.textContent="Searching Wikipedia…";
+ try{
+  const api="https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch="+encodeURIComponent(query)+"&format=json&origin=*&srlimit=10";
+  const response=await fetch(api,{headers:{"Accept":"application/json"}});
+  if(!response.ok)throw new Error("Search service returned HTTP "+response.status);
+  const data=await response.json(),results=data&&data.query&&data.query.search||[];
+  const panel=document.createElement("section");
+  panel.style.cssText="height:100%;overflow:auto;background:#fff;color:#242235;padding:clamp(18px,4vw,38px);font-family:system-ui,sans-serif";
+  panel.innerHTML='<div style="max-width:850px;margin:0 auto"><div style="font:11px monospace;letter-spacing:.12em;text-transform:uppercase;color:#7866bf;margin-bottom:8px">HYPER-POP SEARCH</div><h1 style="font-size:clamp(25px,5vw,36px);margin:0 0 6px">Results for '+escapeHtml(query)+'</h1><p style="color:#6b687d;margin:0 0 24px">Wikipedia articles · Search results stay inside Hyper-Pop</p><div id="hp-results"></div><p style="font-size:12px;color:#77738a;margin-top:26px">These are encyclopedia results, not a full-web search index.</p></div>';
+  const list=panel.querySelector("#hp-results");
+  if(!results.length){list.innerHTML='<p>No matching articles found. Try different keywords or enter a website address above.</p>'}
+  results.forEach(item=>{
+   const card=document.createElement("article");card.style.cssText="padding:16px 0;border-top:1px solid #e8e6f0";
+   const link=document.createElement("a");link.href="https://en.wikipedia.org/wiki/"+encodeURIComponent(item.title.replace(/ /g,"_"));link.textContent=item.title;link.style.cssText="font-size:19px;font-weight:700;color:#4b42b8;text-decoration:none";
+   link.addEventListener("click",e=>{e.preventDefault();load(link.href,true)});
+   const snippet=document.createElement("div");snippet.style.cssText="margin-top:7px;line-height:1.55;color:#484657";snippet.innerHTML=item.snippet||"Open this article on Wikipedia.";
+   card.append(link,snippet);list.append(card);
+  });
+  t.url="search:"+query;t.title="Search: "+query;
+  if(t.frame){t.frame.remove();t.frame=null}
+  if(t.searchPanel)t.searchPanel.remove();
+  t.searchPanel=panel;viewport.appendChild(panel);empty.style.display="none";
+  if(t.history[t.pos]!==t.url){t.history=t.history.slice(0,t.pos+1);t.history.push(t.url);t.pos=t.history.length-1}
+  renderTabs();address.value=query;back.disabled=t.pos<=0;forward.disabled=t.pos>=t.history.length-1;status.textContent=results.length+" Wikipedia results · "+query;
+ }catch(e){status.textContent=e.message||"Search failed."}
+ finally{showBusy(false)}
+}
 function makeTab(url=""){return{id:++serial,url,title:"New Tab",history:[],pos:-1,frame:null,searchQuery:""}}
 function activeTab(){return tabs[active]}
 function siteOrigin(url){try{return new URL(url).origin}catch{return ""}}
@@ -117,7 +147,7 @@ async function load(url,push=true){
   const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||"Proxy request failed");
   t.url=d.url||url;t.searchQuery="";t.title=new URL(t.url).hostname;
   if(push){t.history=t.history.slice(0,t.pos+1);t.history.push(t.url);t.pos=t.history.length-1}
-  const frame=document.createElement("iframe");frame.title="Browser page";frame.setAttribute("sandbox","allow-scripts allow-forms allow-pointer-lock allow-modals allow-downloads");frame.allow="fullscreen; autoplay; gamepad";frame.allowFullscreen=true;
+  if(t.searchPanel){t.searchPanel.remove();t.searchPanel=null;}const frame=document.createElement("iframe");frame.title="Browser page";frame.setAttribute("sandbox","allow-scripts allow-forms allow-pointer-lock allow-modals allow-downloads");frame.allow="fullscreen; autoplay; gamepad";frame.allowFullscreen=true;
   frame.srcdoc=addLocalStorageShim(d.html||"<p>Nothing returned.</p>",t.url);
   frame.addEventListener("load",()=>{try{const title=frame.contentDocument&&frame.contentDocument.title;if(title)t.title=title;renderTabs()}catch{}});
   t.frame=frame;render();status.textContent="Loaded "+new URL(t.url).hostname+" · HTTP "+d.status;
