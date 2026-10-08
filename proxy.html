@@ -49,7 +49,7 @@
 const ENDPOINT="https://iapnejlttsqqefkpmelp.supabase.co/functions/v1/hyperpop-proxy";
 const tabsEl=document.getElementById("tabs"),newtab=document.getElementById("newtab"),address=document.getElementById("address"),go=document.getElementById("go"),back=document.getElementById("back"),forward=document.getElementById("forward"),reload=document.getElementById("reload"),home=document.getElementById("home"),status=document.getElementById("status"),viewport=document.getElementById("viewport"),empty=document.getElementById("empty"),loading=document.getElementById("loading");
 let tabs=[],active=0,serial=0;
-function normalize(v){v=v.trim();if(!v)return"";if(!/^(https?|about):\/\//i.test(v)){if(/^[^\s.]+\.[^\s.]+/.test(v)||v.includes("/"))v="https://"+v;else v="https://duckduckgo.com/?q="+encodeURIComponent(v)}return v}
+function normalize(v){v=v.trim();if(!v)return"";if(!/^(https?|about):\/\//i.test(v)){if(/^[^\s.]+\.[^\s.]+/.test(v)||v.includes("/"))v="https://"+v;else v="https://html.duckduckgo.com/html/?q="+encodeURIComponent(v)}return v}
 function makeTab(url=""){return{id:++serial,url,title:"New Tab",history:[],pos:-1,frame:null}}
 function activeTab(){return tabs[active]}
 function siteOrigin(url){try{return new URL(url).origin}catch{return ""}}
@@ -78,8 +78,8 @@ function addLocalStorageShim(html,url){
   if(remove)delete jar[k];else jar[k]={value:val,expires:expires||0};
   notify("cookies",jar)
  }})}catch(e){}
-})();<\\/script>`;
- const headMatch=html.match(/<head\\b[^>]*>/i);
+})();<\/script>`;
+ const headMatch=html.match(/<head\b[^>]*>/i);
  return headMatch?html.replace(headMatch[0],headMatch[0]+script):script+html;
 }
 function renderTabs(){tabsEl.replaceChildren(...tabs.map((t,i)=>{const b=document.createElement("button");b.className="tab"+(i===active?" active":"");b.type="button";b.innerHTML='<span class="tab-title"></span><span class="tab-x">×</span>';b.querySelector(".tab-title").textContent=t.title;b.addEventListener("click",e=>{if(e.target.classList.contains("tab-x")){closeTab(i)}else{active=i;render()}});return b}))}
@@ -95,7 +95,7 @@ async function load(url,push=true){
   const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||"Proxy request failed");
   t.url=d.url||url;t.title=new URL(t.url).hostname;
   if(push){t.history=t.history.slice(0,t.pos+1);t.history.push(t.url);t.pos=t.history.length-1}
-  const frame=document.createElement("iframe");frame.title="Browser page";frame.setAttribute("sandbox","allow-scripts allow-forms allow-popups allow-pointer-lock allow-modals allow-downloads");frame.allow="fullscreen; autoplay; gamepad";frame.allowFullscreen=true;
+  const frame=document.createElement("iframe");frame.title="Browser page";frame.setAttribute("sandbox","allow-scripts allow-forms allow-pointer-lock allow-modals allow-downloads");frame.allow="fullscreen; autoplay; gamepad";frame.allowFullscreen=true;
   frame.srcdoc=addLocalStorageShim(d.html||"<p>Nothing returned.</p>",t.url);
   frame.addEventListener("load",()=>{try{const title=frame.contentDocument&&frame.contentDocument.title;if(title)t.title=title;renderTabs()}catch{}});
   t.frame=frame;render();status.textContent="Loaded "+new URL(t.url).hostname+" · HTTP "+d.status;
