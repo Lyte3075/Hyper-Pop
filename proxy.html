@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#0b0b16"><title>Hyper-Pop Proxy ✦</title><style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+:root{--bg:#0b0b16;--ink:#f7f4ff;--muted:#aaa7c1;--pink:#ff5db1;--cyan:#4be0e3;--purple:#9b7bff;--line:#ffffff18}*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:radial-gradient(circle at 15% 0,#382052 0,transparent 30%),radial-gradient(circle at 90% 15%,#064450 0,transparent 30%),var(--bg);color:var(--ink);font-family:"Space Grotesk",system-ui,sans-serif}body{overflow-x:hidden}a{color:inherit;text-decoration:none}.wrap{max-width:1200px;margin:auto;padding:0 16px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 0}.logo{font-weight:700;font-size:18px}.account{font-size:12px;color:var(--muted)}.shell{padding:42px 0 20px;text-align:center}.eyebrow{font:11px "DM Mono";letter-spacing:.14em;text-transform:uppercase;color:var(--cyan)}h1{font-size:clamp(44px,11vw,92px);line-height:.9;letter-spacing:-.07em;margin:18px 0;background:linear-gradient(100deg,#fff,var(--pink),var(--yellow,#ffe66d),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}.sub{max-width:650px;margin:0 auto 24px;color:var(--muted);line-height:1.55}.bar{display:flex;gap:8px;max-width:900px;margin:0 auto;flex-wrap:wrap}.url{flex:1;min-width:220px;padding:15px 16px;border-radius:14px;border:1px solid var(--line);outline:none;background:#ffffff09;color:#fff;font:14px "DM Mono"}.url:focus{border-color:#9b7bff88}.go,.tool{min-height:48px;padding:0 16px;border-radius:14px;border:1px solid var(--line);cursor:pointer;font-weight:700}.go{background:#fff;color:#111}.tool{background:#ffffff09;color:#fff}.status{min-height:24px;margin:12px auto;color:var(--muted);font:12px "DM Mono"}.viewer{height:min(72vh,760px);min-height:420px;border:1px solid var(--line);border-radius:22px;overflow:hidden;background:#f7f4ff;box-shadow:0 25px 80px #0008;position:relative}.viewer iframe{width:100%;height:100%;border:0;background:#fff}.placeholder{height:100%;display:grid;place-items:center;padding:30px;color:#625f70;text-align:center}.placeholder strong{display:block;color:#242131;font-size:22px;margin-bottom:8px}.note{max-width:800px;margin:16px auto 40px;color:#77738a;font-size:11px;line-height:1.55;text-align:center}.busy{opacity:.65;pointer-events:none}@media(max-width:600px){.shell{padding-top:28px}.viewer{height:65vh;min-height:360px}.go,.tool{flex:1}.url{flex-basis:100%}}
+</style></head><body><div class="wrap"><div class="top"><a class="logo" href="index.html">← Hyper-Pop</a><div class="account"><a href="accounts.html">👤 Account</a></div></div><main class="shell"><div class="eyebrow">experimental web viewer ✦</div><h1>PROXY</h1><p class="sub">A lightweight Hyper-Pop web viewer. Enter a public HTTP or HTTPS page and let the tiny internet do some paperwork.</p><form class="bar" id="form"><input id="url" class="url" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://example.com"><button class="go" id="go" type="submit">Go →</button><button class="tool" id="back" type="button">← Back</button><button class="tool" id="reload" type="button">↻ Reload</button></form><div class="status" id="status" aria-live="polite">Ready.</div><section class="viewer" id="viewer"><div class="placeholder" id="placeholder"><div><strong>Nothing loaded yet.</strong>Type a URL above to start.</div></div></section><p class="note">For safety and bandwidth, this first version is intentionally limited: HTTP/HTTPS only, public hosts only, HTML pages only, capped responses, redirects checked, and active page scripts/forms are disabled.</p></main></div><script>
+const ENDPOINT='https://iapnejlttsqqefkpmelp.supabase.co/functions/v1/hyperpop-proxy';
+const form=document.getElementById('form'),url=document.getElementById('url'),go=document.getElementById('go'),status=document.getElementById('status'),viewer=document.getElementById('viewer'),placeholder=document.getElementById('placeholder'),back=document.getElementById('back'),reload=document.getElementById('reload');
+let current='',historyStack=[];
+function normalize(v){v=v.trim();if(!v)return '';if(!/^https?:\/\//i.test(v))v='https://'+v;return v}
+function setBusy(b){form.classList.toggle('busy',b);go.disabled=b}
+function showStatus(t){status.textContent=t}
+async function load(target,push=true){
+ target=normalize(target);if(!target){showStatus('Enter a URL first.');return}
+ try{new URL(target)}catch{showStatus('That URL is not valid.');return}
+ setBusy(true);showStatus('Fetching page…');
+ try{
+  const r=await fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:target})});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok||!d.ok)throw new Error(d.error||('Proxy returned HTTP '+r.status));
+  current=d.url||target;url.value=current;
+  if(push&&current!==historyStack.at(-1))historyStack.push(current);
+  const frame=document.createElement('iframe');frame.setAttribute('title','Proxied website');frame.setAttribute('sandbox','allow-same-origin');frame.srcdoc=d.html||'<p>No HTML returned.</p>';
+  viewer.replaceChildren(frame);showStatus('Loaded '+new URL(current).hostname+' · HTTP '+d.status);
+ }catch(e){showStatus(e.message||'Could not load that page.');if(!viewer.querySelector('.placeholder'))viewer.replaceChildren(placeholder)}
+ finally{setBusy(false)}
+}
+form.addEventListener('submit',e=>{e.preventDefault();load(url.value)});
+reload.addEventListener('click',()=>{if(current)load(current,false);else showStatus('Nothing to reload yet.')});
+back.addEventListener('click',()=>{if(historyStack.length>1){historyStack.pop();load(historyStack.at(-1),false)}else showStatus('No previous page in this session.')});
+url.addEventListener('keydown',e=>{if(e.key==='Escape'){url.value=current}});
+</script><script src="app.js"></script></body></html>
