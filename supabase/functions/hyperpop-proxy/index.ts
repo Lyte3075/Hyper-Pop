@@ -107,15 +107,15 @@ function rewriteHtml(html: string, baseUrl: URL) {
   const resource = (raw: string) => rewriteUrl(raw, baseUrl, true);
   const page = (raw: string) => raw.trim().startsWith("#") ? raw : rewriteUrl(raw, baseUrl, false);
 
-  out = out.replace(/(<script\\b[^>]*\\bsrc\\s*=\\s*)(["'])(.*?)(\\2)/gis, (_m, p, q, raw) => p + q + resource(raw) + q);
-  out = out.replace(/(<img\\b[^>]*\\bsrc\\s*=\\s*)(["'])(.*?)(\\2)/gis, (_m, p, q, raw) => p + q + resource(raw) + q);
-  out = out.replace(/(<(?:source|video|audio|track|input)\\b[^>]*\\bsrc\\s*=\\s*)(["'])(.*?)(\\2)/gis, (_m, p, q, raw) => p + q + resource(raw) + q);
-  out = out.replace(/(<link\\b[^>]*\\bhref\\s*=\\s*)(["'])(.*?)(\\2)/gis, (_m, p, q, raw) => p + q + resource(raw) + q);
-  out = out.replace(/(<(?:a|area)\\b[^>]*\\bhref\\s*=\\s*)(["'])(.*?)(\\2)/gis, (_m, p, q, raw) => p + q + page(raw) + q);
-  out = out.replace(/(<form\\b[^>]*\\baction\\s*=\\s*)(["'])(.*?)(\\2)/gis, (_m, p, q, raw) => p + q + page(raw) + q);
-  out = out.replace(/(\\bsrcset\\s*=\\s*)(["'])(.*?)(\\2)/gis, (_m, p, q, raw) => {
+  out = out.replace(/(<script\b[^>]*\bsrc\s*=\s*)(["'])(.*?)(\2)/gis, (_m, p, q, raw) => p + q + resource(raw) + q);
+  out = out.replace(/(<img\b[^>]*\bsrc\s*=\s*)(["'])(.*?)(\2)/gis, (_m, p, q, raw) => p + q + resource(raw) + q);
+  out = out.replace(/(<(?:source|video|audio|track|input)\b[^>]*\bsrc\s*=\s*)(["'])(.*?)(\2)/gis, (_m, p, q, raw) => p + q + resource(raw) + q);
+  out = out.replace(/(<link\b[^>]*\bhref\s*=\s*)(["'])(.*?)(\2)/gis, (_m, p, q, raw) => p + q + resource(raw) + q);
+  out = out.replace(/(<(?:a|area)\b[^>]*\bhref\s*=\s*)(["'])(.*?)(\2)/gis, (_m, p, q, raw) => p + q + page(raw) + q);
+  out = out.replace(/(<form\b[^>]*\baction\s*=\s*)(["'])(.*?)(\2)/gis, (_m, p, q, raw) => p + q + page(raw) + q);
+  out = out.replace(/(\bsrcset\s*=\s*)(["'])(.*?)(\2)/gis, (_m, p, q, raw) => {
     const value = raw.split(",").map((part: string) => {
-      const bits = part.trim().split(/\\s+/);
+      const bits = part.trim().split(/\s+/);
       if (!bits[0]) return part;
       bits[0] = resource(bits[0]);
       return bits.join(" ");
@@ -123,9 +123,9 @@ function rewriteHtml(html: string, baseUrl: URL) {
     return p + q + value + q;
   });
 
-  out = out.replace(/\\s+on[a-z0-9_-]+\\s*=\\s*(?:"[^"]*"|'[^']*'|[^\\s>]+)/gi, "");
-  out = out.replace(/\\s+srcdoc\\s*=\\s*(?:"[^"]*"|'[^']*'|[^\\s>]+)/gi, "");
-  out = out.replace(/<base\\b[^>]*>/gi, "");
+  out = out.replace(/\s+on[a-z0-9_-]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "");
+  out = out.replace(/\s+srcdoc\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "");
+  out = out.replace(/<base\b[^>]*>/gi, "");
 
   const bridge = `<script>
 (function(){
@@ -157,7 +157,7 @@ function rewriteHtml(html: string, baseUrl: URL) {
   if (bodyEnd >= 0) out = out.slice(0, bodyEnd) + bridge + out.slice(bodyEnd);
   else out += bridge;
 
-  return "<!doctype html>\\n" + out;
+  return "<!doctype html>\n" + out;
 }
 function rewriteCss(css: string, baseUrl: URL) {
   return css.replace(/url\\(\\s*(["']?)(.*?)\\1\\s*\\)/gi, (m, q, raw) =>
