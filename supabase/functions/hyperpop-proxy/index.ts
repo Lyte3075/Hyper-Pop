@@ -206,12 +206,67 @@ async function resourceResponse(target: URL) {
   return new Response(body, { status: response.status, headers });
 }
 
+
+async function searchWeb(query: string) {
+  const cleanQuery = query.trim().slice(0, 240);
+  if (!cleanQuery) throw new Error("Enter something to search.");
+  const headers = { "Accept": "application/json", "User-Agent": "Hyper-Pop/1.0 (built-in search)" };
+
+  // Try one public SearXNG JSON API for general web results. If unavailable,
+  // fall back to Wikipedia's stable public search API.
+  try {
+    const url = new URL("https://search.sapti.me/search");
+    url.searchParams.set("q", cleanQuery);
+    url.searchParams.set("format", "json");
+    url.searchParams.set("safesearch", "1");
+    const response = await fetch(url, { headers, signal: AbortSignal.timeout(8000) });
+    if (response.ok) {
+      const data = await response.json();
+      const results = Array.isArray(data?.results) ? data.results.slice(0, 10).map((item: any) => ({
+        title: String(item?.title || "Untitled result").slice(0, 300),
+        url: String(item?.url || ""),
+        content: String(item?.content || item?.description || "").replace(/<[^>]*>/g, " ").slice(0, 700)
+      })).filter((item: any) => {
+        try { const u = new URL(item.url); return ["http:", "https:"].includes(u.protocol); } catch { return false; }
+      }) : [];
+      const suggestions = Array.isArray(data?.suggestions) ? data.suggestions.slice(0, 6).map((s: unknown) => String(s).slice(0, 120)) : [];
+      if (results.length) return { ok: true, provider: "Web search", results, suggestions };
+    }
+  } catch (_error) {
+    // Continue to the stable fallback below.
+  }
+
+  const api = new URL("https://en.wikipedia.org/w/api.php");
+  api.searchParams.set("action", "query");
+  api.searchParams.set("list", "search");
+  api.searchParams.set("srsearch", cleanQuery);
+  api.searchParams.set("format", "json");
+  api.searchParams.set("srlimit", "10");
+  const response = await fetch(api, { headers, signal: AbortSignal.timeout(8000) });
+  if (!response.ok) throw new Error("Search is temporarily unavailable. Please try again.");
+  const data = await response.json();
+  const hits = Array.isArray(data?.query?.search) ? data.query.search : [];
+  const results = hits.map((item: any) => ({
+    title: String(item?.title || "Wikipedia article").slice(0, 300),
+    url: "https://en.wikipedia.org/wiki/" + encodeURIComponent(String(item?.title || "").replace(/ /g, "_")),
+    content: String(item?.snippet || "").replace(/<[^>]*>/g, " ").replace(/&quot;/g, '"').replace(/&#039;/g, "'").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").slice(0, 700)
+  }));
+  return { ok: true, provider: "Wikipedia fallback", results, suggestions: [] };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
     const requestUrl = new URL(req.url);
     const rawTarget = requestUrl.searchParams.get("url") || "";
+
+    if (req.method === "GET" && requestUrl.searchParams.get("search") === "1") {
+      const query = requestUrl.searchParams.get("q") || "";
+      if (query.length > 240) return json({ ok: false, error: "Search query is too long." }, 400);
+      const results = await searchWeb(query);
+      return json(results);
+    }
 
     if (req.method === "GET" && requestUrl.searchParams.get("resource") === "1") {
       const target = validateUrl(rawTarget);
