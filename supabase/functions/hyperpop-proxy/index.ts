@@ -119,11 +119,18 @@ function rewriteHtml(html: string, baseUrl: URL) {
   out = out.replace(/(<script\b[^>]*\bsrc\s*=\s*)(["'])(.*?)(\2)/gis, (_m, p, q, raw) => p + q + resource(raw) + q);
   out = out.replace(/(<iframe\b[^>]*\bsrc\s*=\s*)(["'])(.*?)(\2)/gis, (_m, p, q, raw) => p + q + page(raw) + q);
   out = out.replace(/(<img\b[^>]*\bsrc\s*=\s*)(["'])(.*?)(\2)/gis, (_m, p, q, raw) => p + q + resource(raw) + q);
+  out = out.replace(/(<img\b[^>]*\s(?:data-src|data-original|data-lazy-src)\s*=\s*)(["'])(.*?)(\2)/gis, (_m, p, q, raw) => p + q + resource(raw) + q);
+  out = out.replace(/(<(?:source|video|audio|track|input)\b[^>]*\s(?:data-src|data-original|data-lazy-src|poster)\s*=\s*)(["'])(.*?)(\2)/gis, (_m, p, q, raw) => p + q + resource(raw) + q);
+  out = out.replace(/(<img\b[^>]*\s(?:src|data-src|data-original|data-lazy-src)\s*=\s*)(?!["'])([^\s>]+)/gi, (_m, p, raw) => p + '"' + resource(raw) + '"');
+  out = out.replace(/(<(?:source|video|audio|track)\b[^>]*\s(?:src|data-src|data-original|data-lazy-src|poster)\s*=\s*)(?!["'])([^\s>]+)/gi, (_m, p, raw) => p + '"' + resource(raw) + '"');
+  out = out.replace(/(<image\b[^>]*\s(?:href|xlink:href)\s*=\s*)(["'])(.*?)(\2)/gis, (_m, p, q, raw) => p + q + resource(raw) + q);
+  out = out.replace(/(\sstyle\s*=\s*)(["'])([\s\S]*?)\2/gi, (_m, p, q, css) => p + q + rewriteCss(css, baseUrl) + q);
+  out = out.replace(/(<style\b[^>]*>)([\s\S]*?)(<\/style\s*>)/gi, (_m, open, css, close) => open + rewriteCss(css, baseUrl) + close);
   out = out.replace(/(<(?:source|video|audio|track|input)\b[^>]*\bsrc\s*=\s*)(["'])(.*?)(\2)/gis, (_m, p, q, raw) => p + q + resource(raw) + q);
   out = out.replace(/(<link\b[^>]*\bhref\s*=\s*)(["'])(.*?)(\2)/gis, (_m, p, q, raw) => p + q + resource(raw) + q);
   out = out.replace(/(<(?:a|area)\b[^>]*\bhref\s*=\s*)(["'])(.*?)(\2)/gis, (_m, p, q, raw) => p + q + page(raw) + q);
   out = out.replace(/(<form\b[^>]*\baction\s*=\s*)(["'])(.*?)(\2)/gis, (_m, p, q, raw) => p + q + page(raw) + q);
-  out = out.replace(/(\bsrcset\s*=\s*)(["'])(.*?)(\2)/gis, (_m, p, q, raw) => {
+  out = out.replace(/(\s(?:srcset|data-srcset)\s*=\s*)(["'])(.*?)(\2)/gis, (_m, p, q, raw) => {
     const value = raw.split(",").map((part: string) => {
       const bits = part.trim().split(/\s+/);
       if (!bits[0]) return part;
@@ -141,6 +148,7 @@ function rewriteHtml(html: string, baseUrl: URL) {
   const bridge = `<script>
 (function(){
   function send(url){ try { parent.postMessage({type:"hyperpop-navigate",url:new URL(url,document.baseURI).href},"*"); } catch(e){} }
+  try { window.open = function(url){ if(url) send(url); return null; }; } catch(e) {}
   document.addEventListener("click",function(e){
     var a=e.target.closest&&e.target.closest("a[href]");
     if(!a)return;
