@@ -19,7 +19,10 @@ async function load(target,push=true){
   if(!r.ok||!d.ok)throw new Error(d.error||('Proxy returned HTTP '+r.status));
   current=d.url||target;url.value=current;
   if(push&&current!==historyStack.at(-1))historyStack.push(current);
-  const frame=document.createElement('iframe');frame.setAttribute('title','Proxied website');frame.setAttribute('sandbox','allow-same-origin');frame.srcdoc=d.html||'<p>No HTML returned.</p>';
+  const frame=document.createElement('iframe');frame.setAttribute('title','Proxied website');frame.setAttribute('sandbox','allow-scripts allow-forms');
+  const safeBase=(current||target).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const pageHtml=d.html||'<p>No HTML returned.</p>';
+  frame.srcdoc=pageHtml.replace(/<head([^>]*)>/i,'<head$1><base href="'+safeBase+'">');
   viewer.replaceChildren(frame);showStatus('Loaded '+new URL(current).hostname+' · HTTP '+d.status);
  }catch(e){showStatus(e.message||'Could not load that page.');if(!viewer.querySelector('.placeholder'))viewer.replaceChildren(placeholder)}
  finally{setBusy(false)}
