@@ -207,35 +207,8 @@ async function resourceResponse(target: URL) {
 }
 
 
-async function searchWeb(query: string) {
-  const cleanQuery = query.trim().slice(0, 240);
-  if (!cleanQuery) throw new Error("Enter something to search.");
+async function searchWikipedia(cleanQuery: string) {
   const headers = { "Accept": "application/json", "User-Agent": "Hyper-Pop/1.0 (built-in search)" };
-
-  // Try one public SearXNG JSON API for general web results. If unavailable,
-  // fall back to Wikipedia's stable public search API.
-  try {
-    const url = new URL("https://search.sapti.me/search");
-    url.searchParams.set("q", cleanQuery);
-    url.searchParams.set("format", "json");
-    url.searchParams.set("safesearch", "1");
-    const response = await fetch(url, { headers, signal: AbortSignal.timeout(8000) });
-    if (response.ok) {
-      const data = await response.json();
-      const results = Array.isArray(data?.results) ? data.results.slice(0, 10).map((item: any) => ({
-        title: String(item?.title || "Untitled result").slice(0, 300),
-        url: String(item?.url || ""),
-        content: String(item?.content || item?.description || "").replace(/<[^>]*>/g, " ").slice(0, 700)
-      })).filter((item: any) => {
-        try { const u = new URL(item.url); return ["http:", "https:"].includes(u.protocol); } catch { return false; }
-      }) : [];
-      const suggestions = Array.isArray(data?.suggestions) ? data.suggestions.slice(0, 6).map((s: unknown) => String(s).slice(0, 120)) : [];
-      if (results.length) return { ok: true, provider: "Web search", results, suggestions };
-    }
-  } catch (_error) {
-    // Continue to the stable fallback below.
-  }
-
   const api = new URL("https://en.wikipedia.org/w/api.php");
   api.searchParams.set("action", "query");
   api.searchParams.set("list", "search");
@@ -252,6 +225,47 @@ async function searchWeb(query: string) {
     content: String(item?.snippet || "").replace(/<[^>]*>/g, " ").replace(/&quot;/g, '"').replace(/&#039;/g, "'").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").slice(0, 700)
   }));
   return { ok: true, provider: "Wikipedia fallback", results, suggestions: [] };
+}
+
+async function searchWeb(query: string) {
+  const cleanQuery = query.trim().slice(0, 240);
+  if (!cleanQuery) throw new Error("Enter something to search.");
+
+  // TinyFish Search is the primary provider. If the key is absent, the request
+  // fails, the service rate-limits us, or it returns no usable results, use Wikipedia.
+  const apiKey = Deno.env.get("TINYFISH_API_KEY");
+  if (apiKey) {
+    try {
+      const url = new URL("https://api.search.tinyfish.ai/");
+      url.searchParams.set("query", cleanQuery);
+      url.searchParams.set("location", "US");
+      url.searchParams.set("language", "en");
+      const response = await fetch(url, {
+        headers: { "Accept": "application/json", "X-API-Key": apiKey },
+        signal: AbortSignal.timeout(10000)
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const results = Array.isArray(data?.results) ? data.results.slice(0, 10).map((item: any) => {
+          let resultUrl = String(item?.url || "").trim();
+          if (resultUrl && !/^https?:\/\//i.test(resultUrl)) resultUrl = "https://" + resultUrl.replace(/^\/\//, "");
+          return {
+            title: String(item?.title || "Untitled result").slice(0, 300),
+            url: resultUrl,
+            content: String(item?.snippet || item?.description || "").replace(/<[^>]*>/g, " ").slice(0, 700)
+          };
+        }).filter((item: any) => {
+          try { const u = new URL(item.url); return ["http:", "https:"].includes(u.protocol); } catch { return false; }
+        }) : [];
+        const suggestions = Array.isArray(data?.suggestions) ? data.suggestions.slice(0, 6).map((s: unknown) => String(s).slice(0, 120)) : [];
+        if (results.length) return { ok: true, provider: "TinyFish Search", results, suggestions };
+      }
+    } catch (_error) {
+      // Use the backup below when TinyFish is unavailable or the key is not configured.
+    }
+  }
+
+  return await searchWikipedia(cleanQuery);
 }
 
 Deno.serve(async (req) => {
