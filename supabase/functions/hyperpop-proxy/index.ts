@@ -61,27 +61,38 @@ async function fetchPage(start: URL) {
 }
 
 function sanitizeHtml(html: string, baseUrl: URL) {
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  if (!doc) throw new Error("The target returned invalid HTML.");
-  for (const selector of ["script","iframe","object","embed","applet","base","meta[http-equiv=" + String.fromCharCode(39) + "refresh" + String.fromCharCode(39) + "]","noscript"]) {
-    doc.querySelectorAll(selector).forEach((el) => el.remove());
-  }
-  doc.querySelectorAll("*").forEach((el) => {
-    for (const attr of Array.from(el.attributes)) {
-      const name = attr.name.toLowerCase();
-      if (name.startsWith("on") || name === "srcdoc") el.removeAttribute(attr.name);
+  let out = html;
+
+  // Edge Functions run on Deno, so there is no browser DOMParser.
+  // Remove entire executable/embed blocks, not just their tags.
+  out = out.replace(/<script\\b[^>]*>[\\s\\S]*?<\\/script\\s*>/gi, "");
+  out = out.replace(/<iframe\\b[^>]*>[\\s\\S]*?<\\/iframe\\s*>/gi, "");
+  out = out.replace(/<object\\b[^>]*>[\\s\\S]*?<\\/object\\s*>/gi, "");
+  out = out.replace(/<embed\\b[^>]*>/gi, "");
+  out = out.replace(/<applet\\b[^>]*>[\\s\\S]*?<\\/applet\\s*>/gi, "");
+  out = out.replace(/<noscript\\b[^>]*>[\\s\\S]*?<\\/noscript\\s*>/gi, "");
+  out = out.replace(/<base\\b[^>]*>/gi, "");
+  out = out.replace(/<meta\\b[^>]*http-equiv\\s*=\\s*["']?refresh["']?[^>]*>/gi, "");
+
+  // Remove inline event handlers and srcdoc attributes.
+  out = out.replace(/\\s+on[a-z0-9_-]+\\s*=\\s*(?:"[^"]*"|'[^']*'|[^\\s>]+)/gi, "");
+  out = out.replace(/\\s+srcdoc\\s*=\\s*(?:"[^"]*"|'[^']*'|[^\\s>]+)/gi, "");
+
+  const rewrite = (match: string, attr: string, quote: string, raw: string) => {
+    try {
+      const absolute = new URL(raw, baseUrl);
+      if (!["http:", "https:"].includes(absolute.protocol)) return match;
+      return attr + "=" + quote + "/proxy.html?url=" + encodeURIComponent(absolute.toString()) + quote;
+    } catch {
+      return match;
     }
-    for (const attrName of ["href","action"]) {
-      const raw = el.getAttribute(attrName);
-      if (!raw) continue;
-      try {
-        const absolute = new URL(raw, baseUrl);
-        if (!["http:","https:"].includes(absolute.protocol)) { el.removeAttribute(attrName); continue; }
-        el.setAttribute(attrName, "/proxy.html?url=" + encodeURIComponent(absolute.toString()));
-      } catch { el.removeAttribute(attrName); }
-    }
-  });
-  return "<!doctype html>\\n" + doc.documentElement.outerHTML;
+  };
+
+  // Keep ordinary links/forms inside the Hyper-Pop proxy.
+  out = out.replace(/\\b(href|action)\\s*=\\s*(["'])(.*?)\\2/gi,
+    (m, attr, quote, raw) => rewrite(m, attr, quote, raw));
+
+  return "<!doctype html>\\n" + out;
 }
 
 Deno.serve(async (req) => {
