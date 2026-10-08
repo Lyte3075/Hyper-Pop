@@ -62,39 +62,26 @@ async function fetchPage(start: URL) {
 
 function sanitizeHtml(html: string, baseUrl: URL) {
   let out = html;
+  const blockedTags = ["script", "iframe", "object", "applet", "noscript"];
 
-  // Edge Functions run on Deno, so there is no browser DOMParser.
-  // Remove entire executable/embed blocks, not just their tags.
-  out = out.replace(/<script\\b[^>]*>[\\s\\S]*?<\\/script\\s*>/gi, "");
-  out = out.replace(/<iframe\\b[^>]*>[\\s\\S]*?<\\/iframe\\s*>/gi, "");
-  out = out.replace(/<object\\b[^>]*>[\\s\\S]*?<\\/object\\s*>/gi, "");
-  out = out.replace(/<embed\\b[^>]*>/gi, "");
-  out = out.replace(/<applet\\b[^>]*>[\\s\\S]*?<\\/applet\\s*>/gi, "");
-  out = out.replace(/<noscript\\b[^>]*>[\\s\\S]*?<\\/noscript\\s*>/gi, "");
-  out = out.replace(/<base\\b[^>]*>/gi, "");
-  out = out.replace(/<meta\\b[^>]*http-equiv\\s*=\\s*["']?refresh["']?[^>]*>/gi, "");
-
-  // Remove inline event handlers and srcdoc attributes.
-  out = out.replace(/\\s+on[a-z0-9_-]+\\s*=\\s*(?:"[^"]*"|'[^']*'|[^\\s>]+)/gi, "");
-  out = out.replace(/\\s+srcdoc\\s*=\\s*(?:"[^"]*"|'[^']*'|[^\\s>]+)/gi, "");
-
-  const rewrite = (match: string, attr: string, quote: string, raw: string) => {
-    try {
-      const absolute = new URL(raw, baseUrl);
-      if (!["http:", "https:"].includes(absolute.protocol)) return match;
-      return attr + "=" + quote + "/proxy.html?url=" + encodeURIComponent(absolute.toString()) + quote;
-    } catch {
-      return match;
+  for (const tag of blockedTags) {
+    const openTag = "<" + tag;
+    const closeTag = "</" + tag + ">";
+    while (true) {
+      const lower = out.toLowerCase();
+      const start = lower.indexOf(openTag);
+      if (start === -1) break;
+      const end = lower.indexOf(closeTag, start);
+      if (end === -1) {
+        out = out.slice(0, start);
+        break;
+      }
+      out = out.slice(0, start) + out.slice(end + closeTag.length);
     }
-  };
+  }
 
-  // Keep ordinary links/forms inside the Hyper-Pop proxy.
-  out = out.replace(/\\b(href|action)\\s*=\\s*(["'])(.*?)\\2/gi,
-    (m, attr, quote, raw) => rewrite(m, attr, quote, raw));
-
-  return "<!doctype html>\\n" + out;
+  return "<!doctype html>\n" + out;
 }
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ ok:false, error:"POST required." }, 405);
