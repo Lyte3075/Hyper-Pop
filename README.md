@@ -2,6 +2,8 @@
 A playful collection of tiny games, useful-ish tools, doodles, and internet experiments.
 
 # Links
-Github Pages: https://lyte3075.github.io/Hyper-Pop/
+Github Pages:
+https://lyte3075.github.io/Hyper-Pop/
 
-PNTR.dev: https://hyper-pop.pntr.dev/
+PNTR.dev:
+https://hyper-pop.pntr.dev/
