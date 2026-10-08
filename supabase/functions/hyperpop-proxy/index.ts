@@ -135,6 +135,7 @@ function rewriteHtml(html: string, baseUrl: URL) {
   out = out.replace(/\s+on[a-z0-9_-]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "");
   out = out.replace(/\s+srcdoc\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "");
   out = out.replace(/<base\b[^>]*>/gi, "");
+  const baseTag = "<base href="" + baseUrl.toString().replace(/"/g, "&quot;") + "">";
 
   const bridge = `<script>
 (function(){
