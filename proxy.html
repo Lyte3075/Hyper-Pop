@@ -61,14 +61,15 @@ function addLocalStorageShim(html,url){
  if(!origin||!host)return html;
  // A site's own CSP meta tag can block the local compatibility shim, so remove it before injection.
  html=html.replace(/<meta\b[^>]*http-equiv\s*=\s*(["'])?content-security-policy\1?[^>]*>/gi,"");
- const local=readSiteStore(url,"storage"),cookies=readSiteStore(url,"cookies");
- const payload=JSON.stringify({origin,host,local,cookies}).replace(/</g,"\\u003c");
+ const local=readSiteStore(url,"storage"),session=readSiteStore(url,"session"),cookies=readSiteStore(url,"cookies");
+ const payload=JSON.stringify({origin,host,local,session,cookies}).replace(/</g,"\\u003c");
  const script=`<script>(function(){
  const cfg=${payload};
- let values=Object.assign({},cfg.local||{}),jar=Object.assign({},cfg.cookies||{});
+ let values=Object.assign({},cfg.local||{}),sessionValues=Object.assign({},cfg.session||{}),jar=Object.assign({},cfg.cookies||{});
  function notify(kind,data){try{parent.postMessage({type:"hyperpop-storage",host:kind==="cookies"?cfg.host:cfg.origin,kind,data},"*")}catch(e){}}
  function makeStore(source,kind){let values=Object.assign({},source||{});const store={getItem(k){k=String(k);return Object.prototype.hasOwnProperty.call(values,k)?String(values[k]):null},setItem(k,v){values[String(k)]=String(v);notify(kind,values)},removeItem(k){delete values[String(k)];notify(kind,values)},clear(){values={};notify(kind,values)},key(i){return Object.keys(values)[i]??null}};Object.defineProperty(store,"length",{get(){return Object.keys(values).length}});return store}
  try{Object.defineProperty(window,"localStorage",{configurable:true,value:makeStore(values,"storage")})}catch(e){}
+ try{Object.defineProperty(window,"sessionStorage",{configurable:true,value:makeStore(sessionValues,"session")})}catch(e){}
  try{Object.defineProperty(document,"cookie",{configurable:true,get(){return Object.keys(jar).filter(k=>jar[k]&&typeof jar[k]==="object"?(!jar[k].expires||jar[k].expires>Date.now()):true).map(k=>k+"="+(jar[k]&&typeof jar[k]==="object"?jar[k].value:jar[k])).join("; ")},set(v){
   const parts=String(v).split(";"),pair=parts.shift()||"",i=pair.indexOf("=");if(i<1)return;
   const k=pair.slice(0,i).trim(),val=pair.slice(i+1).trim();if(!k)return;
@@ -103,7 +104,7 @@ async function load(url,push=true){
 }
 window.addEventListener("message",e=>{
  if(!e.data||!e.data.type)return;
- if(e.data.type==="hyperpop-storage"&&(e.data.kind==="storage"||e.data.kind==="cookies")&&e.data.data&&typeof e.data.data==="object"){
+ if(e.data.type==="hyperpop-storage"&&(e.data.kind==="storage"||e.data.kind==="session"||e.data.kind==="cookies")&&e.data.data&&typeof e.data.data==="object"){
   const owner=tabs.find(t=>t.frame&&t.frame.contentWindow===e.source);
   if(!owner||!owner.url)return;
   const expected=e.data.kind==="cookies"?siteHost(owner.url):siteOrigin(owner.url);
