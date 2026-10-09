@@ -216,8 +216,30 @@ async function load(url,push=true){
  try{new URL(url)}catch{status.textContent="Invalid URL";return}
  showBusy(true);status.textContent="Fetching "+url+"…";
  try{
-  const r=await fetch(ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url})});
-  const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||"Proxy request failed");
+  let r,d,lastError;
+  for(let attempt=0;attempt<3;attempt++){
+   try{
+    r=await fetch(ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url})});
+    d=await r.json().catch(()=>({}));
+    if(r.ok&&d.ok)break;
+    lastError=new Error(d.error||"Proxy request failed");
+    if(attempt<2&&/error sending request for url|temporarily unavailable|could not connect|network|fetch failed/i.test(lastError.message)){
+     status.textContent="Connection hiccup. Retrying ("+(attempt+2)+"/3)…";
+     await new Promise(resolve=>setTimeout(resolve,500*(attempt+1)));
+     continue;
+    }
+    throw lastError;
+   }catch(error){
+    lastError=error;
+    if(attempt<2&&/error sending request for url|temporarily unavailable|could not connect|network|fetch failed|load failed/i.test(String(error&&error.message||error))){
+     status.textContent="Connection hiccup. Retrying ("+(attempt+2)+"/3)…";
+     await new Promise(resolve=>setTimeout(resolve,500*(attempt+1)));
+     continue;
+    }
+    throw error;
+   }
+  }
+  if(!r||!r.ok||!d||!d.ok)throw lastError||new Error("Could not load this page after several attempts. Try again.");
   t.url=d.url||url;t.searchQuery="";t.title=new URL(t.url).hostname;
   if(push){t.history=t.history.slice(0,t.pos+1);t.history.push(t.url);t.pos=t.history.length-1}
   if(t.searchPanel){t.searchPanel.remove();t.searchPanel=null;}const frame=document.createElement("iframe");frame.title="Browser page";frame.setAttribute("sandbox","allow-scripts allow-forms allow-pointer-lock allow-modals allow-downloads");frame.allow="fullscreen; autoplay; gamepad";frame.allowFullscreen=true;
