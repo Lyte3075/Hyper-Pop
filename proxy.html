@@ -210,11 +210,41 @@ async function loadSearch(query,push=true,page=0){
  }catch(e){status.textContent=e.message||"Search failed."}
  finally{showBusy(false)}
 }
+function mediaReaderPage(url){
+ const u=new URL(url), host=u.hostname.toLowerCase();
+ let kind="", source=url, title="Media player", note="";
+ if(/(^|\.)youtube\.com$|(^|\.)youtu\.be$/.test(host)){
+  let id=u.searchParams.get("v")||"";
+  if(host==="youtu.be")id=u.pathname.split("/").filter(Boolean)[0]||"";
+  const m=u.pathname.match(/\/(?:shorts|embed|live)\/([^/?]+)/);if(!id&&m)id=m[1];
+  if(!/^[\w-]{11}$/.test(id)){return null}
+  kind="youtube";source="https://www.youtube-nocookie.com/embed/"+id+"?autoplay=0&rel=0";title="YouTube";
+  note="Video plays in YouTube’s official embedded player. Some videos restrict embedding or require sign-in.";
+ }else if(/(^|\.)spotify\.com$/.test(host)){
+  const m=u.pathname.match(/^\/(track|album|playlist|episode|show)\/([A-Za-z0-9]+)/);
+  if(!m)return null;
+  kind="spotify";source="https://open.spotify.com/embed/"+m[1]+"/"+m[2]+"?utm_source=generator";title="Spotify";
+  note="Music plays through Spotify’s official player. Playback and sign-in requirements depend on Spotify.";
+ }else if(/\.(mp4|m4v|webm|ogv|mov)(?:$)/i.test(u.pathname)){
+  kind="video";title="Video player";note="Direct video file";
+ }else if(/\.(mp3|m4a|aac|ogg|oga|wav|flac|opus)(?:$)/i.test(u.pathname)){
+  kind="audio";title="Audio player";note="Direct audio file";
+ }else return null;
+ const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+ const player=kind==="youtube"||kind==="spotify"
+  ? '<iframe class="embed" src="'+esc(source)+'" title="'+title+'" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" allowfullscreen loading="eager"></iframe>'
+  : kind==="video" ? '<video controls playsinline preload="metadata" src="'+esc(ENDPOINT+"?resource=1&url="+encodeURIComponent(url))+'"></video>'
+  : '<audio controls preload="metadata" src="'+esc(ENDPOINT+"?resource=1&url="+encodeURIComponent(url))+'"></audio>';
+ return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+title+' · Hyper-Pop</title><style>*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 10% 0,#26204b,transparent 45%),#090914;color:#f7f5ff;font:16px system-ui,-apple-system,sans-serif;display:grid;place-items:center;padding:22px}.card{width:min(900px,100%);padding:clamp(18px,4vw,34px);border:1px solid #ffffff20;border-radius:24px;background:#151522;box-shadow:0 20px 70px #0006}.eyebrow{font-size:11px;letter-spacing:.15em;color:#4be0e3;font-weight:800;text-transform:uppercase}.card h1{margin:8px 0 20px;font-size:clamp(24px,5vw,38px);letter-spacing:-.04em}.embed{display:block;width:100%;aspect-ratio:16/9;border:0;border-radius:14px;background:#000}.card video{width:100%;max-height:70vh;border-radius:14px;background:#000}.card audio{width:100%;margin:24px 0}.note{margin:18px 0 0;color:#b5b1cb;font-size:13px;line-height:1.6}.url{margin-top:16px;color:#85809f;font-size:11px;overflow-wrap:anywhere}</style></head><body><main class="card"><div class="eyebrow">Hyper-Pop media</div><h1>'+title+'</h1>'+player+'<p class="note">'+esc(note)+'</p><div class="url">'+esc(u.hostname+u.pathname)+'</div></main></body></html>';
+}
+
 async function load(url,push=true){
  const t=activeTab();const raw=String(url||"").trim();if(!raw)return;
  if(!/^(https?|about):\/\//i.test(raw)&&!/^[^\s.]+\.[^\s.]+/.test(raw)&&!raw.includes("/"))return loadSearch(raw,push);
  url=normalize(url);if(!url)return;
  try{new URL(url)}catch{status.textContent="Invalid URL";return}
+ const mediaPage=mediaReaderPage(url);
+ if(mediaPage){t.url=url;t.searchQuery="";t.title=new URL(url).hostname;if(push){t.history=t.history.slice(0,t.pos+1);t.history.push(url);t.pos=t.history.length-1}if(t.searchPanel){t.searchPanel.remove();t.searchPanel=null}const frame=document.createElement("iframe");frame.title="Hyper-Pop media player";frame.setAttribute("sandbox","allow-scripts allow-forms allow-same-origin allow-presentation");frame.allow="autoplay; encrypted-media; fullscreen; picture-in-picture";frame.allowFullscreen=true;frame.srcdoc=mediaPage;t.frame=frame;render();status.textContent="Media player · "+new URL(url).hostname;return}
  showBusy(true);status.textContent="Fetching "+url+"…";
  try{
   let r,d,lastError;
