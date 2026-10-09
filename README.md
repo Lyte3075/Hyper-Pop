@@ -7,3 +7,5 @@ https://lyte3075.github.io/Hyper-Pop/
 
 PNTR.dev:
 https://hyper-pop.pntr.dev/
+
+# QR Code
