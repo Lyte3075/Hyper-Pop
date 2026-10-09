@@ -180,14 +180,18 @@ function addLocalStorageShim(html,url){
   if(form.target&&form.target!=="_self")return;
   if(form.querySelector('input[type="password"],input[type="file"]'))return;
   const enctype=String(form.enctype||"application/x-www-form-urlencoded").toLowerCase();
-  if(method==="POST"&&enctype!=="application/x-www-form-urlencoded")return;
+  if(method==="POST"){
+   e.preventDefault();
+   parent.postMessage({type:"hyperpop-form-unsupported",message:"This form uses POST. Hyper-Pop keeps POST submissions disabled for privacy and security. Try a GET/search form, or open the site directly if you trust it."},"*");
+   return;
+  }
   let target;try{target=new URL(form.getAttribute("action")||location.href,document.querySelector("base")?.href||cfg.origin)}catch(e){return}
   if(!/^https?:$/.test(target.protocol))return;
   e.preventDefault();
   const data=new URLSearchParams();
   for(const [key,value] of new FormData(form).entries()){if(typeof value==="string")data.append(key,value)}
   if(method==="GET"){for(const [key,value] of data.entries())target.searchParams.append(key,value);parent.postMessage({type:"hyperpop-navigate",url:target.toString()},"*");return}
-  parent.postMessage({type:"hyperpop-form-submit",url:target.toString(),method:"POST",contentType:"application/x-www-form-urlencoded",body:data.toString()},"*");
+  return;
  },true);
 })();<\/script>`;
  const headMatch=html.match(/<head\b[^>]*>/i);
@@ -360,6 +364,7 @@ async function load(url,push=true,formRequest=null){
 }
 window.addEventListener("message",e=>{
  if(!e.data||!e.data.type)return;
+ if(e.data.type==="hyperpop-form-unsupported"){status.textContent=String(e.data.message||"This form type is not supported inside Hyper-Pop.");return}
  if(e.data.type==="hyperpop-spotify-account"){const t=activeTab();const frame=document.createElement("iframe");frame.title="Spotify account and web player";frame.setAttribute("sandbox","allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation");frame.allow="autoplay; encrypted-media; clipboard-write; fullscreen; picture-in-picture";frame.src="https://open.spotify.com/";t.url="https://open.spotify.com/";t.title="Spotify · Account";t.searchQuery="";if(t.history){t.history=t.history.slice(0,t.pos+1);t.history.push(t.url);t.pos=t.history.length-1}t.frame=frame;render();status.textContent="Spotify account · sign in on Spotify";return}
  if(e.data.type==="hyperpop-storage"&&(e.data.kind==="storage"||e.data.kind==="session"||e.data.kind==="cookies")&&e.data.data&&typeof e.data.data==="object"){
   const owner=tabs.find(t=>t.frame&&t.frame.contentWindow===e.source);
@@ -369,10 +374,7 @@ window.addEventListener("message",e=>{
   writeSiteStore(expected,e.data.kind,e.data.data);return;
  }
  if(e.data.type==="hyperpop-navigate"&&typeof e.data.url==="string")load(e.data.url,true);
- if(e.data.type==="hyperpop-form-submit"&&typeof e.data.url==="string"&&e.data.method==="POST"&&typeof e.data.body==="string"){
-  if(e.data.body.length>16000){status.textContent="Form is too large to submit through Hyper-Pop.";return}
-  load(e.data.url,true,{method:"POST",contentType:"application/x-www-form-urlencoded",body:e.data.body});
- }
+
 
  if(e.data.type==="hyperpop-youtube-search"&&typeof e.data.query==="string"&&e.data.query.trim())loadYoutubeHome(true,"home",e.data.query.trim());
  if(e.data.type==="hyperpop-youtube-like"&&typeof e.data.id==="string"){
