@@ -329,7 +329,7 @@ async function load(url,push=true){
   if(!r||!r.ok||!d||!d.ok)throw lastError||new Error("Could not load this page after several attempts. Try again.");
   t.url=d.url||url;t.searchQuery="";t.title=new URL(t.url).hostname;
   if(push){t.history=t.history.slice(0,t.pos+1);t.history.push(t.url);t.pos=t.history.length-1}
-  if(t.searchPanel){t.searchPanel.remove();t.searchPanel=null;}const frame=document.createElement("iframe");frame.title="Browser page";frame.setAttribute("sandbox","allow-scripts allow-forms allow-pointer-lock allow-modals allow-downloads");frame.allow="fullscreen; autoplay; gamepad";frame.allowFullscreen=true;
+  if(t.searchPanel){t.searchPanel.remove();t.searchPanel=null;}const frame=document.createElement("iframe");frame.title="Browser page";frame.setAttribute("sandbox","allow-scripts allow-forms allow-pointer-lock allow-modals allow-downloads allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation");frame.allow="fullscreen; autoplay; gamepad";frame.allowFullscreen=true;
   frame.srcdoc=addLocalStorageShim(d.html||"<p>Nothing returned.</p>",t.url);
   frame.addEventListener("load",()=>{try{const title=frame.contentDocument&&frame.contentDocument.title;if(title)t.title=title;renderTabs()}catch{}});
   t.frame=frame;render();status.textContent="Loaded "+new URL(t.url).hostname+" · HTTP "+d.status;
