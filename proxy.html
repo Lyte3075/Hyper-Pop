@@ -18,7 +18,14 @@
 .ctrl{width:40px;height:40px;border:1px solid var(--line);background:#ffffff07;border-radius:10px;cursor:pointer;font-weight:700}.ctrl:disabled{opacity:.3;cursor:default}
 .address{flex:1;min-width:0;height:42px;border:1px solid var(--line);border-radius:12px;background:#080810;color:#fff;padding:0 14px;font:14px "DM Mono";outline:none}.address:focus{border-color:#9b7bff88}.go{height:42px;padding:0 15px;border:0;border-radius:12px;background:#fff;color:#111;font-weight:800;cursor:pointer}
 .status{height:27px;padding:6px 14px;background:#0d0d17;color:var(--muted);font:11px "DM Mono";white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.viewport{position:relative;flex:1;min-height:0;background:#fff}.viewport iframe{width:100%;height:100%;border:0;background:#fff}.empty{height:100%;display:grid;place-items:center;color:#77738a;text-align:center;background:#f8f7ff}.empty strong{display:block;color:#252332;font-size:28px;margin-bottom:7px}.empty code{font:12px "DM Mono";color:#77738a}
+.viewport{position:relative;flex:1;min-height:0;background:#fff}.viewport iframe{width:100%;height:100%;border:0;background:#fff}
+.empty{height:100%;min-height:100%;overflow:auto;display:grid;place-items:center;text-align:center;padding:30px 18px;background:radial-gradient(ellipse at 15% 18%,#392050 0,transparent 35%),radial-gradient(ellipse at 85% 15%,#06484b 0,transparent 34%),radial-gradient(ellipse at 55% 100%,#25204c 0,transparent 40%),#090914;color:var(--ink)}
+.home-content{width:min(760px,100%);margin:auto;position:relative;padding:30px 0 24px}.home-sparkles{height:35px;display:flex;justify-content:center;align-items:center;gap:13px;color:var(--cyan);font-size:18px}.home-sparkles span:nth-child(2){font-size:28px;color:var(--pink);transform:translateY(-5px)}.home-sparkles span:first-child{transform:translateY(5px);color:var(--purple)}
+.home-brand{display:flex;justify-content:center;align-items:center;gap:13px;font-size:clamp(36px,7vw,60px);font-weight:800;letter-spacing:-.065em;line-height:1.1}.home-mark{display:grid;place-items:center;width:58px;height:58px;border-radius:19px;color:#0b0b16;font-size:33px;background:linear-gradient(135deg,var(--cyan),var(--purple) 55%,var(--pink));box-shadow:0 8px 36px #9b7bff35}.home-pop{background:linear-gradient(90deg,var(--cyan),#b19aff 55%,var(--pink));background-clip:text;-webkit-background-clip:text;color:transparent}
+.home-kicker{margin:23px 0 10px;color:#b8b0d8;font:10px "DM Mono",monospace;letter-spacing:.19em}.home-content h1{margin:0;font-size:clamp(36px,7vw,58px);font-weight:800;letter-spacing:-.055em;line-height:1.08}.home-content h1 span{color:var(--cyan)}.home-subtitle{max-width:500px;margin:14px auto 26px;color:#b5b1cb;font-size:15px;line-height:1.6}
+.home-search{display:flex;align-items:center;gap:11px;padding:8px;border:1px solid #ffffff2a;border-radius:19px;background:#141421e8;box-shadow:0 15px 55px #0005,0 0 0 5px #ffffff05;transition:border-color .2s,box-shadow .2s}.home-search:focus-within{border-color:#9b7bffb0;box-shadow:0 15px 55px #0005,0 0 0 4px #9b7bff1e}.home-search-icon{padding-left:10px;color:var(--cyan);font-size:29px;line-height:1}.home-search input{flex:1;min-width:0;height:48px;border:0;outline:0;background:transparent;color:#fff;font-size:15px}.home-search input::placeholder{color:#85819d}.home-search button{height:46px;padding:0 19px;border:0;border-radius:12px;background:linear-gradient(115deg,var(--cyan),#b3a0ff 70%,var(--pink));color:#10101a;font-weight:800;cursor:pointer;white-space:nowrap}.home-search button span{padding-left:4px}.home-hints{display:flex;justify-content:center;gap:9px;flex-wrap:wrap;margin:13px 0 25px;color:#827e9c;font:10px "DM Mono",monospace}
+.home-shortcuts{display:flex;justify-content:center;gap:9px;flex-wrap:wrap}.home-shortcuts button{padding:10px 13px;border:1px solid #ffffff1b;border-radius:999px;background:#ffffff08;color:#dcd8f1;font-size:12px;cursor:pointer;transition:transform .18s,border-color .18s,background .18s}.home-shortcuts button:hover{transform:translateY(-2px);border-color:#9b7bff88;background:#ffffff12}.home-back{display:inline-block;margin-top:30px;color:#8e89a9;font-size:12px;text-decoration:none}.home-back:hover{color:var(--cyan)}
+@media(max-width:520px){.empty{padding:18px 15px}.home-content{padding:16px 0}.home-mark{width:48px;height:48px;border-radius:16px;font-size:27px}.home-search{gap:5px;padding:6px;border-radius:15px}.home-search input{font-size:13px}.home-search button{padding:0 12px}.home-hints{font-size:9px}.home-shortcuts{gap:7px}.home-shortcuts button{font-size:11px;padding:9px 11px}}
 .loading{position:absolute;inset:0;display:none;place-items:center;background:#0b0b16cc;color:#fff;font:13px "DM Mono";z-index:2}.loading.show{display:grid}
 @media(max-width:700px){.brand{display:none}.top{padding:8px}.controls{padding:7px}.ctrl{width:38px;height:38px}.address{height:40px;font-size:13px}.go{height:40px;padding:0 12px}.tab{min-width:120px}}
 </style>
@@ -41,7 +48,15 @@
   </div>
   <div class="status" id="status">New tab</div>
   <main class="viewport" id="viewport">
-    <div class="empty" id="empty"><div><strong>Hyper-Pop Browser</strong><div>Enter a URL above to browse the web.</div><code>HTTP/HTTPS · public sites · HTML viewer</code></div></div>
+    <div class="empty" id="empty"><div class="home-content">
+<div class="home-sparkles" aria-hidden="true"><span>✦</span><span>✧</span><span>✦</span></div>
+<div class="home-brand"><span class="home-mark">✦</span><span>Hyper<span class="home-pop">Pop</span></span></div>
+<p class="home-kicker">YOUR LITTLE CORNER OF THE INTERNET</p><h1>Curiosity, <span>go.</span></h1>
+<p class="home-subtitle">Find something cool. Wander somewhere weird. Open a tab and see what happens.</p>
+<form class="home-search" id="home-search-form"><span class="home-search-icon" aria-hidden="true">⌕</span><input id="home-search-input" type="text" autocomplete="off" spellcheck="false" placeholder="Search the web or enter a website…" aria-label="Search the web or enter a website"><button type="submit">Search <span aria-hidden="true">↗</span></button></form>
+<div class="home-hints"><span>✦ Tiny internet, big energy</span><span>·</span><span>Search powered by TinyFish</span></div>
+<div class="home-shortcuts"><button type="button" data-home-query="Wikipedia">📚 Explore Wikipedia</button><button type="button" data-home-query="fun websites">🪩 Find something fun</button><button type="button" data-home-query="space">🪐 Go down a rabbit hole</button></div>
+<a class="home-back" href="index.html">← Back to the Hyper-Pop playground</a></div></div>
     <div class="loading" id="loading">Loading page…</div>
   </main>
 </div>
@@ -88,6 +103,22 @@ function readSiteStore(url,kind){try{return JSON.parse(localStorage.getItem("hyp
 function writeSiteStore(host,kind,data){try{localStorage.setItem("hyperpop:"+kind+":"+host,JSON.stringify(data))}catch(e){status.textContent="Local storage is full or unavailable."}}
 function addLocalStorageShim(html,url){
  const origin=siteOrigin(url),host=siteHost(url);
+ if(/(^|\\.)wikipedia\\.org$/i.test(host)){
+  const wikiStyle=`<style id="hyperpop-wikipedia-reader">
+  html{background:#f8f9fa!important;color:#202122!important;scroll-behavior:smooth}body{background:#f8f9fa!important;color:#202122!important;font-family:Arial,Helvetica,sans-serif!important;font-size:14px!important;line-height:1.65!important}
+  a{color:#365fb5!important;text-decoration:none}a:hover{text-decoration:underline!important}
+  #content,.mw-page-container,.mw-page-container-inner,.mw-content-container,.mw-body,.mw-body-content,#mw-content-text,.mw-parser-output{color:#202122!important}
+  #content,.mw-page-container,.mw-page-container-inner{max-width:1240px!important;margin-left:auto!important;margin-right:auto!important}
+  #content{padding:24px clamp(16px,3vw,42px)!important;background:#fff!important;border:1px solid #a7d7f9!important;border-radius:5px!important;box-shadow:0 2px 9px #00000008!important}
+  #mw-panel,.vector-sidebar-container,#mw-page-base,#mw-head-base{background:#f8f9fa!important}
+  h1,h2,h3,h4,h5{font-family:Georgia,"Times New Roman",serif!important;color:#202122!important;font-weight:400!important;line-height:1.25!important}h1{font-size:clamp(1.8rem,4vw,2.1rem)!important;border-bottom:1px solid #a2a9b1!important;padding-bottom:.22em!important}h2{font-size:1.55rem!important;border-bottom:1px solid #a2a9b1!important;padding-bottom:.2em!important;margin-top:1.3em!important}h3{font-size:1.2rem!important;font-weight:700!important}
+  p{line-height:1.75!important;margin:.5em 0 1em!important}.infobox,.infobox_v2,.sidebar,.vertical-navbox{background:#f8f9fa!important;border:1px solid #a2a9b1!important;border-collapse:collapse!important;padding:8px!important;color:#202122!important;max-width:100%!important}.infobox th,.infobox td,.infobox_v2 th,.infobox_v2 td{padding:5px 8px!important;border-color:#a2a9b1!important;vertical-align:top!important}
+  .toc,.toccolours,.navbox,.metadata,.ambox,.ombox,.tmbox,.fmbox,.cmbox{background:#f8f9fa!important;border:1px solid #a2a9b1!important;color:#202122!important;padding:10px!important}table{max-width:100%;border-color:#a2a9b1!important}th{background:#eaecf0!important;color:#202122!important}td{color:#202122!important}
+  .thumb,.thumbinner,.gallerybox{background:#f8f9fa!important;border:1px solid #c8ccd1!important;padding:5px!important;max-width:100%!important}.thumbcaption,.gallerytext{color:#202122!important;font-size:12px!important;line-height:1.5!important}img{max-width:100%;height:auto}
+  @media(max-width:760px){#content,.mw-page-container,.mw-page-container-inner{width:auto!important;max-width:100%!important;margin:0!important;padding-left:12px!important;padding-right:12px!important}#content{border-left:0!important;border-right:0!important;border-radius:0!important}.infobox,.infobox_v2{float:none!important;margin:12px auto!important;display:table!important;width:auto!important;max-width:100%!important;overflow-wrap:anywhere}table{display:block;overflow-x:auto}h1{font-size:1.7rem!important}}
+  </style>`;
+  html=/<head\\b[^>]*>/i.test(html)?html.replace(/<head\\b[^>]*>/i,m=>m+wikiStyle):wikiStyle+html;
+ }
  if(!origin||!host)return html;
  // A site's own CSP meta tag can block the local compatibility shim, so remove it before injection.
  html=html.replace(/<meta\b[^>]*http-equiv\s*=\s*(["'])?content-security-policy\1?[^>]*>/gi,"");
@@ -116,6 +147,9 @@ function renderTabs(){tabsEl.replaceChildren(...tabs.map((t,i)=>{const b=documen
 function closeTab(i){if(tabs.length===1){tabs[0]=makeTab();active=0}else{tabs.splice(i,1);if(active>=tabs.length)active=tabs.length-1;if(active>i)active--}render()}
 function render(){const t=activeTab();renderTabs();address.value=t.searchQuery||t.url||"";back.disabled=t.pos<=0;forward.disabled=t.pos<0||t.pos>=t.history.length-1;viewport.querySelectorAll("iframe").forEach(x=>x.remove());if(t.frame){viewport.appendChild(t.frame);empty.style.display="none"}else empty.style.display="grid";status.textContent=t.searchQuery?("Search results for “"+t.searchQuery+"”"):(t.url?("Loaded "+new URL(t.url).hostname):"New tab")}
 function showBusy(v){loading.classList.toggle("show",v);go.disabled=v}
+const homeSearchForm=document.getElementById("home-search-form"),homeSearchInput=document.getElementById("home-search-input");
+homeSearchForm.addEventListener("submit",e=>{e.preventDefault();const value=homeSearchInput.value.trim();if(value)load(value,true)});
+document.querySelectorAll("[data-home-query]").forEach(button=>button.addEventListener("click",()=>{const value=button.getAttribute("data-home-query")||"";homeSearchInput.value=value;load(value,true)}));
 function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]))}
 function searchPage(query,results,suggestions,provider){
  const cards=results.map(item=>'<article class="result"><a href="'+escapeHtml(item.url)+'">'+escapeHtml(item.title)+'</a><div class="url">'+escapeHtml(new URL(item.url).hostname)+'</div><p>'+escapeHtml(item.content||"No description available.")+'</p></article>').join("");
@@ -171,7 +205,7 @@ address.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();lo
 back.addEventListener("click",()=>{const t=activeTab();if(t.pos>0){t.pos--;load(t.history[t.pos],false)}});
 forward.addEventListener("click",()=>{const t=activeTab();if(t.pos<t.history.length-1){t.pos++;load(t.history[t.pos],false)}});
 reload.addEventListener("click",()=>{const t=activeTab();if(t.url)load(t.url,false)});
-home.addEventListener("click",()=>{const t=activeTab();t.url="";t.searchQuery="";t.title="New Tab";t.history=[];t.pos=-1;t.frame=null;render()});
+home.addEventListener("click",()=>{const t=activeTab();t.url="";t.searchQuery="";t.title="New Tab";t.history=[];t.pos=-1;t.frame=null;if(t.searchPanel){t.searchPanel.remove();t.searchPanel=null;}render();homeSearchInput.value="";homeSearchInput.focus()});
 newtab.addEventListener("click",()=>{tabs.push(makeTab());active=tabs.length-1;render();address.focus()});
 tabs=[makeTab()];render();
 </script>
