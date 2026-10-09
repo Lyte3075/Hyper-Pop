@@ -103,7 +103,7 @@ function readSiteStore(url,kind){try{return JSON.parse(localStorage.getItem("hyp
 function writeSiteStore(host,kind,data){try{localStorage.setItem("hyperpop:"+kind+":"+host,JSON.stringify(data))}catch(e){status.textContent="Local storage is full or unavailable."}}
 function addLocalStorageShim(html,url){
  const origin=siteOrigin(url),host=siteHost(url);
- if(/(^|\\.)wikipedia\\.org$/i.test(host)){
+ if(/(^|\.)wikipedia\.org$/i.test(host)){
   const wikiStyle=`<style id="hyperpop-wikipedia-reader">
   html{background:#f8f9fa!important;color:#202122!important;scroll-behavior:smooth}body{background:#f8f9fa!important;color:#202122!important;font-family:Arial,Helvetica,sans-serif!important;font-size:14px!important;line-height:1.65!important}
   a{color:#365fb5!important;text-decoration:none}a:hover{text-decoration:underline!important}
@@ -117,7 +117,7 @@ function addLocalStorageShim(html,url){
   .thumb,.thumbinner,.gallerybox{background:#f8f9fa!important;border:1px solid #c8ccd1!important;padding:5px!important;max-width:100%!important}.thumbcaption,.gallerytext{color:#202122!important;font-size:12px!important;line-height:1.5!important}img{max-width:100%;height:auto}
   @media(max-width:760px){#content,.mw-page-container,.mw-page-container-inner{width:auto!important;max-width:100%!important;margin:0!important;padding-left:12px!important;padding-right:12px!important}#content{border-left:0!important;border-right:0!important;border-radius:0!important}.infobox,.infobox_v2{float:none!important;margin:12px auto!important;display:table!important;width:auto!important;max-width:100%!important;overflow-wrap:anywhere}table{display:block;overflow-x:auto}h1{font-size:1.7rem!important}}
   </style>`;
-  html=/<head\\b[^>]*>/i.test(html)?html.replace(/<head\\b[^>]*>/i,m=>m+wikiStyle):wikiStyle+html;
+  html=/<head\b[^>]*>/i.test(html)?html.replace(/<head\b[^>]*>/i,m=>m+wikiStyle):wikiStyle+html;
  }
  if(!origin||!host)return html;
  // A site's own CSP meta tag can block the local compatibility shim, so remove it before injection.
