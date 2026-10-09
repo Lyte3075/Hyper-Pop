@@ -189,8 +189,15 @@ function addLocalStorageShim(html,url){
   if(!/^https?:$/.test(target.protocol))return;
   e.preventDefault();
   const data=new URLSearchParams();
-  for(const [key,value] of new FormData(form).entries()){if(typeof value==="string")data.append(key,value)}
-  if(method==="GET"){for(const [key,value] of data.entries())target.searchParams.append(key,value);parent.postMessage({type:"hyperpop-navigate",url:target.toString()},"*");return}
+  try{
+   const formData=new FormData(form,e.submitter instanceof HTMLElement?e.submitter:undefined);
+   for(const [key,value] of formData.entries()){if(typeof value==="string")data.append(key,value)}
+  }catch(e){for(const [key,value] of new FormData(form).entries()){if(typeof value==="string")data.append(key,value)}}
+  if(method==="GET"){
+   // Keep existing query parameters and append submitted fields.
+   for(const [key,value] of data.entries())target.searchParams.append(key,value);
+   parent.postMessage({type:"hyperpop-navigate",url:target.toString()},"*");return
+  }
   return;
  },true);
 })();<\/script>`;
@@ -355,7 +362,8 @@ async function load(url,push=true,formRequest=null){
   if(!r||!r.ok||!d||!d.ok)throw lastError||new Error("Could not load this page after several attempts. Try again.");
   t.url=d.url||url;t.searchQuery="";t.title=new URL(t.url).hostname;
   if(push){t.history=t.history.slice(0,t.pos+1);t.history.push(t.url);t.pos=t.history.length-1}
-  if(t.searchPanel){t.searchPanel.remove();t.searchPanel=null;}const frame=document.createElement("iframe");frame.title="Browser page";frame.setAttribute("sandbox","allow-scripts allow-forms allow-pointer-lock allow-modals allow-downloads");frame.allow="fullscreen; autoplay; gamepad";frame.allowFullscreen=true;
+  if(t.searchPanel){t.searchPanel.remove();t.searchPanel=null;}const frame=document.createElement("iframe");frame.title="Browser page";frame.setAttribute("sandbox","allow-scripts allow-forms allow-pointer-lock allow-modals allow-downloads");frame.allow="fullscreen; autoplay; gamepad; clipboard-read; clipboard-write";frame.allowFullscreen=true;
+  // Keep the sandbox restrictive: do not combine scripts and same-origin access for arbitrary proxied HTML.
   frame.srcdoc=addLocalStorageShim(d.html||"<p>Nothing returned.</p>",t.url);
   frame.addEventListener("load",()=>{try{const title=frame.contentDocument&&frame.contentDocument.title;if(title)t.title=title;renderTabs()}catch{}});
   t.frame=frame;render();status.textContent="Loaded "+new URL(t.url).hostname+" · HTTP "+d.status;
