@@ -332,7 +332,7 @@ window.addEventListener("message",e=>{
   writeSiteStore(expected,e.data.kind,e.data.data);return;
  }
  if(e.data.type==="hyperpop-navigate"&&typeof e.data.url==="string")load(e.data.url,true);
- if(e.data.type==="hyperpop-youtube-search"&&typeof e.data.query==="string"&&e.data.query.trim())loadSearch("site:youtube.com/watch "+e.data.query.trim(),true,0);
+ if(e.data.type==="hyperpop-youtube-search"&&typeof e.data.query==="string"&&e.data.query.trim())loadYoutubeHome(true,"home",e.data.query.trim());
  if(e.data.type==="hyperpop-youtube-mode"&&typeof e.data.mode==="string")loadYoutubeHome(true,e.data.mode,e.data.query||"");
  if(e.data.type==="hyperpop-spotify-mode"&&typeof e.data.mode==="string")loadSpotifyHome(true,e.data.mode,e.data.query||"");
   if(e.data.type==="hyperpop-search"&&typeof e.data.query==="string")loadSearch(e.data.query,true,0);
