@@ -9,4 +9,4 @@ PNTR.dev:
 https://hyper-pop.pntr.dev/
 
 # QR Code
-https://github.com/Hyper-Pop/qr-code.png/
+[![Hyper-Pop](qr-code.png)](https://hyper-pop.pntr.dev/)
