@@ -191,7 +191,7 @@ function addLocalStorageShim(html,url){
   const data=new URLSearchParams();
   for(const [key,value] of new FormData(form).entries()){if(typeof value==="string")data.append(key,value)}
   if(method==="GET"){for(const [key,value] of data.entries())target.searchParams.append(key,value);parent.postMessage({type:"hyperpop-navigate",url:target.toString()},"*");return}
-  parent.postMessage({type:"hyperpop-form-submit",url:target.toString(),method:"POST",contentType:"application/x-www-form-urlencoded",body:data.toString()},"*");
+  return;
  },true);
 })();<\/script>`;
  const headMatch=html.match(/<head\b[^>]*>/i);
@@ -374,10 +374,7 @@ window.addEventListener("message",e=>{
   writeSiteStore(expected,e.data.kind,e.data.data);return;
  }
  if(e.data.type==="hyperpop-navigate"&&typeof e.data.url==="string")load(e.data.url,true);
- if(e.data.type==="hyperpop-form-submit"&&typeof e.data.url==="string"&&e.data.method==="POST"&&typeof e.data.body==="string"){
-  if(e.data.body.length>16000){status.textContent="Form is too large to submit through Hyper-Pop.";return}
-  load(e.data.url,true,{method:"POST",contentType:"application/x-www-form-urlencoded",body:e.data.body});
- }
+
 
  if(e.data.type==="hyperpop-youtube-search"&&typeof e.data.query==="string"&&e.data.query.trim())loadYoutubeHome(true,"home",e.data.query.trim());
  if(e.data.type==="hyperpop-youtube-like"&&typeof e.data.id==="string"){
