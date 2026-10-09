@@ -147,6 +147,36 @@ function rewriteHtml(html: string, baseUrl: URL) {
 
   const bridge = `<script>
 (function(){
+  const pageBase = ${JSON.stringify(baseUrl.toString())};
+  const proxyEndpoint = ${JSON.stringify(ENDPOINT)};
+  function proxiedGet(raw){
+    try {
+      const u = new URL(raw, pageBase);
+      if (!/^https?:$/.test(u.protocol)) return raw;
+      if (u.origin === new URL(proxyEndpoint).origin || /(^|\\.)(youtube\\.com|youtube-nocookie\\.com|ytimg\\.com|googlevideo\\.com|spotify\\.com|wikipedia\\.org|wikimedia\\.org)$/i.test(u.hostname)) return raw;
+      return proxyEndpoint + "?resource=1&url=" + encodeURIComponent(u.href);
+    } catch(e) { return raw; }
+  }
+  try {
+    const nativeFetch = window.fetch.bind(window);
+    window.fetch = function(input, init) {
+      const method = String((init && init.method) || (input && input.method) || "GET").toUpperCase();
+      if (method !== "GET") return nativeFetch(input, init);
+      const raw = typeof input === "string" || input instanceof URL ? String(input) : input && input.url;
+      if (!raw) return nativeFetch(input, init);
+      const rewritten = proxiedGet(raw);
+      if (rewritten === raw) return nativeFetch(input, init);
+      return nativeFetch(rewritten, Object.assign({}, init || {}, { credentials: "omit" }));
+    };
+  } catch(e) {}
+  try {
+    const nativeOpen = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function(method, url) {
+      const args = Array.prototype.slice.call(arguments);
+      if (String(method).toUpperCase() === "GET") args[1] = proxiedGet(url);
+      return nativeOpen.apply(this, args);
+    };
+  } catch(e) {}
   function send(url){ try { parent.postMessage({type:"hyperpop-navigate",url:new URL(url,document.baseURI).href},"*"); } catch(e){} }
   try { window.open = function(url){ if(url) send(url); return null; }; } catch(e) {}
   document.addEventListener("click",function(e){
