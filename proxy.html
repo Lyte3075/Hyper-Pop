@@ -24,7 +24,9 @@
 .home-brand{display:flex;justify-content:center;align-items:center;gap:13px;font-size:clamp(36px,7vw,60px);font-weight:800;letter-spacing:-.065em;line-height:1.1}.home-mark{display:grid;place-items:center;width:58px;height:58px;border-radius:19px;color:#0b0b16;font-size:33px;background:linear-gradient(135deg,var(--cyan),var(--purple) 55%,var(--pink));box-shadow:0 8px 36px #9b7bff35}.home-pop{background:linear-gradient(90deg,var(--cyan),#b19aff 55%,var(--pink));background-clip:text;-webkit-background-clip:text;color:transparent}
 .home-kicker{margin:23px 0 10px;color:#b8b0d8;font:10px "DM Mono",monospace;letter-spacing:.19em}.home-content h1{margin:0;font-size:clamp(36px,7vw,58px);font-weight:800;letter-spacing:-.055em;line-height:1.08}.home-content h1 span{color:var(--cyan)}.home-subtitle{max-width:500px;margin:14px auto 26px;color:#b5b1cb;font-size:15px;line-height:1.6}
 .home-search{display:flex;align-items:center;gap:11px;padding:8px;border:1px solid #ffffff2a;border-radius:19px;background:#141421e8;box-shadow:0 15px 55px #0005,0 0 0 5px #ffffff05;transition:border-color .2s,box-shadow .2s}.home-search:focus-within{border-color:#9b7bffb0;box-shadow:0 15px 55px #0005,0 0 0 4px #9b7bff1e}.home-search-icon{padding-left:10px;color:var(--cyan);font-size:29px;line-height:1}.home-search input{flex:1;min-width:0;height:48px;border:0;outline:0;background:transparent;color:#fff;font-size:15px}.home-search input::placeholder{color:#85819d}.home-search button{height:46px;padding:0 19px;border:0;border-radius:12px;background:linear-gradient(115deg,var(--cyan),#b3a0ff 70%,var(--pink));color:#10101a;font-weight:800;cursor:pointer;white-space:nowrap}.home-search button span{padding-left:4px}.home-hints{display:flex;justify-content:center;gap:9px;flex-wrap:wrap;margin:13px 0 25px;color:#827e9c;font:10px "DM Mono",monospace}
-.home-shortcuts{display:flex;justify-content:center;gap:9px;flex-wrap:wrap}.home-shortcuts button{padding:10px 13px;border:1px solid #ffffff1b;border-radius:999px;background:#ffffff08;color:#dcd8f1;font-size:12px;cursor:pointer;transition:transform .18s,border-color .18s,background .18s}.home-shortcuts button:hover{transform:translateY(-2px);border-color:#9b7bff88;background:#ffffff12}.home-back{display:inline-block;margin-top:30px;color:#8e89a9;font-size:12px;text-decoration:none}.home-back:hover{color:var(--cyan)}
+.shortcut-heading{display:flex;justify-content:space-between;align-items:center;max-width:620px;margin:0 auto 10px;color:#85809f;font:10px "DM Mono",monospace;letter-spacing:.12em}.shortcut-heading button{border:1px solid #ffffff20;border-radius:999px;padding:7px 10px;background:#ffffff08;color:#cfc8ed;font:11px "Space Grotesk",sans-serif;letter-spacing:0;cursor:pointer}.home-shortcuts{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}.home-shortcuts button{min-width:105px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:15px 18px;border:1px solid #ffffff1b;border-radius:17px;background:#ffffff08;color:#dcd8f1;font-size:21px;cursor:pointer;transition:transform .18s,border-color .18s,background .18s}.home-shortcuts button span{font-size:11px}.home-shortcuts button:hover{transform:translateY(-2px);border-color:#9b7bff88;background:#ffffff12}.home-shortcuts button .shortcut-remove{position:absolute;right:6px;top:4px;font-size:14px;color:#ff8dbf;padding:2px 5px}.home-back{display:inline-block;margin-top:30px;color:#8e89a9;font-size:12px;text-decoration:none}.home-back:hover{color:var(--cyan)}
+.bookmark-panel{position:relative;z-index:5;max-height:38vh;overflow:auto;padding:12px 16px;background:#141421;border-bottom:1px solid #ffffff20;color:var(--ink)}.bookmark-panel[hidden]{display:none}.bookmark-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;font-weight:700}.bookmark-panel-head small{font-size:11px;color:var(--muted);font-weight:400}.bookmark-list{display:flex;flex-wrap:wrap;gap:8px}.bookmark-item{display:flex;align-items:center;gap:8px;max-width:100%;padding:8px 10px;border:1px solid #ffffff1b;border-radius:11px;background:#ffffff07}.bookmark-open{max-width:min(260px,60vw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:0;background:transparent;color:#dcd8ff;text-align:left;cursor:pointer}.bookmark-remove,.bookmark-close{border:0;background:transparent;color:#ff8fbc;cursor:pointer}.bookmark-empty{color:var(--muted);font-size:13px;padding:8px 0}
+@media(max-width:520px){.home-shortcuts button{min-width:90px;padding:12px 13px}.shortcut-heading{max-width:100%}.bookmark-panel{padding:10px}.bookmark-item{padding:7px}.bookmark-open{max-width:55vw}}
 @media(max-width:520px){.empty{padding:18px 15px}.home-content{padding:16px 0}.home-mark{width:48px;height:48px;border-radius:16px;font-size:27px}.home-search{gap:5px;padding:6px;border-radius:15px}.home-search input{font-size:13px}.home-search button{padding:0 12px}.home-hints{font-size:9px}.home-shortcuts{gap:7px}.home-shortcuts button{font-size:11px;padding:9px 11px}}
 .loading{position:absolute;inset:0;display:none;place-items:center;background:#0b0b16cc;color:#fff;font:13px "DM Mono";z-index:2}.loading.show{display:grid}
 @media(max-width:700px){.brand{display:none}.top{padding:8px}.controls{padding:7px}.ctrl{width:38px;height:38px}.address{height:40px;font-size:13px}.go{height:40px;padding:0 12px}.tab{min-width:120px}}
@@ -43,10 +45,13 @@
     <button class="ctrl" id="forward" type="button" aria-label="Forward">›</button>
     <button class="ctrl" id="reload" type="button" aria-label="Reload">↻</button>
     <button class="ctrl" id="home" type="button" aria-label="Home">⌂</button>
-    <input id="address" class="address" inputmode="url" autocomplete="url" spellcheck="false" placeholder="Search Wikipedia or enter a web address">
+    <button class="ctrl" id="bookmark-current" type="button" aria-label="Bookmark this page" title="Bookmark this page">☆</button>
+    <button class="ctrl" id="show-bookmarks" type="button" aria-label="Show bookmarks" title="Bookmarks">▤</button>
+    <input id="address" class="address" inputmode="url" autocomplete="url" spellcheck="false" placeholder="Search or enter a web address">
     <button class="go" id="go" type="button">Go</button>
   </div>
   <div class="status" id="status">New tab</div>
+  <section class="bookmark-panel" id="bookmark-panel" hidden aria-label="Saved bookmarks"></section>
   <main class="viewport" id="viewport">
     <div class="empty" id="empty"><div class="home-content">
 <div class="home-sparkles" aria-hidden="true"><span>✦</span><span>✧</span><span>✦</span></div>
@@ -55,7 +60,7 @@
 <p class="home-subtitle">Find something cool. Wander somewhere weird. Open a tab and see what happens.</p>
 <form class="home-search" id="home-search-form"><span class="home-search-icon" aria-hidden="true">⌕</span><input id="home-search-input" type="text" autocomplete="off" spellcheck="false" placeholder="Search the web or enter a website…" aria-label="Search the web or enter a website"><button type="submit">Search <span aria-hidden="true">↗</span></button></form>
 <div class="home-hints"><span>✦ Tiny internet, big energy</span><span>·</span><span>Search powered by TinyFish</span></div>
-<div class="home-shortcuts"><button type="button" data-home-query="Wikipedia">📚 Explore Wikipedia</button><button type="button" data-home-query="fun websites">🪩 Find something fun</button><button type="button" data-home-query="space">🪐 Go down a rabbit hole</button></div>
+<div class="shortcut-heading"><span>YOUR SHORTCUTS</span><button type="button" id="add-shortcut">＋ Add shortcut</button></div><div class="home-shortcuts" id="home-shortcuts"><button type="button" data-home-query="Wikipedia">📚<span>Wikipedia</span></button><button type="button" data-home-query="fun websites">🪩<span>Fun websites</span></button><button type="button" data-home-query="space">🪐<span>Space</span></button></div>
 <a class="home-back" href="index.html">← Back to the Hyper-Pop playground</a></div></div>
     <div class="loading" id="loading">Loading page…</div>
   </main>
@@ -63,6 +68,36 @@
 <script>
 const ENDPOINT="https://iapnejlttsqqefkpmelp.supabase.co/functions/v1/hyperpop-proxy";
 const tabsEl=document.getElementById("tabs"),newtab=document.getElementById("newtab"),address=document.getElementById("address"),go=document.getElementById("go"),back=document.getElementById("back"),forward=document.getElementById("forward"),reload=document.getElementById("reload"),home=document.getElementById("home"),status=document.getElementById("status"),viewport=document.getElementById("viewport"),empty=document.getElementById("empty"),loading=document.getElementById("loading");
+const bookmarkCurrent=document.getElementById("bookmark-current"),showBookmarks=document.getElementById("show-bookmarks"),bookmarkPanel=document.getElementById("bookmark-panel"),shortcutContainer=document.getElementById("home-shortcuts"),addShortcut=document.getElementById("add-shortcut");
+const BOOKMARKS_KEY="hyperpop.proxy.bookmarks.v1",SHORTCUTS_KEY="hyperpop.proxy.shortcuts.v1";
+function readList(key){try{const v=JSON.parse(localStorage.getItem(key)||"[]");return Array.isArray(v)?v:[]}catch{return []}}
+function saveList(key,value){try{localStorage.setItem(key,JSON.stringify(value))}catch{status.textContent="Could not save. Browser storage may be full."}}
+function cleanUrl(value){let v=String(value||"").trim();if(!v)return"";if(!/^[a-z][a-z0-9+.-]*:\/\//i.test(v))v="https://"+v;try{const u=new URL(v);return ["http:","https:"].includes(u.protocol)?u.href:""}catch{return""}}
+function currentTitle(t){if(!t)return"Saved page";if(t.title&&t.title!=="New Tab"&&!t.title.startsWith("Search: "))return t.title;try{return new URL(t.url).hostname}catch{return t.url||"Saved page"}}
+function renderBookmarks(){
+ const list=readList(BOOKMARKS_KEY);bookmarkPanel.replaceChildren();
+ const head=document.createElement("div");head.className="bookmark-panel-head";head.innerHTML='<span>☆ Bookmarks <small>'+list.length+' saved</small></span><button class="bookmark-close" type="button">Close ×</button>';head.querySelector("button").onclick=()=>bookmarkPanel.hidden=true;bookmarkPanel.append(head);
+ if(!list.length){const e=document.createElement("div");e.className="bookmark-empty";e.textContent="No bookmarks yet. Open a website and tap ☆ to keep it here.";bookmarkPanel.append(e);return}
+ const wrap=document.createElement("div");wrap.className="bookmark-list";
+ list.forEach((item,index)=>{const row=document.createElement("div");row.className="bookmark-item";const open=document.createElement("button");open.className="bookmark-open";open.type="button";open.textContent="✦ "+item.title;open.title=item.url;open.onclick=()=>{bookmarkPanel.hidden=true;load(item.url,true)};const remove=document.createElement("button");remove.className="bookmark-remove";remove.type="button";remove.textContent="×";remove.title="Remove bookmark";remove.onclick=()=>{const next=readList(BOOKMARKS_KEY);next.splice(index,1);saveList(BOOKMARKS_KEY,next);renderBookmarks()};row.append(open,remove);wrap.append(row)});
+ bookmarkPanel.append(wrap);
+}
+function saveCurrentBookmark(){
+ const t=activeTab(),url=cleanUrl(t&&t.url);
+ if(!url){status.textContent="Open a website first, then bookmark it.";return}
+ const list=readList(BOOKMARKS_KEY);if(list.some(x=>x.url===url)){status.textContent="Already bookmarked ✦";bookmarkPanel.hidden=false;renderBookmarks();return}
+ list.unshift({title:currentTitle(t),url});saveList(BOOKMARKS_KEY,list);renderBookmarks();bookmarkPanel.hidden=false;status.textContent="Bookmark saved ✦";
+}
+function renderShortcuts(){
+ const custom=readList(SHORTCUTS_KEY);shortcutContainer.querySelectorAll("[data-custom-shortcut]").forEach(n=>n.remove());
+ custom.forEach((item,index)=>{const b=document.createElement("button");b.type="button";b.setAttribute("data-custom-shortcut","true");b.title=item.url;b.innerHTML='<span class="shortcut-remove" aria-label="Remove shortcut">×</span><span aria-hidden="true">✦</span><span></span>';b.querySelector("span:last-child").textContent=item.title;b.addEventListener("click",e=>{if(e.target.closest(".shortcut-remove")){e.stopPropagation();const next=readList(SHORTCUTS_KEY);next.splice(index,1);saveList(SHORTCUTS_KEY,next);renderShortcuts();return}load(item.url,true)});shortcutContainer.append(b)});
+}
+function createShortcut(){
+ const title=prompt("Name this shortcut (for example, YouTube):");if(!title||!title.trim())return;
+ const raw=prompt("Website address (for example, youtube.com):");const url=cleanUrl(raw);if(!url){status.textContent="That address doesn't look valid. Try again.";return}
+ const list=readList(SHORTCUTS_KEY);if(list.length>=12){status.textContent="You can save up to 12 custom shortcuts.";return}
+ list.push({title:title.trim().slice(0,36),url});saveList(SHORTCUTS_KEY,list);renderShortcuts();status.textContent="Shortcut added ✦";
+}
 let tabs=[],active=0,serial=0;
 function isSearchQuery(v){v=v.trim();return !!v&&!/^(https?|about):\/\//i.test(v)&&!(/^[^\s.]+\.[^\s.]+/.test(v)||v.includes("/"))}
 function normalize(v){v=v.trim();if(!v)return"";if(!/^(https?|about):\/\//i.test(v)){if(/^[^\s.]+\.[^\s.]+/.test(v)||v.includes("/"))v="https://"+v;else return "search:"+v}return v}
@@ -150,6 +185,10 @@ function showBusy(v){loading.classList.toggle("show",v);go.disabled=v}
 const homeSearchForm=document.getElementById("home-search-form"),homeSearchInput=document.getElementById("home-search-input");
 homeSearchForm.addEventListener("submit",e=>{e.preventDefault();const value=homeSearchInput.value.trim();if(value)load(value,true)});
 document.querySelectorAll("[data-home-query]").forEach(button=>button.addEventListener("click",()=>{const value=button.getAttribute("data-home-query")||"";homeSearchInput.value=value;load(value,true)}));
+bookmarkCurrent.addEventListener("click",saveCurrentBookmark);
+showBookmarks.addEventListener("click",()=>{renderBookmarks();bookmarkPanel.hidden=!bookmarkPanel.hidden});
+addShortcut.addEventListener("click",createShortcut);
+renderBookmarks();renderShortcuts();
 function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]))}
 function searchPage(query,results,suggestions,provider){
  const cards=results.map(item=>'<article class="result"><a href="'+escapeHtml(item.url)+'">'+escapeHtml(item.title)+'</a><div class="url">'+escapeHtml(new URL(item.url).hostname)+'</div><p>'+escapeHtml(item.content||"No description available.")+'</p></article>').join("");
