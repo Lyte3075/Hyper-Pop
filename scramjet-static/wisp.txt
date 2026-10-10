@@ -1,0 +1,2 @@
+WISP server URL, the default configured is the aura.pro url in this box, you can change the default server all users of your fork default to.
+WISP URL: wss://anura.pro/wisp/
