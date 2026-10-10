@@ -27,8 +27,8 @@ jobs:
           cp -a /tmp/scramjet-upstream/bare-mux scramjet-static/bare-mux
           cp -a /tmp/scramjet-upstream/scramjet-engine scramjet-static/scramjet-engine
           cp -a /tmp/scramjet-upstream/transport scramjet-static/transport
-          curl --fail --silent --show-error --location https://publicsuffix.org/list/public_suffix_list.dat -o scramjet-static/scramjet-engine/public_suffix_list.dat
-          test -s scramjet-static/scramjet-engine/public_suffix_list.dat
+          curl --fail --silent --show-error --location https://publicsuffix.org/list/public_suffix_list.dat -o scramjet-static/public_suffix_list.dat
+          test -s scramjet-static/public_suffix_list.dat
           sed -i 's#https://publicsuffix.org/list/public_suffix_list.dat#PLACEHOLDER#' scramjet-static/scramjet-engine/scramjet-all.js
           sed -i 's#PLACEHOLDER#new URL("public_suffix_list.dat",self.location.href).href#' scramjet-static/scramjet-engine/scramjet-all.js
           cp /tmp/scramjet-upstream/LICENSE scramjet-static/LICENSE 2>/dev/null || true
