@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0b0b16">
+<title>Hyper-Pop Browser ✦</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+:root{--bg:#080811;--panel:#11111d;--panel2:#171725;--ink:#f8f7ff;--muted:#aaa7c1;--pink:#ff5db1;--cyan:#4be0e3;--purple:#9b7bff;--line:#ffffff16}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:"Space Grotesk",system-ui,sans-serif;overflow:hidden}button,input{font:inherit}button{color:inherit}
+.browser{height:100%;display:flex;flex-direction:column;background:radial-gradient(circle at 20% 0,#30204a 0,transparent 34%),radial-gradient(circle at 90% 5%,#06414a 0,transparent 32%),var(--bg)}
+.top{display:flex;align-items:center;gap:8px;padding:10px 12px 7px;border-bottom:1px solid var(--line);background:#0c0c16}
+.brand{font-weight:800;white-space:nowrap;text-decoration:none}.brand span{color:var(--cyan)}
+.tabs{display:flex;gap:5px;min-width:0;overflow:auto;flex:1}.tab{min-width:130px;max-width:230px;padding:9px 12px;border:1px solid var(--line);border-radius:11px 11px 0 0;background:#ffffff05;display:flex;gap:8px;align-items:center;cursor:pointer;white-space:nowrap;overflow:hidden}.tab.active{background:var(--panel2);border-bottom-color:var(--panel2)}.tab-title{overflow:hidden;text-overflow:ellipsis;flex:1}.tab-x{opacity:.6}
+.newtab{border:1px solid var(--line);background:#ffffff08;border-radius:10px;width:38px;height:38px;cursor:pointer;flex:0 0 38px}.accountbar{display:flex!important;align-items:center!important;flex:0 0 auto!important;width:auto!important;max-width:180px!important}.accountbar .profile-pill{display:flex!important;align-items:center!important;gap:7px!important;max-width:180px!important;height:38px!important;padding:4px 9px!important;border-radius:999px!important;overflow:hidden!important;white-space:nowrap!important;text-decoration:none!important}.accountbar .profile-img,.accountbar .profile-dot{width:30px!important;height:30px!important;min-width:30px!important;max-width:30px!important;border-radius:50%!important;object-fit:cover!important;display:block!important}.accountbar .profile-pill span:last-child{overflow:hidden!important;text-overflow:ellipsis!important}
+.controls{display:flex;gap:6px;align-items:center;padding:9px 12px;background:var(--panel);border-bottom:1px solid var(--line)}
+.ctrl{width:40px;height:40px;border:1px solid var(--line);background:#ffffff07;border-radius:10px;cursor:pointer;font-weight:700}.ctrl:disabled{opacity:.3;cursor:default}
+.address{flex:1;min-width:0;height:42px;border:1px solid var(--line);border-radius:12px;background:#080810;color:#fff;padding:0 14px;font:14px "DM Mono";outline:none}.address:focus{border-color:#9b7bff88}.go{height:42px;padding:0 15px;border:0;border-radius:12px;background:#fff;color:#111;font-weight:800;cursor:pointer}
+.status{height:27px;padding:6px 14px;background:#0d0d17;color:var(--muted);font:11px "DM Mono";white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.viewport{position:relative;flex:1;min-height:0;background:#fff}.viewport iframe{width:100%;height:100%;border:0;background:#fff}
+.empty{height:100%;min-height:100%;overflow:auto;display:grid;place-items:center;text-align:center;padding:30px 18px;background:radial-gradient(ellipse at 15% 18%,#392050 0,transparent 35%),radial-gradient(ellipse at 85% 15%,#06484b 0,transparent 34%),radial-gradient(ellipse at 55% 100%,#25204c 0,transparent 40%),#090914;color:var(--ink)}
+.home-content{width:min(760px,100%);margin:auto;position:relative;padding:30px 0 24px}.home-sparkles{height:35px;display:flex;justify-content:center;align-items:center;gap:13px;color:var(--cyan);font-size:18px}.home-sparkles span:nth-child(2){font-size:28px;color:var(--pink);transform:translateY(-5px)}.home-sparkles span:first-child{transform:translateY(5px);color:var(--purple)}
+.home-brand{display:flex;justify-content:center;align-items:center;gap:13px;font-size:clamp(36px,7vw,60px);font-weight:800;letter-spacing:-.065em;line-height:1.1}.home-mark{display:grid;place-items:center;width:58px;height:58px;border-radius:19px;color:#0b0b16;font-size:33px;background:linear-gradient(135deg,var(--cyan),var(--purple) 55%,var(--pink));box-shadow:0 8px 36px #9b7bff35}.home-pop{background:linear-gradient(90deg,var(--cyan),#b19aff 55%,var(--pink));background-clip:text;-webkit-background-clip:text;color:transparent}
+.home-kicker{margin:23px 0 10px;color:#b8b0d8;font:10px "DM Mono",monospace;letter-spacing:.19em}.home-content h1{margin:0;font-size:clamp(36px,7vw,58px);font-weight:800;letter-spacing:-.055em;line-height:1.08}.home-content h1 span{color:var(--cyan)}.home-subtitle{max-width:500px;margin:14px auto 26px;color:#b5b1cb;font-size:15px;line-height:1.6}
+.home-search{display:flex;align-items:center;gap:11px;padding:8px;border:1px solid #ffffff2a;border-radius:19px;background:#141421e8;box-shadow:0 15px 55px #0005,0 0 0 5px #ffffff05;transition:border-color .2s,box-shadow .2s}.home-search:focus-within{border-color:#9b7bffb0;box-shadow:0 15px 55px #0005,0 0 0 4px #9b7bff1e}.home-search-icon{padding-left:10px;color:var(--cyan);font-size:29px;line-height:1}.home-search input{flex:1;min-width:0;height:48px;border:0;outline:0;background:transparent;color:#fff;font-size:15px}.home-search input::placeholder{color:#85819d}.home-search button{height:46px;padding:0 19px;border:0;border-radius:12px;background:linear-gradient(115deg,var(--cyan),#b3a0ff 70%,var(--pink));color:#10101a;font-weight:800;cursor:pointer;white-space:nowrap}.home-search button span{padding-left:4px}.home-hints{display:flex;justify-content:center;gap:9px;flex-wrap:wrap;margin:13px 0 25px;color:#827e9c;font:10px "DM Mono",monospace}
+.shortcut-heading{display:flex;justify-content:space-between;align-items:center;max-width:620px;margin:0 auto 10px;color:#85809f;font:10px "DM Mono",monospace;letter-spacing:.12em}.shortcut-heading button{border:1px solid #ffffff20;border-radius:999px;padding:7px 10px;background:#ffffff08;color:#cfc8ed;font:11px "Space Grotesk",sans-serif;letter-spacing:0;cursor:pointer}.home-shortcuts{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}.home-shortcuts button{min-width:105px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:15px 18px;border:1px solid #ffffff1b;border-radius:17px;background:#ffffff08;color:#dcd8f1;font-size:21px;cursor:pointer;transition:transform .18s,border-color .18s,background .18s}.home-shortcuts button span{font-size:11px}.home-shortcuts button:hover{transform:translateY(-2px);border-color:#9b7bff88;background:#ffffff12}.home-shortcuts button .shortcut-remove{position:absolute;right:6px;top:4px;font-size:14px;color:#ff8dbf;padding:2px 5px}.home-back{display:inline-block;margin-top:30px;color:#8e89a9;font-size:12px;text-decoration:none}.home-back:hover{color:var(--cyan)}
+.bookmark-panel{position:relative;z-index:5;max-height:38vh;overflow:auto;padding:12px 16px;background:#141421;border-bottom:1px solid #ffffff20;color:var(--ink)}.bookmark-panel[hidden]{display:none}.bookmark-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;font-weight:700}.bookmark-panel-head small{font-size:11px;color:var(--muted);font-weight:400}.bookmark-list{display:flex;flex-wrap:wrap;gap:8px}.bookmark-item{display:flex;align-items:center;gap:8px;max-width:100%;padding:8px 10px;border:1px solid #ffffff1b;border-radius:11px;background:#ffffff07}.bookmark-open{max-width:min(260px,60vw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:0;background:transparent;color:#dcd8ff;text-align:left;cursor:pointer}.bookmark-remove,.bookmark-close{border:0;background:transparent;color:#ff8fbc;cursor:pointer}.bookmark-empty{color:var(--muted);font-size:13px;padding:8px 0}
+@media(max-width:520px){.home-shortcuts button{min-width:90px;padding:12px 13px}.shortcut-heading{max-width:100%}.bookmark-panel{padding:10px}.bookmark-item{padding:7px}.bookmark-open{max-width:55vw}}
+@media(max-width:520px){.empty{padding:18px 15px}.home-content{padding:16px 0}.home-mark{width:48px;height:48px;border-radius:16px;font-size:27px}.home-search{gap:5px;padding:6px;border-radius:15px}.home-search input{font-size:13px}.home-search button{padding:0 12px}.home-hints{font-size:9px}.home-shortcuts{gap:7px}.home-shortcuts button{font-size:11px;padding:9px 11px}}
+.loading{position:absolute;inset:0;display:none;place-items:center;background:#0b0b16cc;color:#fff;font:13px "DM Mono";z-index:2}.loading.show{display:grid}
+@media(max-width:700px){.brand{display:none}.top{padding:8px}.controls{padding:7px}.ctrl{width:38px;height:38px}.address{height:40px;font-size:13px}.go{height:40px;padding:0 12px}.tab{min-width:120px}}
+</style>
+</head>
+<body>
+<div class="browser">
+  <div class="top">
+    <a class="brand" href="index.html">Hyper<span>✦</span>Pop</a>
+    <div class="tabs" id="tabs"></div>
+    <button class="newtab" id="newtab" type="button" aria-label="New tab">＋</button>
+    <div id="account-slot"></div>
+  </div>
+  <div class="controls">
+    <button class="ctrl" id="back" type="button" aria-label="Back">‹</button>
+    <button class="ctrl" id="forward" type="button" aria-label="Forward">›</button>
+    <button class="ctrl" id="reload" type="button" aria-label="Reload">↻</button>
+    <button class="ctrl" id="home" type="button" aria-label="Home">⌂</button>
+    <button class="ctrl" id="bookmark-current" type="button" aria-label="Bookmark this page" title="Bookmark this page">☆</button>
+    <button class="ctrl" id="show-bookmarks" type="button" aria-label="Show bookmarks" title="Bookmarks">▤</button>
+    <button class="ctrl" id="show-history" type="button" aria-label="Show recent history" title="History">◷</button>
+    <input id="address" class="address" inputmode="url" autocomplete="url" spellcheck="false" placeholder="Search or enter a web address">
+    <button class="go" id="go" type="button">Go</button>
+  </div>
+  <div class="status" id="status">New tab</div>
+  <section class="bookmark-panel" id="bookmark-panel" hidden aria-label="Saved bookmarks"></section>
+  <main class="viewport" id="viewport">
+    <div class="empty" id="empty"><div class="home-content">
+<div class="home-sparkles" aria-hidden="true"><span>✦</span><span>✧</span><span>✦</span></div>
+<div class="home-brand"><span class="home-mark">✦</span><span>Hyper<span class="home-pop">Pop</span></span></div>
+<p class="home-kicker">YOUR LITTLE CORNER OF THE INTERNET</p><h1>Curiosity, <span>go.</span></h1>
+<p class="home-subtitle">Find something cool. Wander somewhere weird. Open a tab and see what happens.</p>
+<form class="home-search" id="home-search-form"><span class="home-search-icon" aria-hidden="true">⌕</span><input id="home-search-input" type="text" autocomplete="off" spellcheck="false" placeholder="Search the web or enter a website…" aria-label="Search the web or enter a website"><button type="submit">Search <span aria-hidden="true">↗</span></button></form>
+<div class="home-hints"><span>✦ Tiny internet, big energy</span><span>·</span><span>Search powered by TinyFish</span></div>
+<div class="shortcut-heading"><span>YOUR SHORTCUTS</span><button type="button" id="add-shortcut">＋ Add shortcut</button></div><div class="home-shortcuts" id="home-shortcuts"><button type="button" data-home-query="Wikipedia">📚<span>Wikipedia</span></button><button type="button" data-home-query="fun websites">🪩<span>Fun websites</span></button><button type="button" data-home-query="space">🪐<span>Space</span></button></div>
+<a class="home-back" href="index.html">← Back to the Hyper-Pop playground</a></div></div>
+    <div class="loading" id="loading">Loading page…</div>
+  </main>
+</div>
+<script>
+const ENDPOINT="https://iapnejlttsqqefkpmelp.supabase.co/functions/v1/hyperpop-proxy";
+const tabsEl=document.getElementById("tabs"),newtab=document.getElementById("newtab"),address=document.getElementById("address"),go=document.getElementById("go"),back=document.getElementById("back"),forward=document.getElementById("forward"),reload=document.getElementById("reload"),home=document.getElementById("home"),status=document.getElementById("status"),viewport=document.getElementById("viewport"),empty=document.getElementById("empty"),loading=document.getElementById("loading");
+const bookmarkCurrent=document.getElementById("bookmark-current"),showBookmarks=document.getElementById("show-bookmarks"),showHistory=document.getElementById("show-history"),bookmarkPanel=document.getElementById("bookmark-panel"),shortcutContainer=document.getElementById("home-shortcuts"),addShortcut=document.getElementById("add-shortcut");
+const BOOKMARKS_KEY="hyperpop.proxy.bookmarks.v1",SHORTCUTS_KEY="hyperpop.proxy.shortcuts.v1",HISTORY_KEY="hyperpop.proxy.history.v1";
+function readList(key){try{const v=JSON.parse(localStorage.getItem(key)||"[]");return Array.isArray(v)?v:[]}catch{return []}}
+function saveList(key,value){try{localStorage.setItem(key,JSON.stringify(value))}catch{status.textContent="Could not save. Browser storage may be full."}}
+function cleanUrl(value){let v=String(value||"").trim();if(!v)return"";if(!/^[a-z][a-z0-9+.-]*:\/\//i.test(v))v="https://"+v;try{const u=new URL(v);return ["http:","https:"].includes(u.protocol)?u.href:""}catch{return""}}
+function currentTitle(t){if(!t)return"Saved page";if(t.title&&t.title!=="New Tab"&&!t.title.startsWith("Search: "))return t.title;try{return new URL(t.url).hostname}catch{return t.url||"Saved page"}}
+function renderBookmarks(){
+ const list=readList(BOOKMARKS_KEY);bookmarkPanel.replaceChildren();
+ const head=document.createElement("div");head.className="bookmark-panel-head";head.innerHTML='<span>☆ Bookmarks <small>'+list.length+' saved</small></span><button class="bookmark-close" type="button">Close ×</button>';head.querySelector("button").onclick=()=>bookmarkPanel.hidden=true;bookmarkPanel.append(head);
+ if(!list.length){const e=document.createElement("div");e.className="bookmark-empty";e.textContent="No bookmarks yet. Open a website and tap ☆ to keep it here.";bookmarkPanel.append(e);return}
+ const wrap=document.createElement("div");wrap.className="bookmark-list";
+ list.forEach((item,index)=>{const row=document.createElement("div");row.className="bookmark-item";const open=document.createElement("button");open.className="bookmark-open";open.type="button";open.textContent="✦ "+item.title;open.title=item.url;open.onclick=()=>{bookmarkPanel.hidden=true;load(item.url,true)};const remove=document.createElement("button");remove.className="bookmark-remove";remove.type="button";remove.textContent="×";remove.title="Remove bookmark";remove.onclick=()=>{const next=readList(BOOKMARKS_KEY);next.splice(index,1);saveList(BOOKMARKS_KEY,next);renderBookmarks()};row.append(open,remove);wrap.append(row)});
+ bookmarkPanel.append(wrap);
+}
+function saveVisit(url,title){
+ const clean=cleanUrl(url);if(!clean)return;
+ const list=readList(HISTORY_KEY).filter(x=>x.url!==clean);
+ list.unshift({url:clean,title:String(title||"").slice(0,160)||new URL(clean).hostname,visitedAt:Date.now()});
+ saveList(HISTORY_KEY,list.slice(0,100));
+}
+function renderHistory(){
+ const list=readList(HISTORY_KEY);bookmarkPanel.replaceChildren();
+ const head=document.createElement("div");head.className="bookmark-panel-head";head.innerHTML='<span>◷ Recent history <small>'+list.length+' saved locally</small></span><button class="bookmark-close" type="button">Close ×</button>';head.querySelector("button").onclick=()=>bookmarkPanel.hidden=true;bookmarkPanel.append(head);
+ if(!list.length){const e=document.createElement("div");e.className="bookmark-empty";e.textContent="Pages you visit will appear here. History stays on this device.";bookmarkPanel.append(e);return}
+ const actions=document.createElement("button");actions.type="button";actions.className="bookmark-close";actions.textContent="Clear history";actions.style.marginBottom="8px";actions.onclick=()=>{saveList(HISTORY_KEY,[]);renderHistory();status.textContent="Browsing history cleared."};bookmarkPanel.append(actions);
+ const wrap=document.createElement("div");wrap.className="bookmark-list";
+ list.forEach(item=>{const row=document.createElement("div");row.className="bookmark-item";const open=document.createElement("button");open.className="bookmark-open";open.type="button";open.textContent="◷ "+(item.title||item.url);open.title=item.url;open.onclick=()=>{bookmarkPanel.hidden=true;load(item.url,true)};const time=document.createElement("small");time.style.color="var(--muted)";time.textContent=new Date(item.visitedAt||0).toLocaleDateString();row.append(open,time);wrap.append(row)});bookmarkPanel.append(wrap);
+}
+function saveCurrentBookmark(){
+ const t=activeTab(),url=cleanUrl(t&&t.url);
+ if(!url){status.textContent="Open a website first, then bookmark it.";return}
+ const list=readList(BOOKMARKS_KEY);if(list.some(x=>x.url===url)){status.textContent="Already bookmarked ✦";bookmarkPanel.hidden=false;renderBookmarks();return}
+ list.unshift({title:currentTitle(t),url});saveList(BOOKMARKS_KEY,list);renderBookmarks();bookmarkPanel.hidden=false;status.textContent="Bookmark saved ✦";
+}
+function renderShortcuts(){
+ const custom=readList(SHORTCUTS_KEY);shortcutContainer.querySelectorAll("[data-custom-shortcut]").forEach(n=>n.remove());
+ custom.forEach((item,index)=>{const b=document.createElement("button");b.type="button";b.setAttribute("data-custom-shortcut","true");b.title=item.url;b.innerHTML='<span class="shortcut-remove" aria-label="Remove shortcut">×</span><span aria-hidden="true">✦</span><span></span>';b.querySelector("span:last-child").textContent=item.title;b.addEventListener("click",e=>{if(e.target.closest(".shortcut-remove")){e.stopPropagation();const next=readList(SHORTCUTS_KEY);next.splice(index,1);saveList(SHORTCUTS_KEY,next);renderShortcuts();return}load(item.url,true)});shortcutContainer.append(b)});
+}
+function createShortcut(){
+ const title=prompt("Name this shortcut (for example, YouTube):");if(!title||!title.trim())return;
+ const raw=prompt("Website address (for example, youtube.com):");const url=cleanUrl(raw);if(!url){status.textContent="That address doesn't look valid. Try again.";return}
+ const list=readList(SHORTCUTS_KEY);if(list.length>=12){status.textContent="You can save up to 12 custom shortcuts.";return}
+ list.push({title:title.trim().slice(0,36),url});saveList(SHORTCUTS_KEY,list);renderShortcuts();status.textContent="Shortcut added ✦";
+}
+let tabs=[],active=0,serial=0;
+function isSearchQuery(v){v=v.trim();return !!v&&!/^(https?|about):\/\//i.test(v)&&!(/^[^\s.]+\.[^\s.]+/.test(v)||v.includes("/"))}
+function normalize(v){v=v.trim();if(!v)return"";if(!/^(https?|about):\/\//i.test(v)){if(/^[^\s.]+\.[^\s.]+/.test(v)||v.includes("/"))v="https://"+v;else return "search:"+v}return v}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+async function searchWikipedia(query){
+ const t=activeTab();showBusy(true);status.textContent="Searching Wikipedia…";
+ try{
+  const api="https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch="+encodeURIComponent(query)+"&format=json&origin=*&srlimit=10";
+  const response=await fetch(api,{headers:{"Accept":"application/json"}});
+  if(!response.ok)throw new Error("Search service returned HTTP "+response.status);
+  const data=await response.json(),results=data&&data.query&&data.query.search||[];
+  const panel=document.createElement("section");
+  panel.style.cssText="height:100%;overflow:auto;background:#fff;color:#242235;padding:clamp(18px,4vw,38px);font-family:system-ui,sans-serif";
+  panel.innerHTML='<div style="max-width:850px;margin:0 auto"><div style="font:11px monospace;letter-spacing:.12em;text-transform:uppercase;color:#7866bf;margin-bottom:8px">HYPER-POP SEARCH</div><h1 style="font-size:clamp(25px,5vw,36px);margin:0 0 6px">Results for '+escapeHtml(query)+'</h1><p style="color:#6b687d;margin:0 0 24px">Wikipedia articles · Search results stay inside Hyper-Pop</p><div id="hp-results"></div><p style="font-size:12px;color:#77738a;margin-top:26px">These are encyclopedia results, not a full-web search index.</p></div>';
+  const list=panel.querySelector("#hp-results");
+  if(!results.length){list.innerHTML='<p>No matching articles found. Try different keywords or enter a website address above.</p>'}
+  results.forEach(item=>{
+   const card=document.createElement("article");card.style.cssText="padding:16px 0;border-top:1px solid #e8e6f0";
+   const link=document.createElement("a");link.href="https://en.wikipedia.org/wiki/"+encodeURIComponent(item.title.replace(/ /g,"_"));link.textContent=item.title;link.style.cssText="font-size:19px;font-weight:700;color:#4b42b8;text-decoration:none";
+   link.addEventListener("click",e=>{e.preventDefault();load(link.href,true)});
+   const snippet=document.createElement("div");snippet.style.cssText="margin-top:7px;line-height:1.55;color:#484657";snippet.innerHTML=item.snippet||"Open this article on Wikipedia.";
+   card.append(link,snippet);list.append(card);
+  });
+  t.url="search:"+query;t.title="Search: "+query;
+  if(t.frame){t.frame.remove();t.frame=null}
+  if(t.searchPanel)t.searchPanel.remove();
+  t.searchPanel=panel;viewport.appendChild(panel);empty.style.display="none";
+  if(t.history[t.pos]!==t.url){t.history=t.history.slice(0,t.pos+1);t.history.push(t.url);t.pos=t.history.length-1}
+  renderTabs();address.value=query;back.disabled=t.pos<=0;forward.disabled=t.pos>=t.history.length-1;status.textContent=results.length+" Wikipedia results · "+query;
+ }catch(e){status.textContent=e.message||"Search failed."}
+ finally{showBusy(false)}
+}
+function makeTab(url=""){return{id:++serial,url,title:"New Tab",history:[],pos:-1,frame:null,searchQuery:""}}
+function activeTab(){return tabs[active]}
+function siteOrigin(url){try{return new URL(url).origin}catch{return ""}}
+function siteHost(url){try{return new URL(url).hostname}catch{return ""}}
+function readSiteStore(url,kind){try{return JSON.parse(localStorage.getItem("hyperpop:"+kind+":"+ (kind==="cookies"?siteHost(url):siteOrigin(url)))||"{}")}catch{return {}}}
+function writeSiteStore(host,kind,data){try{localStorage.setItem("hyperpop:"+kind+":"+host,JSON.stringify(data))}catch(e){status.textContent="Local storage is full or unavailable."}}
+function addLocalStorageShim(html,url){
+ const origin=siteOrigin(url),host=siteHost(url);
+ if(/(^|\.)wikipedia\.org$/i.test(host)){
+  const wikiStyle=`<style id="hyperpop-wikipedia-reader">
+  html{background:#f8f9fa!important;color:#202122!important;scroll-behavior:smooth}body{background:#f8f9fa!important;color:#202122!important;font-family:Arial,Helvetica,sans-serif!important;font-size:14px!important;line-height:1.65!important}
+  a{color:#365fb5!important;text-decoration:none}a:hover{text-decoration:underline!important}
+  #content,.mw-page-container,.mw-page-container-inner,.mw-content-container,.mw-body,.mw-body-content,#mw-content-text,.mw-parser-output{color:#202122!important}
+  #content,.mw-page-container,.mw-page-container-inner{max-width:1240px!important;margin-left:auto!important;margin-right:auto!important}
+  #content{padding:24px clamp(16px,3vw,42px)!important;background:#fff!important;border:1px solid #a7d7f9!important;border-radius:5px!important;box-shadow:0 2px 9px #00000008!important}
+  #mw-panel,.vector-sidebar-container,#mw-page-base,#mw-head-base{background:#f8f9fa!important}
+  h1,h2,h3,h4,h5{font-family:Georgia,"Times New Roman",serif!important;color:#202122!important;font-weight:400!important;line-height:1.25!important}h1{font-size:clamp(1.8rem,4vw,2.1rem)!important;border-bottom:1px solid #a2a9b1!important;padding-bottom:.22em!important}h2{font-size:1.55rem!important;border-bottom:1px solid #a2a9b1!important;padding-bottom:.2em!important;margin-top:1.3em!important}h3{font-size:1.2rem!important;font-weight:700!important}
+  p{line-height:1.75!important;margin:.5em 0 1em!important}.infobox,.infobox_v2,.sidebar,.vertical-navbox{background:#f8f9fa!important;border:1px solid #a2a9b1!important;border-collapse:collapse!important;padding:8px!important;color:#202122!important;max-width:100%!important}.infobox th,.infobox td,.infobox_v2 th,.infobox_v2 td{padding:5px 8px!important;border-color:#a2a9b1!important;vertical-align:top!important}
+  .toc,.toccolours,.navbox,.metadata,.ambox,.ombox,.tmbox,.fmbox,.cmbox{background:#f8f9fa!important;border:1px solid #a2a9b1!important;color:#202122!important;padding:10px!important}table{max-width:100%;border-color:#a2a9b1!important}th{background:#eaecf0!important;color:#202122!important}td{color:#202122!important}
+  .thumb,.thumbinner,.gallerybox{background:#f8f9fa!important;border:1px solid #c8ccd1!important;padding:5px!important;max-width:100%!important}.thumbcaption,.gallerytext{color:#202122!important;font-size:12px!important;line-height:1.5!important}img{max-width:100%;height:auto}
+  @media(max-width:760px){#content,.mw-page-container,.mw-page-container-inner{width:auto!important;max-width:100%!important;margin:0!important;padding-left:12px!important;padding-right:12px!important}#content{border-left:0!important;border-right:0!important;border-radius:0!important}.infobox,.infobox_v2{float:none!important;margin:12px auto!important;display:table!important;width:auto!important;max-width:100%!important;overflow-wrap:anywhere}table{display:block;overflow-x:auto}h1{font-size:1.7rem!important}}
+  </style>`;
+  html=/<head\b[^>]*>/i.test(html)?html.replace(/<head\b[^>]*>/i,m=>m+wikiStyle):wikiStyle+html;
+ }
+ if(!origin||!host)return html;
+ // A site's own CSP meta tag can block the local compatibility shim, so remove it before injection.
+ html=html.replace(/<meta\b[^>]*http-equiv\s*=\s*(["'])?content-security-policy\1?[^>]*>/gi,"");
+ const local=readSiteStore(url,"storage"),session=readSiteStore(url,"session"),cookies=readSiteStore(url,"cookies");
+ const payload=JSON.stringify({origin,host,local,session,cookies}).replace(/</g,"\\u003c");
+ const script=`<script>(function(){
+ const cfg=${payload};
+ let values=Object.assign({},cfg.local||{}),sessionValues=Object.assign({},cfg.session||{}),jar=Object.assign({},cfg.cookies||{});
+ function notify(kind,data){try{parent.postMessage({type:"hyperpop-storage",host:kind==="cookies"?cfg.host:cfg.origin,kind,data},"*")}catch(e){}}
+ function makeStore(source,kind){let values=Object.assign({},source||{});const store={getItem(k){k=String(k);return Object.prototype.hasOwnProperty.call(values,k)?String(values[k]):null},setItem(k,v){values[String(k)]=String(v);notify(kind,values)},removeItem(k){delete values[String(k)];notify(kind,values)},clear(){values={};notify(kind,values)},key(i){return Object.keys(values)[i]??null}};Object.defineProperty(store,"length",{get(){return Object.keys(values).length}});return store}
+ try{Object.defineProperty(window,"localStorage",{configurable:true,value:makeStore(values,"storage")})}catch(e){}
+ try{Object.defineProperty(window,"sessionStorage",{configurable:true,value:makeStore(sessionValues,"session")})}catch(e){}
+ try{Object.defineProperty(document,"cookie",{configurable:true,get(){return Object.keys(jar).filter(k=>jar[k]&&typeof jar[k]==="object"?(!jar[k].expires||jar[k].expires>Date.now()):true).map(k=>k+"="+(jar[k]&&typeof jar[k]==="object"?jar[k].value:jar[k])).join("; ")},set(v){
+  const parts=String(v).split(";"),pair=parts.shift()||"",i=pair.indexOf("=");if(i<1)return;
+  const k=pair.slice(0,i).trim(),val=pair.slice(i+1).trim();if(!k)return;
+  let expires=0,remove=false;
+  for(const part of parts){const p=part.trim(),lower=p.toLowerCase();if(lower.startsWith("max-age=")){const n=Number(p.slice(8));if(Number.isFinite(n)){if(n<=0)remove=true;else expires=Date.now()+n*1000}}else if(lower.startsWith("expires=")){const d=Date.parse(p.slice(8));if(Number.isFinite(d)){expires=d;if(d<=Date.now())remove=true}}}
+  if(remove)delete jar[k];else jar[k]={value:val,expires:expires||0};
+  notify("cookies",jar)
+ }})}catch(e){}
+ document.addEventListener("submit",function(e){
+  const form=e.target;if(!form||form.tagName!=="FORM")return;
+  const method=String(form.method||"GET").toUpperCase();
+  if(form.target&&form.target!=="_self")return;
+  if(form.querySelector('input[type="password"],input[type="file"]'))return;
+  const enctype=String(form.enctype||"application/x-www-form-urlencoded").toLowerCase();
+  if(method==="POST"){
+   e.preventDefault();
+   parent.postMessage({type:"hyperpop-form-unsupported",message:"This form uses POST. Hyper-Pop keeps POST submissions disabled for privacy and security. Try a GET/search form, or open the site directly if you trust it."},"*");
+   return;
+  }
+  let target;try{target=new URL(form.getAttribute("action")||location.href,document.querySelector("base")?.href||cfg.origin)}catch(e){return}
+  if(!/^https?:$/.test(target.protocol))return;
+  e.preventDefault();
+  const data=new URLSearchParams();
+  try{
+   const formData=new FormData(form,e.submitter instanceof HTMLElement?e.submitter:undefined);
+   for(const [key,value] of formData.entries()){if(typeof value==="string")data.append(key,value)}
+  }catch(e){for(const [key,value] of new FormData(form).entries()){if(typeof value==="string")data.append(key,value)}}
+  if(method==="GET"){
+   // Keep existing query parameters and append submitted fields.
+   for(const [key,value] of data.entries())target.searchParams.append(key,value);
+   parent.postMessage({type:"hyperpop-navigate",url:target.toString()},"*");return
+  }
+  return;
+ },true);
+})();<\/script>`;
+ const headMatch=html.match(/<head\b[^>]*>/i);
+ return headMatch?html.replace(headMatch[0],headMatch[0]+script):script+html;
+}
+function renderTabs(){tabsEl.replaceChildren(...tabs.map((t,i)=>{const b=document.createElement("button");b.className="tab"+(i===active?" active":"");b.type="button";b.innerHTML='<span class="tab-title"></span><span class="tab-x">×</span>';b.querySelector(".tab-title").textContent=t.title;b.addEventListener("click",e=>{if(e.target.classList.contains("tab-x")){closeTab(i)}else{active=i;render()}});return b}))}
+function closeTab(i){if(tabs.length===1){tabs[0]=makeTab();active=0}else{tabs.splice(i,1);if(active>=tabs.length)active=tabs.length-1;if(active>i)active--}render()}
+function render(){const t=activeTab();renderTabs();address.value=t.searchQuery||t.url||"";back.disabled=t.pos<=0;forward.disabled=t.pos<0||t.pos>=t.history.length-1;viewport.querySelectorAll("iframe").forEach(x=>x.remove());if(t.frame){viewport.appendChild(t.frame);empty.style.display="none"}else empty.style.display="grid";status.textContent=t.searchQuery?("Search results for “"+t.searchQuery+"”"):(t.url?("Loaded "+new URL(t.url).hostname):"New tab")}
+function showBusy(v){loading.classList.toggle("show",v);go.disabled=v}
+const homeSearchForm=document.getElementById("home-search-form"),homeSearchInput=document.getElementById("home-search-input");
+homeSearchForm.addEventListener("submit",e=>{e.preventDefault();const value=homeSearchInput.value.trim();if(value)load(value,true)});
+document.querySelectorAll("[data-home-query]").forEach(button=>button.addEventListener("click",()=>{const value=button.getAttribute("data-home-query")||"";homeSearchInput.value=value;load(value,true)}));
+bookmarkCurrent.addEventListener("click",saveCurrentBookmark);
+showBookmarks.addEventListener("click",()=>{renderBookmarks();bookmarkPanel.hidden=!bookmarkPanel.hidden});
+showHistory.addEventListener("click",()=>{renderHistory();bookmarkPanel.hidden=!bookmarkPanel.hidden});
+addShortcut.addEventListener("click",createShortcut);
+renderBookmarks();renderShortcuts();
+function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]))}
+function searchPage(query,results,suggestions,provider,page=0){
+ const cards=results.map(item=>'<article class="result"><a href="'+escapeHtml(item.url)+'">'+escapeHtml(item.title)+'</a><div class="url">'+escapeHtml(new URL(item.url).hostname)+'</div><p>'+escapeHtml(item.content||"No description available.")+'</p></article>').join("");
+  const chips=suggestions.map(s=>'<button type="button" data-query="'+escapeHtml(s)+'">'+escapeHtml(s)+'</button>').join("");
+  const pagination='<nav class="pagination" aria-label="Search result pages">'+(page>0?'<button type="button" data-page="'+(page-1)+'">‹ Previous</button>':'<span></span>')+'<div class="page-numbers">'+Array.from({length:10},(_,i)=>'<button type="button" data-page="'+i+'" class="'+(i===page?'current':'')+'" aria-label="Page '+(i+1)+'" '+(i===page?'aria-current="page"':'')+'>'+(i+1)+'</button>').join("")+'</div>'+(page<9?'<button type="button" data-page="'+(page+1)+'">Next ›</button>':'<span></span>')+'</nav>';
+ return '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}body{margin:0;background:#0b0b15;color:#f6f4ff;font:15px system-ui,-apple-system,sans-serif}.wrap{max-width:820px;margin:0 auto;padding:28px 20px 60px}.logo{font-weight:800;font-size:13px;letter-spacing:.12em;color:#4be0e3}.heading{font-size:25px;line-height:1.2;margin:12px 0 5px;overflow-wrap:anywhere}.sub{color:#a7a3bd;font-size:13px;margin-bottom:24px}.result{padding:17px 0;border-bottom:1px solid #ffffff18}.result a{color:#8fa8ff;font-size:18px;text-decoration:none;font-weight:650;overflow-wrap:anywhere}.result a:hover{text-decoration:underline}.url{color:#63d8bf;font-size:12px;margin-top:5px;overflow-wrap:anywhere}.result p{color:#d0cede;line-height:1.55;margin:7px 0 0;overflow-wrap:anywhere}.suggest{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 22px}.suggest button{background:#191927;color:#d9d5f0;border:1px solid #ffffff1b;border-radius:999px;padding:8px 12px}.pagination{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:24px 0 10px}.pagination button{border:1px solid #ffffff22;background:#171725;color:#eeeaff;border-radius:9px;padding:9px 12px;cursor:pointer}.pagination button.current{background:linear-gradient(120deg,#4be0e3,#b19aff);color:#11111b;border-color:transparent;font-weight:800}.page-numbers{display:flex;gap:5px;flex-wrap:wrap;justify-content:center}.page-numbers button{min-width:34px;padding:8px 9px}.pagination span{min-width:82px}.empty{color:#bcb7d1;background:#151522;padding:18px;border-radius:14px;line-height:1.5}.foot{color:#77748e;font-size:11px;margin-top:28px}@media(max-width:560px){.pagination{gap:4px;flex-wrap:wrap}.pagination button{padding:8px}.page-numbers{order:3;width:100%}.pagination span{min-width:0}}</style></head><body><main class="wrap"><div class="logo">HYPER✦POP SEARCH</div><h1 class="heading">Results for '+escapeHtml(query)+'</h1><div class="sub">'+results.length+' results · powered by '+escapeHtml(provider||'web search')+'</div>'+(chips?'<div class="suggest">'+chips+'</div>':"")+(cards||'<div class="empty">No results came back for this search. Try different words or check back in a moment.</div>')+pagination+'<div class="foot">Showing up to 100 results, 10 per page. Search results are provided by a third-party metasearch service.</div></main><script>(function(){document.addEventListener("click",function(e){var a=e.target.closest&&e.target.closest("a[href]");if(a){e.preventDefault();parent.postMessage({type:"hyperpop-navigate",url:a.href},"*");return}var b=e.target.closest&&e.target.closest("button[data-query]");if(b){parent.postMessage({type:"hyperpop-search",query:b.getAttribute("data-query")},"*");return}var p=e.target.closest&&e.target.closest("button[data-page]");if(p)parent.postMessage({type:"hyperpop-search-page",page:Number(p.getAttribute("data-page"))},"*")},true)})();<\/script></body></html>';
+}
+async function loadSearch(query,push=true,page=0){
+ const t=activeTab();query=String(query||"").trim();if(!query)return;
+ showBusy(true);status.textContent="Searching for "+query+"…";
+ try{
+   const r=await fetch(ENDPOINT+"?search=1&page="+encodeURIComponent(page)+"&q="+encodeURIComponent(query));
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok||!d.ok)throw new Error(d.error||"Search failed.");
+   t.url=query;t.searchQuery=query;t.searchPage=page;t.title="Search: "+query;saveList(HISTORY_KEY,[{url:"https://search.hyper-pop.invalid/?q="+encodeURIComponent(query),title:"Search: "+query,visitedAt:Date.now()},...readList(HISTORY_KEY).filter(x=>!String(x.url).startsWith("https://search.hyper-pop.invalid/"))].slice(0,100));
+  if(push){t.history=t.history.slice(0,t.pos+1);t.history.push(query);t.pos=t.history.length-1}
+   const frame=document.createElement("iframe");frame.title="Hyper-Pop search results";frame.setAttribute("sandbox","allow-scripts allow-forms");frame.srcdoc=searchPage(query,Array.isArray(d.results)?d.results:[],Array.isArray(d.suggestions)?d.suggestions:[],d.provider,page);
+  t.frame=frame;render();status.textContent="Search results for “"+query+"”";
+ }catch(e){status.textContent=e.message||"Search failed."}
+ finally{showBusy(false)}
+}
+function mediaReaderPage(url){
+ const u=new URL(url), host=u.hostname.toLowerCase();
+ let kind="", source=url, title="Media player", note="";
+ if(/(^|\.)youtube\.com$|(^|\.)youtu\.be$/.test(host)){
+  let id=u.searchParams.get("v")||"";
+  if(host==="youtu.be")id=u.pathname.split("/").filter(Boolean)[0]||"";
+  const m=u.pathname.match(/\/(?:shorts|embed|live)\/([^/?]+)/);if(!id&&m)id=m[1];
+  if(!/^[\w-]{11}$/.test(id)){return null}
+  kind="youtube";source="https://www.youtube.com/embed/"+id+"?autoplay=0&rel=0";title="YouTube";
+  note="Video plays in YouTube’s official embedded player. Some videos restrict embedding or require sign-in.";
+ }else if(/(^|\.)spotify\.com$/.test(host)){
+  const m=u.pathname.match(/^\/(track|album|playlist|episode|show)\/([A-Za-z0-9]+)/);
+  if(!m)return null;
+  kind="spotify";source="https://open.spotify.com/embed/"+m[1]+"/"+m[2]+"?utm_source=generator&theme=0";title="Spotify";
+  note="Music plays through Spotify’s official player. Playback and sign-in requirements depend on Spotify.";
+ }else if(/\.(mp4|m4v|webm|ogv|mov)(?:$)/i.test(u.pathname)){
+  kind="video";title="Video player";note="Direct video file";
+ }else if(/\.(mp3|m4a|aac|ogg|oga|wav|flac|opus)(?:$)/i.test(u.pathname)){
+  kind="audio";title="Audio player";note="Direct audio file";
+ }else return null;
+ const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+ if(kind==="youtube"){
+  const short=/\/shorts\//.test(u.pathname);
+  const aspect=short?"9/16":"16/9";
+  const frameStyle=short?"position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;border:0;background:#000":"position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;border:0;background:#000";
+  return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><title>YouTube · Hyper-Pop</title><style>*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}.player{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;border:0;background:#000;display:block}</style></head><body><iframe class="player" src="'+esc(source)+'" title="YouTube player" allow="autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope" allowfullscreen></iframe></body></html>';
+ }
+ const player=kind==="youtube"||kind==="spotify"
+  ? '<iframe class="'+(kind==="spotify"?"spotify-full":"embed")+'" src="'+esc(source)+'" title="'+title+'" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" allowfullscreen loading="eager"></iframe>'
+  : kind==="video" ? '<video controls playsinline preload="metadata" src="'+esc(ENDPOINT+"?resource=1&url="+encodeURIComponent(url))+'"></video>'
+  : '<audio controls preload="metadata" src="'+esc(ENDPOINT+"?resource=1&url="+encodeURIComponent(url))+'"></audio>';
+ if(kind==="spotify"){
+  return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><title>Spotify · Hyper-Pop</title><style>*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#121212}body{padding:0}.spotify-full{display:block;position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;border:0;border-radius:0;background:#121212}</style></head><body><iframe class="spotify-full" src="'+esc(source)+'" title="Spotify" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe></body></html>';
+ }
+ return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+title+' · Hyper-Pop</title><style>*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 10% 0,#26204b,transparent 45%),#090914;color:#f7f5ff;font:16px system-ui,-apple-system,sans-serif;display:grid;place-items:center;padding:22px}.card{width:min(900px,100%);padding:clamp(18px,4vw,34px);border:1px solid #ffffff20;border-radius:24px;background:#151522;box-shadow:0 20px 70px #0006}.eyebrow{font-size:11px;letter-spacing:.15em;color:#4be0e3;font-weight:800;text-transform:uppercase}.card h1{margin:8px 0 20px;font-size:clamp(24px,5vw,38px);letter-spacing:-.04em}.embed{display:block;width:100%;aspect-ratio:16/9;border:0;border-radius:14px;background:#000}.card video{width:100%;max-height:70vh;border-radius:14px;background:#000}.card audio{width:100%;margin:24px 0}.note{margin:18px 0 0;color:#b5b1cb;font-size:13px;line-height:1.6}.url{margin-top:16px;color:#85809f;font-size:11px;overflow-wrap:anywhere}</style></head><body><main class="card"><div class="eyebrow">Hyper-Pop media</div><h1>'+title+'</h1>'+player+'<p class="note">'+esc(note)+'</p><div class="url">'+esc(u.hostname+u.pathname)+'</div></main></body></html>';
+}
+
+async function loadYoutubeHome(push=true,mode="home",query=""){
+ const t=activeTab();showBusy(true);status.textContent="Loading YouTube "+mode+"…";
+ try{
+  const storeKey="hyperpop.youtube.library.v1";
+  const readLocal=()=>{try{return JSON.parse(localStorage.getItem(storeKey)||'{"liked":[],"playlists":[]}')}catch{return {liked:[],playlists:[]}}};
+  const saveLocal=v=>{try{localStorage.setItem(storeKey,JSON.stringify(v))}catch{}};
+  const esc=escapeHtml;
+  let library=readLocal(),cards=[];
+  if(mode==="library"||mode==="liked"||mode==="playlists"){
+   const liked=Array.isArray(library.liked)?library.liked:[];
+   const playlists=Array.isArray(library.playlists)?library.playlists:[];
+   const list=mode==="liked"?liked:mode==="playlists"?playlists.flatMap(p=>(p.videos||[]).map(v=>({...v,playlistName:p.name}))):liked;
+   const page='<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}body{margin:0;background:#0f0f0f;color:#f1f1f1;font:14px Arial,sans-serif}.bar{padding:18px;display:flex;gap:18px;align-items:center;border-bottom:1px solid #292929}.logo{font-size:21px;font-weight:800}.side{width:190px;padding:16px 10px;flex-shrink:0}.side button,.create{display:block;width:100%;text-align:left;padding:13px;border:0;border-radius:10px;background:transparent;color:#eee;cursor:pointer}.side button.active,.side button:hover,.create{background:#292929}.layout{display:flex}.main{min-width:0;flex:1;padding:24px}.heading{font-size:28px;margin:0 0 20px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px}.video{color:inherit;text-decoration:none;min-width:0}.thumb{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;background:#282828}.title{font-size:15px;font-weight:bold;margin:8px 0}.desc{font-size:12px;color:#aaa}.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}.actions button{border:1px solid #444;background:#242424;color:#fff;border-radius:18px;padding:7px 10px}.playlist{padding:16px;background:#1b1b1b;border-radius:12px;margin-bottom:12px}.playlist h3{margin:0 0 8px}.empty{color:#aaa;padding:20px 0}.hint{color:#aaa;line-height:1.6}@media(max-width:620px){.layout{display:block}.side{width:auto;display:flex;gap:5px;padding:8px;position:sticky;top:0;background:#0f0f0f;z-index:2}.side button{flex:1;text-align:center;padding:10px 4px;font-size:12px}.main{padding:16px}.grid{grid-template-columns:1fr}.heading{font-size:24px}}</style></head><body><header class="bar"><div class="logo">▶ YouTube · My Library</div></header><div class="layout"><nav class="side"><button data-mode="home">⌂ Home</button><button data-mode="shorts">▶ Shorts</button><button data-mode="liked" class="'+(mode==="liked"?"active":"")+'">♥ Liked videos</button><button data-mode="playlists" class="'+(mode==="playlists"?"active":"")+'">▤ Playlists</button></nav><main class="main"><h1 class="heading">'+(mode==="liked"?"Liked videos":mode==="playlists"?"Your playlists":"My Library")+'</h1><button class="create" id="create">＋ Create playlist</button><div id="content">'+(mode==="playlists"?playlists.map((p,i)=>'<section class="playlist"><h3>'+esc(p.name)+'</h3><p class="desc">'+(p.videos||[]).length+' videos</p><div class="actions"><button data-open-playlist="'+i+'">Open playlist</button><button data-delete-playlist="'+i+'">Delete</button></div></section>').join(""):list.map(v=>'<article class="video"><a href="'+esc(v.url)+'"><img class="thumb" src="'+esc(v.thumbnail||"")+'"><div class="title">'+esc(v.title||"YouTube video")+'</div></a><div class="desc">'+esc(v.channel||"")+'</div><div class="actions"><button data-play="'+esc(v.id)+'">▶ Play</button><button data-unlike="'+esc(v.id)+'">♥ Remove like</button><button data-add="'+esc(v.id)+'">＋ Add to playlist</button></div></article>').join(""))+'</div><p class="hint">Likes and playlists are saved locally in this browser on this device.</p></main></div><script>document.addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;if(b.dataset.mode){parent.postMessage({type:"hyperpop-youtube-mode",mode:b.dataset.mode},"*");return}if(b.id==="create"){parent.postMessage({type:"hyperpop-youtube-create-playlist"},"*");return}if(b.dataset.play){parent.postMessage({type:"hyperpop-navigate",url:"https://www.youtube.com/watch?v="+b.dataset.play},"*");return}if(b.dataset.unlike){parent.postMessage({type:"hyperpop-youtube-unlike",id:b.dataset.unlike},"*");return}if(b.dataset.add){parent.postMessage({type:"hyperpop-youtube-add-playlist",id:b.dataset.add},"*");return}if(b.dataset.deletePlaylist!==undefined){parent.postMessage({type:"hyperpop-youtube-delete-playlist",index:+b.dataset.deletePlaylist},"*");return}if(b.dataset.openPlaylist!==undefined){parent.postMessage({type:"hyperpop-youtube-open-playlist",index:+b.dataset.openPlaylist},"*")}});document.querySelectorAll("a[href]").forEach(a=>a.addEventListener("click",function(e){e.preventDefault();parent.postMessage({type:"hyperpop-navigate",url:a.href},"*")}));<\/script></body></html>';
+   const frame=document.createElement("iframe");frame.title="YouTube My Library";frame.setAttribute("sandbox","allow-scripts");frame.srcdoc=page;
+   t.url="https://www.youtube.com/"+(mode==="library"?"feed/you":mode==="liked"?"playlist?list=LL":mode==="playlists"?"feed/playlists":"");t.title="YouTube · "+mode;t.searchQuery="";
+   if(push){t.history=t.history.slice(0,t.pos+1);t.history.push(t.url);t.pos=t.history.length-1}t.frame=frame;render();status.textContent="YouTube · "+mode+" · saved on this device";return;
+  }
+  const freshSince=new Date(Date.now()-180*24*60*60*1000).toISOString().slice(0,10);const shortTopics=["funny","gaming","animation","science","satisfying","music","animals","sports","technology","comedy"];const topic=shortTopics[Math.floor(Math.random()*shortTopics.length)];const q=query||(mode==="shorts"?"#shorts "+topic+" after:"+freshSince+" -before:"+(new Date().getFullYear()+1):"popular trending videos after:"+freshSince);
+  const endpoint=mode==="home"&&!query?ENDPOINT+"?youtube=1&feed=popular":ENDPOINT+"?youtube=1&q="+encodeURIComponent(q);
+  const r=await fetch(endpoint);const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||"Could not load YouTube picks.");
+  cards=(d.results||[]).filter(x=>x.videoId&&x.url).slice(0,20).map(x=>({url:"https://www.youtube.com/watch?v="+x.videoId,title:x.title||"YouTube video",description:x.content||"",id:x.videoId,thumbnail:x.thumbnail||("https://i.ytimg.com/vi/"+x.videoId+"/hqdefault.jpg"),channel:x.channelTitle||"",short:mode==="shorts"})).filter(x=>/^[\w-]{11}$/.test(x.id));
+  const likedIds=new Set((library.liked||[]).map(v=>v.id));
+  const nav=[["⌂","Home","home"],["▶","Shorts","shorts"],["♥","My Library","library"]];
+  const videoMarkup=cards.map(x=>mode==="shorts"?'<article class="short-card"><div class="short-video"><iframe class="short-player" data-video="'+esc(x.id)+'" src="https://www.youtube.com/embed/'+esc(x.id)+'?autoplay=1&mute=1&controls=1&playsinline=1&rel=0&enablejsapi=1" title="'+esc(x.title)+'" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe><div class="short-meta"><div class="short-title">'+esc(x.title)+'</div><div class="short-channel">@'+esc(x.channel||"YouTube creator")+'</div><div class="short-desc">'+esc(x.description)+'</div></div><div class="short-actions"><button data-play="'+esc(x.id)+'" aria-label="Open video">↗</button><button data-like="'+esc(x.id)+'" aria-label="Like">'+(likedIds.has(x.id)?"♥":"♡")+'</button><button data-add="'+esc(x.id)+'" aria-label="Add to playlist">＋</button></div></div></article>':'<article class="video"><a href="'+esc(x.url)+'"><img class="thumb" loading="lazy" src="'+esc(x.thumbnail)+'"><div class="title">'+esc(x.title)+'</div><div class="desc">'+esc(x.channel)+(x.channel&&x.description?" · ":"")+esc(x.description)+'</div></a><div class="actions"><button data-play="'+esc(x.id)+'">▶ Play</button><button data-like="'+esc(x.id)+'">'+(likedIds.has(x.id)?"♥ Liked":"♡ Like")+'</button><button data-add="'+esc(x.id)+'">＋ Playlist</button></div></article>').join("");
+  const page='<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}html,body{margin:0;background:#0f0f0f;color:#f1f1f1;font:14px Arial,sans-serif}.bar{position:sticky;top:0;background:#0f0f0f;padding:12px 18px;display:flex;gap:16px;align-items:center;border-bottom:1px solid #282828;z-index:3}.logo{font-size:21px;font-weight:800;white-space:nowrap}.logo b{display:inline-grid;place-items:center;background:#f03;color:white;border-radius:7px;padding:3px 8px;margin-right:7px}.search{display:flex;max-width:580px;flex:1;margin:auto}.search input{min-width:0;flex:1;background:#121212;color:white;border:1px solid #444;border-radius:24px 0 0 24px;padding:12px 16px;font-size:15px}.search button{background:#292929;color:white;border:1px solid #444;border-radius:0 24px 24px 0;padding:0 18px}.layout{display:flex}.side{position:sticky;top:65px;width:190px;height:calc(100vh - 65px);padding:14px 10px;flex-shrink:0;border-right:1px solid #282828}.side button{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:13px 12px;background:transparent;border:0;border-radius:10px;color:#eee;font-size:14px}.side button.active,.side button:hover{background:#272727}.main{min-width:0;flex:1}.chips{display:flex;gap:9px;overflow:auto;padding:18px}.chips button{white-space:nowrap;background:#272727;color:#fff;border:0;border-radius:9px;padding:10px 13px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:24px 16px;padding:0 18px 30px}.video{min-width:0;color:inherit;text-decoration:none;cursor:pointer}.thumb{width:100%;aspect-ratio:16/9;object-fit:cover;background:#272727;border-radius:12px;display:block}.title{font-size:15px;font-weight:650;line-height:1.4;margin:10px 0 5px}.desc{font-size:12px;line-height:1.45;color:#aaa;max-height:2.9em;overflow:hidden}.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.actions button{background:#272727;color:#fff;border:1px solid #444;border-radius:18px;padding:7px 10px}.hint{color:#aaa;padding:25px 18px;line-height:1.6}.shorts-feed{height:calc(100vh - 70px);overflow-y:auto;scroll-snap-type:y mandatory;overscroll-behavior:contain;background:#050505}.short-card{height:calc(100vh - 70px);min-height:440px;display:flex;align-items:center;justify-content:center;scroll-snap-align:start;scroll-snap-stop:always;padding:8px}.short-video{height:min(100%,780px);aspect-ratio:9/16;max-width:100%;position:relative;border-radius:16px;overflow:hidden;background:#181818}.short-video .short-player{width:100%;height:100%;border:0;display:block;background:#000}.short-video:after{content:"";position:absolute;inset:55% 0 0;pointer-events:none;background:linear-gradient(transparent,#0009)}.short-meta{position:absolute;left:16px;right:72px;bottom:20px;text-shadow:0 1px 5px #000}.short-title{font-weight:700;font-size:15px;line-height:1.35}.short-channel{font-weight:700;margin:10px 0 5px}.short-desc{font-size:12px;line-height:1.4;max-height:3em;overflow:hidden}.short-actions{position:absolute;right:12px;bottom:24px;display:flex;flex-direction:column;gap:15px}.short-actions button{width:44px;height:44px;border:0;border-radius:50%;background:#222b;color:#fff;font-size:23px}.short-actions button:active{transform:scale(.94)}@media(max-width:620px){.bar{gap:10px;padding:12px;flex-wrap:wrap}.logo{font-size:17px}.search{order:2;flex-basis:100%;max-width:none}.layout{display:block}.side{position:fixed;z-index:4;top:auto;bottom:0;left:0;width:100%;height:60px;background:#0f0f0f;border-right:0;border-top:1px solid #333;display:flex;justify-content:space-around;padding:4px}.side button{width:auto;flex:1;justify-content:center;flex-direction:column;gap:2px;padding:4px;font-size:10px}.side button span:first-child{font-size:19px}.grid{grid-template-columns:1fr;gap:22px;padding:0 12px 80px}.thumb{border-radius:9px}.chips{padding:12px}.shorts-feed{height:calc(100dvh - 70px);padding-bottom:0}.short-card{height:calc(100dvh - 70px);min-height:0;padding:0}.short-video{height:100%;width:min(100%,calc((100dvh - 70px)*9/16));border-radius:0}.short-actions{right:8px;bottom:95px}.short-meta{bottom:90px}}@media(min-width:621px) and (max-width:850px){.side{width:75px}.side button{justify-content:center}.side button span:last-child{display:none}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}</style></head><body><header class="bar"><div class="logo"><b>▶</b>YouTube</div><form class="search" id="s"><input id="q" placeholder="Search YouTube" aria-label="Search YouTube" value="'+esc(query)+'"><button>⌕</button></form></header><div class="layout"><nav class="side">'+nav.map(n=>'<button class="'+(mode===n[2]?'active':'')+'" data-mode="'+n[2]+'"><span>'+n[0]+'</span><span>'+n[1]+'</span></button>').join("")+'</nav><main class="main">'+(mode==="shorts"?'<section class="shorts-feed" id="shorts-feed">'+videoMarkup+'</section>':'<nav class="chips"><button data-q="popular trending videos">Explore</button><button data-q="music videos trending">Music</button><button data-q="technology science explainers">Technology</button></nav><section class="grid">'+videoMarkup+'</section>')+'<p class="hint">'+(cards.length?'Choose a video to open the player. Likes and playlists are saved locally.':'No videos were returned. Try a different search.')+'</p></main></div><script>if(document.querySelector(".shorts-feed")){var activeShort=null;var shortObserver=new IntersectionObserver(function(entries){entries.forEach(function(entry){var f=entry.target.querySelector(".short-player");if(!f)return;if(entry.isIntersecting&&entry.intersectionRatio>.7){if(activeShort&&activeShort!==f){try{activeShort.contentWindow.postMessage(JSON.stringify({event:"command",func:"pauseVideo",args:[]}),"*")}catch(e){}}activeShort=f}else{if(activeShort===f)activeShort=null;try{f.contentWindow.postMessage(JSON.stringify({event:"command",func:"pauseVideo",args:[]}),"*")}catch(e){}}})},{threshold:[0,.7,1]});document.querySelectorAll(".short-card").forEach(function(card){shortObserver.observe(card)})}document.addEventListener("click",function(e){var b=e.target.closest("button");if(b){if(b.dataset.mode){parent.postMessage({type:"hyperpop-youtube-mode",mode:b.dataset.mode},"*");return}if(b.dataset.q){parent.postMessage({type:"hyperpop-youtube-search",query:b.dataset.q},"*");return}if(b.dataset.play){parent.postMessage({type:"hyperpop-navigate",url:"https://www.youtube.com/watch?v="+b.dataset.play},"*");return}if(b.dataset.like){parent.postMessage({type:"hyperpop-youtube-like",id:b.dataset.like},"*");b.textContent=b.textContent.includes("♡")?"♥ Liked":"♥";return}if(b.dataset.add){parent.postMessage({type:"hyperpop-youtube-add-playlist",id:b.dataset.add},"*");return}}var a=e.target.closest("a[href]");if(a){e.preventDefault();parent.postMessage({type:"hyperpop-navigate",url:a.href},"*")}});document.getElementById("s").addEventListener("submit",function(e){e.preventDefault();parent.postMessage({type:"hyperpop-youtube-search",query:document.getElementById("q").value},"*")});<\/script></body></html>';
+  const frame=document.createElement("iframe");frame.title="YouTube "+mode;frame.setAttribute("sandbox","allow-scripts allow-same-origin allow-forms allow-presentation");frame.allow="autoplay; encrypted-media; fullscreen; picture-in-picture";frame.srcdoc=page;
+  t.url=mode==="home"?"https://www.youtube.com/":mode==="shorts"?"https://www.youtube.com/shorts": "https://www.youtube.com/"+mode;t.searchQuery="";t.title="YouTube";if(push){t.history=t.history.slice(0,t.pos+1);t.history.push(t.url);t.pos=t.history.length-1}t.frame=frame;render();status.textContent="YouTube "+mode+" · "+cards.length+" videos";
+ }catch(e){status.textContent="YouTube home failed: "+(e.message||"search error")}
+ finally{showBusy(false)}
+}
+
+async function loadSpotifyHome(push=true,mode="home",query=""){
+ const t=activeTab();showBusy(true);status.textContent="Loading Spotify "+mode+"…";
+ try{
+  const searches={home:"site:open.spotify.com/track popular songs hit songs",search:query||"site:open.spotify.com/track popular songs",songs:"site:open.spotify.com/track popular songs hits",albums:"site:open.spotify.com/album popular albums",playlists:"site:open.spotify.com/playlist popular playlists",podcasts:"site:open.spotify.com/show popular podcasts",new:"site:open.spotify.com/album new music"};
+  let q=query||searches[mode]||searches.home;
+  if(mode==="search"&&query){const kind=/\bplaylist(s)?\b/i.test(query)?"playlist":/\balbum(s)?\b/i.test(query)?"album":"track";q="site:open.spotify.com/"+kind+" "+query}
+  const r=await fetch(ENDPOINT+"?search=1&page=0&q="+encodeURIComponent(q));
+  const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||"Could not load Spotify picks.");
+  const results=(d.results||[]).filter(x=>{try{return /(^|\.)open\.spotify\.com$/i.test(new URL(x.url).hostname)&&/^\/(track|album|playlist|episode|show)\//.test(new URL(x.url).pathname)}catch{return false}}).slice(0,30);
+  const cards=results.map(x=>{const u=new URL(x.url),m=u.pathname.match(/^\/(track|album|playlist|episode|show)\/([A-Za-z0-9]+)/);return m?{url:u.origin+u.pathname,title:x.title||"Listen on Spotify",description:x.content||"",kind:m[1],id:m[2],image:x.thumbnail||x.thumbnail_url||x.image||x.image_url||""}:null}).filter(Boolean);
+  await Promise.all(cards.map(async c=>{if(c.image)return;try{const er=await fetch("https://open.spotify.com/oembed?url="+encodeURIComponent(c.url));if(er.ok){const ed=await er.json();c.image=ed.thumbnail_url||"";if(ed.title)c.title=ed.title}}catch(e){}}));
+  const esc=escapeHtml;
+  const nav=[["⌂","Home","home"],["⌕","Search","search"],["♫","Popular songs","songs"],["▣","Albums","albums"],["▤","Playlists","playlists"],["✦","New releases","new"]];
+  const page='<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#121212;color:#f5f5f5;font:14px Arial,sans-serif}body{padding-bottom:24px}.shell{display:flex;min-height:100vh}.side{position:sticky;top:0;flex:0 0 220px;height:100vh;padding:22px 12px;background:#000}.brand{font-size:23px;font-weight:800;margin:0 10px 28px}.side button{display:flex;gap:14px;align-items:center;width:100%;border:0;background:transparent;color:#b3b3b3;text-align:left;padding:13px 12px;border-radius:7px;font-size:15px;cursor:pointer}.side button.active,.side button:hover{color:#fff;background:#242424}.main{min-width:0;flex:1;background:linear-gradient(#202020,#121212 300px);padding:24px clamp(14px,3vw,32px)}.top{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:26px}.search{display:flex;flex:1;max-width:600px}.search input{width:100%;background:#fff;color:#111;border:0;border-radius:24px;padding:13px 17px;font-size:14px}.search button{margin-left:8px;border:0;border-radius:24px;padding:0 16px;background:#1ed760;color:#000;font-weight:700}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:18px}.card{display:block;min-width:0;padding:13px;background:#181818;border-radius:9px;color:inherit;text-decoration:none;transition:background .15s}.card:hover{background:#282828}.cover{width:100%;aspect-ratio:1;object-fit:cover;background:#282828;border-radius:6px;display:block}.title{font-weight:700;line-height:1.4;margin:12px 0 5px}.desc{font-size:12px;color:#b3b3b3;line-height:1.45;max-height:3em;overflow:hidden}.hint{color:#b3b3b3;line-height:1.6;padding:20px 0}.section{font-size:25px;margin:0 0 18px}.quick{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:22px}.quick button{border:0;border-radius:20px;padding:9px 14px;background:#2b2b2b;color:#fff;cursor:pointer}.quick button.active{background:#1ed760;color:#000}@media(max-width:620px){.shell{display:block}.side{position:fixed;z-index:4;top:auto;bottom:0;left:0;width:100%;height:68px;padding:4px 6px;display:flex;justify-content:space-around;background:#080808;border-top:1px solid #333}.brand{display:none}.side button{width:auto;flex:1;justify-content:center;flex-direction:column;gap:2px;padding:5px 1px;font-size:10px}.side button span:first-child{font-size:19px}.main{padding:18px 13px 88px}.top{margin-bottom:20px}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.card{padding:9px}.title{font-size:13px}.section{font-size:21px}}@media(min-width:621px) and (max-width:900px){.side{flex-basis:175px}.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}</style></head><body><div class="shell"><nav class="side"><div class="brand">● Spotify</div>'+nav.map(n=>'<button class="'+(mode===n[2]?'active':'')+'" data-mode="'+n[2]+'"><span>'+n[0]+'</span><span>'+n[1]+'</span></button>').join("")+'</nav><main class="main"><div class="top"><form class="search" id="s"><input id="q" placeholder="Search songs, albums, playlists or artists…" value="'+esc(query)+'"><button type="submit">Search</button></form><button id="spotify-login" style="border:0;border-radius:24px;padding:12px 15px;background:#1ed760;color:#000;font-weight:700;white-space:nowrap;cursor:pointer">Log in</button></div><div class="quick"><button data-mode="songs">Popular songs</button><button data-mode="albums">Popular albums</button><button data-mode="playlists">Popular playlists</button><button data-mode="new">New releases</button></div><h1 class="section">'+({home:"Made for exploring",search:"Search results",songs:"Popular songs",albums:"Popular albums",playlists:"Popular playlists",podcasts:"Podcasts",new:"New releases"}[mode]||"Made for exploring")+'</h1><div class="grid">'+cards.map(x=>'<a class="card" href="'+esc(x.url)+'"><img class="cover" loading="lazy" src="'+esc(x.image||("https://placehold.co/400x400/202020/1ed760?text=Spotify"))+'"><div class="title">'+esc(x.title)+'</div><div class="desc">'+esc(x.description)+'</div></a>').join("")+'</div><p class="hint">'+(cards.length?'Choose a result to open Spotify’s full-page player.':'No Spotify results were returned. Try a song, artist, album, or playlist name.')+'</p></main></div><script>document.addEventListener("click",function(e){var login=e.target.closest("#spotify-login");if(login){parent.postMessage({type:"hyperpop-spotify-account"},"*");return}var b=e.target.closest("button[data-mode]");if(b){parent.postMessage({type:"hyperpop-spotify-mode",mode:b.dataset.mode,query:document.getElementById("q").value},"*");return}var a=e.target.closest("a[href]");if(a){e.preventDefault();parent.postMessage({type:"hyperpop-navigate",url:a.href},"*")}});document.getElementById("s").addEventListener("submit",function(e){e.preventDefault();parent.postMessage({type:"hyperpop-spotify-mode",mode:"search",query:document.getElementById("q").value},"*")});<\/script></body></html>';
+  const frame=document.createElement("iframe");frame.title="Spotify "+mode;frame.setAttribute("sandbox","allow-scripts allow-same-origin allow-forms allow-presentation");frame.allow="autoplay; encrypted-media; clipboard-write; fullscreen; picture-in-picture";frame.srcdoc=page;t.url="https://open.spotify.com/"+(mode==="home"?"":mode);t.searchQuery="";t.title="Spotify";if(push){t.history=t.history.slice(0,t.pos+1);t.history.push(t.url);t.pos=t.history.length-1}t.frame=frame;render();status.textContent="Spotify "+mode+" · "+cards.length+" results";
+ }catch(e){status.textContent="Spotify home failed: "+(e.message||"search error")}
+ finally{showBusy(false)}
+}
+
+async function load(url,push=true,formRequest=null){
+ const t=activeTab();const raw=String(url||"").trim();if(!raw)return;
+ if(!/^(https?|about):\/\//i.test(raw)&&!/^[^\s.]+\.[^\s.]+/.test(raw)&&!raw.includes("/"))return loadSearch(raw,push);
+ url=normalize(url);if(!url)return;
+ try{new URL(url)}catch{status.textContent="Invalid URL";return}
+ const parsedTarget=new URL(url);if(/(^|\.)youtube\.com$|(^|\.)youtu\.be$/i.test(parsedTarget.hostname)){if(parsedTarget.pathname==="/"&&!parsedTarget.search)return loadYoutubeHome(push);if(parsedTarget.pathname==="/shorts"||parsedTarget.pathname==="/feed/trending")return loadYoutubeHome(push,"shorts");}
+ if(/(^|\.)open\.spotify\.com$|(^|\.)spotify\.com$/i.test(parsedTarget.hostname)&&parsedTarget.pathname==="/"&&!parsedTarget.search)return loadSpotifyHome(push);
+ if(/(^|\.)open\.spotify\.com$/i.test(parsedTarget.hostname)&&parsedTarget.pathname==="/search")return loadSpotifyHome(push,"search",parsedTarget.searchParams.get("q")||"");
+ if(/(^|\.)open\.spotify\.com$/i.test(parsedTarget.hostname)&&/^\/(playlist|album|track)\//.test(parsedTarget.pathname)){}
+ const mediaPage=mediaReaderPage(url);
+ if(mediaPage){t.url=url;t.searchQuery="";t.title=new URL(url).hostname;if(push){t.history=t.history.slice(0,t.pos+1);t.history.push(url);t.pos=t.history.length-1}if(t.searchPanel){t.searchPanel.remove();t.searchPanel=null}const frame=document.createElement("iframe");frame.title="Hyper-Pop media player";frame.setAttribute("sandbox","allow-scripts allow-forms allow-same-origin allow-presentation");frame.allow="autoplay; encrypted-media; fullscreen; picture-in-picture";frame.allowFullscreen=true;frame.srcdoc=mediaPage;t.frame=frame;render();status.textContent="Media player · "+new URL(url).hostname;return}
+ showBusy(true);status.textContent="Fetching "+url+"…";
+ try{
+  let r,d,lastError;
+  for(let attempt=0;attempt<3;attempt++){
+   try{
+    r=await fetch(ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(formRequest?{url,method:formRequest.method,contentType:formRequest.contentType,body:formRequest.body}:{url})});
+    d=await r.json().catch(()=>({}));
+    if(r.ok&&d.ok)break;
+    lastError=new Error(d.error||"Proxy request failed");
+    if(attempt<2&&/error sending request for url|temporarily unavailable|could not connect|network|fetch failed/i.test(lastError.message)){
+     status.textContent="Connection hiccup. Retrying ("+(attempt+2)+"/3)…";
+     await new Promise(resolve=>setTimeout(resolve,500*(attempt+1)));
+     continue;
+    }
+    throw lastError;
+   }catch(error){
+    lastError=error;
+    if(attempt<2&&/error sending request for url|temporarily unavailable|could not connect|network|fetch failed|load failed/i.test(String(error&&error.message||error))){
+     status.textContent="Connection hiccup. Retrying ("+(attempt+2)+"/3)…";
+     await new Promise(resolve=>setTimeout(resolve,500*(attempt+1)));
+     continue;
+    }
+    throw error;
+   }
+  }
+  if(!r||!r.ok||!d||!d.ok)throw lastError||new Error("Could not load this page after several attempts. Try again.");
+  t.url=d.url||url;t.searchQuery="";t.title=new URL(t.url).hostname;saveVisit(t.url,t.title);
+  if(push){t.history=t.history.slice(0,t.pos+1);t.history.push(t.url);t.pos=t.history.length-1}
+  if(t.searchPanel){t.searchPanel.remove();t.searchPanel=null;}const frame=document.createElement("iframe");frame.title="Browser page";frame.setAttribute("sandbox","allow-scripts allow-forms allow-pointer-lock allow-modals allow-downloads");frame.allow="fullscreen; autoplay; gamepad; clipboard-read; clipboard-write";frame.allowFullscreen=true;
+  // Keep the sandbox restrictive: do not combine scripts and same-origin access for arbitrary proxied HTML.
+  frame.srcdoc=addLocalStorageShim(d.html||"<p>Nothing returned.</p>",t.url);
+  frame.addEventListener("load",()=>{try{const title=frame.contentDocument&&frame.contentDocument.title;if(title)t.title=title;renderTabs()}catch{}});
+  t.frame=frame;render();status.textContent="Loaded "+new URL(t.url).hostname+" · HTTP "+d.status;
+ }catch(e){status.textContent=e.message||"Could not load page."}
+ finally{showBusy(false)}
+}
+window.addEventListener("message",e=>{
+ if(!e.data||!e.data.type)return;
+ if(e.data.type==="hyperpop-form-unsupported"){status.textContent=String(e.data.message||"This form type is not supported inside Hyper-Pop.");return}
+ if(e.data.type==="hyperpop-spotify-account"){const t=activeTab();const frame=document.createElement("iframe");frame.title="Spotify account and web player";frame.setAttribute("sandbox","allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation");frame.allow="autoplay; encrypted-media; clipboard-write; fullscreen; picture-in-picture";frame.src="https://open.spotify.com/";t.url="https://open.spotify.com/";t.title="Spotify · Account";t.searchQuery="";if(t.history){t.history=t.history.slice(0,t.pos+1);t.history.push(t.url);t.pos=t.history.length-1}t.frame=frame;render();status.textContent="Spotify account · sign in on Spotify";return}
+ if(e.data.type==="hyperpop-storage"&&(e.data.kind==="storage"||e.data.kind==="session"||e.data.kind==="cookies")&&e.data.data&&typeof e.data.data==="object"){
+  const owner=tabs.find(t=>t.frame&&t.frame.contentWindow===e.source);
+  if(!owner||!owner.url)return;
+  const expected=e.data.kind==="cookies"?siteHost(owner.url):siteOrigin(owner.url);
+  if(e.data.host!==expected)return;
+  writeSiteStore(expected,e.data.kind,e.data.data);return;
+ }
+ if(e.data.type==="hyperpop-navigate"&&typeof e.data.url==="string")load(e.data.url,true);
+
+
+ if(e.data.type==="hyperpop-youtube-search"&&typeof e.data.query==="string"&&e.data.query.trim())loadYoutubeHome(true,"home",e.data.query.trim());
+ if(e.data.type==="hyperpop-youtube-like"&&typeof e.data.id==="string"){
+  const key="hyperpop.youtube.library.v1";let data;try{data=JSON.parse(localStorage.getItem(key)||'{"liked":[],"playlists":[]}')}catch{data={liked:[],playlists:[]}}
+  data.liked=Array.isArray(data.liked)?data.liked:[];data.playlists=Array.isArray(data.playlists)?data.playlists:[];
+  const tab=activeTab(),frame=tab&&tab.frame;let title="YouTube video",thumbnail="https://i.ytimg.com/vi/"+e.data.id+"/hqdefault.jpg";
+  try{const doc=frame.contentDocument;title=doc.querySelector(".short-title,.title")?.textContent||title}catch{}
+  const idx=data.liked.findIndex(v=>v.id===e.data.id);if(idx>=0)data.liked.splice(idx,1);else data.liked.unshift({id:e.data.id,url:"https://www.youtube.com/watch?v="+e.data.id,title,thumbnail,channel:"",likedAt:Date.now()});
+  try{localStorage.setItem(key,JSON.stringify(data));status.textContent=idx>=0?"Removed like":"Added to Liked videos ♥"}catch{status.textContent="Could not save local likes"}
+ }
+ if(e.data.type==="hyperpop-youtube-unlike"&&typeof e.data.id==="string"){
+  const key="hyperpop.youtube.library.v1";try{const data=JSON.parse(localStorage.getItem(key)||'{"liked":[],"playlists":[]}');data.liked=(data.liked||[]).filter(v=>v.id!==e.data.id);localStorage.setItem(key,JSON.stringify(data));loadYoutubeHome(true,"liked")}catch{status.textContent="Could not update local library"}
+ }
+ if(e.data.type==="hyperpop-youtube-create-playlist"){
+  const name=prompt("Name your playlist:");if(name&&name.trim()){const key="hyperpop.youtube.library.v1";let data;try{data=JSON.parse(localStorage.getItem(key)||'{"liked":[],"playlists":[]}')}catch{data={liked:[],playlists:[]}}data.playlists=Array.isArray(data.playlists)?data.playlists:[];data.playlists.push({name:name.trim().slice(0,60),videos:[]});try{localStorage.setItem(key,JSON.stringify(data));loadYoutubeHome(true,"playlists")}catch{status.textContent="Could not save playlist"}}
+ }
+ if(e.data.type==="hyperpop-youtube-delete-playlist"&&Number.isInteger(e.data.index)){
+  const key="hyperpop.youtube.library.v1";try{const data=JSON.parse(localStorage.getItem(key)||'{"liked":[],"playlists":[]}');(data.playlists||[]).splice(e.data.index,1);localStorage.setItem(key,JSON.stringify(data));loadYoutubeHome(true,"playlists")}catch{status.textContent="Could not delete playlist"}
+ }
+ if(e.data.type==="hyperpop-youtube-add-playlist"&&typeof e.data.id==="string"){
+  const key="hyperpop.youtube.library.v1";let data;try{data=JSON.parse(localStorage.getItem(key)||'{"liked":[],"playlists":[]}')}catch{data={liked:[],playlists:[]}}data.playlists=Array.isArray(data.playlists)?data.playlists:[];if(!data.playlists.length){const name=prompt("Create a playlist name:");if(!name||!name.trim())return;data.playlists.push({name:name.trim().slice(0,60),videos:[]})}
+  const choices=data.playlists.map((p,i)=>(i+1)+". "+p.name).join("\n");const pick=prompt("Add to which playlist?\n"+choices+"\nEnter a number:", "1");const i=Number(pick)-1;if(Number.isInteger(i)&&i>=0&&i<data.playlists.length){const frame=activeTab().frame;let title="YouTube video";try{title=frame.contentDocument.querySelector(".short-title,.title")?.textContent||title}catch{}const v={id:e.data.id,url:"https://www.youtube.com/watch?v="+e.data.id,title,thumbnail:"https://i.ytimg.com/vi/"+e.data.id+"/hqdefault.jpg"};data.playlists[i].videos=Array.isArray(data.playlists[i].videos)?data.playlists[i].videos:[];if(!data.playlists[i].videos.some(x=>x.id===v.id))data.playlists[i].videos.push(v);try{localStorage.setItem(key,JSON.stringify(data));status.textContent="Added to "+data.playlists[i].name+" ✦"}catch{status.textContent="Could not save playlist"}}
+ }
+ if(e.data.type==="hyperpop-youtube-open-playlist"&&Number.isInteger(e.data.index)){status.textContent="Playlist is saved locally. Open My Library → Playlists to manage it."}
+
+ if(e.data.type==="hyperpop-youtube-mode"&&typeof e.data.mode==="string")loadYoutubeHome(true,e.data.mode,e.data.query||"");
+ if(e.data.type==="hyperpop-spotify-mode"&&typeof e.data.mode==="string")loadSpotifyHome(true,e.data.mode,e.data.query||"");
+  if(e.data.type==="hyperpop-search"&&typeof e.data.query==="string")loadSearch(e.data.query,true,0);
+  if(e.data.type==="hyperpop-search-page"&&Number.isInteger(e.data.page)&&e.data.page>=0&&e.data.page<10){const current=activeTab();if(current.searchQuery)loadSearch(current.searchQuery,false,e.data.page)}
+});
+go.addEventListener("click",()=>load(address.value,true));
+address.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();load(address.value,true)}});
+back.addEventListener("click",()=>{const t=activeTab();if(t.pos>0){t.pos--;load(t.history[t.pos],false)}});
+forward.addEventListener("click",()=>{const t=activeTab();if(t.pos<t.history.length-1){t.pos++;load(t.history[t.pos],false)}});
+reload.addEventListener("click",()=>{const t=activeTab();if(t.searchQuery)loadSearch(t.searchQuery,false,t.searchPage||0);else if(t.url)load(t.url,false)});
+home.addEventListener("click",()=>{const t=activeTab();t.url="";t.searchQuery="";t.title="New Tab";t.history=[];t.pos=-1;t.frame=null;if(t.searchPanel){t.searchPanel.remove();t.searchPanel=null;}render();homeSearchInput.value="";homeSearchInput.focus()});
+newtab.addEventListener("click",()=>{tabs.push(makeTab());active=tabs.length-1;render();address.focus()});
+tabs=[makeTab()];render();
+</script>
+<script src="app.js?v=browser-1"></script>
+</body>
+</html>
