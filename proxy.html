@@ -47,6 +47,7 @@
     <button class="ctrl" id="home" type="button" aria-label="Home">⌂</button>
     <button class="ctrl" id="bookmark-current" type="button" aria-label="Bookmark this page" title="Bookmark this page">☆</button>
     <button class="ctrl" id="show-bookmarks" type="button" aria-label="Show bookmarks" title="Bookmarks">▤</button>
+    <button class="ctrl" id="show-history" type="button" aria-label="Show recent history" title="History">◷</button>
     <input id="address" class="address" inputmode="url" autocomplete="url" spellcheck="false" placeholder="Search or enter a web address">
     <button class="go" id="go" type="button">Go</button>
   </div>
@@ -68,8 +69,8 @@
 <script>
 const ENDPOINT="https://iapnejlttsqqefkpmelp.supabase.co/functions/v1/hyperpop-proxy";
 const tabsEl=document.getElementById("tabs"),newtab=document.getElementById("newtab"),address=document.getElementById("address"),go=document.getElementById("go"),back=document.getElementById("back"),forward=document.getElementById("forward"),reload=document.getElementById("reload"),home=document.getElementById("home"),status=document.getElementById("status"),viewport=document.getElementById("viewport"),empty=document.getElementById("empty"),loading=document.getElementById("loading");
-const bookmarkCurrent=document.getElementById("bookmark-current"),showBookmarks=document.getElementById("show-bookmarks"),bookmarkPanel=document.getElementById("bookmark-panel"),shortcutContainer=document.getElementById("home-shortcuts"),addShortcut=document.getElementById("add-shortcut");
-const BOOKMARKS_KEY="hyperpop.proxy.bookmarks.v1",SHORTCUTS_KEY="hyperpop.proxy.shortcuts.v1";
+const bookmarkCurrent=document.getElementById("bookmark-current"),showBookmarks=document.getElementById("show-bookmarks"),showHistory=document.getElementById("show-history"),bookmarkPanel=document.getElementById("bookmark-panel"),shortcutContainer=document.getElementById("home-shortcuts"),addShortcut=document.getElementById("add-shortcut");
+const BOOKMARKS_KEY="hyperpop.proxy.bookmarks.v1",SHORTCUTS_KEY="hyperpop.proxy.shortcuts.v1",HISTORY_KEY="hyperpop.proxy.history.v1";
 function readList(key){try{const v=JSON.parse(localStorage.getItem(key)||"[]");return Array.isArray(v)?v:[]}catch{return []}}
 function saveList(key,value){try{localStorage.setItem(key,JSON.stringify(value))}catch{status.textContent="Could not save. Browser storage may be full."}}
 function cleanUrl(value){let v=String(value||"").trim();if(!v)return"";if(!/^[a-z][a-z0-9+.-]*:\/\//i.test(v))v="https://"+v;try{const u=new URL(v);return ["http:","https:"].includes(u.protocol)?u.href:""}catch{return""}}
@@ -81,6 +82,20 @@ function renderBookmarks(){
  const wrap=document.createElement("div");wrap.className="bookmark-list";
  list.forEach((item,index)=>{const row=document.createElement("div");row.className="bookmark-item";const open=document.createElement("button");open.className="bookmark-open";open.type="button";open.textContent="✦ "+item.title;open.title=item.url;open.onclick=()=>{bookmarkPanel.hidden=true;load(item.url,true)};const remove=document.createElement("button");remove.className="bookmark-remove";remove.type="button";remove.textContent="×";remove.title="Remove bookmark";remove.onclick=()=>{const next=readList(BOOKMARKS_KEY);next.splice(index,1);saveList(BOOKMARKS_KEY,next);renderBookmarks()};row.append(open,remove);wrap.append(row)});
  bookmarkPanel.append(wrap);
+}
+function saveVisit(url,title){
+ const clean=cleanUrl(url);if(!clean)return;
+ const list=readList(HISTORY_KEY).filter(x=>x.url!==clean);
+ list.unshift({url:clean,title:String(title||"").slice(0,160)||new URL(clean).hostname,visitedAt:Date.now()});
+ saveList(HISTORY_KEY,list.slice(0,100));
+}
+function renderHistory(){
+ const list=readList(HISTORY_KEY);bookmarkPanel.replaceChildren();
+ const head=document.createElement("div");head.className="bookmark-panel-head";head.innerHTML='<span>◷ Recent history <small>'+list.length+' saved locally</small></span><button class="bookmark-close" type="button">Close ×</button>';head.querySelector("button").onclick=()=>bookmarkPanel.hidden=true;bookmarkPanel.append(head);
+ if(!list.length){const e=document.createElement("div");e.className="bookmark-empty";e.textContent="Pages you visit will appear here. History stays on this device.";bookmarkPanel.append(e);return}
+ const actions=document.createElement("button");actions.type="button";actions.className="bookmark-close";actions.textContent="Clear history";actions.style.marginBottom="8px";actions.onclick=()=>{saveList(HISTORY_KEY,[]);renderHistory();status.textContent="Browsing history cleared."};bookmarkPanel.append(actions);
+ const wrap=document.createElement("div");wrap.className="bookmark-list";
+ list.forEach(item=>{const row=document.createElement("div");row.className="bookmark-item";const open=document.createElement("button");open.className="bookmark-open";open.type="button";open.textContent="◷ "+(item.title||item.url);open.title=item.url;open.onclick=()=>{bookmarkPanel.hidden=true;load(item.url,true)};const time=document.createElement("small");time.style.color="var(--muted)";time.textContent=new Date(item.visitedAt||0).toLocaleDateString();row.append(open,time);wrap.append(row)});bookmarkPanel.append(wrap);
 }
 function saveCurrentBookmark(){
  const t=activeTab(),url=cleanUrl(t&&t.url);
@@ -213,6 +228,7 @@ homeSearchForm.addEventListener("submit",e=>{e.preventDefault();const value=home
 document.querySelectorAll("[data-home-query]").forEach(button=>button.addEventListener("click",()=>{const value=button.getAttribute("data-home-query")||"";homeSearchInput.value=value;load(value,true)}));
 bookmarkCurrent.addEventListener("click",saveCurrentBookmark);
 showBookmarks.addEventListener("click",()=>{renderBookmarks();bookmarkPanel.hidden=!bookmarkPanel.hidden});
+showHistory.addEventListener("click",()=>{renderHistory();bookmarkPanel.hidden=!bookmarkPanel.hidden});
 addShortcut.addEventListener("click",createShortcut);
 renderBookmarks();renderShortcuts();
 function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]))}
@@ -229,7 +245,7 @@ async function loadSearch(query,push=true,page=0){
    const r=await fetch(ENDPOINT+"?search=1&page="+encodeURIComponent(page)+"&q="+encodeURIComponent(query));
   const d=await r.json().catch(()=>({}));
   if(!r.ok||!d.ok)throw new Error(d.error||"Search failed.");
-   t.url=query;t.searchQuery=query;t.searchPage=page;t.title="Search: "+query;
+   t.url=query;t.searchQuery=query;t.searchPage=page;t.title="Search: "+query;saveList(HISTORY_KEY,[{url:"https://search.hyper-pop.invalid/?q="+encodeURIComponent(query),title:"Search: "+query,visitedAt:Date.now()},...readList(HISTORY_KEY).filter(x=>!String(x.url).startsWith("https://search.hyper-pop.invalid/"))].slice(0,100));
   if(push){t.history=t.history.slice(0,t.pos+1);t.history.push(query);t.pos=t.history.length-1}
    const frame=document.createElement("iframe");frame.title="Hyper-Pop search results";frame.setAttribute("sandbox","allow-scripts allow-forms");frame.srcdoc=searchPage(query,Array.isArray(d.results)?d.results:[],Array.isArray(d.suggestions)?d.suggestions:[],d.provider,page);
   t.frame=frame;render();status.textContent="Search results for “"+query+"”";
@@ -360,7 +376,7 @@ async function load(url,push=true,formRequest=null){
    }
   }
   if(!r||!r.ok||!d||!d.ok)throw lastError||new Error("Could not load this page after several attempts. Try again.");
-  t.url=d.url||url;t.searchQuery="";t.title=new URL(t.url).hostname;
+  t.url=d.url||url;t.searchQuery="";t.title=new URL(t.url).hostname;saveVisit(t.url,t.title);
   if(push){t.history=t.history.slice(0,t.pos+1);t.history.push(t.url);t.pos=t.history.length-1}
   if(t.searchPanel){t.searchPanel.remove();t.searchPanel=null;}const frame=document.createElement("iframe");frame.title="Browser page";frame.setAttribute("sandbox","allow-scripts allow-forms allow-pointer-lock allow-modals allow-downloads");frame.allow="fullscreen; autoplay; gamepad; clipboard-read; clipboard-write";frame.allowFullscreen=true;
   // Keep the sandbox restrictive: do not combine scripts and same-origin access for arbitrary proxied HTML.
