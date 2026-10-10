@@ -33,13 +33,13 @@ jobs:
           sed -i 's#PLACEHOLDER#new URL("public_suffix_list.dat",self.location.href).href#' scramjet-static/scramjet-engine/scramjet-all.js
           cp /tmp/scramjet-upstream/LICENSE scramjet-static/LICENSE 2>/dev/null || true
           echo "Vendored files:"
-          du -ah scramjet-static/bare-mux scramjet-static/scramjet-engine scramjet-static/transport | sort -h | tail -20
+          du -ah scramjet-static/bare-mux scramjet-static/scramjet-engine scramjet-static/transport scramjet-static/public_suffix_list.dat | sort -h | tail -20
 
       - name: Commit runtime files to this branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add scramjet-static/bare-mux scramjet-static/scramjet-engine scramjet-static/transport scramjet-static/LICENSE
+          git add scramjet-static/bare-mux scramjet-static/scramjet-engine scramjet-static/transport scramjet-static/public_suffix_list.dat scramjet-static/LICENSE
           if git diff --cached --quiet; then
             echo "Runtime files are already current."
           else
