@@ -1203,18 +1203,31 @@
           await sj.init()
         }
 
-        status.textContent = 'Connecting transport…'
+        status.textContent = 'Loading transport module…'
         const conn = new _0zzl94._ak44v7(BASE + 'bare-mux/bare-mux-worker.js')
         currentTransport = getSavedTransport()
+        const transportTimeout = (promise, label) => Promise.race([
+          promise,
+          new Promise((_, reject) => setTimeout(() => reject(new Error(label + ' timed out after 12 seconds. School Wi-Fi may be blocking the transport module or WebSocket connection.')), 12000))
+        ])
         try {
-          await conn.setTransport(transportPath(currentTransport), [{ wisp: WISP }])
+          await transportTimeout(
+            conn.setTransport(transportPath(currentTransport), [{ wisp: WISP }]),
+            'Loading ' + currentTransport + ' transport'
+          )
         } catch (err) {
-          // If the saved transport (e.g. epoxy.mjs missing/broken) fails,
-          // fall back to libcurl instead of bricking the entire site
-          console.warn('[Scramjet STATIC] Saved transport failed, falling back to libcurl:', err)
-          currentTransport = 'libcurl'
-          saveTransportChoice('libcurl')
-          await conn.setTransport(transportPath('libcurl'), [{ wisp: WISP }])
+          console.warn('[Hyper-Pop] Saved transport failed; trying libcurl:', err)
+          if (currentTransport !== 'libcurl') {
+            currentTransport = 'libcurl'
+            saveTransportChoice('libcurl')
+            status.textContent = 'Retrying with libcurl…'
+            await transportTimeout(
+              conn.setTransport(transportPath('libcurl'), [{ wisp: WISP }]),
+              'Loading libcurl transport'
+            )
+          } else {
+            throw err
+          }
         }
         currentConn = conn
         await verifyActiveTransport()
@@ -1331,9 +1344,11 @@
         bar.addEventListener('keydown', e => { if (e.key === 'Enter') navigate(bar.value) })
 
       } catch (err) {
-        status.style.color = '#f87171'
-        status.textContent = 'Error: ' + err.message
-        console.error('[Scramjet STATIC] init error:', err)
+        status.style.color = '#ff9b9b'
+        status.style.maxWidth = 'min(620px, 90vw)'
+        status.style.lineHeight = '1.5'
+        status.textContent = 'Browser startup failed: ' + (err?.message || String(err))
+        console.error('[Hyper-Pop] Browser startup failed:', err)
       }
     </script>
   </body>
