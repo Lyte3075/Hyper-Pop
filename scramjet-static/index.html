@@ -732,15 +732,10 @@
       let pendingTransport = DEFAULT_TRANSPORT // what's selected in UI but not yet saved
 
       function transportPath(method) {
-        // The upstream files are large bundled modules (~2 MB). Keep the
-        // exact same transport builds as the working upstream demo instead
-        // of relying on guessed npm package versions/paths.
+        // Load the transport modules from this Hyper-Pop deployment.
         const name = method === 'epoxy' ? 'epoxy' : 'libcurl'
-        return 'https://hahahah67-pixel.github.io/scramjet-static/transport/' + name + '.mjs?build=' + transportBuild
+        return BASE + 'transport/' + name + '.mjs'
       }
-
-      // Force a fresh transport module URL after the broken CDN-path experiment.
-      const transportBuild = 'hpfix-20261010'
       function getSavedTransport() {
         try {
           const saved = localStorage.getItem('fish-transport')
