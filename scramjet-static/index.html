@@ -1184,7 +1184,7 @@
         const sj = new ScramjetController({
           prefix: PREFIX,
           files: {
-            wasm: 'https://hahahah67-pixel.github.io/scramjet-static/scramjet-engine/scramjet.wasm',
+            wasm: BASE + 'scramjet-engine/scramjet.wasm',
             all:  BASE + 'scramjet-engine/scramjet-all.js',
             sync: BASE + 'scramjet-engine/scramjet-sync.js',
           },
@@ -1205,7 +1205,11 @@
         }
 
         status.textContent = 'Loading transport module…'
-        const conn = new _0zzl94._ak44v7(BASE + 'bare-mux/bare-mux-worker.js')
+        const bareMux = globalThis._0zzl94
+        if (!bareMux || typeof bareMux._ak44v7 !== 'function') {
+          throw new Error('BareMux did not load correctly. Check bare-mux/bare-mux.js and reload the page.')
+        }
+        const conn = new bareMux._ak44v7(BASE + 'bare-mux/bare-mux-worker.js')
         currentTransport = getSavedTransport()
         const transportTimeout = (promise, label) => Promise.race([
           promise,
