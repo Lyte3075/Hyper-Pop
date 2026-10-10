@@ -1,0 +1,1340 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hyper-Pop Browser ✦ Scramjet</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet" />
+    <script src="./bare-mux/bare-mux.js"></script>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body { height: 100%; overflow: hidden; background: #000; font-family: 'Roboto', sans-serif; color: #fff; }
+      #home { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 12vh; background: #000; z-index: 10; transition: opacity 0.18s ease; }
+      #home.hidden { opacity: 0; pointer-events: none; }
+      .title { font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 300; letter-spacing: 0.04em; white-space: nowrap; margin-bottom: 2.2rem; text-shadow: 0 0 40px rgba(255,255,255,0.18); }
+      .title span { font-weight: 500; }
+      .bar-wrap { width: min(600px, 88vw); position: relative; }
+      .bar-wrap input { width: 100%; padding: 0.85rem 3rem 0.85rem 1.25rem; border-radius: 999px; border: 1.5px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.06); color: #fff; font-family: 'Roboto', sans-serif; font-size: 1rem; font-weight: 300; outline: none; transition: border-color 0.2s, background 0.2s; backdrop-filter: blur(6px); }
+      .bar-wrap input::placeholder { color: rgba(255,255,255,0.38); }
+      .bar-wrap input:focus { border-color: rgba(255,255,255,0.45); background: rgba(255,255,255,0.1); }
+      .bar-wrap button { position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 0.25rem; display: flex; align-items: center; color: rgba(255,255,255,0.5); transition: color 0.2s; }
+      .bar-wrap button:hover { color: #fff; }
+      #status { margin-top: 1rem; font-size: 0.78rem; color: rgba(255,255,255,0.3); letter-spacing: 0.03em; min-height: 1.2em; text-align: center; }
+
+      /* Bottom corner footer text — build label + about link */
+      #build-label {
+        position: fixed;
+        bottom: 0.8rem;
+        left: 1rem;
+        font-family: 'Roboto', sans-serif;
+        font-size: 12px;
+        color: rgba(255,255,255,0.3);
+        z-index: 15;
+        user-select: none;
+        pointer-events: none;
+      }
+
+      #about-link {
+        position: fixed;
+        bottom: 0.8rem;
+        right: 1rem;
+        font-family: 'Roboto', sans-serif;
+        font-size: 12px;
+        color: rgba(255,255,255,0.3);
+        z-index: 15;
+        text-decoration: none;
+        transition: color 0.15s;
+      }
+      #about-link:hover { color: rgba(255,255,255,0.55); }
+
+
+      /* ── Release notes modal ─────────────────────────────────────── */
+      #release-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.55);
+        backdrop-filter: blur(3px);
+        z-index: 150;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+      }
+      #release-overlay.visible {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      #release-modal {
+        width: min(440px, 88vw);
+        max-height: 82vh;
+        overflow-y: auto;
+        background: #0d0d0d;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 22px;
+        padding: 1.8rem 1.6rem;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+        transform: scale(0.92) translateY(12px);
+        transition: transform 0.32s cubic-bezier(.2,1,.3,1), opacity 0.3s ease;
+        opacity: 0;
+      }
+      #release-overlay.visible #release-modal {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+      }
+
+      #release-modal h2 {
+        font-family: 'Roboto', sans-serif;
+        font-size: 1.35rem;
+        font-weight: 500;
+        color: #fff;
+        text-align: center;
+        margin-bottom: 0.7rem;
+        letter-spacing: 0.01em;
+      }
+
+      #release-modal .intro {
+        font-family: 'Roboto', sans-serif;
+        font-size: 0.86rem;
+        font-weight: 300;
+        color: rgba(255,255,255,0.72);
+        line-height: 1.55;
+        text-align: center;
+        margin-bottom: 1.3rem;
+      }
+
+      #release-modal .subheading {
+        font-family: 'Roboto', sans-serif;
+        font-size: 0.78rem;
+        font-weight: 500;
+        color: #7ec8ff;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin-bottom: 0.5rem;
+      }
+
+      #release-notes-box {
+        background: rgba(126,200,255,0.07);
+        border: 1px solid rgba(126,200,255,0.2);
+        border-radius: 14px;
+        padding: 0.9rem 1rem;
+        margin-bottom: 1.2rem;
+        font-family: 'Roboto', sans-serif;
+        font-size: 0.8rem;
+        color: rgba(255,255,255,0.85);
+        line-height: 1.7;
+      }
+
+      #release-notes-box ul {
+        margin: 0;
+        padding-left: 1.1rem;
+      }
+      #release-notes-box li { margin-bottom: 0.45rem; }
+      #release-notes-box li:last-child { margin-bottom: 0; }
+
+      #release-modal .outro {
+        font-family: 'Roboto', sans-serif;
+        font-size: 0.82rem;
+        font-weight: 300;
+        color: rgba(255,255,255,0.65);
+        text-align: center;
+        line-height: 1.5;
+        margin-bottom: 1.4rem;
+      }
+
+      #release-close-btn {
+        display: block;
+        margin: 0 auto;
+        background: #4a9eff;
+        color: #06121f;
+        border: none;
+        font-family: 'Roboto', sans-serif;
+        font-size: 0.9rem;
+        font-weight: 500;
+        letter-spacing: 0.03em;
+        padding: 0.65rem 2.4rem;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: background 0.15s, transform 0.08s;
+      }
+      #release-close-btn:hover { background: #6ab0ff; }
+      #release-close-btn:active { transform: scale(0.95); }
+
+      /* ── WISP settings panel ─────────────────────────────────────── */
+      #wisp-panel {
+        width: min(600px, 88vw);
+        margin-top: 1.4rem;
+        background: rgba(126,200,255,0.1);
+        border: 1.5px solid rgba(126,200,255,0.35);
+        border-radius: 14px;
+        padding: 0.85rem 1rem;
+      }
+
+      #wisp-panel .wisp-label {
+        font-size: 0.72rem;
+        font-weight: 500;
+        color: #fff;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.5rem;
+      }
+
+      #wisp-panel .wisp-row {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      #wisp-url-input {
+        flex: 1;
+        min-width: 0;
+        background: rgba(0,0,0,0.35);
+        border: 1px solid rgba(126,200,255,0.3);
+        border-radius: 999px;
+        color: #cfe9ff;
+        font-family: 'Roboto', sans-serif;
+        font-size: 0.78rem;
+        padding: 0.5rem 0.9rem;
+        outline: none;
+        transition: border-color 0.15s;
+      }
+      #wisp-url-input:focus { border-color: #7ec8ff; }
+      #wisp-url-input::selection { background: #1a6abf; color: #fff; }
+
+      .wisp-btn {
+        flex-shrink: 0;
+        background: #4a9eff;
+        color: #06121f;
+        border: none;
+        font-family: 'Roboto', sans-serif;
+        font-size: 0.72rem;
+        font-weight: 500;
+        letter-spacing: 0.03em;
+        padding: 0.5rem 0.9rem;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: background 0.15s, transform 0.08s;
+      }
+      .wisp-btn:hover { background: #6ab0ff; }
+      .wisp-btn:active { transform: scale(0.95); }
+      .wisp-btn.reset { background: #3a7fd6; }
+      .wisp-btn.reset:hover { background: #5590dd; }
+      .wisp-btn.save { background: #e5484d; color: #fff; }
+      .wisp-btn.save:hover { background: #f16469; }
+
+      /* Divider line between WISP URL and transport method sections */
+      .wisp-divider {
+        height: 1px;
+        background: rgba(126,200,255,0.25);
+        margin: 0.85rem 0;
+        width: 100%;
+      }
+
+      /* Transport method toggle — two pill buttons side by side */
+      .transport-toggle {
+        flex: 1;
+        display: flex;
+        gap: 0.4rem;
+        min-width: 0;
+      }
+
+      .transport-opt {
+        flex: 1;
+        min-width: 0;
+        background: rgba(0,0,0,0.35);
+        border: 1.5px solid rgba(126,200,255,0.3);
+        border-radius: 999px;
+        color: #8fbde0;
+        font-family: 'Roboto', sans-serif;
+        font-size: 0.72rem;
+        font-weight: 500;
+        padding: 0.5rem 0.7rem;
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s, color 0.15s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .transport-opt .suggested {
+        font-weight: 400;
+        opacity: 0.7;
+        font-size: 0.68rem;
+      }
+
+      .transport-opt:hover {
+        border-color: rgba(126,200,255,0.6);
+        color: #cfe9ff;
+      }
+
+      .transport-opt.active {
+        background: #4a9eff;
+        border-color: #4a9eff;
+        color: #06121f;
+      }
+      .transport-opt.active .suggested {
+        color: #06121f;
+        opacity: 0.75;
+      }
+
+      /* ── "wisp server set!" toast ────────────────────────────────── */
+      #wisp-toast {
+        position: fixed;
+        bottom: -60px;
+        left: 1.2rem;
+        background: #4a9eff;
+        color: #06121f;
+        font-family: 'Roboto', sans-serif;
+        font-size: 0.82rem;
+        font-weight: 500;
+        letter-spacing: 0.03em;
+        padding: 0.65rem 1.4rem;
+        border-radius: 999px;
+        box-shadow: 0 4px 18px rgba(74,158,255,0.4);
+        z-index: 50;
+        transition: bottom 0.35s cubic-bezier(.34,1.56,.64,1), opacity 0.3s ease, transform 0.3s ease;
+        opacity: 0;
+        transform: translateX(-30px);
+      }
+      #wisp-toast.visible {
+        bottom: 1.2rem;
+        opacity: 1;
+        transform: translateX(0);
+      }
+      #wisp-toast.leaving {
+        opacity: 0;
+        transform: translateX(-40px);
+      }
+      #browser { position: fixed; inset: 0; width: 100%; height: 100%; border: none; background: #111; z-index: 17 !important; display: none; }
+      #browser.visible { display: block; }
+
+      /* Floating action pill — black rounded bar, bottom center.
+         Reload button in front (left), Home button behind (right). */
+      #fab-bar {
+        position: fixed;
+        bottom: 1.1rem;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 20;
+        display: none;
+        align-items: center;
+        gap: 0.4rem;
+        background: rgba(0,0,0,0.75);
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 999px;
+        padding: 0.3rem;
+        backdrop-filter: blur(8px);
+      }
+      #fab-bar.visible { display: flex; }
+
+      .fab-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: #fff;
+        transition: background 0.15s, transform 0.1s;
+        flex-shrink: 0;
+      }
+      .fab-btn:hover { background: rgba(255,255,255,0.12); }
+      .fab-btn:active { transform: scale(0.92); }
+
+      /* Yellow reload/network toast — same shape as wisp toast, different side */
+      #reload-toast {
+        position: fixed;
+        bottom: -60px;
+        right: 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: #f5c518;
+        color: #1a1400;
+        font-family: 'Roboto', sans-serif;
+        font-size: 0.82rem;
+        font-weight: 500;
+        letter-spacing: 0.03em;
+        padding: 0.65rem 1.4rem;
+        border-radius: 999px;
+        box-shadow: 0 4px 18px rgba(245,197,24,0.4);
+        z-index: 50;
+        transition: bottom 0.35s cubic-bezier(.34,1.56,.64,1), opacity 0.3s ease, transform 0.3s ease;
+        opacity: 0;
+        transform: translateX(30px);
+        white-space: nowrap;
+      }
+      #reload-toast.visible {
+        bottom: 1.2rem;
+        opacity: 1;
+        transform: translateX(0);
+      }
+      #reload-toast.leaving {
+        opacity: 0;
+        transform: translateX(40px);
+      }
+      #reload-toast .dots span {
+        opacity: 0.25;
+        transition: opacity 0.15s;
+      }
+      #reload-toast .dots span.active { opacity: 1; }
+
+      /* Slim baby-blue loading bar, top of the iframe */
+      #load-bar {
+        position: fixed;
+        top: 0; left: 0;
+        height: 3px;
+        width: 0%;
+        background: #7ec8ff;
+        box-shadow: 0 0 6px rgba(126,200,255,0.6);
+        z-index: 25;
+        opacity: 0;
+        border-radius: 0 2px 2px 0;
+      }
+
+      /* Hyper-Pop browser chrome */
+      #hp-toolbar {position:fixed;top:0;left:0;right:0;z-index:40;display:none;background:#111116;border-bottom:1px solid #ffffff18;padding:7px 9px;gap:7px;align-items:center}
+      #hp-toolbar.visible{display:flex}
+      #hp-tabs{display:flex;gap:5px;min-width:0;overflow-x:auto;flex:1}
+      .hp-tab{max-width:170px;min-width:78px;display:flex;align-items:center;gap:7px;padding:8px 10px;border:1px solid #ffffff1c;border-radius:10px;background:#ffffff08;color:#ddd;font-size:12px;white-space:nowrap;overflow:hidden}
+      .hp-tab.active{background:#24243a;border-color:#8c7bff;color:white}
+      .hp-tab span{overflow:hidden;text-overflow:ellipsis}
+      .hp-tab button{border:0;background:none;color:#aaa;font-size:15px;padding:0}
+      .hp-toolbtn{border:1px solid #ffffff20;border-radius:10px;background:#ffffff0d;color:#fff;padding:9px 11px;font-size:13px;white-space:nowrap}
+      #hp-toolbar #hp-tabs{order:0} #hp-toolbar .hp-tab-add{order:1}
+      #hp-settings-toggle{position:fixed;right:12px;top:12px;z-index:70;border:1px solid #ffffff24;border-radius:12px;background:#181821;color:#fff;padding:10px 12px;box-shadow:0 6px 24px #0008}
+      #hp-sidebar{position:fixed;z-index:80;top:0;right:0;bottom:0;width:min(340px,88vw);padding:22px 16px;background:#101018;border-left:1px solid #ffffff20;box-shadow:-20px 0 60px #0008;overflow:auto;transform:translateX(105%);transition:transform .22s ease}
+      #hp-sidebar.open{transform:translateX(0)}
+      #hp-sidebar h2{font-size:20px;margin:6px 0 5px}
+      #hp-sidebar p{color:#a7a7ba;font-size:12px;line-height:1.5;margin-bottom:18px}
+      #hp-sidebar{display:flex;flex-direction:column;gap:0;padding:22px 16px max(22px,env(safe-area-inset-bottom));}
+      #hp-sidebar .hp-settings-intro{margin:10px 0 18px;}
+      #hp-sidebar .hp-settings-section{margin-top:auto;padding-top:18px;border-top:1px solid #ffffff20;flex-shrink:0;}
+      #hp-sidebar .hp-settings-section p{margin:8px 0 12px;}
+      #hp-sidebar .hp-settings-main{flex:1;min-height:0;overflow-y:auto;padding-bottom:20px;}
+      #hp-sidebar .hp-settings-section{background:linear-gradient(180deg,transparent,#ffffff04);}
+      #hp-sidebar .hp-wide-btn{display:block;min-height:42px;white-space:normal;line-height:1.35;padding:10px 12px;}
+      #hp-sidebar .hp-settings-section h3{font-size:14px;margin-bottom:8px;color:#fff}
+      #hp-sidebar .hp-wide-btn{width:100%;margin-top:8px;text-align:center;background:#24243a}
+      #hp-sidebar .hp-close{float:right;border:0;background:#ffffff12;color:white;border-radius:9px;padding:8px 11px}
+      #hp-sidebar #wisp-panel{display:block;position:static;width:100%;margin:0;background:#ffffff08;border-color:#ffffff1b}
+      #hp-sidebar .wisp-row{flex-wrap:wrap}
+      #hp-sidebar .transport-toggle{flex-basis:100%}
+      #hp-bookmarks{width:min(600px,88vw);margin:22px auto 0;display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+      .hp-bookmark{display:flex;align-items:center;gap:7px;border:1px solid #ffffff1b;background:#ffffff09;color:#e9e7ff;border-radius:12px;padding:10px 12px;font-size:13px;max-width:100%}
+      .hp-bookmark .hp-remove{border:0;background:none;color:#aaa;font-size:14px}
+      #hp-add-bookmark{display:none}
+      #hp-bookmark-form{display:none;width:min(500px,88vw);margin:12px auto 0;gap:8px}
+      #hp-bookmark-form.open{display:flex}
+      #hp-bookmark-form input{min-width:0;flex:1;background:#ffffff0a;border:1px solid #ffffff20;border-radius:10px;color:white;padding:10px}
+      #hp-bookmark-form button{border:1px solid #ffffff20;border-radius:10px;background:#24243a;color:white;padding:10px}
+      #browser.visible{top:44px;height:calc(100% - 44px)}
+      #fab-bar.visible{bottom:12px}
+      @media(max-width:520px){#hp-toolbar{gap:5px;padding:6px} .hp-toolbtn{padding:8px;font-size:12px} .hp-tab{min-width:68px;padding:7px} #hp-settings-toggle{top:auto;bottom:14px;right:12px}}
+
+      /* Compact sketch-inspired browser chrome */
+      #home{background:radial-gradient(ellipse at 50% 38%,#222034 0%,#111116 48%,#08080b 100%);padding:24px 14px 7vh;gap:0}
+      .title{font-weight:800;letter-spacing:-.055em;font-size:clamp(2.3rem,8vw,4.4rem);margin-bottom:.35rem;background:linear-gradient(100deg,#70e1ff 0%,#b9a0ff 48%,#ff83c8 100%);background-clip:text;-webkit-background-clip:text;color:transparent;text-shadow:none}
+      .title span{font-weight:800}
+      .hp-catchphrase{font-size:clamp(1rem,2.6vw,1.2rem);font-weight:600;letter-spacing:.02em;color:#f2eaff;margin:-.1rem 0 1.2rem;text-align:center}
+      .home-kicker{font-size:.72rem;letter-spacing:.17em;text-transform:uppercase;color:#a99bff;margin-bottom:1.7rem;text-align:center}
+      .bar-wrap{width:min(600px,92vw)}
+      .bar-wrap input{padding:.95rem 3rem .95rem 1.15rem;border-radius:15px;border:1px solid #ffffff26;background:#ffffff0c;font-size:1rem}
+      .bar-wrap input:focus{border-color:#a99bff;background:#ffffff12}
+      #status{margin-top:.75rem}
+      #wisp-panel{display:none}
+      #hp-toolbar{height:42px;min-height:42px;padding:4px 7px;gap:5px;background:#101015ee;backdrop-filter:blur(16px)}
+      #hp-toolbar.visible{display:flex}
+      .hp-toolbtn{padding:6px 9px;font-size:12px;border-radius:8px}
+      .hp-tab{min-width:56px;max-width:135px;padding:5px 7px;border-radius:8px;font-size:11px;gap:5px}
+      .hp-tab button{font-size:13px}
+      #hp-tabs{gap:4px}
+      #hp-toolbar #reload-fab{display:flex;position:static;width:30px;height:30px;min-width:30px;padding:0;align-items:center;justify-content:center;border:1px solid #ffffff20;border-radius:8px;background:#ffffff0d;color:white;cursor:pointer}
+      #hp-toolbar #reload-fab svg{width:15px;height:15px}
+      #fab-bar{display:none!important}
+      #browser.visible{top:42px;height:calc(100% - 42px)}
+      #hp-settings-toggle{top:auto;bottom:12px;right:12px}
+      #hp-bookmarks{width:min(600px,92vw);margin:16px auto 0;gap:7px}
+      .hp-bookmark{padding:7px 9px;border-radius:9px;font-size:12px}
+      @media(max-width:520px){#hp-toolbar{height:40px;min-height:40px;padding:4px;gap:4px}.hp-toolbtn{padding:6px 7px;font-size:11px}.hp-tab{min-width:45px;max-width:92px;padding:5px}.hp-tab-pick{display:none!important}#browser.visible{top:40px;height:calc(100% - 40px)}.title{margin-bottom:.35rem}.home-kicker{margin-bottom:.55rem}.hp-catchphrase{margin-bottom:1rem}}
+    </style>
+  </head>
+  <body>
+
+
+    <div id="release-overlay">
+      <div id="release-modal">
+        <h2>Welcome to Scramjet STATIC v2</h2>
+        <p class="intro">
+          Scramjet STATIC v2 has arrived — featuring bug fixes, new features,
+          and overall improvements to the SJ-STATIC engine, from navigation
+          reliability to a brand new settings panel.
+        </p>
+        <div class="subheading">Release Notes</div>
+        <div id="release-notes-box">
+          <ul>
+            <li>Rebuilt back/forward navigation to reliably return home without falling through to the browser's own history</li>
+            <li>Fixed a service worker race condition that could cause the app to hang on "Writing config…" after a reload</li>
+            <li>Added a persistent WISP server settings panel — set and save a custom WISP server directly from the home screen, no redeployment needed</li>
+            <li>Added live transport method switching between libcurl and epoxy — swap transports without reloading the page, your WISP server carries over automatically</li>
+            <li>Added real, verifiable transport confirmation — open DevTools and inspect the &lt;html&gt; tag's data-active-transport attribute to see which transport is actually handling requests, read straight from bare-mux's own internal state, not just what the UI claims</li>
+            <li>Added a real animated loading progress bar for page navigation</li>
+            <li>Added floating reload and home controls, including live network-loss detection during reload with a clear "no internet" message</li>
+            <li>Added an About page (about.md) linked from the home screen, plus a build version label</li>
+            <li>Added fork-friendly configuration — wisp.txt and transport.txt at the repo root let anyone who forks the project set their own default WISP server or transport method just by editing a text file, no code changes required</li>
+            <li>Added a one-time "Welcome to Scramjet STATIC v2" release popup with full changelog, shown on first visit to this version</li>
+            <li>Added confetti celebration animation on the home screen for the v2 launch</li>
+            <li>Fixed home screen footer text (build label and About link) remaining visible through the proxy iframe instead of being hidden while browsing</li>
+            <li>General stability improvements across service worker registration, IndexedDB handling, and transport initialization</li>
+            <li>Full firefox support is now added, expoy transport enables compatibility with Firefox</li>
+          </ul>
+        </div>
+        <p class="outro">Enjoy Scramjet STATIC build 2.0 — thanks for using the proxy!</p>
+        <button id="release-close-btn">Got it!</button>
+      </div>
+    </div>
+
+    <div id="build-label">Build 2.0</div>
+    <a id="about-link" href="https://hahahah67-pixel.github.io/scramjet-static/about.md" target="_blank" rel="noopener">about</a>
+    <div id="home">
+      <p class="home-kicker">YOUR LITTLE CORNER OF THE INTERNET</p>
+      <p class="hp-catchphrase">Curiosity, Go.</p>
+      <h1 class="title">Hyper-Pop <span>Browser ✦</span></h1>
+      <div class="bar-wrap">
+        <input id="searchbar" type="text" placeholder="Browse the web" autocomplete="off" autocorrect="off" spellcheck="false" />
+        <button id="go-btn" aria-label="Go">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </button>
+      </div>
+      <p id="status">Curiosity, go. ✦ Tiny internet, big energy.</p>
+      <div id="hp-bookmarks" aria-label="Bookmarks"></div>
+      <div id="hp-bookmark-form"><input id="hp-bookmark-name" placeholder="Bookmark name" maxlength="40"><button id="hp-bookmark-save">Save bookmark</button></div>
+      <button id="hp-add-bookmark" class="hp-toolbtn">＋ Bookmark this page</button>
+
+      <!-- WISP server settings panel -->
+      <div id="wisp-panel">
+        <div class="wisp-label">WISP SERVER</div>
+        <div class="wisp-row">
+          <input id="wisp-url-input" type="text" autocomplete="off" spellcheck="false" />
+          <button id="wisp-set-btn" class="wisp-btn">Set</button>
+          <button id="wisp-reset-btn" class="wisp-btn reset">Reset</button>
+        </div>
+
+        <div class="wisp-divider"></div>
+
+        <div class="wisp-label">TRANSPORT METHOD</div>
+        <div class="wisp-row">
+          <div class="transport-toggle">
+            <button id="transport-libcurl-btn" class="transport-opt active" data-transport="libcurl">
+              libcurl <span class="suggested">(default, suggested)</span>
+            </button>
+            <button id="transport-epoxy-btn" class="transport-opt" data-transport="epoxy">
+              epoxy
+            </button>
+          </div>
+          <button id="transport-save-btn" class="wisp-btn save">Save</button>
+          <button id="transport-reset-btn" class="wisp-btn reset">Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="hp-toolbar" aria-label="Browser tabs"><div id="hp-tabs"></div><button id="hp-new-tab" class="hp-toolbtn hp-tab-add" title="New tab">＋</button><button id="hp-add-current-bookmark" class="hp-toolbtn" title="Bookmark current page">☆</button><button id="hp-home" class="hp-toolbtn" title="Home">⌂</button><button id="hp-settings-open" class="hp-toolbtn" title="Settings">⚙</button></div>
+    <button id="hp-settings-toggle" aria-label="Open settings">⚙ Settings</button>
+    <aside id="hp-sidebar" aria-label="Browser settings"><button class="hp-close" id="hp-settings-close">Close ✕</button><h2>Browser settings</h2><div class="hp-settings-main"><p class="hp-settings-intro">Configure the connection and transport used by Scramjet. If video playback fails, try switching the transport to epoxy, then press Save.</p></div><div class="hp-settings-section"><h3>Browser version</h3><p>Prefer the original Hyper-Pop proxy? You can switch back anytime.</p><button id="hp-old-proxy" class="hp-toolbtn hp-wide-btn">← Return to old proxy</button></div></aside>
+
+    <!-- "wisp server set!" toast -->
+    <div id="wisp-toast">wisp server set!</div>
+
+    <iframe
+      id="browser"
+      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-downloads"
+      allow="autoplay; encrypted-media; fullscreen; picture-in-picture; clipboard-read; clipboard-write" allowfullscreen
+    ></iframe>
+
+    <!-- Baby blue loading bar -->
+    <div id="load-bar"></div>
+
+    <!-- Floating action pill: reload (front/left), home (back/right) -->
+    <div id="fab-bar">
+      <div id="reload-fab" class="fab-btn" title="Reload" aria-label="Reload page">
+        <svg id="reload-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"/>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+        </svg>
+      </div>
+      <div id="home-fab" title="Home" aria-label="Go home">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Yellow reload/network status toast -->
+    <div id="reload-toast"></div>
+
+    <script type="module">
+      // IMMEDIATE marker — if you don't see "Script started..." appear
+      // instantly on page load, the module script is not executing at all,
+      // which means this is a deployment/caching issue, not a logic bug.
+      document.getElementById('status').textContent = 'Script started — build v2.1'
+
+      const status  = document.getElementById('status')
+      const home    = document.getElementById('home')
+
+      // Global safety net — if ANYTHING throws anywhere in this script,
+      // show it directly on screen instead of leaving a silent stuck state
+      window.addEventListener('error', (e) => {
+        status.style.color = '#f87171'
+        status.textContent = 'Fatal error: ' + (e.error?.message || e.message)
+        console.error('[Scramjet STATIC] Uncaught error:', e.error || e.message)
+      })
+      window.addEventListener('unhandledrejection', (e) => {
+        status.style.color = '#f87171'
+        status.textContent = 'Fatal error: ' + (e.reason?.message || e.reason)
+        console.error('[Scramjet STATIC] Unhandled rejection:', e.reason)
+      })
+
+      const frame   = document.getElementById('browser')
+      const buildLabel = document.getElementById('build-label')
+      const aboutLink  = document.getElementById('about-link')
+      const bar     = document.getElementById('searchbar')
+      const homeFab = document.getElementById('home-fab')
+      const fabBar = document.getElementById('fab-bar')
+      const reloadFab = document.getElementById('reload-fab')
+      const reloadIcon = document.getElementById('reload-icon')
+      const reloadToast = document.getElementById('reload-toast')
+      const loadBar = document.getElementById('load-bar')
+      const wispInput   = document.getElementById('wisp-url-input')
+      const wispSetBtn  = document.getElementById('wisp-set-btn')
+      const wispResetBtn = document.getElementById('wisp-reset-btn')
+      const wispToast   = document.getElementById('wisp-toast')
+      const transportLibcurlBtn = document.getElementById('transport-libcurl-btn')
+      const transportEpoxyBtn   = document.getElementById('transport-epoxy-btn')
+      const transportSaveBtn   = document.getElementById('transport-save-btn')
+      const transportResetBtn  = document.getElementById('transport-reset-btn')
+
+      // ── Loading bar — fake but convincing multi-stage progress ────────
+      // Fast burst at the start, slows down as it approaches the "end",
+      // then snaps to 100% and fades when the iframe actually fires load.
+      let loadBarTimer = null
+      let loadBarStep = null
+
+      function startLoadBar() {
+        clearTimeout(loadBarTimer)
+        clearInterval(loadBarStep)
+        loadBar.style.transition = 'none'
+        loadBar.style.width = '0%'
+        loadBar.style.opacity = '1'
+
+        // Force reflow so the transition below actually applies
+        void loadBar.offsetWidth
+
+        let pct = 0
+        loadBar.style.transition = 'width 0.2s linear'
+        loadBarStep = setInterval(() => {
+          // Slow down as we approach 90% — never quite finishes on its own
+          const remaining = 90 - pct
+          const step = Math.max(remaining * 0.08, 0.4)
+          pct = Math.min(pct + step, 90)
+          loadBar.style.width = pct + '%'
+          if (pct >= 90) clearInterval(loadBarStep)
+        }, 120)
+      }
+
+      function finishLoadBar() {
+        clearInterval(loadBarStep)
+        loadBar.style.transition = 'width 0.25s ease'
+        loadBar.style.width = '100%'
+        loadBarTimer = setTimeout(() => {
+          loadBar.style.transition = 'opacity 0.3s ease'
+          loadBar.style.opacity = '0'
+          loadBarTimer = setTimeout(() => {
+            loadBar.style.width = '0%'
+          }, 300)
+        }, 200)
+      }
+
+      let browsing = false
+
+      // ── Release notes modal ──────────────────────────────────────────
+      const releaseOverlay = document.getElementById('release-overlay')
+      const releaseCloseBtn = document.getElementById('release-close-btn')
+
+      function showReleaseModal() {
+        releaseOverlay.classList.add('visible')
+      }
+      function hideReleaseModal() {
+        releaseOverlay.classList.remove('visible')
+      }
+      releaseCloseBtn.addEventListener('click', hideReleaseModal)
+
+      // ── Transport verification ──────────────────────────────────────
+      // Queries bare-mux's own SharedWorker directly via getTransport() —
+      // this reflects what's ACTUALLY handling requests right now, not
+      // what our UI/localStorage claims. Written as a real DOM attribute
+      // on <html> so it's inspectable in DevTools Elements tab, and also
+      // logged to console. Cannot be faked by our own UI state.
+      async function verifyActiveTransport() {
+        if (!currentConn) return
+        try {
+          const active = await currentConn.getTransport()
+          // active is typically the loaded module path/name from the worker,
+          // e.g. ".../transport/epoxy.mjs" or ".../transport/libcurl.mjs"
+          const label = String(active).includes('epoxy') ? 'epoxy'
+                      : String(active).includes('libcurl') ? 'libcurl'
+                      : String(active)
+          document.documentElement.setAttribute('data-active-transport', label)
+          document.documentElement.setAttribute('data-active-transport-raw', String(active))
+          console.log('[Scramjet STATIC] VERIFIED active transport (from bare-mux worker itself):', active)
+        } catch (e) {
+          document.documentElement.setAttribute('data-active-transport', 'unknown (getTransport failed)')
+          console.warn('[Scramjet STATIC] Could not verify active transport:', e)
+        }
+      }
+
+      const BASE = new URL('./', document.baseURI).pathname
+      let DEFAULT_WISP = 'wss://anura.pro/wisp/'
+      let DEFAULT_TRANSPORT = 'libcurl'
+
+      // Fetch fork-configurable defaults from wisp.txt and transport.txt at
+      // the repo root. This lets anyone who forks this project change the
+      // default WISP server / transport method for all their users just by
+      // editing a plain text file — no need to touch index.html at all.
+      async function loadForkDefaults() {
+        try {
+          const wispText = await fetch(BASE + 'wisp.txt').then(r => r.text())
+          const match = wispText.match(/WISP URL:\s*(\S+)/i)
+          if (match && match[1]) DEFAULT_WISP = match[1].trim()
+        } catch (e) {
+          console.warn('[Scramjet STATIC] Could not load wisp.txt, using built-in default:', e)
+        }
+
+        try {
+          const transportText = await fetch(BASE + 'transport.txt').then(r => r.text())
+          const match = transportText.match(/current transport method:\s*(\w+)/i)
+          if (match && match[1]) {
+            const val = match[1].trim().toLowerCase()
+            if (val === 'libcurl' || val === 'epoxy') DEFAULT_TRANSPORT = val
+          }
+        } catch (e) {
+          console.warn('[Scramjet STATIC] Could not load transport.txt, using built-in default:', e)
+        }
+      }
+      let currentConn = null // set once bare-mux connection object exists
+      let currentTransport = DEFAULT_TRANSPORT // 'libcurl' or 'epoxy'
+      let pendingTransport = DEFAULT_TRANSPORT // what's selected in UI but not yet saved
+
+      function transportPath(method) {
+        return 'https://hahahah67-pixel.github.io/scramjet-static/transport/' + method + '.mjs'
+      }
+
+      function getSavedTransport() {
+        try {
+          const saved = localStorage.getItem('fish-transport')
+          return (saved === 'epoxy' || saved === 'libcurl') ? saved : DEFAULT_TRANSPORT
+        } catch (e) {
+          console.warn('[Scramjet STATIC] localStorage unavailable, using default transport:', e)
+          return DEFAULT_TRANSPORT
+        }
+      }
+
+      function saveTransportChoice(method) {
+        try {
+          localStorage.setItem('fish-transport', method)
+        } catch (e) {
+          console.warn('[Scramjet STATIC] Could not persist transport choice:', e)
+        }
+      }
+
+      function setTransportUI(method) {
+        pendingTransport = method
+        transportLibcurlBtn.classList.toggle('active', method === 'libcurl')
+        transportEpoxyBtn.classList.toggle('active', method === 'epoxy')
+      }
+
+      function getSavedWisp() {
+        try {
+          return localStorage.getItem('fish-wisp') || DEFAULT_WISP
+        } catch (e) {
+          console.warn('[Scramjet STATIC] localStorage unavailable, using default WISP:', e)
+          return DEFAULT_WISP
+        }
+      }
+
+      function saveWisp(url) {
+        try {
+          localStorage.setItem('fish-wisp', url)
+        } catch (e) {
+          console.warn('[Scramjet STATIC] Could not persist WISP choice:', e)
+        }
+      }
+
+      function showToast() {
+        clearTimeout(showToast._hideTimer)
+        clearTimeout(showToast._cleanupTimer)
+        wispToast.classList.remove('leaving')
+        // Force reflow so re-triggering the animation works if clicked twice fast
+        void wispToast.offsetWidth
+        wispToast.classList.add('visible')
+        showToast._hideTimer = setTimeout(() => {
+          wispToast.classList.add('leaving')
+          wispToast.classList.remove('visible')
+          showToast._cleanupTimer = setTimeout(() => {
+            wispToast.classList.remove('leaving')
+          }, 350)
+        }, 4000)
+      }
+
+      function normalizeWispUrl(raw) {
+        let url = raw.trim()
+        if (!url) return url
+        // Add wss:// if no protocol was typed at all
+        if (!/^wss?:\/\//i.test(url)) {
+          url = 'wss://' + url
+        }
+        // Ensure trailing slash — bare-mux/wisp-js expects the path to end in /
+        if (!url.endsWith('/')) {
+          url += '/'
+        }
+        return url
+      }
+
+      async function applyWisp(url, { persist = true } = {}) {
+        if (!currentConn) {
+          wispSetBtn.textContent = 'Not ready yet…'
+          setTimeout(() => { wispSetBtn.textContent = 'Set' }, 1800)
+          return
+        }
+        wispSetBtn.disabled = true
+        wispResetBtn.disabled = true
+        const originalText = wispSetBtn.textContent
+        wispSetBtn.textContent = 'Setting…'
+        try {
+          await currentConn.setTransport(
+            transportPath(currentTransport),
+            [{ wisp: url }]
+          )
+          if (persist) saveWisp(url)
+          wispInput.value = url
+          wispSetBtn.textContent = 'Set'
+          showToast()
+        } catch (err) {
+          // Surface the real error directly on the button instead of
+          // silently failing — this tells us exactly what's wrong
+          wispSetBtn.textContent = 'Failed!'
+          wispToast.textContent = 'Error: ' + err.message
+          wispToast.style.background = '#ff6b6b'
+          showToast()
+          setTimeout(() => {
+            wispToast.textContent = 'wisp server set!'
+            wispToast.style.background = ''
+          }, 4200)
+          console.error('[Scramjet STATIC] setTransport failed:', err)
+          setTimeout(() => { wispSetBtn.textContent = originalText }, 2000)
+        } finally {
+          wispSetBtn.disabled = false
+          wispResetBtn.disabled = false
+        }
+      }
+
+      wispSetBtn.addEventListener('click', async () => {
+        const val = normalizeWispUrl(wispInput.value)
+        if (!val) return
+        try {
+          await applyWisp(val)
+        } catch (e) {
+          console.error('[Scramjet STATIC] WISP set failed:', e)
+        }
+      })
+
+      wispResetBtn.addEventListener('click', async () => {
+        try {
+          await applyWisp(DEFAULT_WISP)
+        } catch (e) {
+          console.error('[Scramjet STATIC] WISP reset failed:', e)
+        }
+      })
+
+      // ── Transport method (libcurl / epoxy) ─────────────────────────────
+      async function applyTransport(method) {
+        if (!currentConn) {
+          transportSaveBtn.textContent = 'Not ready yet…'
+          setTimeout(() => { transportSaveBtn.textContent = 'Save' }, 1800)
+          return
+        }
+        transportSaveBtn.disabled = true
+        transportResetBtn.disabled = true
+        const originalText = transportSaveBtn.textContent
+        transportSaveBtn.textContent = 'Saving…'
+        try {
+          const wispUrl = wispInput.value || getSavedWisp()
+          await Promise.race([
+            currentConn.setTransport(transportPath(method), [{ wisp: wispUrl }]),
+            new Promise((_, rej) => setTimeout(() => rej(new Error('Timed out after 10s — transport module may have failed to load or initialize (check the file is valid JS, not an HTML page)')), 10000))
+          ])
+          currentTransport = method
+          saveTransportChoice(method)
+          setTransportUI(method)
+          await verifyActiveTransport()
+          transportSaveBtn.textContent = 'Save'
+          wispToast.textContent = 'transport method set!'
+          wispToast.style.background = ''
+          showToast()
+        } catch (err) {
+          transportSaveBtn.textContent = 'Failed!'
+          wispToast.textContent = 'Error: ' + err.message
+          wispToast.style.background = '#ff6b6b'
+          showToast()
+          setTimeout(() => {
+            wispToast.textContent = 'wisp server set!'
+            wispToast.style.background = ''
+          }, 4200)
+          console.error('[Scramjet STATIC] Transport switch failed:', err)
+          setTimeout(() => { transportSaveBtn.textContent = originalText }, 2000)
+        } finally {
+          transportSaveBtn.disabled = false
+          transportResetBtn.disabled = false
+        }
+      }
+
+      // Clicking libcurl/epoxy only updates the UI selection —
+      // it does NOT apply until Save is pressed
+      transportLibcurlBtn.addEventListener('click', () => setTransportUI('libcurl'))
+      transportEpoxyBtn.addEventListener('click', () => setTransportUI('epoxy'))
+
+      transportSaveBtn.addEventListener('click', async () => {
+        try {
+          await applyTransport(pendingTransport)
+        } catch (e) {
+          console.error('[Scramjet STATIC] Transport save failed:', e)
+        }
+      })
+
+      transportResetBtn.addEventListener('click', async () => {
+        try {
+          await applyTransport(DEFAULT_TRANSPORT)
+        } catch (e) {
+          console.error('[Scramjet STATIC] Transport reset failed:', e)
+        }
+      })
+
+      // wispInput and transport UI are populated after loadForkDefaults()
+      // resolves inside the init sequence below — this avoids briefly
+      // showing the built-in fallback before a fork's custom .txt values load
+
+      function showHome() {
+        browsing = false
+        home.classList.remove('hidden')
+        frame.classList.remove('visible')
+        fabBar.classList.remove('visible')
+        buildLabel.style.display = ''
+        aboutLink.style.display = ''
+        bar.value = ''
+        cancelReload()
+      }
+
+      function showBrowser(encodedUrl) {
+        startLoadBar()
+        if (!browsing) {
+          frame.contentWindow.location.replace(encodedUrl)
+        } else {
+          frame.src = encodedUrl
+        }
+        home.classList.add('hidden')
+        frame.classList.add('visible')
+        fabBar.classList.add('visible')
+        // Direct display:none guarantee — independent of z-index stacking,
+        // cannot be defeated by any CSS stacking context issue
+        buildLabel.style.display = 'none'
+        aboutLink.style.display = 'none'
+        if (!browsing) {
+          history.pushState({ browsing: true }, '')
+          browsing = true
+        }
+      }
+
+      // Fire the loading bar to completion whenever the iframe finishes
+      // loading — this covers both initial navigation and in-site link clicks
+      frame.addEventListener('load', () => {
+        if (browsing) finishLoadBar()
+      })
+
+      // The manual home button — direct call, no history/popstate involved
+      // at all, so it can never be broken by Chrome's iframe joint history
+      homeFab.addEventListener('click', () => {
+        showHome()
+        history.replaceState({ home: true }, '')
+      })
+
+      // ── Reload button ─────────────────────────────────────────────────
+      const RELOAD_ICON = `
+        <polyline points="23 4 23 10 17 10"/>
+        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+      `
+      const X_ICON = `
+        <line x1="18" y1="6" x2="6" y2="18"/>
+        <line x1="6" y1="6" x2="18" y2="18"/>
+      `
+      const WIFI_ICON = `
+        <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+        <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+        <line x1="12" y1="20" x2="12.01" y2="20"/>
+      `
+
+      let reloading = false
+      let dotsTimer = null
+      let reloadWatchdog = null
+
+      function showReloadToast(html, colorClass) {
+        reloadToast.innerHTML = html
+        reloadToast.classList.remove('leaving')
+        void reloadToast.offsetWidth
+        reloadToast.classList.add('visible')
+      }
+
+      function hideReloadToast(afterMs) {
+        setTimeout(() => {
+          reloadToast.classList.add('leaving')
+          reloadToast.classList.remove('visible')
+        }, afterMs)
+      }
+
+      function startDotsAnimation() {
+        showReloadToast('Reloading page<span class="dots"><span>.</span><span>.</span><span>.</span></span>')
+        const dots = reloadToast.querySelectorAll('.dots span')
+        let i = 0
+        clearInterval(dotsTimer)
+        dotsTimer = setInterval(() => {
+          dots.forEach((d, idx) => d.classList.toggle('active', idx <= i))
+          i = (i + 1) % 3
+          if (i === 0) {
+            // brief pause with none active before restarting the 1-2-3 pattern
+            dots.forEach(d => d.classList.remove('active'))
+          }
+        }, 350)
+      }
+
+      function stopDotsAnimation() {
+        clearInterval(dotsTimer)
+        dotsTimer = null
+      }
+
+      function setReloadIcon(iconSvg) {
+        reloadIcon.innerHTML = iconSvg
+      }
+
+      function startReload() {
+        if (!browsing || reloading) return
+
+        // No network — fail immediately with the wifi message
+        if (!navigator.onLine) {
+          reloading = true
+          setReloadIcon(X_ICON)
+          showReloadToast(
+            `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${WIFI_ICON}</svg>` +
+            `<span>No internet connection, plz reconnect. Reload stopped.</span>`
+          )
+          hideReloadToast(3000)
+          setTimeout(() => {
+            reloading = false
+            setReloadIcon(RELOAD_ICON)
+          }, 3000)
+          return
+        }
+
+        reloading = true
+        setReloadIcon(X_ICON)
+        startDotsAnimation()
+        startLoadBar()
+
+        try {
+          frame.contentWindow.location.reload()
+        } catch {
+          frame.src = frame.src
+        }
+
+        // Safety watchdog: if a network drop happens mid-reload and no
+        // load event ever fires, don't leave the UI stuck spinning forever
+        clearTimeout(reloadWatchdog)
+        reloadWatchdog = setTimeout(() => {
+          if (reloading && !navigator.onLine) {
+            finishReload({ networkLost: true })
+          }
+        }, 8000)
+      }
+
+      function cancelReload() {
+        if (!reloading) return
+        reloading = false
+        stopDotsAnimation()
+        clearTimeout(reloadWatchdog)
+        setReloadIcon(RELOAD_ICON)
+        showReloadToast('Reload stopped')
+        hideReloadToast(1000)
+      }
+
+      function finishReload({ networkLost = false } = {}) {
+        reloading = false
+        stopDotsAnimation()
+        clearTimeout(reloadWatchdog)
+        setReloadIcon(RELOAD_ICON)
+
+        if (networkLost) {
+          showReloadToast(
+            `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${WIFI_ICON}</svg>` +
+            `<span>No internet connection, plz reconnect. Reload stopped.</span>`
+          )
+          hideReloadToast(3000)
+        } else {
+          reloadToast.classList.add('leaving')
+          reloadToast.classList.remove('visible')
+        }
+      }
+
+      reloadFab.addEventListener('click', () => {
+        if (reloading) {
+          cancelReload()
+        } else {
+          startReload()
+        }
+      })
+
+      // Detect network loss while a reload is actively in progress
+      window.addEventListener('offline', () => {
+        if (reloading) {
+          clearTimeout(reloadWatchdog)
+          finishReload({ networkLost: true })
+        }
+      })
+
+      // When the iframe finishes reloading, close out the reload UI state
+      frame.addEventListener('load', () => {
+        if (reloading) {
+          clearTimeout(reloadWatchdog)
+          finishReload()
+        }
+      })
+
+      window.addEventListener('popstate', (e) => {
+        if (e.state && e.state.browsing) {
+          showHome()
+          history.replaceState({ home: true }, '')
+        }
+      })
+
+      function toUrl(raw) {
+        const s = raw.trim()
+        if (!s) return null
+        if (/^https?:\/\//i.test(s)) return s
+        if (/^\/\//.test(s)) return 'https:' + s
+        if (/^[^\s]+\.[^\s]+$/.test(s)) return 'https://' + s
+        return 'https://duckduckgo.com/?q=' + encodeURIComponent(s)
+      }
+
+      try {
+        status.textContent = 'Loading configuration…'
+        await loadForkDefaults()
+
+        const WISP   = getSavedWisp()
+        const PREFIX = BASE + 'scramjet/'
+
+        wispInput.value = WISP
+        setTransportUI(getSavedTransport())
+
+        const isFirstLoad = !navigator.serviceWorker.controller
+
+        if (isFirstLoad) {
+          status.textContent = 'Preparing…'
+          try {
+            const regs = await Promise.race([
+              navigator.serviceWorker.getRegistrations(),
+              new Promise((_, rej) => setTimeout(() => rej(new Error('SW registration lookup timed out')), 5000))
+            ])
+            await Promise.all(regs.map(r => r.unregister()))
+          } catch (e) {
+            console.warn('[Scramjet STATIC] SW cleanup skipped:', e)
+          }
+          try {
+            await Promise.race([
+              new Promise(r => {
+                const req = indexedDB.deleteDatabase('$scramjet')
+                req.onsuccess = req.onerror = req.onblocked = r
+              }),
+              new Promise(r => setTimeout(r, 5000))
+            ])
+          } catch (e) {
+            console.warn('[Scramjet STATIC] IDB cleanup skipped:', e)
+          }
+        }
+
+        status.textContent = 'Loading engine…'
+        await import('./scramjet-engine/scramjet.js')
+
+        status.textContent = 'Starting controller…'
+        const { ScramjetController } = $scramjetLoadController()
+        const sj = new ScramjetController({
+          prefix: PREFIX,
+          files: {
+            wasm: 'https://hahahah67-pixel.github.io/scramjet-static/scramjet-engine/scramjet.wasm',
+            all:  BASE + 'scramjet-engine/scramjet-all.js',
+            sync: BASE + 'scramjet-engine/scramjet-sync.js',
+          },
+        })
+
+        if (isFirstLoad) {
+          status.textContent = 'Writing config…'
+          await sj.init()
+          status.textContent = 'Registering service worker…'
+          await navigator.serviceWorker.register(BASE + 'sw.js', { scope: BASE })
+          await navigator.serviceWorker.ready
+        } else {
+          status.textContent = 'Registering service worker…'
+          await navigator.serviceWorker.register(BASE + 'sw.js', { scope: BASE })
+          await navigator.serviceWorker.ready
+          status.textContent = 'Writing config…'
+          await sj.init()
+        }
+
+        status.textContent = 'Connecting transport…'
+        const conn = new _0zzl94._ak44v7(BASE + 'bare-mux/bare-mux-worker.js')
+        currentTransport = getSavedTransport()
+        try {
+          await conn.setTransport(transportPath(currentTransport), [{ wisp: WISP }])
+        } catch (err) {
+          // If the saved transport (e.g. epoxy.mjs missing/broken) fails,
+          // fall back to libcurl instead of bricking the entire site
+          console.warn('[Scramjet STATIC] Saved transport failed, falling back to libcurl:', err)
+          currentTransport = 'libcurl'
+          saveTransportChoice('libcurl')
+          await conn.setTransport(transportPath('libcurl'), [{ wisp: WISP }])
+        }
+        currentConn = conn
+        await verifyActiveTransport()
+
+        history.replaceState({ home: true }, '')
+        status.textContent = 'Ready'
+
+        // Hyper-Pop: no launch confetti or surprise release popup.
+
+
+        function navigate(raw) {
+          const url = toUrl(raw)
+          if (!url) return
+          activeTab.url = url
+          activeTab.title = new URL(url).hostname
+          renderTabs()
+          showBrowser(sj.encodeUrl(url))
+        }
+
+        // Hyper-Pop tabs and bookmarks (stored locally on this device).
+        const toolbar = document.getElementById('hp-toolbar')
+        const refreshButton = document.getElementById('reload-fab')
+        refreshButton.title = 'Refresh current page'
+        refreshButton.setAttribute('aria-label','Refresh current page')
+        toolbar.insertBefore(refreshButton, toolbar.firstChild)
+        const tabsNode = document.getElementById('hp-tabs')
+        const sidebar = document.getElementById('hp-sidebar')
+        document.querySelector('#hp-sidebar .hp-settings-main').appendChild(document.getElementById('wisp-panel'))
+        const bookmarksNode = document.getElementById('hp-bookmarks')
+        const bookmarkForm = document.getElementById('hp-bookmark-form')
+        let tabCounter = 1
+        let tabs = [{id:tabCounter, title:'New Tab', url:''}]
+        let activeTab = tabs[0]
+        function renderTabs() {
+          tabsNode.innerHTML = ''
+          tabs.forEach(tab => {
+            const el = document.createElement('div')
+            el.className = 'hp-tab' + (tab.id === activeTab.id ? ' active' : '')
+            const pick = document.createElement('button')
+            pick.className = 'hp-tab-pick'
+            pick.textContent = '◉'
+            pick.title = 'Switch tab'
+            pick.onclick = () => switchTab(tab.id)
+            const label = document.createElement('span')
+            label.textContent = tab.title || 'New Tab'
+            label.onclick = () => switchTab(tab.id)
+            const close = document.createElement('button')
+            close.textContent = '×'; close.title = 'Close tab'
+            close.onclick = () => closeTab(tab.id)
+            el.append(pick,label,close); tabsNode.appendChild(el)
+          })
+        }
+        function switchTab(id) {
+          activeTab = tabs.find(t => t.id === id) || tabs[0]
+          renderTabs()
+          if (activeTab.url) showBrowser(sj.encodeUrl(activeTab.url))
+          else showHome()
+        }
+        function newTab() {
+          tabCounter++
+          activeTab = {id:tabCounter,title:'New Tab',url:''}
+          tabs.push(activeTab); renderTabs(); showHome()
+        }
+        function closeTab(id) {
+          if (tabs.length === 1) { activeTab.url=''; activeTab.title='New Tab'; showHome(); renderTabs(); return }
+          const i=tabs.findIndex(t=>t.id===id); tabs=tabs.filter(t=>t.id!==id)
+          if (activeTab.id===id) { activeTab=tabs[Math.max(0,i-1)]; switchTab(activeTab.id) } else renderTabs()
+        }
+        function readBookmarks() { try { return JSON.parse(localStorage.getItem('hp-bookmarks')||'[]') } catch { return [] } }
+        function renderBookmarks() {
+          const items=readBookmarks(); bookmarksNode.innerHTML=''
+          items.forEach((bm,index)=>{
+            const el=document.createElement('div'); el.className='hp-bookmark'
+            const go=document.createElement('button'); go.className='hp-toolbtn'; go.textContent='✦ '+bm.name
+            go.onclick=()=>{bar.value=bm.url;navigate(bm.url)}
+            const remove=document.createElement('button'); remove.className='hp-remove'; remove.textContent='×'; remove.title='Remove bookmark'
+            remove.onclick=()=>{const next=readBookmarks();next.splice(index,1);localStorage.setItem('hp-bookmarks',JSON.stringify(next));renderBookmarks()}
+            el.append(go,remove);bookmarksNode.appendChild(el)
+          })
+        }
+        function saveBookmark(name,url) {
+          if(!url) return
+          const items=readBookmarks()
+          if(!items.some(b=>b.url===url)) items.push({name:name||new URL(url).hostname,url})
+          localStorage.setItem('hp-bookmarks',JSON.stringify(items));renderBookmarks()
+        }
+        function openSettings(){sidebar.classList.add('open')}
+        function closeSettings(){sidebar.classList.remove('open')}
+        document.getElementById('hp-settings-toggle').onclick=openSettings
+        document.getElementById('hp-settings-open').onclick=openSettings
+        document.getElementById('hp-settings-close').onclick=closeSettings
+        document.getElementById('hp-old-proxy').onclick=()=>{ window.location.href = '../proxy-legacy.html' }
+        document.getElementById('hp-new-tab').onclick=newTab
+        document.getElementById('hp-home').onclick=()=>{showHome();history.replaceState({home:true},'')}
+        document.getElementById('hp-add-current-bookmark').onclick=()=>{
+          if(activeTab.url) saveBookmark(new URL(activeTab.url).hostname,activeTab.url)
+          else { bookmarkForm.classList.add('open'); document.getElementById('hp-bookmark-name').focus() }
+        }
+        document.getElementById('hp-bookmark-save').onclick=()=>{
+          const name=document.getElementById('hp-bookmark-name').value.trim()
+          if(activeTab.url) saveBookmark(name,activeTab.url)
+          bookmarkForm.classList.remove('open')
+        }
+        renderBookmarks(); renderTabs()
+        // Keep the browser chrome visible while browsing, but not on the home screen.
+        const originalShowHome=showHome
+        showHome=function(){originalShowHome();toolbar.classList.remove('visible');document.getElementById('hp-settings-toggle').style.display='block'}
+        const originalShowBrowser=showBrowser
+        showBrowser=function(url){originalShowBrowser(url);toolbar.classList.add('visible');document.getElementById('hp-settings-toggle').style.display='none'}
+        document.getElementById('hp-add-bookmark').onclick=()=>{if(activeTab.url)saveBookmark(new URL(activeTab.url).hostname,activeTab.url)}
+
+
+        document.getElementById('go-btn').addEventListener('click', () => navigate(bar.value))
+        bar.addEventListener('keydown', e => { if (e.key === 'Enter') navigate(bar.value) })
+
+      } catch (err) {
+        status.style.color = '#f87171'
+        status.textContent = 'Error: ' + err.message
+        console.error('[Scramjet STATIC] init error:', err)
+      }
+    </script>
+  </body>
+</html>

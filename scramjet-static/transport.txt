@@ -1,0 +1,4 @@
+Change transport method. Scramjet STATIC currently supports libcurl transport, and epoxy transport. To change the default transport method defaulted to all users, please change the following line:
+current transport method: libcurl (default)
+
+To change from libcurl to epoxy, replace "libcurl" in the box above with "epoxy".
