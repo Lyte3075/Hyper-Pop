@@ -411,7 +411,13 @@
       #hp-sidebar.open{transform:translateX(0)}
       #hp-sidebar h2{font-size:20px;margin:6px 0 5px}
       #hp-sidebar p{color:#a7a7ba;font-size:12px;line-height:1.5;margin-bottom:18px}
-      #hp-sidebar .hp-settings-section{margin-top:24px;padding-top:18px;border-top:1px solid #ffffff20}
+      #hp-sidebar{display:flex;flex-direction:column;gap:0;padding:22px 16px max(22px,env(safe-area-inset-bottom));}
+      #hp-sidebar .hp-settings-intro{margin:10px 0 18px;}
+      #hp-sidebar .hp-settings-section{margin-top:auto;padding-top:18px;border-top:1px solid #ffffff20;flex-shrink:0;}
+      #hp-sidebar .hp-settings-section p{margin:8px 0 12px;}
+      #hp-sidebar .hp-settings-main{flex:1;min-height:0;overflow-y:auto;padding-bottom:20px;}
+      #hp-sidebar .hp-settings-section{background:linear-gradient(180deg,transparent,#ffffff04);}
+      #hp-sidebar .hp-wide-btn{display:block;min-height:42px;white-space:normal;line-height:1.35;padding:10px 12px;}
       #hp-sidebar .hp-settings-section h3{font-size:14px;margin-bottom:8px;color:#fff}
       #hp-sidebar .hp-wide-btn{width:100%;margin-top:8px;text-align:center;background:#24243a}
       #hp-sidebar .hp-close{float:right;border:0;background:#ffffff12;color:white;border-radius:9px;padding:8px 11px}
@@ -540,7 +546,7 @@
 
     <div id="hp-toolbar" aria-label="Browser tabs"><div id="hp-tabs"></div><button id="hp-new-tab" class="hp-toolbtn hp-tab-add" title="New tab">＋</button><button id="hp-add-current-bookmark" class="hp-toolbtn" title="Bookmark current page">☆</button><button id="hp-home" class="hp-toolbtn" title="Home">⌂</button><button id="hp-settings-open" class="hp-toolbtn" title="Settings">⚙</button></div>
     <button id="hp-settings-toggle" aria-label="Open settings">⚙ Settings</button>
-    <aside id="hp-sidebar" aria-label="Browser settings"><button class="hp-close" id="hp-settings-close">Close ✕</button><h2>Browser settings</h2><p>Configure the connection and transport used by Scramjet. If video playback fails, try switching the transport to epoxy, then press Save.</p><div class="hp-settings-section"><h3>Browser version</h3><p>Prefer the original Hyper-Pop proxy? You can switch back anytime.</p><button id="hp-old-proxy" class="hp-toolbtn hp-wide-btn">← Return to old proxy</button></div></aside>
+    <aside id="hp-sidebar" aria-label="Browser settings"><button class="hp-close" id="hp-settings-close">Close ✕</button><h2>Browser settings</h2><div class="hp-settings-main"><p class="hp-settings-intro">Configure the connection and transport used by Scramjet. If video playback fails, try switching the transport to epoxy, then press Save.</p></div><div class="hp-settings-section"><h3>Browser version</h3><p>Prefer the original Hyper-Pop proxy? You can switch back anytime.</p><button id="hp-old-proxy" class="hp-toolbtn hp-wide-btn">← Return to old proxy</button></div></aside>
 
     <!-- "wisp server set!" toast -->
     <div id="wisp-toast">wisp server set!</div>
@@ -1236,7 +1242,7 @@
         toolbar.insertBefore(refreshButton, toolbar.firstChild)
         const tabsNode = document.getElementById('hp-tabs')
         const sidebar = document.getElementById('hp-sidebar')
-        sidebar.appendChild(document.getElementById('wisp-panel'))
+        document.querySelector('#hp-sidebar .hp-settings-main').appendChild(document.getElementById('wisp-panel'))
         const bookmarksNode = document.getElementById('hp-bookmarks')
         const bookmarkForm = document.getElementById('hp-bookmark-form')
         let tabCounter = 1
