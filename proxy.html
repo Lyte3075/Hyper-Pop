@@ -5,20 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0b0b16">
 <title>Hyper-Pop Browser ✦</title>
-<style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0b0b16;color:#f7f4ff;font-family:system-ui,-apple-system,sans-serif}
-#browser{position:fixed;inset:0;width:100%;height:100%;border:0;background:#0b0b16}
-#notice{position:fixed;z-index:5;left:12px;right:12px;bottom:12px;margin:auto;width:max-content;max-width:calc(100% - 24px);padding:8px 12px;border:1px solid #ffffff20;border-radius:12px;background:#10101ddd;color:#c9c5dd;font-size:12px;pointer-events:none;opacity:1;transition:opacity .5s}
-#notice.hide{opacity:0}
-</style>
-</head>
-<body>
-<iframe id="browser" title="Hyper-Pop Scramjet Browser" src="scramjet-static/" allow="autoplay; encrypted-media; fullscreen; picture-in-picture; clipboard-read; clipboard-write; gamepad" allowfullscreen></iframe>
-<div id="notice">Hyper-Pop Browser · Scramjet test build</div>
 <script>
-const notice=document.getElementById('notice');
-setTimeout(()=>notice.classList.add('hide'),5000);
-document.getElementById('browser').addEventListener('load',()=>{notice.textContent='Scramjet loaded · if browsing fails, check the Wisp connection';});
+  // Temporary safety rollback: Scramjet is under repair, so restore the known-working legacy proxy as the default.
+  location.replace(new URL('proxy-legacy.html', location.href).href);
 </script>
+</head>
+<body style="margin:0;background:#0b0b16;color:#f7f4ff;font-family:system-ui,sans-serif">
+<p style="padding:24px">Opening the working Hyper-Pop proxy…</p>
 </body>
 </html>
