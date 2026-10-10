@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: hyper-pop-scramjet
+    runtime: node
+    plan: free
+    rootDir: scramjet-server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
