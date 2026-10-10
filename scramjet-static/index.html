@@ -732,7 +732,14 @@
       let pendingTransport = DEFAULT_TRANSPORT // what's selected in UI but not yet saved
 
       function transportPath(method) {
-        return 'https://hahahah67-pixel.github.io/scramjet-static/transport/' + method + '.mjs'
+        // Use the published v1 transport packages compatible with this
+        // Scramjet 1.x + bare-mux build. The upstream fork's transport files
+        // are empty placeholders, which causes "Importing a module script failed".
+        const packageUrls = {
+          libcurl: 'https://cdn.jsdelivr.net/npm/@mercuryworkshop/libcurl-transport@1.5.2/dist/index.mjs',
+          epoxy: 'https://cdn.jsdelivr.net/npm/@mercuryworkshop/epoxy-transport@2.1.28/dist/index.mjs'
+        }
+        return packageUrls[method] || packageUrls.libcurl
       }
 
       function getSavedTransport() {
