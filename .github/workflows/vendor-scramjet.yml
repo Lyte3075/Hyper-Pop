@@ -1,0 +1,44 @@
+name: Vendor Scramjet runtime files
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  vendor-runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Hyper-Pop
+        uses: actions/checkout@v4
+        with:
+          ref: scramjet-browser
+          persist-credentials: true
+
+      - name: Download upstream Scramjet runtime
+        run: |
+          git clone --depth 1 https://github.com/hahahah67-pixel/scramjet-static.git /tmp/scramjet-upstream
+          test -s /tmp/scramjet-upstream/transport/libcurl.mjs
+          test -s /tmp/scramjet-upstream/transport/epoxy.mjs
+          test -s /tmp/scramjet-upstream/scramjet-engine/scramjet.wasm
+          mkdir -p scramjet-static
+          rm -rf scramjet-static/bare-mux scramjet-static/scramjet-engine scramjet-static/transport
+          cp -a /tmp/scramjet-upstream/bare-mux scramjet-static/bare-mux
+          cp -a /tmp/scramjet-upstream/scramjet-engine scramjet-static/scramjet-engine
+          cp -a /tmp/scramjet-upstream/transport scramjet-static/transport
+          cp /tmp/scramjet-upstream/LICENSE scramjet-static/LICENSE 2>/dev/null || true
+          echo "Vendored files:"
+          du -ah scramjet-static/bare-mux scramjet-static/scramjet-engine scramjet-static/transport | sort -h | tail -20
+
+      - name: Commit runtime files to this branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scramjet-static/bare-mux scramjet-static/scramjet-engine scramjet-static/transport scramjet-static/LICENSE
+          if git diff --cached --quiet; then
+            echo "Runtime files are already current."
+          else
+            git commit -m "Vendor Scramjet runtime and transport bundles"
+            git push origin HEAD:scramjet-browser
+          fi
