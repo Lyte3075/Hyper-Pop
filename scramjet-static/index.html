@@ -1220,13 +1220,27 @@
           if (currentTransport !== 'libcurl') {
             currentTransport = 'libcurl'
             saveTransportChoice('libcurl')
-            status.textContent = 'Retrying with libcurl…'
-            await transportTimeout(
-              conn.setTransport(transportPath('libcurl'), [{ wisp: WISP }]),
-              'Loading libcurl transport'
-            )
+            status.textContent = 'Retrying with libcurl transport…'
+            try {
+              await transportTimeout(
+                conn.setTransport(transportPath('libcurl'), [{ wisp: WISP }]),
+                'Loading libcurl transport'
+              )
+            } catch (fallbackError) {
+              const failedUrl = transportPath('libcurl')
+              throw new Error(
+                'Could not load the transport module. Tried ' + failedUrl +
+                '. Original error: ' + (err?.message || String(err)) +
+                '. Fallback error: ' + (fallbackError?.message || String(fallbackError)) +
+                '. Check whether this file is reachable on your network; if it is blocked by school Wi-Fi, ask the network administrator to review it.'
+              )
+            }
           } else {
-            throw err
+            throw new Error(
+              'Could not load the transport module at ' + transportPath('libcurl') +
+              '. Original error: ' + (err?.message || String(err)) +
+              '. Check whether this file is reachable on your network; if it is blocked by school Wi-Fi, ask the network administrator to review it.'
+            )
           }
         }
         currentConn = conn
