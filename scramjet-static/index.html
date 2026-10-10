@@ -431,6 +431,7 @@
       #home{background:radial-gradient(ellipse at 50% 38%,#222034 0%,#111116 48%,#08080b 100%);padding:24px 14px 7vh;gap:0}
       .title{font-weight:800;letter-spacing:-.055em;font-size:clamp(2.3rem,8vw,4.4rem);margin-bottom:.35rem;background:linear-gradient(100deg,#70e1ff 0%,#b9a0ff 48%,#ff83c8 100%);background-clip:text;-webkit-background-clip:text;color:transparent;text-shadow:none}
       .title span{font-weight:800}
+      .hp-catchphrase{font-size:clamp(1rem,2.6vw,1.2rem);font-weight:600;letter-spacing:.02em;color:#f2eaff;margin:-.1rem 0 1.2rem;text-align:center}
       .home-kicker{font-size:.72rem;letter-spacing:.17em;text-transform:uppercase;color:#a99bff;margin-bottom:1.7rem;text-align:center}
       .bar-wrap{width:min(600px,92vw)}
       .bar-wrap input{padding:.95rem 3rem .95rem 1.15rem;border-radius:15px;border:1px solid #ffffff26;background:#ffffff0c;font-size:1rem}
@@ -450,7 +451,7 @@
       #hp-settings-toggle{top:auto;bottom:12px;right:12px}
       #hp-bookmarks{width:min(600px,92vw);margin:16px auto 0;gap:7px}
       .hp-bookmark{padding:7px 9px;border-radius:9px;font-size:12px}
-      @media(max-width:520px){#hp-toolbar{height:40px;min-height:40px;padding:4px;gap:4px}.hp-toolbtn{padding:6px 7px;font-size:11px}.hp-tab{min-width:45px;max-width:92px;padding:5px}.hp-tab-pick{display:none!important}#browser.visible{top:40px;height:calc(100% - 40px)}.title{margin-bottom:.35rem}.home-kicker{margin-bottom:1.2rem}}
+      @media(max-width:520px){#hp-toolbar{height:40px;min-height:40px;padding:4px;gap:4px}.hp-toolbtn{padding:6px 7px;font-size:11px}.hp-tab{min-width:45px;max-width:92px;padding:5px}.hp-tab-pick{display:none!important}#browser.visible{top:40px;height:calc(100% - 40px)}.title{margin-bottom:.35rem}.home-kicker{margin-bottom:.55rem}.hp-catchphrase{margin-bottom:1rem}}
     </style>
   </head>
   <body>
@@ -492,6 +493,7 @@
     <a id="about-link" href="https://hahahah67-pixel.github.io/scramjet-static/about.md" target="_blank" rel="noopener">about</a>
     <div id="home">
       <p class="home-kicker">YOUR LITTLE CORNER OF THE INTERNET</p>
+      <p class="hp-catchphrase">Curiosity, Go.</p>
       <h1 class="title">Hyper-Pop <span>Browser ✦</span></h1>
       <div class="bar-wrap">
         <input id="searchbar" type="text" placeholder="Browse the web" autocomplete="off" autocorrect="off" spellcheck="false" />
@@ -951,22 +953,8 @@
 
       // Fire the loading bar to completion whenever the iframe finishes
       // loading — this covers both initial navigation and in-site link clicks
-      let confettiStoppedForSession = false
       frame.addEventListener('load', () => {
-        if (browsing) {
-          finishLoadBar()
-          // Once a proxied page has successfully loaded, give it 5 seconds
-          // of "working" confirmation, then let confetti stop permanently
-          // for this session (homepage confetti only, never returns once
-          // you've successfully browsed somewhere).
-          if (!confettiStoppedForSession && confettiRunning) {
-            clearTimeout(confettiStopTimer)
-            confettiStopTimer = setTimeout(() => {
-              confettiStoppedForSession = true
-              stopConfetti()
-            }, 5000)
-          }
-        }
+        if (browsing) finishLoadBar()
       })
 
       // The manual home button — direct call, no history/popstate involved
