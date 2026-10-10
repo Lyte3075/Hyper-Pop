@@ -1,0 +1,1 @@
+This directory is served by the Scramjet Node service. The Hyper-Pop browser frontend should be integrated here after the service has been deployed and its public Wisp URL is known. Do not place API keys or private credentials in client-side files.
