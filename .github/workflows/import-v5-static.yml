@@ -241,4 +241,7 @@ jobs:
             exit 0
           fi
           git commit -m "Integrate V5 Static arcade on scramjet"
+          # Other branch updates (for example proxy fixes) may land while this
+          # import runs. Rebase generated files onto the latest branch before pushing.
+          git pull --rebase origin scramjet
           git push origin scramjet
