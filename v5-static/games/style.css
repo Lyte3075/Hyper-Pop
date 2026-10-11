@@ -91,12 +91,16 @@ h1 {
   font-family: 'Poppins', sans-serif;
 }
 
-/* Responsive V5 game catalogue layout */
-.search-container { width: min(760px, calc(100vw - 32px)); }
-.search-container input[type="text"] { width: 100%; min-width: 0; }
-.g-container { gap: 6px; }
-.g { max-width: calc(100vw - 32px); }
+/* Responsive V5 game catalogue layout, original card styling retained */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { max-width: 100%; overflow-x: clip; }
+.search-container { box-sizing: border-box; width: min(760px, calc(100% - 24px)); max-width: 100%; }
+.search-container input[type="text"] { flex: 1 1 auto; width: 100%; min-width: 0; }
+.g-container { width: calc(100% - 12px); max-width: 100%; gap: 6px; margin-inline: auto; }
+.g { box-sizing: border-box; flex: 0 1 200px; width: min(200px, calc(50% - 12px)); min-width: 0; max-width: calc(100% - 12px); margin: 6px; }
+.g img { display: block; height: auto; }
+.g h3 { overflow-wrap: anywhere; }
 @media (max-width: 480px) {
-  .g { width: calc(50% - 24px); min-width: 130px; margin: 6px; }
-  .g h3 { font-size: 14px; overflow-wrap: anywhere; }
+  .g { flex-basis: calc(50% - 12px); width: calc(50% - 12px); margin: 4px; }
+  .g h3 { font-size: 13px; }
 }
