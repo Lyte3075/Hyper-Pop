@@ -98,6 +98,16 @@ jobs:
           };
           """, encoding='utf-8')
 
+          # Keep the legacy UV service worker under the project subpath too.
+          register = root / 'ultraviolet' / 'js' / 'register-sw.js'
+          if register.exists():
+            text = register.read_text(encoding='utf-8')
+            text = text.replace('const stockSW = "/uv-sw.js";', """const stockSW = location.pathname.includes('/v5-static/')
+              ? location.pathname.substring(0, location.pathname.indexOf('/v5-static/')) + '/v5-static/uv-sw.js'
+              : '/uv-sw.js';""")
+            text = text.replace('scope: __uv$config.prefix,', 'scope: __uv$config.prefix,')
+            register.write_text(text, encoding='utf-8')
+
           # Responsive adjustments only: retain the upstream V5 visual design.
           css = root / 'style.css'
           if css.exists():
@@ -128,6 +138,20 @@ jobs:
             .main { width: calc(100vw - 20px); padding: 28px 12px; }
             .search-container { width: calc(100vw - 28px); }
             .g { width: min(200px, calc(100vw - 48px)); }
+          }
+          """)
+          games_css = root / 'games' / 'style.css'
+          if games_css.exists():
+            with games_css.open('a', encoding='utf-8') as out:
+              out.write("""
+          /* Responsive V5 game catalogue layout */
+          .search-container { width: min(760px, calc(100vw - 32px)); }
+          .search-container input[type="text"] { width: 100%; min-width: 0; }
+          .g-container { gap: 6px; }
+          .g { max-width: calc(100vw - 32px); }
+          @media (max-width: 480px) {
+            .g { width: calc(50% - 24px); min-width: 130px; margin: 6px; }
+            .g h3 { font-size: 14px; overflow-wrap: anywhere; }
           }
           """)
           print('Patched paths and responsive layout while preserving upstream styling.')
