@@ -995,23 +995,23 @@
         }
       }
 
-      // Maintain a real observed navigation stack for the proxied iframe.
-      // iframe.history.go() alone cannot reliably expose the Forward position
-      // to the parent, so track same-origin Scramjet URL changes ourselves.
-      const proxyHistory = []
-      let proxyHistoryIndex = -1
-      let lastProxyHref = ''
-      let ignoreNextProxyHref = false
+      // Use the browser's actual history stack. Assigning location.href
+      // to a saved URL only reloads it; history.go() traverses entries instead.
+      let observedFrameHref = ''
+      let navigationPending = false
+      let navigationTimeout = null
+      const knownFrameEntries = []
+      let knownFrameIndex = -1
 
-      function currentProxyHref() {
+      function readFrameHref() {
         try {
           const href = frame.contentWindow.location.href
           return href && href !== 'about:blank' ? href : ''
         } catch { return '' }
       }
       function updateNavButtons() {
-        const canBack = browsing && proxyHistoryIndex > 0
-        const canForward = browsing && proxyHistoryIndex >= 0 && proxyHistoryIndex < proxyHistory.length - 1
+        const canBack = browsing && knownFrameIndex > 0
+        const canForward = browsing && knownFrameIndex >= 0 && knownFrameIndex < knownFrameEntries.length - 1
         backButton.disabled = !canBack
         forwardButton.disabled = !canForward
         backButton.setAttribute('aria-disabled', String(!canBack))
@@ -1019,38 +1019,64 @@
         backButton.classList.toggle('can-navigate', canBack)
         forwardButton.classList.toggle('can-navigate', canForward)
       }
-      function observeProxyNavigation(force = false) {
+      function observeFrameEntry() {
         if (!browsing) { updateNavButtons(); return }
-        const href = currentProxyHref()
-        if (!href || href === lastProxyHref) return
-        lastProxyHref = href
-        if (ignoreNextProxyHref) { ignoreNextProxyHref = false; updateNavButtons(); return }
-        if (proxyHistoryIndex >= 0 && proxyHistory[proxyHistoryIndex] === href) { updateNavButtons(); return }
-        proxyHistory.splice(proxyHistoryIndex + 1)
-        proxyHistory.push(href)
-        proxyHistoryIndex = proxyHistory.length - 1
-        updateNavButtons()
-      }
-      function navigateProxyHistory(direction) {
-        const next = proxyHistoryIndex + direction
-        if (next < 0 || next >= proxyHistory.length) return
-        proxyHistoryIndex = next
-        const target = proxyHistory[proxyHistoryIndex]
-        lastProxyHref = target
-        updateNavButtons()
-        try { frame.contentWindow.location.href = target } catch {
-          frame.src = target
+        const href = readFrameHref()
+        if (!href) return
+        observedFrameHref = href
+        if (navigationPending) {
+          navigationPending = false
+          clearTimeout(navigationTimeout)
+          // The history traversal should land on an already-known entry.
+          const existing = knownFrameEntries.indexOf(href)
+          if (existing >= 0) knownFrameIndex = existing
+          else {
+            knownFrameEntries.splice(knownFrameIndex + 1)
+            knownFrameEntries.push(href)
+            knownFrameIndex = knownFrameEntries.length - 1
+          }
+          updateNavButtons()
+          return
         }
+        if (knownFrameIndex >= 0 && knownFrameEntries[knownFrameIndex] === href) {
+          updateNavButtons()
+          return
+        }
+        // New page navigation discards any forward entries.
+        knownFrameEntries.splice(knownFrameIndex + 1)
+        knownFrameEntries.push(href)
+        knownFrameIndex = knownFrameEntries.length - 1
+        updateNavButtons()
       }
-      backButton.addEventListener('click', () => navigateProxyHistory(-1))
-      forwardButton.addEventListener('click', () => navigateProxyHistory(1))
-      setInterval(() => observeProxyNavigation(), 300)
+      function traverseFrameHistory(direction) {
+        const targetIndex = knownFrameIndex + direction
+        if (!browsing || targetIndex < 0 || targetIndex >= knownFrameEntries.length || navigationPending) return
+        navigationPending = true
+        knownFrameIndex = targetIndex
+        updateNavButtons()
+        try {
+          frame.contentWindow.history.go(direction)
+        } catch (err) {
+          navigationPending = false
+          updateNavButtons()
+          console.warn('[Hyper-Pop] History traversal failed:', err)
+          return
+        }
+        navigationTimeout = setTimeout(() => {
+          navigationPending = false
+          observeFrameEntry()
+          updateNavButtons()
+        }, 1200)
+      }
+      backButton.addEventListener('click', () => traverseFrameHistory(-1))
+      forwardButton.addEventListener('click', () => traverseFrameHistory(1))
+      setInterval(observeFrameEntry, 250)
 
       // Fire the loading bar to completion whenever the iframe finishes
       // loading — this covers both initial navigation and in-site link clicks
       frame.addEventListener('load', () => {
         if (browsing) finishLoadBar()
-        observeProxyNavigation(true)
+        observeFrameEntry()
         updateNavButtons()
       })
 
