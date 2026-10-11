@@ -16,7 +16,6 @@
     const help=`COMMANDS
 /help                  Show all commands
 /gn-math               games
-/v5-static             Open the integrated 3kh0 V5 Static arcade\n/v5-static             Open the integrated 3kh0 V5 Static arcade
 /v5-static             Open the integrated 3kh0 V5 Static arcade
 /home                  Go to the Hyper-Pop homepage
 /close                 Close the terminal
