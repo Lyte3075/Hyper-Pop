@@ -228,3 +228,29 @@ span{
     width: 0;
   }
 }
+
+/* Hyper-Pop hosting: responsive safeguards, original V5 styling retained */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { width: 100%; max-width: 100%; overflow-x: hidden; }
+img, canvas, iframe { max-width: 100%; }
+.main { width: min(800px, calc(100vw - 32px)); }
+.nav { gap: 12px; flex-wrap: wrap; }
+.nav-items { position: static; flex-wrap: wrap; gap: 8px 14px; }
+.nav-items li { margin-right: 0; }
+@media (max-width: 720px) {
+  .nav { justify-content: center; padding: 10px 12px; }
+  .nav-items { order: 3; width: 100%; justify-content: center; }
+  .nav-items li a { font-size: 14px; }
+  .time { margin: 0; font-size: 12px; }
+  .main { margin-top: 5vh; padding: 34px 18px; }
+  .main h1 { font-size: clamp(38px, 10vw, 66px); }
+  .main h4 { font-size: clamp(16px, 4vw, 25px); }
+  .main p { font-size: 16px; }
+}
+@media (max-width: 420px) {
+  .nav-items { gap: 8px 10px; }
+  .nav-items li a { font-size: 12px; }
+  .main { width: calc(100vw - 20px); padding: 28px 12px; }
+  .search-container { width: calc(100vw - 28px); }
+  .g { width: min(200px, calc(100vw - 48px)); }
+}

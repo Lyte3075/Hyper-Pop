@@ -2,7 +2,9 @@
 /**
  * Distributed with Ultraviolet and compatible with most configurations.
  */
-const stockSW = "/uv-sw.js";
+const stockSW = location.pathname.includes('/v5-static/')
+    ? location.pathname.substring(0, location.pathname.indexOf('/v5-static/')) + '/v5-static/uv-sw.js'
+    : '/uv-sw.js';
 
 /**
  * List of hostnames that are allowed to run serviceworkers on http:
