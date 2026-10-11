@@ -233,24 +233,43 @@ span{
 *, *::before, *::after { box-sizing: border-box; }
 html, body { width: 100%; max-width: 100%; overflow-x: hidden; }
 img, canvas, iframe { max-width: 100%; }
-.main { width: min(800px, calc(100vw - 32px)); }
-.nav { gap: 12px; flex-wrap: wrap; }
-.nav-items { position: static; flex-wrap: wrap; gap: 8px 14px; }
-.nav-items li { margin-right: 0; }
+.main {
+  box-sizing: border-box;
+  width: min(800px, calc(100% - 32px));
+  max-width: 100%;
+  min-width: 0;
+  margin: clamp(24px, 8vh, 80px) auto 32px;
+  padding: clamp(24px, 5vw, 55px) clamp(16px, 4vw, 32px);
+  overflow-wrap: anywhere;
+}
+.main h1 { max-width: 100%; font-size: clamp(34px, 8vw, 66px); line-height: 1.12; overflow-wrap: anywhere; }
+.main h4 { max-width: 100%; line-height: 1.45; overflow-wrap: anywhere; }
+.main p { max-width: 100%; line-height: 1.6; overflow-wrap: anywhere; }
+.nav { gap: 10px 16px; flex-wrap: wrap; padding: 8px 12px; }
+.logo { flex: 0 1 auto; }
+.nav-items { position: static; flex: 1 1 300px; min-width: 0; flex-wrap: wrap; gap: 8px 16px; }
+.nav-items li { margin: 0; }
+.time { margin-left: auto; }
 @media (max-width: 720px) {
-  .nav { justify-content: center; padding: 10px 12px; }
-  .nav-items { order: 3; width: 100%; justify-content: center; }
+  .nav { justify-content: center; }
+  .nav-items { order: 3; flex: 1 0 100%; width: 100%; justify-content: center; }
   .nav-items li a { font-size: 14px; }
   .time { margin: 0; font-size: 12px; }
-  .main { margin-top: 5vh; padding: 34px 18px; }
-  .main h1 { font-size: clamp(38px, 10vw, 66px); }
-  .main h4 { font-size: clamp(16px, 4vw, 25px); }
+  .main { margin-top: clamp(18px, 4vh, 36px); }
+  .main h4 { font-size: clamp(16px, 4.2vw, 25px); }
   .main p { font-size: 16px; }
 }
 @media (max-width: 420px) {
-  .nav-items { gap: 8px 10px; }
+  .nav { gap: 8px; padding: 8px; }
+  .logo img { width: 38px; }
+  .logo h3 { font-size: 21px; }
+  .nav-items { gap: 8px 12px; }
   .nav-items li a { font-size: 12px; }
-  .main { width: calc(100vw - 20px); padding: 28px 12px; }
-  .search-container { width: calc(100vw - 28px); }
+  .main { width: calc(100% - 20px); padding: 24px 14px; }
+  .main h1 { font-size: clamp(32px, 10vw, 42px); }
+  .search-container { width: calc(100% - 28px); }
   .g { width: min(200px, calc(100vw - 48px)); }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .main { margin-top: 16px; padding-top: 20px; padding-bottom: 20px; }
 }
