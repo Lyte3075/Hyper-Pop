@@ -58,12 +58,15 @@ jobs:
           </script>"""
           for page in root.rglob('*.html'):
             text = page.read_text(encoding='utf-8')
-            # Remove a malformed backreference inserted by an earlier workflow run.
-            text = text.replace('\\1\n', '', 1)
+            # Clean malformed literal backreference/newline sequences from earlier runs.
+            text = text.replace('<head>\\\\n', '<head>\n', 1)
+            text = text.replace('<head>\\n', '<head>\n', 1)
+            text = text.replace('\\\\1\\n', '', 1)
             if '<base href=' not in text:
-              text, count = re.subn(r'(<head(?:\s[^>]*)?>)', lambda m: m.group(1) + '\n' + bootstrap, text, count=1, flags=re.I)
-              if count:
-                page.write_text(text, encoding='utf-8')
+              match = re.search(r'<head(?:\\s[^>]*)?>', text, flags=re.I)
+              if match:
+                text = text[:match.end()] + '\n' + bootstrap + text[match.end():]
+            page.write_text(text, encoding='utf-8')
           PY
 
       - name: Add Hyper-Pop terminal command
