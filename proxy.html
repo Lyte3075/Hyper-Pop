@@ -8,12 +8,13 @@
 <style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0b0b16;color:#f7f4ff;font-family:system-ui,-apple-system,sans-serif}
 #browser{position:fixed;inset:0;width:100%;height:100%;border:0;background:#0b0b16}
-#notice{position:fixed;z-index:5;left:12px;right:12px;bottom:12px;margin:auto;width:max-content;max-width:calc(100% - 24px);padding:8px 12px;border:1px solid #ffffff20;border-radius:12px;background:#10101ddd;color:#c9c5dd;font-size:12px;pointer-events:none;opacity:1;transition:opacity .5s}
+#home-button{position:fixed;z-index:10;left:12px;bottom:12px;display:inline-flex;align-items:center;gap:6px;padding:8px 11px;border:1px solid #ffffff25;border-radius:999px;background:#10101ddd;color:#f7f4ff;text-decoration:none;font-size:12px;font-weight:650;box-shadow:0 4px 20px #0005;backdrop-filter:blur(12px);transition:background .18s,transform .18s}#home-button:hover{background:#24213a;transform:translateY(-2px)}#notice{position:fixed;z-index:5;left:50%;right:auto;transform:translateX(-50%);bottom:12px;margin:auto;width:max-content;max-width:calc(100% - 24px);padding:8px 12px;border:1px solid #ffffff20;border-radius:12px;background:#10101ddd;color:#c9c5dd;font-size:12px;pointer-events:none;opacity:1;transition:opacity .5s}
 #notice.hide{opacity:0}
 </style>
 </head>
 <body>
 <iframe id="browser" title="Hyper-Pop Scramjet Browser" src="scramjet-static/" allow="autoplay; encrypted-media; fullscreen; picture-in-picture; clipboard-read; clipboard-write; gamepad" allowfullscreen></iframe>
+<a id="home-button" href="index.html" aria-label="Back to Hyper-Pop homepage">← Hyper-Pop</a>
 <div id="notice">Hyper-Pop Browser · Scramjet test build</div>
 <script>
 const notice=document.getElementById('notice');
