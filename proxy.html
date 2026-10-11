@@ -18,6 +18,26 @@
 <div id="notice">Hyper-Pop Browser · Scramjet test build</div>
 <script>
 const notice=document.getElementById('notice');
+/* Show the Hyper-Pop return control only on the browser's start page, never on results/sites. */
+const homeButton=document.getElementById('home-button');
+function syncHomeButton(){
+  try {
+    const frame=document.getElementById('browser');
+    const current=new URL(frame.contentWindow.location.href);
+    const start=new URL(frame.getAttribute('src'),location.href);
+    const path=current.pathname.replace(/\\/+$/, '');
+    const startPath=start.pathname.replace(/\\/+$/, '');
+    const isHome=(current.origin===start.origin && (path===startPath || path===startPath+'/index.html' || path==='/'));
+    homeButton.style.display=isHome?'inline-flex':'none';
+  } catch (_) {
+    /* Cross-origin pages cannot be inspected; hide the control rather than overlay sites/searches. */
+    homeButton.style.display='none';
+  }
+}
+const browserFrame=document.getElementById('browser');
+browserFrame.addEventListener('load',syncHomeButton);
+window.addEventListener('message',()=>setTimeout(syncHomeButton,150));
+window.addEventListener('popstate',syncHomeButton);
 setTimeout(()=>notice.classList.add('hide'),5000);
 document.getElementById('browser').addEventListener('load',()=>{notice.textContent='Scramjet loaded · if browsing fails, check the Wisp connection';});
 </script>
