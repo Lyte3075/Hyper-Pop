@@ -62,7 +62,7 @@ jobs:
             text = page.read_text(encoding='utf-8')
             if '<base href=' not in text and 'var marker = \'/v5-static/\'' not in text:
               import re
-              text, count = re.subn(r'(<head(?:\\s[^>]*)?>)', r'\\1\n' + bootstrap, text, count=1, flags=re.I)
+              text, count = re.subn(r'(<head(?:\s[^>]*)?>)', r'\1\n' + bootstrap, text, count=1, flags=re.I)
               if count:
                 page.write_text(text, encoding='utf-8')
           PY
@@ -80,7 +80,7 @@ jobs:
               raise SystemExit('Could not find the expected /home command in terminal.js; refusing to patch an unknown terminal.')
             text = text.replace(home, command + home, 1)
           old_help = '/home                  Go to the Hyper-Pop homepage'
-          new_help = '/v5-static             Open the integrated 3kh0 V5 Static arcade\\n/home                  Go to the Hyper-Pop homepage'
+          new_help = '/v5-static             Open the integrated 3kh0 V5 Static arcade\n/home                  Go to the Hyper-Pop homepage'
           if new_help not in text and old_help in text:
             text = text.replace(old_help, new_help, 1)
           path.write_text(text, encoding='utf-8')
