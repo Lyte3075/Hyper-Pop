@@ -1,0 +1,99 @@
+name: Import V5 Static into scramjet
+
+on:
+  push:
+    branches: [scramjet]
+    paths:
+      - '.github/workflows/import-v5-static.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: import-v5-static-scramjet
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out scramjet
+        uses: actions/checkout@v4
+        with:
+          ref: scramjet
+
+      - name: Download and unpack upstream V5 Static
+        run: |
+          curl -fsSL https://github.com/builtlikearatt/v5-static/archive/refs/heads/main.zip -o /tmp/v5-static.zip
+          python3 - <<'PY'
+          import zipfile
+          from pathlib import Path
+          archive = zipfile.ZipFile('/tmp/v5-static.zip')
+          root = Path('v5-static')
+          prefix = 'v5-static-main/'
+          for name in archive.namelist():
+              if not name.startswith(prefix) or name.endswith('/'):
+                  continue
+              relative = name[len(prefix):]
+              # Repository and hosting config files belong to the upstream root,
+              # but don't need to execute at Hyper-Pop's root.
+              target = root / relative
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_bytes(archive.read(name))
+          print(f'Imported {sum(1 for n in archive.namelist() if n.startswith(prefix) and not n.endswith("/"))} files.')
+          PY
+
+      - name: Make V5 paths work from Hyper-Pop subdirectory hosting
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path('v5-static')
+          bootstrap = """<script>
+          (function () {
+            var path = location.pathname;
+            var marker = '/v5-static/';
+            var index = path.indexOf(marker);
+            var base = index >= 0 ? path.slice(0, index + marker.length) : './';
+            document.write('<base href="' + base + '">');
+          })();
+          </script>"""
+          for page in root.rglob('*.html'):
+            text = page.read_text(encoding='utf-8')
+            if '<base href=' not in text and 'var marker = \'/v5-static/\'' not in text:
+              import re
+              text, count = re.subn(r'(<head(?:\\s[^>]*)?>)', r'\\1\n' + bootstrap, text, count=1, flags=re.I)
+              if count:
+                page.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Add Hyper-Pop terminal command
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('terminal.js')
+          text = path.read_text(encoding='utf-8')
+          home = "if(cmd==='/home'){location.href='index.html';return}"
+          command = "if(cmd==='/v5-static'){location.href='v5-static/index.html';return}"
+          if command not in text:
+            if home not in text:
+              raise SystemExit('Could not find the expected /home command in terminal.js; refusing to patch an unknown terminal.')
+            text = text.replace(home, command + home, 1)
+          old_help = '/home                  Go to the Hyper-Pop homepage'
+          new_help = '/v5-static             Open the integrated 3kh0 V5 Static arcade\\n/home                  Go to the Hyper-Pop homepage'
+          if new_help not in text and old_help in text:
+            text = text.replace(old_help, new_help, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Commit imported files to scramjet
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add v5-static terminal.js
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "Integrate V5 Static arcade on scramjet"
+          git push origin scramjet
