@@ -995,36 +995,62 @@
         }
       }
 
-      // Keep navigation controls usable whenever a proxied page is open.
-      // Scramjet serves the proxied document in this iframe, so browser history
-      // belongs to the iframe rather than the outer Hyper-Pop page.
-      function updateNavButtons() {
-        if (!backButton || !forwardButton) return
-        backButton.disabled = !browsing
-        forwardButton.disabled = !browsing
-        backButton.setAttribute('aria-disabled', String(!browsing))
-        forwardButton.setAttribute('aria-disabled', String(!browsing))
-      }
-      function navigateFrameHistory(direction) {
-        if (!browsing) return
+      // Maintain a real observed navigation stack for the proxied iframe.
+      // iframe.history.go() alone cannot reliably expose the Forward position
+      // to the parent, so track same-origin Scramjet URL changes ourselves.
+      const proxyHistory = []
+      let proxyHistoryIndex = -1
+      let lastProxyHref = ''
+      let ignoreNextProxyHref = false
+
+      function currentProxyHref() {
         try {
-          const win = frame.contentWindow
-          if (!win) return
-          if (direction < 0) win.history.go(-1)
-          else win.history.go(1)
-        } catch (err) {
-          console.warn('[Hyper-Pop] Frame history navigation failed:', err)
-        }
-        setTimeout(updateNavButtons, 100)
-        setTimeout(updateNavButtons, 500)
+          const href = frame.contentWindow.location.href
+          return href && href !== 'about:blank' ? href : ''
+        } catch { return '' }
       }
-      backButton.addEventListener('click', () => navigateFrameHistory(-1))
-      forwardButton.addEventListener('click', () => navigateFrameHistory(1))
+      function updateNavButtons() {
+        const canBack = browsing && proxyHistoryIndex > 0
+        const canForward = browsing && proxyHistoryIndex >= 0 && proxyHistoryIndex < proxyHistory.length - 1
+        backButton.disabled = !canBack
+        forwardButton.disabled = !canForward
+        backButton.setAttribute('aria-disabled', String(!canBack))
+        forwardButton.setAttribute('aria-disabled', String(!canForward))
+        backButton.classList.toggle('can-navigate', canBack)
+        forwardButton.classList.toggle('can-navigate', canForward)
+      }
+      function observeProxyNavigation(force = false) {
+        if (!browsing) { updateNavButtons(); return }
+        const href = currentProxyHref()
+        if (!href || href === lastProxyHref) return
+        lastProxyHref = href
+        if (ignoreNextProxyHref) { ignoreNextProxyHref = false; updateNavButtons(); return }
+        if (proxyHistoryIndex >= 0 && proxyHistory[proxyHistoryIndex] === href) { updateNavButtons(); return }
+        proxyHistory.splice(proxyHistoryIndex + 1)
+        proxyHistory.push(href)
+        proxyHistoryIndex = proxyHistory.length - 1
+        updateNavButtons()
+      }
+      function navigateProxyHistory(direction) {
+        const next = proxyHistoryIndex + direction
+        if (next < 0 || next >= proxyHistory.length) return
+        proxyHistoryIndex = next
+        const target = proxyHistory[proxyHistoryIndex]
+        lastProxyHref = target
+        updateNavButtons()
+        try { frame.contentWindow.location.href = target } catch {
+          frame.src = target
+        }
+      }
+      backButton.addEventListener('click', () => navigateProxyHistory(-1))
+      forwardButton.addEventListener('click', () => navigateProxyHistory(1))
+      setInterval(() => observeProxyNavigation(), 300)
 
       // Fire the loading bar to completion whenever the iframe finishes
       // loading — this covers both initial navigation and in-site link clicks
       frame.addEventListener('load', () => {
         if (browsing) finishLoadBar()
+        observeProxyNavigation(true)
         updateNavButtons()
       })
 
