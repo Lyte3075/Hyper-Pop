@@ -436,6 +436,25 @@
       #fab-bar.visible{bottom:12px}
       @media(max-width:520px){#hp-toolbar{gap:5px;padding:6px} .hp-toolbtn{padding:8px;font-size:12px} .hp-tab{min-width:68px;padding:7px} #hp-settings-toggle{top:auto;bottom:14px;right:12px}}
 
+      /* Hyper-Pop navigation + true viewport-fit overrides */
+      #hp-toolbar .hp-navbtn { width:30px; min-width:30px; height:30px; padding:0; display:flex; align-items:center; justify-content:center; font-size:24px; line-height:1; }
+      #hp-toolbar .hp-navbtn:disabled { opacity:.28; }
+      #hyperpop-home-link { position:fixed;left:max(14px,env(safe-area-inset-left));bottom:max(14px,env(safe-area-inset-bottom));z-index:16;display:inline-flex;align-items:center;justify-content:center;padding:9px 14px;border:1px solid #ffffff24;border-radius:999px;background:#151521;color:#f4f1ff;text-decoration:none;font:600 13px 'Roboto',sans-serif;box-shadow:0 5px 18px #0008; }
+      #hyperpop-home-link:active { transform:scale(.97); }
+      #home { width:100vw !important;max-width:100vw !important;min-width:0 !important;overflow-x:clip !important;padding-left:max(12px,env(safe-area-inset-left)) !important;padding-right:max(12px,env(safe-area-inset-right)) !important;padding-top:max(20px,env(safe-area-inset-top)) !important;padding-bottom:calc(64px + env(safe-area-inset-bottom)) !important; }
+      .title { width:100%;max-width:100%;white-space:normal !important;text-align:center;overflow-wrap:anywhere;font-size:clamp(1.8rem,8vw,4.4rem) !important;line-height:1.08; }
+      .hp-catchphrase,.home-kicker,#status { width:100%;max-width:600px;overflow-wrap:anywhere;padding-inline:4px;text-align:center; }
+      .bar-wrap,#wisp-panel,#hp-bookmarks,#hp-bookmark-form { width:min(600px,calc(100vw - 28px)) !important;max-width:100%;min-width:0; }
+      .bar-wrap input { min-width:0;max-width:100%; }
+      @media(max-width:520px) {
+        #home { justify-content:center;gap:0;padding-bottom:calc(74px + env(safe-area-inset-bottom)) !important; }
+        .title { font-size:clamp(1.7rem,8.5vw,2.8rem) !important;letter-spacing:-.04em; }
+        .home-kicker { font-size:.62rem;margin-bottom:1rem; }
+        .hp-catchphrase { font-size:clamp(.9rem,4vw,1.1rem); }
+        #hyperpop-home-link { bottom:max(12px,env(safe-area-inset-bottom));left:max(12px,env(safe-area-inset-left)); }
+        #hp-toolbar { padding-left:max(4px,env(safe-area-inset-left));padding-right:max(4px,env(safe-area-inset-right)); }
+      }
+
       /* Compact sketch-inspired browser chrome */
       #home{background:radial-gradient(ellipse at 50% 38%,#222034 0%,#111116 48%,#08080b 100%);padding:24px 14px 7vh;gap:0}
       .title{font-weight:800;letter-spacing:-.055em;font-size:clamp(2.3rem,8vw,4.4rem);margin-bottom:.35rem;background:linear-gradient(100deg,#70e1ff 0%,#b9a0ff 48%,#ff83c8 100%);background-clip:text;-webkit-background-clip:text;color:transparent;text-shadow:none}
@@ -512,6 +531,7 @@
           </svg>
         </button>
       </div>
+      <a id="hyperpop-home-link" href="../index.html">← Hyper-Pop</a>
       <p id="status">Curiosity, go. ✦ Tiny internet, big energy.</p>
       <div id="hp-bookmarks" aria-label="Bookmarks"></div>
       <div id="hp-bookmark-form"><input id="hp-bookmark-name" placeholder="Bookmark name" maxlength="40"><button id="hp-bookmark-save">Save bookmark</button></div>
@@ -544,7 +564,7 @@
       </div>
     </div>
 
-    <div id="hp-toolbar" aria-label="Browser tabs"><div id="hp-tabs"></div><button id="hp-new-tab" class="hp-toolbtn hp-tab-add" title="New tab">＋</button><button id="hp-add-current-bookmark" class="hp-toolbtn" title="Bookmark current page">☆</button><button id="hp-home" class="hp-toolbtn" title="Home">⌂</button><button id="hp-settings-open" class="hp-toolbtn" title="Settings">⚙</button></div>
+    <div id="hp-toolbar" aria-label="Browser tabs"><button id="hp-back" class="hp-toolbtn hp-navbtn" title="Back" aria-label="Go back" disabled>‹</button><button id="hp-forward" class="hp-toolbtn hp-navbtn" title="Forward" aria-label="Go forward" disabled>›</button><div id="hp-tabs"></div><button id="hp-new-tab" class="hp-toolbtn hp-tab-add" title="New tab">＋</button><button id="hp-add-current-bookmark" class="hp-toolbtn" title="Bookmark current page">☆</button><button id="hp-home" class="hp-toolbtn" title="Home">⌂</button><button id="hp-settings-open" class="hp-toolbtn" title="Settings">⚙</button></div>
     <button id="hp-settings-toggle" aria-label="Open settings">⚙ Settings</button>
     <aside id="hp-sidebar" aria-label="Browser settings"><button class="hp-close" id="hp-settings-close">Close ✕</button><h2>Browser settings</h2><div class="hp-settings-main"><p class="hp-settings-intro">Configure the connection and transport used by Scramjet. If video playback fails, try switching the transport to epoxy, then press Save.</p></div><div class="hp-settings-section"><h3>Browser version</h3><p>Prefer the original Hyper-Pop proxy? You can switch back anytime.</p><button id="hp-old-proxy" class="hp-toolbtn hp-wide-btn">← Return to old proxy</button></div></aside>
 
@@ -608,6 +628,8 @@
       const homeFab = document.getElementById('home-fab')
       const fabBar = document.getElementById('fab-bar')
       const reloadFab = document.getElementById('reload-fab')
+      const backButton = document.getElementById('hp-back')
+      const forwardButton = document.getElementById('hp-forward')
       const reloadIcon = document.getElementById('reload-icon')
       const reloadToast = document.getElementById('reload-toast')
       const loadBar = document.getElementById('load-bar')
@@ -933,6 +955,8 @@
         browsing = false
         home.classList.remove('hidden')
         frame.classList.remove('visible')
+        document.getElementById('hyperpop-home-link').style.display = 'inline-flex'
+        updateNavButtons()
         fabBar.classList.remove('visible')
         buildLabel.style.display = ''
         aboutLink.style.display = ''
@@ -948,7 +972,9 @@
           frame.src = encodedUrl
         }
         home.classList.add('hidden')
+        document.getElementById('hyperpop-home-link').style.display = 'none'
         frame.classList.add('visible')
+        updateNavButtons()
         fabBar.classList.add('visible')
         // Direct display:none guarantee — independent of z-index stacking,
         // cannot be defeated by any CSS stacking context issue
@@ -959,6 +985,23 @@
           browsing = true
         }
       }
+
+      // Back/forward control the Scramjet iframe's own navigation stack.
+      function updateNavButtons() {
+        if (!backButton || !forwardButton) return
+        backButton.disabled = !browsing
+        forwardButton.disabled = !browsing
+      }
+      backButton.addEventListener('click', () => {
+        if (!browsing) return
+        try { frame.contentWindow.history.back() } catch {}
+        setTimeout(updateNavButtons, 180)
+      })
+      forwardButton.addEventListener('click', () => {
+        if (!browsing) return
+        try { frame.contentWindow.history.forward() } catch {}
+        setTimeout(updateNavButtons, 180)
+      })
 
       // Fire the loading bar to completion whenever the iframe finishes
       // loading — this covers both initial navigation and in-site link clicks
