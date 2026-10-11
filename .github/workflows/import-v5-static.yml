@@ -62,14 +62,13 @@ jobs:
           # original upstream domain. Make every local HTML URL base-relative.
           for page in root.rglob('*.html'):
             text = page.read_text(encoding='utf-8')
-            text = text.replace('<head>\\n', '<head>\\n', 1)
             text = text.replace('href="/"', 'href="./"')
             text = re.sub(r'((?:href|src|action)\s*=\s*["\'])/(?!/)([^"\']*)', r'\1\2', text, flags=re.I)
             text = re.sub(r"window\.open\(\s*['\"]/['\"]\s*,", "window.open('index.html',", text)
             if '<base href=' not in text:
               match = re.search(r'<head(?:\s[^>]*)?>', text, flags=re.I)
               if match:
-                text = text[:match.end()] + '\\n' + bootstrap + text[match.end():]
+                text = text[:match.end()] + '\n' + bootstrap + text[match.end():]
             page.write_text(text, encoding='utf-8')
 
           # Fix the catalog fetch and the in-site game-player route.
