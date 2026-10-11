@@ -68,7 +68,7 @@ jobs:
             text = text.replace('href="../style.css"', 'href="style.css"')
             text = text.replace('<meta name="viewport" content="width=device-width">', '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">')
             if 'src="../terminal.js"' not in text:
-              text = re.sub(r'</body>', '  <script src="../terminal.js"></script>\\n</body>', text, count=1, flags=re.I)
+              text = re.sub(r'</body>', '  <script src="../terminal.js"></script>\n</body>', text, count=1, flags=re.I)
             text = text.replace('src="../time.js"', 'src="time.js"')
             text = text.replace('src="../notification.js"', 'src="notification.js"')
             for route in ('games', 'search', 'settings', 'news'):
@@ -191,18 +191,19 @@ jobs:
           path = Path('terminal.js')
           text = path.read_text(encoding='utf-8')
           home = "if(cmd==='/home'){location.href='index.html';return}"
-          command = "if(cmd==='/v5-static'){location.href='v5-static/index.html';return}"
-          # Keep shared terminal commands working from inside the V5 subdirectory.
-          text = text.replace("if(cmd==='/v5-static'){location.href='v5-static/index.html';return}", "if(cmd==='/v5-static'){location.href=location.pathname.includes('/v5-static/')?'./index.html':'v5-static/index.html';return}")
-          text = text.replace("if(cmd==='/home'){location.href='index.html';return}", "if(cmd==='/home'){const p=location.pathname;const i=p.indexOf('/v5-static/');location.href=(i>=0?p.slice(0,i):'')+'/index.html';return}")
-          if command not in text:
-            if home not in text:
-              raise SystemExit('Could not find the expected /home command in terminal.js; refusing to patch an unknown terminal.')
-            text = text.replace(home, command + home, 1)
+          old_v5 = "if(cmd==='/v5-static'){location.href='v5-static/index.html';return}"
+          new_v5 = "if(cmd==='/v5-static'){location.href=location.pathname.includes('/v5-static/')?'./index.html':'v5-static/index.html';return}"
+          new_home = "if(cmd==='/home'){const p=location.pathname;const i=p.indexOf('/v5-static/');location.href=(i>=0?p.slice(0,i):'')+'/index.html';return}"
+          if old_v5 in text:
+            text = text.replace(old_v5, new_v5, 1)
+          elif new_v5 not in text:
+            raise SystemExit('Could not find the expected /v5-static command in terminal.js.')
+          if home in text:
+            text = text.replace(home, new_home, 1)
+          elif new_home not in text:
+            raise SystemExit('Could not find the expected /home command in terminal.js.')
           old_help = '/home                  Go to the Hyper-Pop homepage'
-          new_help = '/v5-static             Open the integrated 3kh0 V5 Static arcade\n/home                  Go to the Hyper-Pop homepage'
-          # Normalize an earlier literal backslash-n to a real line break.
-          text = text.replace('/v5-static             Open the integrated 3kh0 V5 Static arcade\\n/home                  Go to the Hyper-Pop homepage', new_help, 1)
+          new_help = '/v5-static             Open the integrated 3kh0 V5 Static arcade\\n/home                  Go to the Hyper-Pop homepage'
           if new_help not in text and old_help in text:
             text = text.replace(old_help, new_help, 1)
           path.write_text(text, encoding='utf-8')
