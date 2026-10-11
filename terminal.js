@@ -17,7 +17,8 @@
 /help                  Show all commands
 /gn-math               games
 /v5-static             Open the integrated 3kh0 V5 Static arcade\n/v5-static             Open the integrated 3kh0 V5 Static arcade
-/v5-static             Open the integrated 3kh0 V5 Static arcade\n/home                  Go to the Hyper-Pop homepage
+/v5-static             Open the integrated 3kh0 V5 Static arcade
+/home                  Go to the Hyper-Pop homepage
 /close                 Close the terminal
 /clear                 Clear terminal output
 /recipes [search]        Search the Hyper-Craft recipe database\n/recipe A + B            Look up one exact recipe
