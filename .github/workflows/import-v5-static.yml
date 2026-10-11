@@ -58,12 +58,10 @@ jobs:
           </script>"""
           for page in root.rglob('*.html'):
             text = page.read_text(encoding='utf-8')
-            # Clean malformed literal backreference/newline sequences from earlier runs.
-            text = text.replace('<head>\\\\n', '<head>\n', 1)
             text = text.replace('<head>\\n', '<head>\n', 1)
-            text = text.replace('\\\\1\\n', '', 1)
+            text = text.replace('\\1\n', '', 1)
             if '<base href=' not in text:
-              match = re.search(r'<head(?:\\s[^>]*)?>', text, flags=re.I)
+              match = re.search(r'<head(?:\s[^>]*)?>', text, flags=re.I)
               if match:
                 text = text[:match.end()] + '\n' + bootstrap + text[match.end():]
             page.write_text(text, encoding='utf-8')
