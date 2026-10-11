@@ -64,6 +64,12 @@ jobs:
             text = page.read_text(encoding='utf-8')
             text = text.replace('href="/"', 'href="./"')
             text = re.sub(r'((?:href|src|action)\s*=\s*["\'])/(?!/)([^"\']*)', r'\1\2', text, flags=re.I)
+            # The injected <base> makes local relative paths resolve from v5-static/.
+            text = text.replace('href="../style.css"', 'href="style.css"')
+            text = text.replace('src="../time.js"', 'src="time.js"')
+            text = text.replace('src="../notification.js"', 'src="notification.js"')
+            for route in ('games', 'search', 'settings', 'news'):
+              text = text.replace('href="' + route + '"', 'href="' + route + '/index.html"')
             text = re.sub(r"window\.open\(\s*['\"]/['\"]\s*,", "window.open('index.html',", text)
             if '<base href=' not in text:
               match = re.search(r'<head(?:\s[^>]*)?>', text, flags=re.I)
