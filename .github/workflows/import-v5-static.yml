@@ -124,8 +124,10 @@ jobs:
           
           /* Hyper-Pop hosting: responsive safeguards, original V5 styling retained */
           *, *::before, *::after { box-sizing: border-box; }
-          html, body { width: 100%; max-width: 100%; overflow-x: hidden; }
-          img, canvas, iframe { max-width: 100%; }
+          html { width: 100%; min-height: 100%; overflow-x: clip; -webkit-text-size-adjust: 100%; }
+          body { width: 100%; max-width: 100%; min-width: 0; overflow-x: clip; }
+          img, canvas, iframe, video { max-width: 100%; }
+          .nav, .main, .g-container, .search-container { min-width: 0; }
           .main {
             box-sizing: border-box;
             width: min(800px, calc(100% - 32px));
@@ -135,9 +137,11 @@ jobs:
             padding: clamp(24px, 5vw, 55px) clamp(16px, 4vw, 32px);
             overflow-wrap: anywhere;
           }
-          .main h1 { max-width: 100%; font-size: clamp(34px, 8vw, 66px); line-height: 1.12; overflow-wrap: anywhere; }
+          .main h1 { width: 100%; max-width: 100%; font-size: clamp(34px, 8vw, 66px); line-height: 1.12; overflow-wrap: anywhere; }
           .main h4 { max-width: 100%; line-height: 1.45; overflow-wrap: anywhere; }
           .main p { max-width: 100%; line-height: 1.6; overflow-wrap: anywhere; }
+          .main > * { max-width: 100%; }
+          .main br { display: block; content: ""; margin-block: 4px; }
           .nav { gap: 10px 16px; flex-wrap: wrap; padding: 8px 12px; }
           .logo { flex: 0 1 auto; }
           .nav-items { position: static; flex: 1 1 300px; min-width: 0; flex-wrap: wrap; gap: 8px 16px; }
@@ -146,6 +150,7 @@ jobs:
           @media (max-width: 720px) {
             .nav { justify-content: center; }
             .nav-items { order: 3; flex: 1 0 100%; width: 100%; justify-content: center; }
+            .nav-items li a { white-space: nowrap; }
             .nav-items li a { font-size: 14px; }
             .time { margin: 0; font-size: 12px; }
             .main { margin-top: clamp(18px, 4vh, 36px); }
@@ -154,6 +159,9 @@ jobs:
           }
           @media (max-width: 420px) {
             .nav { gap: 8px; padding: 8px; }
+            .nav-items { column-gap: clamp(8px, 2.8vw, 12px); }
+            .nav-items li a { font-size: clamp(11px, 3.2vw, 12px); }
+            .main h4 { font-size: clamp(14px, 4vw, 18px); }
             .logo img { width: 38px; }
             .logo h3 { font-size: 21px; }
             .nav-items { gap: 8px 12px; }
@@ -163,6 +171,16 @@ jobs:
             .search-container { width: calc(100% - 28px); }
             .g { width: min(200px, calc(100vw - 48px)); }
           }
+          /* Keep every V5 route within the phone/tablet viewport, not only its homepage. */
+          .search-container { width: min(760px, calc(100% - 24px)); }
+          .search-container input[type="text"] { flex: 1 1 auto; width: 100%; min-width: 0; }
+          .g-container { width: calc(100% - 12px); margin-inline: auto; }
+          .g { min-width: 0; }
+          @media (max-width: 360px) {
+            .nav-items { gap: 8px; }
+            .nav-items li a { font-size: 11px; }
+            .main { width: calc(100% - 12px); padding-inline: 10px; }
+          }
           @media (max-height: 500px) and (orientation: landscape) {
             .main { margin-top: 16px; padding-top: 20px; padding-bottom: 20px; }
           }
@@ -171,14 +189,18 @@ jobs:
           if games_css.exists():
             with games_css.open('a', encoding='utf-8') as out:
               out.write("""
-          /* Responsive V5 game catalogue layout */
-          .search-container { width: min(760px, calc(100vw - 32px)); }
-          .search-container input[type="text"] { width: 100%; min-width: 0; }
-          .g-container { gap: 6px; }
-          .g { max-width: calc(100vw - 32px); }
+          /* Responsive V5 game catalogue layout, original card styling retained */
+          *, *::before, *::after { box-sizing: border-box; }
+          html, body { max-width: 100%; overflow-x: clip; }
+          .search-container { box-sizing: border-box; width: min(760px, calc(100% - 24px)); max-width: 100%; }
+          .search-container input[type="text"] { flex: 1 1 auto; width: 100%; min-width: 0; }
+          .g-container { width: calc(100% - 12px); max-width: 100%; gap: 6px; margin-inline: auto; }
+          .g { box-sizing: border-box; flex: 0 1 200px; width: min(200px, calc(50% - 12px)); min-width: 0; max-width: calc(100% - 12px); margin: 6px; }
+          .g img { display: block; height: auto; }
+          .g h3 { overflow-wrap: anywhere; }
           @media (max-width: 480px) {
-            .g { width: calc(50% - 24px); min-width: 130px; margin: 6px; }
-            .g h3 { font-size: 14px; overflow-wrap: anywhere; }
+            .g { flex-basis: calc(50% - 12px); width: calc(50% - 12px); margin: 4px; }
+            .g h3 { font-size: 13px; }
           }
           """)
           print('Patched paths and responsive layout while preserving upstream styling.')
