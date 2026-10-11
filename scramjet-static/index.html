@@ -442,7 +442,7 @@
       #hyperpop-home-link {
         position:relative; left:auto; bottom:auto; z-index:2;
         display:flex; width:max-content; max-width:100%;
-        margin:22px auto 20px; padding:0; border:0; border-radius:0;
+        margin:28px auto 26px; padding:0; border:0; border-radius:0;
         background:transparent; box-shadow:none; color:#bcb9d8;
         text-decoration:none; font:500 14px 'Roboto',sans-serif;
         text-align:center; justify-content:center; align-items:center;
@@ -539,11 +539,12 @@
           </svg>
         </button>
       </div>
-      <a id="hyperpop-home-link" href="../index.html">← Hyper-Pop</a>
       <p id="status">Curiosity, go. ✦ Tiny internet, big energy.</p>
       <div id="hp-bookmarks" aria-label="Bookmarks"></div>
       <div id="hp-bookmark-form"><input id="hp-bookmark-name" placeholder="Bookmark name" maxlength="40"><button id="hp-bookmark-save">Save bookmark</button></div>
       <button id="hp-add-bookmark" class="hp-toolbtn">＋ Bookmark this page</button>
+
+      <a id="hyperpop-home-link" href="../index.html">← Hyper-Pop</a>
 
       <!-- WISP server settings panel -->
       <div id="wisp-panel">
@@ -994,27 +995,37 @@
         }
       }
 
-      // Back/forward control the Scramjet iframe's own navigation stack.
+      // Keep navigation controls usable whenever a proxied page is open.
+      // Scramjet serves the proxied document in this iframe, so browser history
+      // belongs to the iframe rather than the outer Hyper-Pop page.
       function updateNavButtons() {
         if (!backButton || !forwardButton) return
         backButton.disabled = !browsing
         forwardButton.disabled = !browsing
+        backButton.setAttribute('aria-disabled', String(!browsing))
+        forwardButton.setAttribute('aria-disabled', String(!browsing))
       }
-      backButton.addEventListener('click', () => {
+      function navigateFrameHistory(direction) {
         if (!browsing) return
-        try { frame.contentWindow.history.back() } catch {}
-        setTimeout(updateNavButtons, 180)
-      })
-      forwardButton.addEventListener('click', () => {
-        if (!browsing) return
-        try { frame.contentWindow.history.forward() } catch {}
-        setTimeout(updateNavButtons, 180)
-      })
+        try {
+          const win = frame.contentWindow
+          if (!win) return
+          if (direction < 0) win.history.go(-1)
+          else win.history.go(1)
+        } catch (err) {
+          console.warn('[Hyper-Pop] Frame history navigation failed:', err)
+        }
+        setTimeout(updateNavButtons, 100)
+        setTimeout(updateNavButtons, 500)
+      }
+      backButton.addEventListener('click', () => navigateFrameHistory(-1))
+      forwardButton.addEventListener('click', () => navigateFrameHistory(1))
 
       // Fire the loading bar to completion whenever the iframe finishes
       // loading — this covers both initial navigation and in-site link clicks
       frame.addEventListener('load', () => {
         if (browsing) finishLoadBar()
+        updateNavButtons()
       })
 
       // The manual home button — direct call, no history/popstate involved
