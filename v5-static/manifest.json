@@ -1,0 +1,12 @@
+{
+  "name": "3kh0v5",
+  "description": "The refined unblocked games site",
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "black",
+  "icons": [{
+    "src": "/images/logo2.avif",
+      "sizes": "460x460",
+      "type": "image/avif"
+    }]
+}

@@ -1,0 +1,257 @@
+name: Import V5 Static into scramjet
+
+on:
+  push:
+    branches: [scramjet]
+    paths:
+      - '.github/workflows/import-v5-static.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: import-v5-static-scramjet
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out scramjet
+        uses: actions/checkout@v4
+        with:
+          ref: scramjet
+
+      - name: Download and unpack upstream V5 Static
+        run: |
+          curl -fsSL https://github.com/builtlikearatt/v5-static/archive/refs/heads/main.zip -o /tmp/v5-static.zip
+          python3 - <<'PY'
+          import zipfile
+          from pathlib import Path
+          archive = zipfile.ZipFile('/tmp/v5-static.zip')
+          root = Path('v5-static')
+          prefix = 'v5-static-main/'
+          for name in archive.namelist():
+              if not name.startswith(prefix) or name.endswith('/'):
+                  continue
+              target = root / name[len(prefix):]
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_bytes(archive.read(name))
+          print('Imported upstream V5 Static files.')
+          PY
+
+      - name: Preserve the original V5 UI and fix subdirectory paths
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path('v5-static')
+          bootstrap = """<script>
+          (function () {
+            var path = location.pathname;
+            var marker = '/v5-static/';
+            var index = path.indexOf(marker);
+            var base = index >= 0 ? path.slice(0, index + marker.length) : './';
+            document.write('<base href="' + base + '">');
+          })();
+          </script>"""
+
+          # GitHub Pages serves this project below /Hyper-Pop/, unlike the
+          # original upstream domain. Make every local HTML URL base-relative.
+          for page in root.rglob('*.html'):
+            text = page.read_text(encoding='utf-8')
+            text = text.replace('href="/"', 'href="./"')
+            text = re.sub(r'((?:href|src|action)\s*=\s*["\'])/(?!/)([^"\']*)', r'\1\2', text, flags=re.I)
+            # The injected <base> makes local relative paths resolve from v5-static/.
+            text = text.replace('href="../style.css"', 'href="style.css"')
+            text = text.replace('<meta name="viewport" content="width=device-width">', '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">')
+            if 'src="../terminal.js"' not in text:
+              text = re.sub(r'</body>', '  <script src="../terminal.js"></script>\n</body>', text, count=1, flags=re.I)
+            text = text.replace('src="../time.js"', 'src="time.js"')
+            text = text.replace('src="../notification.js"', 'src="notification.js"')
+            for route in ('games', 'search', 'settings', 'news'):
+              text = text.replace('href="' + route + '"', 'href="' + route + '/index.html"')
+            text = re.sub(r"window\.open\(\s*['\"]/['\"]\s*,", "window.open('index.html',", text)
+            if '<base href=' not in text:
+              match = re.search(r'<head(?:\s[^>]*)?>', text, flags=re.I)
+              if match:
+                text = text[:match.end()] + '\n' + bootstrap + text[match.end():]
+            page.write_text(text, encoding='utf-8')
+
+          # Fix the catalog fetch and the in-site game-player route.
+          games = root / 'games' / 'games.js'
+          if games.exists():
+            text = games.read_text(encoding='utf-8')
+            text = text.replace("fetch('/games/games.json')", "fetch('games/games.json')")
+            text = text.replace('link.href = "/games/play/index.html";', 'link.href = "games/play/index.html";')
+            games.write_text(text, encoding='utf-8')
+
+          # Make the proxy search configuration work under /Hyper-Pop/v5-static/.
+          uv = root / 'ultraviolet' / 'uv.config.js'
+          if uv.exists():
+            uv.write_text("""const siteBase = location.pathname.includes('/v5-static/')
+              ? location.pathname.substring(0, location.pathname.indexOf('/v5-static/')) + '/v5-static'
+              : '';
+          self.__uv$config = {
+              prefix: siteBase + '/uv/',
+              bare: 'https://v5.3kh0.net/bare/',
+              encodeUrl: Ultraviolet.codec.xor.encode,
+              decodeUrl: Ultraviolet.codec.xor.decode,
+              handler: siteBase + '/ultraviolet/uv.handler.js',
+              bundle: siteBase + '/ultraviolet/uv.bundle.js',
+              config: siteBase + '/ultraviolet/uv.config.js',
+              sw: siteBase + '/ultraviolet/uv.sw.js',
+          };
+          """, encoding='utf-8')
+
+          # Keep the legacy UV service worker under the project subpath too.
+          register = root / 'ultraviolet' / 'js' / 'register-sw.js'
+          if register.exists():
+            text = register.read_text(encoding='utf-8')
+            text = text.replace('const stockSW = "/uv-sw.js";', """const stockSW = location.pathname.includes('/v5-static/')
+              ? location.pathname.substring(0, location.pathname.indexOf('/v5-static/')) + '/v5-static/uv-sw.js'
+              : '/uv-sw.js';""")
+            text = text.replace('scope: __uv$config.prefix,', 'scope: __uv$config.prefix,')
+            register.write_text(text, encoding='utf-8')
+
+          # Responsive adjustments only: retain the upstream V5 visual design.
+          css = root / 'style.css'
+          if css.exists():
+            with css.open('a', encoding='utf-8') as out:
+              out.write("""
+          
+          /* Hyper-Pop hosting: responsive safeguards, original V5 styling retained */
+          *, *::before, *::after { box-sizing: border-box; }
+          html { width: 100%; min-height: 100%; overflow-x: clip; -webkit-text-size-adjust: 100%; }
+          body { width: 100%; max-width: 100%; min-width: 0; overflow-x: clip; }
+          img, canvas, iframe, video { max-width: 100%; }
+          .nav, .main, .g-container, .search-container { min-width: 0; }
+          .main {
+            box-sizing: border-box;
+            width: min(800px, calc(100vw - 32px));
+            max-width: 100%;
+            min-width: 0;
+            margin: clamp(24px, 8vh, 80px) auto 32px;
+            padding: clamp(24px, 5vw, 55px) clamp(16px, 4vw, 32px);
+            overflow-wrap: anywhere;
+          }
+          .main h1 { display: block; width: 100%; max-width: 100%; min-width: 0; white-space: normal; font-size: clamp(30px, 8vw, 66px); line-height: 1.12; overflow-wrap: anywhere; }
+          .main h4 { width: 100%; max-width: 100%; min-width: 0; font-size: clamp(15px, 4vw, 25px); line-height: 1.45; overflow-wrap: anywhere; }
+          .main p { width: 100%; max-width: 100%; min-width: 0; margin: 0; font-size: clamp(14px, 4vw, 20px); line-height: 1.6; overflow-wrap: anywhere; }
+          .main .button { max-width: 100%; white-space: normal; }
+          .nav-items li { list-style: none; }
+          .nav-items li a { display: inline-flex; align-items: center; gap: 3px; }
+          .nav-items .material-symbols-outlined { font-size: 1.1em; }
+          @media (max-width: 720px) {
+            .main { width: calc(100vw - 24px); margin-left: auto; margin-right: auto; }
+            .main h1 { font-size: clamp(28px, 9vw, 46px); }
+          }
+          .main > * { max-width: 100%; }
+          .main br { display: block; content: ""; margin-block: 4px; }
+          .nav { gap: 10px 16px; flex-wrap: wrap; padding: 8px 12px; }
+          .logo { flex: 0 1 auto; }
+          .nav-items { position: static; flex: 1 1 300px; min-width: 0; flex-wrap: wrap; gap: 8px 16px; }
+          .nav-items li { margin: 0; }
+          .time { margin-left: auto; }
+          @media (max-width: 720px) {
+            .nav { justify-content: center; }
+            .nav-items { order: 3; flex: 1 0 100%; width: 100%; justify-content: center; }
+            .nav-items li a { white-space: nowrap; }
+            .nav-items li a { font-size: 14px; }
+            .time { margin: 0; font-size: 12px; }
+            .main { margin-top: clamp(18px, 4vh, 36px); }
+            .main h4 { font-size: clamp(16px, 4.2vw, 25px); }
+            .main p { font-size: 16px; }
+          }
+          @media (max-width: 420px) {
+            .nav { gap: 8px; padding: 8px; }
+            .nav-items { column-gap: clamp(8px, 2.8vw, 12px); }
+            .nav-items li a { font-size: clamp(11px, 3.2vw, 12px); }
+            .main h4 { font-size: clamp(14px, 4vw, 18px); }
+            .logo img { width: 38px; }
+            .logo h3 { font-size: 21px; }
+            .nav-items { gap: 8px 12px; }
+            .nav-items li a { font-size: 12px; }
+            .main { width: calc(100vw - 20px); max-width: calc(100vw - 20px); padding: 24px 14px; }
+            .main h4 { font-size: clamp(13px, 4vw, 17px); }
+            .main p { font-size: 14px; }
+            .main h1 { font-size: clamp(32px, 10vw, 42px); }
+            .search-container { width: calc(100% - 28px); }
+            .g { width: min(200px, calc(100vw - 48px)); }
+          }
+          /* Keep every V5 route within the phone/tablet viewport, not only its homepage. */
+          .search-container { width: min(760px, calc(100% - 24px)); }
+          .search-container input[type="text"] { flex: 1 1 auto; width: 100%; min-width: 0; }
+          .g-container { width: calc(100% - 12px); margin-inline: auto; }
+          .g { min-width: 0; }
+          @media (max-width: 360px) {
+            .nav-items { gap: 8px; }
+            .nav-items li a { font-size: 11px; }
+            .main { width: calc(100% - 12px); padding-inline: 10px; }
+          }
+          @media (max-height: 500px) and (orientation: landscape) {
+            .main { margin-top: 16px; padding-top: 20px; padding-bottom: 20px; }
+          }
+          """)
+          games_css = root / 'games' / 'style.css'
+          if games_css.exists():
+            with games_css.open('a', encoding='utf-8') as out:
+              out.write("""
+          /* Responsive V5 game catalogue layout, original card styling retained */
+          *, *::before, *::after { box-sizing: border-box; }
+          html, body { max-width: 100%; overflow-x: clip; }
+          .search-container { box-sizing: border-box; width: min(760px, calc(100% - 24px)); max-width: 100%; }
+          .search-container input[type="text"] { flex: 1 1 auto; width: 100%; min-width: 0; }
+          .g-container { width: calc(100% - 12px); max-width: 100%; gap: 6px; margin-inline: auto; }
+          .g { box-sizing: border-box; flex: 0 1 200px; width: min(200px, calc(50% - 12px)); min-width: 0; max-width: calc(100% - 12px); margin: 6px; }
+          .g img { display: block; height: auto; }
+          .g h3 { overflow-wrap: anywhere; }
+          @media (max-width: 480px) {
+            .g { flex-basis: calc(50% - 12px); width: calc(50% - 12px); margin: 4px; }
+            .g h3 { font-size: 13px; }
+          }
+          """)
+          print('Patched paths and responsive layout while preserving upstream styling.')
+          PY
+
+      - name: Add Hyper-Pop terminal command
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('terminal.js')
+          text = path.read_text(encoding='utf-8')
+          home = "if(cmd==='/home'){location.href='index.html';return}"
+          old_v5 = "if(cmd==='/v5-static'){location.href='v5-static/index.html';return}"
+          new_v5 = "if(cmd==='/v5-static'){location.href=location.pathname.includes('/v5-static/')?'./index.html':'v5-static/index.html';return}"
+          new_home = "if(cmd==='/home'){const p=location.pathname;const i=p.indexOf('/v5-static/');location.href=(i>=0?p.slice(0,i):'')+'/index.html';return}"
+          if old_v5 in text:
+            text = text.replace(old_v5, new_v5, 1)
+          elif new_v5 not in text:
+            raise SystemExit('Could not find the expected /v5-static command in terminal.js.')
+          if home in text:
+            text = text.replace(home, new_home, 1)
+          elif new_home not in text:
+            raise SystemExit('Could not find the expected /home command in terminal.js.')
+          old_help = '/home                  Go to the Hyper-Pop homepage'
+          new_help = '/v5-static             Open the integrated 3kh0 V5 Static arcade\\n/home                  Go to the Hyper-Pop homepage'
+          if new_help not in text and old_help in text:
+            text = text.replace(old_help, new_help, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Commit imported files to scramjet
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add v5-static terminal.js
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "Integrate V5 Static arcade on scramjet"
+          # Other branch updates (for example proxy fixes) may land while this
+          # import runs. Rebase generated files onto the latest branch before pushing.
+          git pull --rebase origin scramjet
+          git push origin scramjet
