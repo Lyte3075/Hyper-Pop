@@ -3,5 +3,5 @@
   var src=document.currentScript&&document.currentScript.src?document.currentScript.src:location.href;
   var base=new URL('.',src);
   document.write('<script src="'+new URL('account.js?v=split-2',base).href+'"><\/script>');
-  document.write('<script src="'+new URL('terminal.js?v=cmdfix-7',base).href+'"><\/script>');
+  document.write('<script src="'+new URL('terminal.js?v=cmdfix-9',base).href+'"><\/script>');
 })();
