@@ -6,25 +6,81 @@
 <meta name="theme-color" content="#0b0b16">
 <title>Korona · Hyper-Pop</title>
 <style>
-:root{color-scheme:dark;--bg:#0b0b16;--ink:#f7f4ff;--muted:#aaa7c1;--line:#ffffff20;--purple:#9b7bff;--cyan:#4be0e3}
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,sans-serif}
-body{display:flex;flex-direction:column;overflow:hidden}.top{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line);background:#10101eeF;z-index:2}.back{color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:12px;padding:9px 12px;background:#ffffff08;font-weight:650}.brand{font-weight:800;letter-spacing:-.04em}.brand span{color:var(--cyan)}.hint{margin-left:auto;color:var(--muted);font-size:12px}.stage{position:relative;flex:1;min-height:0}.stage iframe{display:block;width:100%;height:100%;border:0;background:#090910}.fallback{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;background:radial-gradient(circle at 50% 20%,#30204d,transparent 50%),var(--bg)}.panel{max-width:560px;border:1px solid var(--line);border-radius:24px;padding:26px;background:#10101eee;box-shadow:0 20px 70px #0008}.panel h1{margin:0 0 10px;font-size:clamp(30px,7vw,54px);letter-spacing:-.06em}.panel p{color:var(--muted);line-height:1.6}.launch{display:inline-block;margin-top:10px;padding:12px 16px;border-radius:12px;background:linear-gradient(110deg,var(--purple),var(--cyan));color:#0b0b16;font-weight:800;text-decoration:none}.small{font-size:12px;color:var(--muted)}
+:root{color-scheme:dark;--bg:#0b0b16;--panel:#141425;--ink:#f7f4ff;--muted:#aaa7c1;--line:#ffffff20;--purple:#9b7bff;--cyan:#4be0e3;--danger:#ff9eae}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif}
+body{min-height:100dvh;display:flex;flex-direction:column}.top{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line);background:#10101eef}.back{color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:12px;padding:9px 12px;background:#ffffff08;font-weight:650}.brand{font-weight:850;letter-spacing:-.04em}.brand span{color:var(--cyan)}.hint{margin-left:auto;color:var(--muted);font-size:12px}
+main{width:min(760px,100%);margin:auto;padding:24px 18px 42px}.panel{border:1px solid var(--line);border-radius:24px;padding:clamp(20px,5vw,34px);background:radial-gradient(circle at 90% 0%,#33235470,transparent 42%),var(--panel);box-shadow:0 24px 80px #0005}h1{font-size:clamp(34px,8vw,56px);letter-spacing:-.065em;line-height:1;margin:8px 0 14px}.lead{color:var(--muted);line-height:1.6}.field{display:grid;gap:7px;margin-top:18px}label{font-size:13px;font-weight:750;color:#e6e0ff}input{width:100%;min-width:0;border:1px solid #ffffff24;border-radius:12px;padding:13px 14px;background:#090914;color:var(--ink);font:inherit;outline:none}input:focus{border-color:var(--purple);box-shadow:0 0 0 3px #9b7bff25}.help{font-size:12px;color:var(--muted);line-height:1.5}.launch{width:100%;border:0;border-radius:13px;margin-top:22px;padding:14px 18px;background:linear-gradient(110deg,var(--purple),var(--cyan));color:#0b0b16;font:inherit;font-weight:850;cursor:pointer}.launch:active{transform:scale(.99)}.status{min-height:1.5em;margin:12px 0 0;font-size:13px;color:var(--muted);line-height:1.5}.status.error{color:var(--danger)}.links{display:flex;flex-wrap:wrap;gap:14px;margin-top:22px;font-size:13px}.links a{color:#c7b8ff}.notice{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);line-height:1.6}.runtime{position:fixed;inset:0;display:none;background:#080811;z-index:5}.runtime.open{display:block}.runtime iframe{width:100%;height:100%;border:0}.close{position:absolute;z-index:2;top:10px;left:10px;border:1px solid #ffffff30;background:#111122eF;color:white;border-radius:11px;padding:10px 13px;font:inherit;font-weight:700}
 </style>
 </head>
 <body>
-<header class="top"><a class="back" href="../index.html">← Hyper-Pop</a><div class="brand"><span>✦</span> Korona</div><div class="hint">Portable browser runtime</div></header>
-<main class="stage">
-<iframe id="korona-frame" title="Korona runtime" allow="fullscreen; autoplay; clipboard-read; clipboard-write" referrerpolicy="no-referrer"></iframe>
-<section class="fallback" id="fallback">
-<div class="panel"><h1>Korona 🪸</h1><p>Loading the Korona static runtime. If the embedded runtime is blocked or its hosting is unavailable, open it directly using the button below.</p><a class="launch" href="https://korona-lat.github.io/korona-static/embed.html" target="_blank" rel="noopener noreferrer">Open Korona directly ↗</a><p class="small">This page is the Hyper-Pop integration shell. The runtime itself is currently hosted by the Korona static-runtime project.</p></div>
+<header class="top"><a class="back" href="../index.html">← Hyper-Pop</a><div class="brand"><span>✦</span> Korona</div><div class="hint">Portable browser</div></header>
+<main>
+<section class="panel">
+<div aria-hidden="true">🪸 <span style="color:var(--cyan);font-size:12px;font-weight:800;letter-spacing:.12em">HYPER-POP INTEGRATION</span></div>
+<h1>Korona</h1>
+<p class="lead">Launch Korona's static browser runtime from Hyper-Pop. The runtime needs a working Wisp relay to connect to websites. Enter a destination and one or more relay addresses to start.</p>
+<form id="launch-form">
+<div class="field"><label for="target">Website to open</label><input id="target" type="url" value="https://example.com" placeholder="https://example.com" required autocomplete="url"><div class="help">Use a complete http:// or https:// URL.</div></div>
+<div class="field"><label for="wisps">Wisp relay address(es)</label><input id="wisps" type="text" placeholder="wss://your-working-wisp-relay/" required autocomplete="url"><div class="help">Separate multiple WSS relay URLs with commas or new lines. A relay must be reachable from your browser. Hyper-Pop does not operate a relay.</div></div>
+<div class="field"><label for="api">Optional API origin</label><input id="api" type="url" placeholder="https://api.example.com" autocomplete="url"><div class="help">Leave blank unless your relay setup specifically requires an HTTPS API origin.</div></div>
+<button class="launch" type="submit">Launch Korona ↗</button>
+<p id="status" class="status" role="status" aria-live="polite">Your settings stay in this page and are not sent to Hyper-Pop servers.</p>
+</form>
+<div class="links"><a href="https://github.com/korona-lat/korona-static" target="_blank" rel="noopener noreferrer">Korona runtime source ↗</a><a href="https://github.com/korona-lat/korona-static/blob/main/runtime-manifest.json" target="_blank" rel="noopener noreferrer">Runtime file manifest ↗</a></div>
+<div class="notice"><strong>Hosting note:</strong> The upstream runtime remains hosted by the Korona project so its service worker and supporting assets load from the expected origin. This page is a launcher, not a copy of all runtime files. This does not bypass school, network, or website restrictions.</div>
 </section>
 </main>
+<section id="runtime" class="runtime" aria-label="Korona browser">
+<button class="close" id="close-runtime" type="button">← Launcher</button>
+<iframe id="runtime-frame" title="Korona runtime" allow="fullscreen; autoplay; clipboard-read; clipboard-write" referrerpolicy="no-referrer"></iframe>
+</section>
 <script>
-const runtime="https://korona-lat.github.io/korona-static/embed.html";
-const frame=document.getElementById("korona-frame");
-const fallback=document.getElementById("fallback");
-frame.src=runtime;
-frame.addEventListener("load",()=>{fallback.style.display="none";});
+const runtimeUrl = "https://korona-lat.github.io/korona-static/embed.html";
+const form = document.getElementById("launch-form");
+const status = document.getElementById("status");
+const runtime = document.getElementById("runtime");
+const frame = document.getElementById("runtime-frame");
+function encode(value) {
+  const bytes = new TextEncoder().encode(JSON.stringify(value));
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+form.addEventListener("submit", event => {
+  event.preventDefault();
+  const targetInput = document.getElementById("target").value.trim();
+  const endpoints = document.getElementById("wisps").value.split(/[\n,]+/).map(value => value.trim()).filter(Boolean);
+  const apiInput = document.getElementById("api").value.trim();
+  let target, api = "";
+  try {
+    target = new URL(targetInput);
+    if (!["https:", "http:"].includes(target.protocol)) throw new Error("The destination must use HTTP or HTTPS.");
+    if (!endpoints.length) throw new Error("Enter at least one Wisp relay URL.");
+    for (const endpoint of endpoints) {
+      const url = new URL(endpoint);
+      if (url.protocol !== "wss:" || url.username || url.password || url.search || url.hash) throw new Error("Each relay must be a WSS URL without credentials, query parameters, or a fragment.");
+    }
+    if (apiInput) {
+      const parsedApi = new URL(apiInput);
+      if (parsedApi.protocol !== "https:") throw new Error("The optional API origin must use HTTPS.");
+      api = parsedApi.href.replace(/\/$/, "");
+    }
+  } catch (error) {
+    status.textContent = error instanceof Error ? error.message : "Check your launch settings.";
+    status.classList.add("error");
+    return;
+  }
+  const params = new URLSearchParams({target: encode(target.href), wisps: encode(endpoints)});
+  if (api) params.set("api", encode(api));
+  frame.src = runtimeUrl + "?" + params.toString();
+  runtime.classList.add("open");
+  status.textContent = "Korona is starting. If startup fails, check that the relay is working and accessible.";
+  status.classList.remove("error");
+});
+document.getElementById("close-runtime").addEventListener("click", () => {
+  frame.src = "about:blank";
+  runtime.classList.remove("open");
+});
 </script>
 </body>
 </html>
