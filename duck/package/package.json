@@ -1,0 +1,23 @@
+{
+  "name": "classroomduck",
+  "version": "1.1.4",
+  "description": "Single-file DuckMath builds served via unpkg. Loadable as index.html or index.svg.",
+  "license": "UNLICENSED",
+  "homepage": "https://duckmath.org",
+  "repository": {
+    "type": "git",
+    "url": "https://duckmath.org"
+  },
+  "keywords": [
+    "duckmath",
+    "unblocked",
+    "games",
+    "single-file"
+  ],
+  "files": [
+    "index.html",
+    "index.svg",
+    "imgs/**",
+    "README.md"
+  ]
+}
