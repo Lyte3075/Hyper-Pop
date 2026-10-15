@@ -1,0 +1,224 @@
+.home-showcase {
+  padding: 38px 0;
+}
+
+.hero {
+  min-height: auto;
+  justify-content: flex-start;
+  padding: 32px 0 46px;
+}
+
+.hero .search-row {
+  width: 100%;
+  align-items: center;
+}
+
+.hero .search-row .search {
+  max-width: 500px;
+}
+
+.hero .search-row .primary {
+  height: 58px;
+  white-space: nowrap;
+}
+
+.hero .search-row .stats {
+  margin: 0 0 0 10px;
+  gap: 22px;
+  flex-shrink: 0;
+}
+
+.hero .search-row .stats div {
+  padding-left: 18px;
+  border-left: 1px solid var(--line);
+}
+
+.home-showcase + .home-showcase {
+  padding-top: 18px;
+}
+
+.section-link {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.section-link:hover {
+  color: var(--lime);
+}
+
+.section-copy {
+  max-width: 760px;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.hero-ad-row {
+  display: grid;
+  grid-template-columns: minmax(600px, 970px) minmax(350px, 1fr);
+  gap: 24px;
+  width: 100%;
+  margin: 22px 0 28px;
+  align-items: stretch;
+}
+
+.hero-ad-row .ad-home { margin: 0; width: 100%; }
+.hero-popular { height: 250px; padding: 15px; overflow: hidden; background: #101624; border: 1px solid var(--line); border-radius: 16px; }
+.hero-popular-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 11px; }
+.hero-popular-head h2 { margin: 3px 0 0; font-size: 18px; letter-spacing: -.03em; }
+.hero-popular-head a { display: grid; place-items: center; width: 30px; height: 30px; background: var(--panel2); border-radius: 9px; color: var(--lime); }
+.hero-popular .game-grid { grid-template-columns: repeat(3, minmax(0,1fr)); gap: 9px; }
+.hero-popular .cover-wrap { aspect-ratio: 16 / 9; border-radius: 9px; }
+.hero-popular .cover-wrap::after,.hero-popular .fav-dot { display: none; }
+.hero-popular .card-text { padding: 5px 1px 0; }
+.hero-popular .card-text strong { font-size: 9px; }
+.hero-popular .card-text span { display: none; }
+
+@media (max-width: 720px) {
+  .home-showcase { padding: 28px 0; }
+  .hero-ad-row { grid-template-columns: 1fr; }
+  .hero-popular { height: auto; }
+  .hero .search-row { align-items: stretch; }
+  .hero .search-row .search { max-width: none; }
+  .hero .search-row .stats { margin: 8px 0 0; justify-content: space-between; }
+  .hero .search-row .stats div { padding-left: 0; border-left: 0; }
+}
+
+@media (min-width: 721px) and (max-width: 1100px) {
+  .hero-ad-row { grid-template-columns: 1fr; }
+  .hero-popular { height: auto; }
+  .hero-popular .game-grid { grid-template-columns: repeat(6,minmax(0,1fr)); }
+  .hero .search-row { flex-wrap: wrap; }
+  .hero .search-row .stats { width: 100%; margin: 10px 0 0; }
+}
+
+/* Compact toolbar layout for search actions and site statistics */
+.hero .search-row .search { max-width: 440px; }
+.hero .search-row .primary { min-width: 166px; }
+.hero .search-row .stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  width: 384px;
+  height: 58px;
+  margin: 0;
+  padding: 0 6px;
+  gap: 0;
+  background: #101624;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+}
+.hero .search-row .stats div {
+  min-width: 0;
+  width: 100%;
+  height: 34px;
+  padding: 0 14px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-left: 1px solid var(--line);
+}
+.hero .search-row .stats div:first-child { border-left: 0; }
+.hero .search-row .stats strong { width:100%; font-size: 17px; line-height: 1; text-align:center; }
+.hero .search-row .stats span { width:100%; margin-top: 4px; font-size: 8px; text-align:center; }
+
+@media (max-width: 1100px) {
+  .hero .search-row .stats { width:100%; margin-top: 10px; }
+}
+
+@media (max-width: 720px) {
+  .hero .search-row .primary { width: 100%; }
+  .hero .search-row .stats { width: 100%; height: 64px; }
+  .hero .search-row .stats div { min-width: 0; flex: 1; padding: 0 8px; border-left: 1px solid var(--line); }
+  .hero .search-row .stats div:first-child { border-left: 0; }
+}
+
+
+/* AI Game Finder + tightened homepage spacing */
+.ai-finder{width:100%;margin-top:10px;margin-bottom:8px;padding:18px 20px;display:grid;grid-template-columns:minmax(220px,.72fr) minmax(420px,1.28fr);gap:24px;align-items:center;background:linear-gradient(135deg,#101a20,#101624);border:1px solid var(--line);border-radius:18px}.ai-finder h2{margin:5px 0 7px;font-size:22px;letter-spacing:-.04em}.ai-finder p{margin:0;color:var(--muted);font-size:12px;line-height:1.6}.ai-input-row{display:flex;gap:10px}.ai-input-row input{min-width:0;flex:1;height:52px;padding:0 16px;color:var(--text);background:#0c111d;border:1px solid var(--line);border-radius:13px;outline:0}.ai-input-row input:focus{border-color:var(--lime)}.ai-input-row .primary{height:52px;white-space:nowrap}.ai-suggestions{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}.ai-suggestions button{padding:7px 10px;border-radius:99px;font-size:10px;color:var(--muted);background:#111827}.ai-suggestions button:hover{color:var(--text);border-color:#53617a}.ai-status{min-height:18px;margin-top:8px;color:var(--muted);font-size:11px}.ai-results{margin-top:12px;grid-template-columns:repeat(6,minmax(0,1fr))}.ai-results .card-text span{display:none}
+/* Search/AI area -> Popular Games */
+.ai-finder + #popular,#popular{scroll-margin-top:80px}section:has(.ai-finder){padding-bottom:8px!important}#popular.home-showcase{padding-top:10px!important;padding-bottom:8px!important;margin-top:0!important}
+/* Popular Games -> All Games */
+#popular + .catalog{padding-top:10px!important;margin-top:0!important}
+@media(max-width:900px){.ai-finder{grid-template-columns:1fr}.ai-results{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:720px){.ai-finder{padding:16px;margin-top:8px;margin-bottom:5px;gap:14px}.ai-input-row{flex-direction:column}.ai-input-row .primary{width:100%}.ai-results{grid-template-columns:repeat(3,minmax(0,1fr))}section:has(.ai-finder){padding-bottom:5px!important}#popular.home-showcase{padding-top:7px!important;padding-bottom:5px!important}#popular + .catalog{padding-top:7px!important}}
+/* v22 spacing + AI reason text */
+.hero{padding-bottom:6px!important}
+.search-row{margin-bottom:8px!important}
+.ai-finder{margin-top:6px!important;margin-bottom:4px!important}
+#popular.home-showcase{padding-top:6px!important;padding-bottom:5px!important;margin-top:0!important}
+#popular + .catalog{padding-top:7px!important;margin-top:0!important}
+.ai-results .card-text .ai-reason{display:block;margin-top:4px;font-size:9px;line-height:1.35;color:var(--muted);font-weight:500}
+.ai-input-row .primary:disabled{opacity:.65;cursor:wait}
+@media(max-width:720px){.hero{padding-bottom:4px!important}.search-row{margin-bottom:5px!important}.ai-finder{margin-top:4px!important;margin-bottom:3px!important}#popular.home-showcase{padding-top:5px!important;padding-bottom:4px!important}#popular + .catalog{padding-top:5px!important}}
+
+
+/* v26 homepage polish */
+.hero .search-row .search{
+  border-color:rgba(255,255,255,.13);
+  background:#0f1625;
+}
+.hero .search-row .search:focus-within{
+  border-color:rgba(157,255,99,.62);
+  box-shadow:0 0 0 3px rgba(157,255,99,.07);
+}
+.ai-finder{
+  border-color:rgba(255,255,255,.12);
+  box-shadow:0 14px 36px rgba(0,0,0,.12);
+}
+.ai-suggestions button{
+  color:#c0cada;
+  border-color:rgba(255,255,255,.10);
+}
+.ai-suggestions button:hover{
+  color:var(--lime);
+  border-color:rgba(157,255,99,.38);
+  background:rgba(157,255,99,.07);
+}
+
+/* v28 verified centered 970x250 advertising */
+.ad-slot-center{
+  width:100%;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  margin:12px auto 14px;
+  overflow:hidden;
+}
+.ad-slot-center .ad-placeholder{
+  width:970px;
+  max-width:100%;
+  min-height:250px;
+  margin:0 auto;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+@media(max-width:720px){
+  .ad-slot-center{margin:9px auto 11px}
+  .ad-slot-center .ad-placeholder{min-height:90px}
+}
+
+/* v31: AI Game Finder between Popular Games and All Games */
+.home-ai-between{
+  padding:8px 0 7px!important;
+  margin:0!important;
+}
+#popular.home-showcase{
+  padding-bottom:5px!important;
+}
+#popular + .home-ai-between{
+  padding-top:6px!important;
+}
+.home-ai-between + #games.catalog{
+  padding-top:7px!important;
+  margin-top:0!important;
+}
+.home-ai-between .ai-finder{
+  margin:0!important;
+}
+@media(max-width:720px){
+  .home-ai-between{padding:5px 0!important}
+  .home-ai-between + #games.catalog{padding-top:5px!important}
+}
