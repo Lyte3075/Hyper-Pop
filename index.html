@@ -120,15 +120,14 @@
     letter-spacing:-1px
   }
   
-  .spark {
-    display:grid;
-    place-items:center;
-    width:35px;
-    height:35px;
-    border-radius:11px;
-    background:linear-gradient(135deg, var(--pink), var(--purple), var(--cyan));
-    transform:rotate(-8deg);
-    box-shadow:0 0 30px #ff5db144
+  .brand-icon {
+    display: block;
+    width: 35px;
+    height: 35px;
+    flex: 0 0 35px;
+    object-fit: contain;
+    transform: rotate(-8deg);
+    filter: drop-shadow(0 0 15px #ff5db144);
   }
   
   .navlinks {
@@ -431,11 +430,9 @@
   <body>
     <div class="wrap">
       <nav>
-        <a class="brand" href="index.html">
-          <span class="spark">
-            ✦
-          </span>
-          Hyper-Pop
+        <a class="brand" href="index.html" aria-label="Hyper-Pop home">
+          <img class="brand-icon" src="icon.svg" alt="">
+          <span>Hyper-Pop</span>
         </a>
         <div class="navlinks">
           <a href="#top-games">
@@ -1641,7 +1638,36 @@
   <script src="app.js">
   </script>
   <script>
-    // Search every homepage card using its data-search keywords. const search = document.getElementById('search'); const cards = [...document.querySelectorAll('.card')]; const empty = document.getElementById('empty'); search.addEventListener('input', () => { const query = search.value.toLowerCase().trim(); let shown = 0; cards.forEach(card => { const matches = !query || card.dataset.search.includes(query); card.style.display = matches ? 'block' : 'none'; if (matches) shown++; }); empty.style.display = shown ? 'none' : 'block'; }); // Keep the copyright year current. document.getElementById('year').textContent = new Date().getFullYear(); // Prevent accidental zoom gestures on touch devices. document.addEventListener('dblclick', event => event.preventDefault(), { passive: false }); document.addEventListener('gesturestart', event => event.preventDefault(), { passive: false });
+    // Search all homepage cards by their names, descriptions, and data-search keywords.
+    const searchInput = document.getElementById('search');
+    const cards = [...document.querySelectorAll('.card')];
+    const emptyMessage = document.getElementById('empty');
+
+    searchInput.addEventListener('input', () => {
+      const query = searchInput.value.toLowerCase().trim();
+      let visibleCards = 0;
+
+      cards.forEach(card => {
+        const searchableText = [
+          card.dataset.search || '',
+          card.textContent || '',
+          card.getAttribute('href') || ''
+        ].join(' ').toLowerCase();
+
+        const matches = searchableText.includes(query);
+        card.style.display = matches ? '' : 'none';
+        if (matches) visibleCards++;
+      });
+
+      emptyMessage.style.display = visibleCards > 0 ? 'none' : 'block';
+    });
+
+    // Keep the copyright year current.
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Prevent accidental zoom gestures on touch devices.
+    document.addEventListener('dblclick', event => event.preventDefault(), { passive: false });
+    document.addEventListener('gesturestart', event => event.preventDefault(), { passive: false });
   </script>
 </body>
 </html>
