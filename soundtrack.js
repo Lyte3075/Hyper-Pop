@@ -1,210 +1,284 @@
-/* Hyper-Pop Dreamscape soundtrack
- * Original procedural music made with Web Audio API. No external files, services, or dependencies.
- * Audio begins only after the visitor presses the player button.
+/* Hyper-Pop Dreamscape Sound System
+ * Original procedural soundtrack engine. No external dependencies or audio files.
+ * Browsers may block autoplay; if so, the draggable music orb invites one tap to start.
  */
 (() => {
   "use strict";
+  if (window.__HYPER_POP_SOUNDTRACK__) return;
+  window.__HYPER_POP_SOUNDTRACK__ = true;
 
-  const KEY = "hyper-pop-soundtrack-enabled";
-  const VOL_KEY = "hyper-pop-soundtrack-volume";
-  const AudioCtx = window.AudioContext || window.webkitAudioContext;
-  if (!AudioCtx) return;
+  const STORE = "hyper-pop-soundtrack-v2";
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return;
 
-  let ctx = null;
-  let master = null;
-  let padBus = null;
-  let musicTimer = null;
-  let step = 0;
-  let enabled = false;
-  let volume = Number(localStorage.getItem(VOL_KEY) ?? 0.22);
-  let eventUntil = 0;
-  let activeNodes = new Set();
+  const excluded = /\/(?:duck|korona|cherri|v5-static|UW|yt2|package|emulator|scramjet-static)(?:\/|$)/i;
+  if (excluded.test(location.pathname)) return;
 
-  const chords = [
-    [261.63, 329.63, 392.00, 493.88], // Cmaj7
-    [220.00, 261.63, 329.63, 392.00], // Am7
-    [174.61, 220.00, 261.63, 329.63], // Fmaj7
-    [196.00, 246.94, 293.66, 392.00]  // Gadd9 colour
-  ];
-  const melody = [0, 7, 12, 7, 4, 12, 16, 12, 7, 4, 2, 7, 12, 16, 14, 7];
-  const semitones = [0, 2, 4, 7, 9, 12, 14, 16, 19];
-  const root = 130.81;
+  const page = location.pathname.toLowerCase();
+  const getPageTheme = () => {
+    if (/dont|do-not-press/.test(page)) return "danger";
+    if (/random|surprise/.test(page)) return "surprise";
+    if (/leaderboard|account|accounts|auth|profile/.test(page)) return "menu";
+    if (/memory/.test(page)) return "memory";
+    if (/number|math|calc/.test(page)) return "puzzle";
+    if (/reaction|aim|clicker|sheep|game|craft|maze|stock|pop/.test(page)) return "arcade";
+    if (/proxy|browser|search/.test(page)) return "explore";
+    if (/tool|terminal|recipe|settings/.test(page)) return "tools";
+    return "dreamscape";
+  };
 
-  function node(n) {
-    activeNodes.add(n);
-    n.onended = () => activeNodes.delete(n);
-    return n;
+  let ctx, master, musicBus, fxBus, enabled = false, playerOpen = false;
+  let volume = 0.2, scheduler = null, nextStepTime = 0, step = 0, chordIndex = -1;
+  let theme = getPageTheme(), eventName = "Dreamscape", currentNodes = [];
+  let drag = null, lastEventAt = 0;
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE) || "{}");
+    if (Number.isFinite(saved.volume)) volume = Math.max(0, Math.min(0.5, saved.volume));
+    playerOpen = saved.open === true;
+  } catch (_) {}
+
+  const progression = {
+    dreamscape: [[261.63,329.63,392,493.88],[220,261.63,329.63,392],[174.61,220,261.63,329.63],[196,246.94,293.66,392]],
+    explore: [[220,277.18,329.63,415.3],[164.81,220,277.18,329.63],[196,246.94,293.66,392],[174.61,220,261.63,349.23]],
+    tools: [[246.94,311.13,369.99,440],[196,246.94,293.66,369.99],[220,277.18,329.63,415.3],[164.81,220,261.63,329.63]],
+    menu: [[261.63,329.63,392,523.25],[196,261.63,329.63,392],[220,293.66,349.23,440],[174.61,261.63,329.63,392]],
+    arcade: [[261.63,329.63,392,493.88],[196,246.94,392,493.88],[220,329.63,392,523.25],[174.61,261.63,349.23,440]],
+    puzzle: [[220,261.63,329.63,392],[246.94,293.66,369.99,440],[196,246.94,329.63,392],[174.61,220,293.66,349.23]],
+    memory: [[261.63,329.63,392,493.88],[220,261.63,329.63,392],[246.94,311.13,369.99,440],[196,246.94,293.66,392]],
+    surprise: [[293.66,369.99,440,587.33],[220,277.18,329.63,440],[261.63,329.63,392,523.25],[196,246.94,329.63,392]],
+    danger: [[164.81,196,246.94,293.66],[146.83,174.61,220,261.63],[164.81,207.65,246.94,311.13],[130.81,196,233.08,293.66]]
+  };
+  const motif = [0,2,4,7,4,2,1,4,7,4,2,5,4,2,0,2];
+  const scale = [0,2,4,7,9,12,14,16,19];
+
+  function persist() {
+    try { localStorage.setItem(STORE, JSON.stringify({volume, open:playerOpen})); } catch (_) {}
   }
-
-  function ensureAudio() {
+  function initAudio() {
     if (ctx) return;
-    ctx = new AudioCtx();
+    ctx = new AudioContextClass();
     master = ctx.createGain();
     master.gain.value = 0;
+    musicBus = ctx.createGain();
+    musicBus.gain.value = 0.82;
+    fxBus = ctx.createGain();
+    fxBus.gain.value = 0.65;
+    const warmth = ctx.createBiquadFilter();
+    warmth.type = "lowpass";
+    warmth.frequency.value = 2600;
+    musicBus.connect(warmth);
+    warmth.connect(master);
+    fxBus.connect(master);
     master.connect(ctx.destination);
-
-    padBus = ctx.createGain();
-    padBus.gain.value = 0.52;
-    const padFilter = ctx.createBiquadFilter();
-    padFilter.type = "lowpass";
-    padFilter.frequency.value = 1700;
-    padFilter.connect(padBus);
-    padBus.connect(master);
-    window.__hyperPopAudio = { context: ctx, master };
   }
-
-  function softTone(freq, start, duration, opts = {}) {
-    const osc = node(ctx.createOscillator());
-    const gain = ctx.createGain();
-    const filter = ctx.createBiquadFilter();
+  function envelope(gain, start, peak, attack, hold, release) {
+    gain.gain.cancelScheduledValues(start);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.linearRampToValueAtTime(peak, start + attack);
+    gain.gain.setValueAtTime(peak, start + attack + hold);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + attack + hold + release);
+  }
+  function tone(freq, start, opts={}) {
+    const osc = ctx.createOscillator(), gain = ctx.createGain(), filter = ctx.createBiquadFilter();
     osc.type = opts.type || "sine";
     osc.frequency.setValueAtTime(freq, start);
-    if (opts.detune) osc.detune.value = opts.detune;
+    if (opts.detune) osc.detune.setValueAtTime(opts.detune, start);
     filter.type = "lowpass";
-    filter.frequency.value = opts.cutoff || 2200;
-    gain.gain.setValueAtTime(0.0001, start);
-    gain.gain.exponentialRampToValueAtTime(opts.level || 0.06, start + (opts.attack || 0.35));
-    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(opts.bus || padBus);
+    filter.frequency.setValueAtTime(opts.cutoff || 1800, start);
+    envelope(gain, start, opts.level || 0.018, opts.attack ?? 0.12, opts.hold ?? 0.25, opts.release ?? 1.2);
+    osc.connect(filter); filter.connect(gain); gain.connect(opts.bus || musicBus);
     osc.start(start);
-    osc.stop(start + duration + 0.04);
+    const end = start + (opts.attack ?? 0.12) + (opts.hold ?? 0.25) + (opts.release ?? 1.2) + 0.04;
+    osc.stop(end);
+    currentNodes.push(osc);
+    osc.onended = () => { const i=currentNodes.indexOf(osc); if(i>=0) currentNodes.splice(i,1); };
   }
-
-  function playChord(index, when) {
+  function pad(freq, start, duration, level, detune=0) {
+    const osc = ctx.createOscillator(), osc2 = ctx.createOscillator();
+    const gain = ctx.createGain(), filter = ctx.createBiquadFilter();
+    osc.type = "triangle"; osc2.type = "sine";
+    osc.frequency.setValueAtTime(freq, start);
+    osc2.frequency.setValueAtTime(freq * 1.003, start);
+    osc.detune.value = detune; osc2.detune.value = -detune;
+    filter.type = "lowpass"; filter.frequency.setValueAtTime(1250, start);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.linearRampToValueAtTime(level, start + 1.8);
+    gain.gain.setValueAtTime(level, start + duration - 2.2);
+    gain.gain.linearRampToValueAtTime(0.0001, start + duration);
+    osc.connect(filter); osc2.connect(filter); filter.connect(gain); gain.connect(musicBus);
+    osc.start(start); osc2.start(start);
+    osc.stop(start + duration + 0.05); osc2.stop(start + duration + 0.05);
+    currentNodes.push(osc, osc2);
+  }
+  function setChord(index, when) {
+    const chords = progression[theme] || progression.dreamscape;
     const chord = chords[index % chords.length];
     chord.forEach((freq, i) => {
-      softTone(freq / 2, when, 5.6, { level: i === 0 ? 0.045 : 0.024, attack: 1.1, cutoff: 850, detune: i % 2 ? -4 : 3 });
-      softTone(freq, when + i * 0.11, 4.8, { level: 0.018, attack: 0.8, cutoff: 1500, detune: i % 2 ? 3 : -3 });
+      pad(freq / 2, when, 8.8, i === 0 ? 0.026 : 0.014, i % 2 ? 4 : -3);
+      pad(freq, when + 0.035 * i, 8.6, 0.008, i % 2 ? -2 : 3);
     });
+    chordIndex = index;
   }
-
-  function pluck(freq, when, loud = 0.035) {
-    softTone(freq, when, 1.15, { type: "triangle", level: loud, attack: 0.025, cutoff: 3000, bus: master });
-    softTone(freq * 2.002, when, 0.42, { type: "sine", level: loud * 0.17, attack: 0.015, cutoff: 4000, bus: master });
-  }
-
-  function scheduleMusic() {
-    if (!enabled || !ctx) return;
-    const now = ctx.currentTime + 0.08;
-    if (step % 8 === 0) playChord(Math.floor(step / 8) % chords.length, now);
-    const noteIndex = melody[step % melody.length];
-    const note = root * Math.pow(2, semitones[noteIndex % semitones.length] / 12) * (noteIndex > 11 ? 2 : 1);
-    pluck(note, now + 0.04, 0.018);
-    if (step % 4 === 2) pluck(note * 1.5, now + 0.34, 0.009);
+  function beat(when) {
+    if (step % 16 === 0) setChord(Math.floor(step / 16), when);
+    const chord = (progression[theme] || progression.dreamscape)[Math.floor(step / 16) % 4];
+    const idx = motif[step % motif.length];
+    const base = chord[idx % chord.length] * (step % 8 === 6 ? 2 : 1);
+    tone(base, when, {type:"sine", level:0.013, attack:0.12, hold:0.18, release:1.1, cutoff:2300});
+    if (step % 4 === 2) tone(base * 1.5, when + 0.16, {type:"sine", level:0.006, attack:0.2, hold:0.12, release:1.4, cutoff:2800});
+    if (theme === "arcade" && step % 4 === 0) {
+      tone(base / 2, when, {type:"triangle", level:0.014, attack:0.025, hold:0.12, release:0.48, cutoff:900});
+    }
     step++;
   }
-
-  function playEvent(kind = "click") {
+  function schedulerTick() {
     if (!enabled || !ctx) return;
-    const now = ctx.currentTime + 0.015;
-    const sets = {
-      game: [523.25, 659.25, 783.99, 1046.5],
-      tool: [392, 493.88, 587.33, 783.99],
-      surprise: [659.25, 783.99, 987.77, 1318.51],
-      click: [587.33, 783.99]
-    };
-    const notes = sets[kind] || sets.click;
-    notes.forEach((freq, i) => pluck(freq, now + i * 0.075, kind === "click" ? 0.025 : 0.032));
-    eventUntil = performance.now() + 900;
+    while (nextStepTime < ctx.currentTime + 0.28) {
+      beat(nextStepTime);
+      nextStepTime += 60 / 76 * 2;
+    }
   }
-
   function start() {
-    ensureAudio();
-    ctx.resume();
-    enabled = true;
-    master.gain.cancelScheduledValues(ctx.currentTime);
-    master.gain.setTargetAtTime(volume, ctx.currentTime, 0.45);
-    if (musicTimer) clearInterval(musicTimer);
-    scheduleMusic();
-    musicTimer = setInterval(scheduleMusic, 720);
-    localStorage.setItem(KEY, "true");
-    updateButton();
+    initAudio();
+    ctx.resume().then(() => {
+      enabled = true;
+      master.gain.cancelScheduledValues(ctx.currentTime);
+      master.gain.setTargetAtTime(volume, ctx.currentTime, 1.1);
+      nextStepTime = ctx.currentTime + 0.12;
+      if (scheduler) clearInterval(scheduler);
+      scheduler = setInterval(schedulerTick, 80);
+      schedulerTick();
+      setStatus(themeLabel(theme) + " · playing");
+      updateControls();
+    }).catch(() => {
+      setStatus("Tap Play to enable audio");
+    });
   }
-
   function stop() {
     enabled = false;
-    if (musicTimer) clearInterval(musicTimer);
-    musicTimer = null;
-    if (ctx && master) {
-      master.gain.cancelScheduledValues(ctx.currentTime);
-      master.gain.setTargetAtTime(0, ctx.currentTime, 0.22);
+    if (scheduler) clearInterval(scheduler);
+    scheduler = null;
+    if (ctx && master) master.gain.setTargetAtTime(0, ctx.currentTime, 0.35);
+    setStatus("Paused · tap to resume");
+    updateControls();
+  }
+  function themeLabel(name) {
+    return ({dreamscape:"Dreamscape",explore:"Open Skies",tools:"Soft Circuits",menu:"Starlight Menu",arcade:"Arcade Drift",puzzle:"Quiet Focus",memory:"Memory Garden",surprise:"Wonder Loop",danger:"Redshift"})[name] || "Dreamscape";
+  }
+  function setStatus(text) { const s=document.getElementById("hp-sound-status"); if(s) s.textContent=text; }
+  function updateControls() {
+    const b=document.getElementById("hp-sound-play");
+    if(b) { b.textContent=enabled?"Pause music":"Play music"; b.setAttribute("aria-pressed",String(enabled)); }
+  }
+  function eventSound(kind) {
+    if (!enabled || !ctx) return;
+    const now = ctx.currentTime + 0.025;
+    const sets = {
+      click:[587.33,783.99], open:[523.25,659.25,783.99], win:[523.25,659.25,783.99,1046.5],
+      lose:[392,349.23,293.66], score:[659.25,783.99], collect:[783.99,987.77],
+      danger:[196,233.08,293.66], countdown:[440,554.37], start:[392,523.25,659.25],
+      level:[523.25,659.25,783.99,987.77], correct:[659.25,783.99,987.77], wrong:[293.66,246.94],
+      surprise:[587.33,739.99,880,1174.66], typing:[880]
+    };
+    const notes=sets[kind] || sets.click;
+    notes.forEach((n,i)=>tone(n,now+i*0.105,{bus:fxBus,type:"sine",level:kind==="typing"?0.004:0.014,attack:0.045,hold:0.08,release:0.75,cutoff:3300}));
+    const names={click:"Little Signal",open:"Page Open",win:"Victory Spark",lose:"Try Again",score:"Score Spark",collect:"Collected",danger:"Warning Signal",countdown:"Countdown",start:"Game Start",level:"Level Up",correct:"Correct",wrong:"Not Quite",surprise:"Surprise",typing:"Soft Key"};
+    eventName=names[kind]||"Little Signal"; setStatus(themeLabel(theme)+" · "+eventName);
+    lastEventAt=Date.now();
+    setTimeout(()=>{ if(enabled && Date.now()-lastEventAt>850) setStatus(themeLabel(theme)+" · playing"); },900);
+  }
+  function changeTheme(next) {
+    if (!progression[next]) return;
+    theme=next;
+    if(enabled && ctx) {
+      // Fade the old music bus gently, then restore it for a fresh phrase.
+      musicBus.gain.cancelScheduledValues(ctx.currentTime);
+      musicBus.gain.setTargetAtTime(0.18,ctx.currentTime,0.35);
+      setTimeout(()=>{ if(enabled && ctx){ step=0; chordIndex=-1; nextStepTime=ctx.currentTime+0.1; musicBus.gain.setTargetAtTime(0.82,ctx.currentTime,1.3); } },450);
     }
-    localStorage.setItem(KEY, "false");
-    updateButton();
+    setStatus(themeLabel(theme)+(enabled?" · playing":" · ready"));
   }
 
-  const player = document.createElement("section");
-  player.id = "hyper-pop-music-player";
-  player.setAttribute("aria-label", "Hyper-Pop soundtrack player");
-  player.innerHTML = `
-    <style>
-      #hyper-pop-music-player{position:fixed;z-index:9999;right:16px;bottom:16px;width:min(270px,calc(100vw - 32px));color:#f7f4ff;font:13px/1.35 system-ui,sans-serif;background:rgba(15,14,31,.92);border:1px solid #9b7bff55;border-radius:18px;padding:12px 13px;box-shadow:0 12px 40px #0007;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
-      #hyper-pop-music-player .hp-row{display:flex;align-items:center;gap:10px}
-      #hyper-pop-music-player .hp-orb{width:34px;height:34px;flex:none;border-radius:12px;background:linear-gradient(135deg,#9b7bff,#4be0e3);display:grid;place-items:center;color:#0b0b16;font-size:18px}
-      #hyper-pop-music-player .hp-title{font-weight:750;letter-spacing:.01em}
-      #hyper-pop-music-player .hp-sub{font-size:11px;color:#aaa7c1;margin-top:2px}
-      #hyper-pop-music-player button{border:1px solid #ffffff20;border-radius:11px;background:#ffffff0c;color:#fff;padding:8px 11px;font:inherit;cursor:pointer;touch-action:manipulation}
-      #hyper-pop-music-player button:focus-visible,#hyper-pop-music-player input:focus-visible{outline:2px solid #4be0e3;outline-offset:2px}
-      #hyper-pop-music-player .hp-toggle{margin-left:auto;min-width:67px;background:#9b7bff22}
-      #hyper-pop-music-player .hp-controls{display:flex;align-items:center;gap:9px;margin-top:10px}
-      #hyper-pop-music-player label{font-size:11px;color:#aaa7c1;white-space:nowrap}
-      #hyper-pop-music-player input{width:100%;accent-color:#9b7bff}
-      @media(max-width:580px){#hyper-pop-music-player{right:10px;bottom:10px}}
-    </style>
-    <div class="hp-row">
-      <div class="hp-orb" aria-hidden="true">✦</div>
-      <div><div class="hp-title">Hyper-Pop Radio</div><div class="hp-sub" id="hp-music-status">Dreamscape · instrumental</div></div>
-      <button class="hp-toggle" id="hp-music-toggle" type="button">Play</button>
-    </div>
-    <div class="hp-controls"><label for="hp-music-volume">VOLUME</label><input id="hp-music-volume" type="range" min="0" max="0.6" step="0.01" value="${volume}" aria-label="Soundtrack volume"></div>
+  const style = document.createElement("style");
+  style.textContent = `
+    #hp-sound-orb{position:fixed;z-index:10000;right:18px;bottom:18px;width:54px;height:54px;border:1px solid #b8a4ff88;border-radius:19px;background:linear-gradient(145deg,#9b7bff,#4be0e3);color:#11111f;box-shadow:0 8px 30px #0008,0 0 24px #9b7bff22;display:grid;place-items:center;font-size:25px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+    #hp-sound-orb:active{cursor:grabbing}#hp-sound-orb:focus-visible{outline:3px solid #fff;outline-offset:3px}
+    #hp-sound-orb .hp-pulse{position:absolute;inset:-5px;border:1px solid #9b7bff77;border-radius:23px;animation:hp-sound-pulse 3s ease-in-out infinite;pointer-events:none}
+    @keyframes hp-sound-pulse{0%,100%{transform:scale(.94);opacity:.28}50%{transform:scale(1.1);opacity:.75}}
+    #hp-sound-panel{position:fixed;z-index:9999;right:18px;bottom:82px;width:min(300px,calc(100vw - 28px));padding:15px;border-radius:20px;border:1px solid #9b7bff55;background:rgba(15,14,31,.94);color:#f7f4ff;box-shadow:0 16px 50px #0008;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);font:13px/1.4 system-ui,sans-serif}
+    #hp-sound-panel[hidden]{display:none}#hp-sound-panel .hp-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}#hp-sound-panel .hp-logo{width:38px;height:38px;display:grid;place-items:center;border-radius:13px;background:#9b7bff25;font-size:22px}#hp-sound-panel .hp-title{font-size:15px;font-weight:750}#hp-sound-panel .hp-muted{font-size:11px;color:#aaa7c1;margin-top:2px}#hp-sound-panel .hp-close{margin-left:auto;background:transparent;border:0;color:#aaa7c1;font-size:22px;cursor:pointer}#hp-sound-panel button:not(.hp-close){background:#ffffff0c;color:#fff;border:1px solid #ffffff22;border-radius:11px;padding:9px 11px;font:inherit;cursor:pointer}#hp-sound-panel .hp-actions{display:flex;gap:8px;align-items:center}#hp-sound-panel .hp-play{flex:1;background:#9b7bff26!important}#hp-sound-panel label{display:block;color:#aaa7c1;font-size:10px;letter-spacing:.08em;margin:12px 0 5px}#hp-sound-panel input{width:100%;accent-color:#9b7bff}#hp-sound-panel select{width:100%;padding:9px;background:#17162a;color:#fff;border:1px solid #ffffff22;border-radius:10px;font:inherit}
+    @media(max-width:500px){#hp-sound-orb{right:12px;bottom:12px;width:50px;height:50px}#hp-sound-panel{right:12px;bottom:72px}}
   `;
-  document.body.appendChild(player);
+  document.head.appendChild(style);
+  const orb=document.createElement("button");
+  orb.id="hp-sound-orb"; orb.type="button"; orb.setAttribute("aria-label","Open Hyper-Pop music player"); orb.setAttribute("aria-expanded",String(playerOpen));
+  orb.innerHTML='<span aria-hidden="true">✦</span><span class="hp-pulse"></span>';
+  const panel=document.createElement("section");
+  panel.id="hp-sound-panel"; panel.hidden=!playerOpen; panel.setAttribute("aria-label","Hyper-Pop music player");
+  panel.innerHTML=`
+    <div class="hp-head"><div class="hp-logo">✦</div><div><div class="hp-title">Hyper-Pop Radio</div><div class="hp-muted" id="hp-sound-status">Dreamscape · ready</div></div><button class="hp-close" id="hp-sound-close" aria-label="Close player">×</button></div>
+    <div class="hp-actions"><button class="hp-play" id="hp-sound-play" type="button">Play music</button><button id="hp-sound-mute" type="button">Mute</button></div>
+    <label for="hp-sound-theme">SOUNDTRACK</label><select id="hp-sound-theme">
+      <option value="dreamscape">Dreamscape · homepage</option><option value="explore">Open Skies · browsing</option><option value="tools">Soft Circuits · tools</option><option value="menu">Starlight Menu · accounts</option><option value="arcade">Arcade Drift · games</option><option value="puzzle">Quiet Focus · puzzles</option><option value="memory">Memory Garden · memory games</option><option value="surprise">Wonder Loop · surprises</option><option value="danger">Redshift · danger</option>
+    </select>
+    <label for="hp-sound-volume">VOLUME</label><input id="hp-sound-volume" type="range" min="0" max="0.5" step="0.01" value="${volume}" aria-label="Music volume">
+    <div class="hp-muted" style="margin-top:9px">Original instrumental soundscapes · tap Play if your browser blocks autoplay</div>
+  `;
+  document.body.append(orb,panel);
+  const vol=panel.querySelector("#hp-sound-volume"), themeSelect=panel.querySelector("#hp-sound-theme");
+  themeSelect.value=theme;
+  function openPanel(open) { playerOpen=open; panel.hidden=!open; orb.setAttribute("aria-expanded",String(open)); persist(); }
+  orb.addEventListener("click",()=>{ if(drag && drag.moved) return; openPanel(!playerOpen); });
+  panel.querySelector("#hp-sound-close").addEventListener("click",()=>openPanel(false));
+  panel.querySelector("#hp-sound-play").addEventListener("click",()=>enabled?stop():start());
+  panel.querySelector("#hp-sound-mute").addEventListener("click",()=>{if(enabled && volume>0){volume=0;vol.value="0";if(ctx)master.gain.setTargetAtTime(0,ctx.currentTime,.12);}else{if(volume===0){volume=.2;vol.value=".2";} if(!enabled)start(); else if(ctx)master.gain.setTargetAtTime(volume,ctx.currentTime,.12);}persist();});
+  vol.addEventListener("input",()=>{volume=Number(vol.value);persist();if(ctx&&enabled)master.gain.setTargetAtTime(volume,ctx.currentTime,.12);});
+  themeSelect.addEventListener("change",()=>changeTheme(themeSelect.value));
 
-  const toggle = player.querySelector("#hp-music-toggle");
-  const status = player.querySelector("#hp-music-status");
-  const slider = player.querySelector("#hp-music-volume");
-
-  function updateButton() {
-    toggle.textContent = enabled ? "Pause" : "Play";
-    toggle.setAttribute("aria-pressed", String(enabled));
-    status.textContent = enabled ? (performance.now() < eventUntil ? "Little signal · event mix" : "Dreamscape · instrumental") : "Paused · ready when you are";
-  }
-
-  toggle.addEventListener("click", () => enabled ? stop() : start());
-  slider.addEventListener("input", () => {
-    volume = Number(slider.value);
-    localStorage.setItem(VOL_KEY, String(volume));
-    if (ctx && master && enabled) master.gain.setTargetAtTime(volume, ctx.currentTime, 0.08);
+  // Drag orb with pointer input. A short click toggles the player; a drag moves it.
+  orb.addEventListener("pointerdown",e=>{
+    drag={x:e.clientX,y:e.clientY,left:orb.offsetLeft,top:orb.offsetTop,moved:false};
+    orb.setPointerCapture(e.pointerId);
   });
-
-  // Tiny musical accents for interactions, without interrupting the ambient bed.
-  document.addEventListener("click", event => {
-    const target = event.target.closest("a, button, [role='button']");
-    if (!target || target.closest("#hyper-pop-music-player")) return;
-    if (!enabled) return;
-    if (target.matches(".card, .open") || target.closest(".card")) {
-      const text = (target.textContent || "").toLowerCase();
-      playEvent(/surprise|random/.test(text) ? "surprise" : /game|arcade|play|reaction|sheep|clicker|aim|memory/.test(text) ? "game" : "tool");
-    } else if (target.matches(".btn, .navlinks a")) {
-      playEvent("click");
+  orb.addEventListener("pointermove",e=>{
+    if(!drag)return;
+    const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
+    if(Math.abs(dx)+Math.abs(dy)>7)drag.moved=true;
+    if(drag.moved){
+      orb.style.left=Math.max(0,Math.min(innerWidth-orb.offsetWidth,drag.left+dx))+"px";
+      orb.style.top=Math.max(0,Math.min(innerHeight-orb.offsetHeight,drag.top+dy))+"px";
+      orb.style.right="auto";orb.style.bottom="auto";
     }
   });
+  orb.addEventListener("pointerup",()=>{if(drag&&drag.moved){const r=orb.getBoundingClientRect();try{localStorage.setItem("hyper-pop-sound-orb-position",JSON.stringify({x:r.left,y:r.top}));}catch(_){} setTimeout(()=>{drag=null;},0);}else drag=null;});
+  try{const p=JSON.parse(localStorage.getItem("hyper-pop-sound-orb-position")||"null");if(p&&Number.isFinite(p.x)&&Number.isFinite(p.y)){orb.style.left=Math.max(0,Math.min(innerWidth-54,p.x))+"px";orb.style.top=Math.max(0,Math.min(innerHeight-54,p.y))+"px";orb.style.right="auto";orb.style.bottom="auto";}}catch(_){}
 
-  // Respect saved preference, but never autoplay audio before a user gesture.
-  if (localStorage.getItem(KEY) === "true") {
-    status.textContent = "Tap Play to resume · instrumental";
-  }
-  window.HyperPopSoundtrack = {
-    playEvent,
-    play: start,
-    pause: stop,
-    setVolume(value) {
-      volume = Math.max(0, Math.min(0.6, Number(value) || 0));
-      slider.value = String(volume);
-      localStorage.setItem(VOL_KEY, String(volume));
-      if (ctx && master && enabled) master.gain.setTargetAtTime(volume, ctx.currentTime, 0.08);
-    }
+  // Page-specific soundtrack and common game-event hooks.
+  window.HyperPopSoundtrack={
+    play:start,pause:stop,playEvent:eventSound,setTheme:changeTheme,
+    setVolume(v){volume=Math.max(0,Math.min(.5,Number(v)||0));vol.value=String(volume);persist();if(ctx&&enabled)master.gain.setTargetAtTime(volume,ctx.currentTime,.12);},
+    get enabled(){return enabled;},
+    get theme(){return theme;}
   };
+  document.addEventListener("click",e=>{
+    const el=e.target.closest("button,a,[role=button],.card,.open");
+    if(!el||el.closest("#hp-sound-panel")||el===orb)return;
+    const txt=(el.textContent||"").toLowerCase();
+    if(/reset|quit|restart/.test(txt))eventSound("lose");
+    else if(/win|victory|complete|finished|success/.test(txt))eventSound("win");
+    else if(/start|begin|play/.test(txt))eventSound("start");
+    else if(/level up|next level/.test(txt))eventSound("level");
+    else if(/surprise|random/.test(txt))eventSound("surprise");
+    else if(/submit|check|answer/.test(txt))eventSound("correct");
+    else if(el.matches(".card,.open")||el.closest(".card"))eventSound("open");
+    else eventSound("click");
+  });
+  document.addEventListener("keydown",e=>{
+    if(!enabled||e.repeat||e.metaKey||e.ctrlKey||e.altKey)return;
+    if(e.key.length===1 && /[a-z0-9]/i.test(e.key) && !/INPUT|TEXTAREA/.test(e.target.tagName))eventSound("typing");
+  });
+
+  // Attempt autoplay. Browsers that block audible autoplay leave a clear one-tap control.
+  setStatus("Starting soundtrack…");
+  start();
 })();
