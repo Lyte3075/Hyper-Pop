@@ -30,7 +30,7 @@
   let ctx, master, musicBus, fxBus, enabled = false, playerOpen = false;
   let volume = 0.2, scheduler = null, nextStepTime = 0, step = 0, chordIndex = -1;
   let theme = getPageTheme(), eventName = "Dreamscape", currentNodes = [];
-  let drag = null, lastEventAt = 0;
+  let drag = null, movedOrb = false, lastEventAt = 0;
   try {
     const saved = JSON.parse(localStorage.getItem(STORE) || "{}");
     if (Number.isFinite(saved.volume)) volume = Math.max(0, Math.min(0.5, saved.volume));
@@ -135,7 +135,7 @@
     if (!enabled || !ctx) return;
     while (nextStepTime < ctx.currentTime + 0.28) {
       beat(nextStepTime);
-      nextStepTime += 60 / 76 * 2;
+      nextStepTime += 60 / 76 * 0.5;
     }
   }
   function start() {
@@ -228,7 +228,7 @@
   const vol=panel.querySelector("#hp-sound-volume"), themeSelect=panel.querySelector("#hp-sound-theme");
   themeSelect.value=theme;
   function openPanel(open) { playerOpen=open; panel.hidden=!open; orb.setAttribute("aria-expanded",String(open)); persist(); }
-  orb.addEventListener("click",()=>{ if(drag && drag.moved) return; openPanel(!playerOpen); });
+  orb.addEventListener("click",()=>{ if(movedOrb){movedOrb=false;return;} openPanel(!playerOpen); });
   panel.querySelector("#hp-sound-close").addEventListener("click",()=>openPanel(false));
   panel.querySelector("#hp-sound-play").addEventListener("click",()=>enabled?stop():start());
   panel.querySelector("#hp-sound-mute").addEventListener("click",()=>{if(enabled && volume>0){volume=0;vol.value="0";if(ctx)master.gain.setTargetAtTime(0,ctx.currentTime,.12);}else{if(volume===0){volume=.2;vol.value=".2";} if(!enabled)start(); else if(ctx)master.gain.setTargetAtTime(volume,ctx.currentTime,.12);}persist();});
@@ -250,7 +250,7 @@
       orb.style.right="auto";orb.style.bottom="auto";
     }
   });
-  orb.addEventListener("pointerup",()=>{if(drag&&drag.moved){const r=orb.getBoundingClientRect();try{localStorage.setItem("hyper-pop-sound-orb-position",JSON.stringify({x:r.left,y:r.top}));}catch(_){} setTimeout(()=>{drag=null;},0);}else drag=null;});
+  orb.addEventListener("pointerup",()=>{if(drag&&drag.moved){movedOrb=true;const r=orb.getBoundingClientRect();try{localStorage.setItem("hyper-pop-sound-orb-position",JSON.stringify({x:r.left,y:r.top}));}catch(_){} setTimeout(()=>{drag=null;},0);}else drag=null;});
   try{const p=JSON.parse(localStorage.getItem("hyper-pop-sound-orb-position")||"null");if(p&&Number.isFinite(p.x)&&Number.isFinite(p.y)){orb.style.left=Math.max(0,Math.min(innerWidth-54,p.x))+"px";orb.style.top=Math.max(0,Math.min(innerHeight-54,p.y))+"px";orb.style.right="auto";orb.style.bottom="auto";}}catch(_){}
 
   // Page-specific soundtrack and common game-event hooks.
