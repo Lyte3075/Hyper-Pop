@@ -30,7 +30,7 @@
   let ctx, master, musicBus, fxBus, enabled = false, playerOpen = false;
   let volume = 0.2, scheduler = null, nextStepTime = 0, step = 0, chordIndex = -1;
   let theme = getPageTheme(), eventName = "Dreamscape", currentNodes = [];
-  let drag = null, movedOrb = false, lastEventAt = 0;
+  let drag = null, movedOrb = false, lastEventAt = 0, switchTimer = null;
   try {
     const saved = JSON.parse(localStorage.getItem(STORE) || "{}");
     if (Number.isFinite(saved.volume)) volume = Math.max(0, Math.min(0.5, saved.volume));
@@ -201,25 +201,44 @@
     lastEventAt=Date.now();
     setTimeout(()=>{ if(enabled && Date.now()-lastEventAt>850) setStatus(themeLabel(theme)+" · playing"); },900);
   }
+  function silenceCurrentVoices() {
+    const old=currentNodes.slice();
+    currentNodes.length=0;
+    old.forEach(node=>{ try{node.onended=null; node.stop();}catch(_){} });
+  }
   function changeTheme(next) {
-    if (!progression[next]) return;
+    if (!progression[next] || next===theme) return;
     theme=next;
+    if (switchTimer) clearTimeout(switchTimer);
     if(enabled && ctx) {
-      // Fade the old music bus gently, then restore it for a fresh phrase.
+      if(scheduler) clearInterval(scheduler);
+      scheduler=null;
       musicBus.gain.cancelScheduledValues(ctx.currentTime);
-      musicBus.gain.setTargetAtTime(0.18,ctx.currentTime,0.35);
-      setTimeout(()=>{ if(enabled && ctx){ step=0; chordIndex=-1; nextStepTime=ctx.currentTime+0.1; musicBus.gain.setTargetAtTime(0.82,ctx.currentTime,1.3); } },450);
+      musicBus.gain.setTargetAtTime(0.0001,ctx.currentTime,0.06);
+      switchTimer=setTimeout(()=>{
+        silenceCurrentVoices();
+        step=0; chordIndex=-1;
+        if(!enabled || !ctx) return;
+        musicBus.gain.cancelScheduledValues(ctx.currentTime);
+        musicBus.gain.setValueAtTime(0.0001,ctx.currentTime);
+        musicBus.gain.setTargetAtTime(0.82,ctx.currentTime,0.12);
+        nextStepTime=ctx.currentTime+0.14;
+        scheduler=setInterval(schedulerTick,80);
+        schedulerTick();
+        switchTimer=null;
+      },220);
     }
-    setStatus(themeLabel(theme)+(enabled?" · playing":" · ready"));
+    themeSelect.value=theme;
+    setStatus(themeLabel(theme)+(enabled?" · switching track":" · ready"));
   }
 
   const style = document.createElement("style");
   style.textContent = `
-    #hp-sound-orb{position:fixed;z-index:10000;right:14px;bottom:14px;width:42px;height:42px;border:1px solid #ffffff22;border-radius:12px;background:#0b0b12ef;color:#7df9ff;font:800 18px monospace;box-shadow:0 8px 30px #0008;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:grid;place-items:center;cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none;transition:transform .15s,border-color .15s}
+    #hp-sound-orb{position:fixed;z-index:10000;right:14px;bottom:14px;width:42px;height:42px;border:1px solid #ffffff22;border-radius:12px;background:#0b0b12ef;color:#7df9ff;font:800 18px monospace;box-shadow:0 8px 30px #0008;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:grid;place-items:center;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-user-drag:none;overscroll-behavior:contain;transition:transform .15s,border-color .15s}
     #hp-sound-orb:active{transform:scale(.94);border-color:#7df9ff88}#hp-sound-orb:focus-visible{outline:3px solid #7df9ff;outline-offset:3px}
     #hp-sound-orb svg{width:20px;height:20px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-    #hp-sound-panel{position:fixed;z-index:9999;right:18px;bottom:82px;width:min(300px,calc(100vw - 28px));padding:15px;border-radius:20px;border:1px solid #9b7bff55;background:rgba(15,14,31,.94);color:#f7f4ff;box-shadow:0 16px 50px #0008;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);font:13px/1.4 system-ui,sans-serif}
-    #hp-sound-panel[hidden]{display:none}#hp-sound-panel .hp-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}#hp-sound-panel .hp-logo{width:38px;height:38px;display:grid;place-items:center;border-radius:13px;background:#9b7bff25;font-size:22px}#hp-sound-panel .hp-title{font-size:15px;font-weight:750}#hp-sound-panel .hp-muted{font-size:11px;color:#aaa7c1;margin-top:2px}#hp-sound-panel .hp-close{margin-left:auto;background:transparent;border:0;color:#aaa7c1;font-size:22px;cursor:pointer}#hp-sound-panel button:not(.hp-close){background:#ffffff0c;color:#fff;border:1px solid #ffffff22;border-radius:11px;padding:9px 11px;font:inherit;cursor:pointer}#hp-sound-panel .hp-actions{display:flex;gap:8px;align-items:center}#hp-sound-panel .hp-play{flex:1;background:#9b7bff26!important}#hp-sound-panel label{display:block;color:#aaa7c1;font-size:10px;letter-spacing:.08em;margin:12px 0 5px}#hp-sound-panel input{width:100%;accent-color:#9b7bff}#hp-sound-panel select{width:100%;padding:9px;background:#17162a;color:#fff;border:1px solid #ffffff22;border-radius:10px;font:inherit}
+    #hp-sound-panel{position:fixed;z-index:9999;left:auto;top:auto;right:18px;bottom:82px;width:min(300px,calc(100vw - 28px));padding:15px;border-radius:20px;border:1px solid #9b7bff55;background:rgba(15,14,31,.94);color:#f7f4ff;box-shadow:0 16px 50px #0008;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);font:13px/1.4 system-ui,sans-serif}
+    #hp-sound-panel[hidden]{display:none}#hp-sound-panel .hp-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}#hp-sound-panel .hp-logo{width:38px;height:38px;display:grid;place-items:center;border-radius:13px;background:#9b7bff25;font-size:22px}#hp-sound-panel .hp-title{font-size:15px;font-weight:750}#hp-sound-panel .hp-muted{font-size:11px;color:#aaa7c1;margin-top:2px}#hp-sound-panel .hp-close{margin-left:auto;background:transparent;border:0;color:#aaa7c1;font-size:22px;cursor:pointer}#hp-sound-panel .hp-reset{width:24px;height:24px;min-width:24px;padding:0!important;display:grid;place-items:center;border-radius:7px!important;font-size:13px!important;color:#7df9ff!important;border-color:#7df9ff44!important}#hp-sound-panel button:not(.hp-close){background:#ffffff0c;color:#fff;border:1px solid #ffffff22;border-radius:11px;padding:9px 11px;font:inherit;cursor:pointer}#hp-sound-panel .hp-actions{display:flex;gap:8px;align-items:center}#hp-sound-panel .hp-play{flex:1;background:#9b7bff26!important}#hp-sound-panel label{display:block;color:#aaa7c1;font-size:10px;letter-spacing:.08em;margin:12px 0 5px}#hp-sound-panel input{width:100%;accent-color:#9b7bff}#hp-sound-panel select{width:100%;padding:9px;background:#17162a;color:#fff;border:1px solid #ffffff22;border-radius:10px;font:inherit}
     @media(max-width:500px){#hp-sound-orb{right:14px;bottom:14px;width:42px;height:42px}#hp-sound-panel{right:12px;bottom:68px}}
   `;
   document.head.appendChild(style);
@@ -229,7 +248,7 @@
   const panel=document.createElement("section");
   panel.id="hp-sound-panel"; panel.hidden=!playerOpen; panel.setAttribute("aria-label","Hyper-Pop music player");
   panel.innerHTML=`
-    <div class="hp-head"><div class="hp-logo">✦</div><div><div class="hp-title">Hyper-Pop Radio</div><div class="hp-muted" id="hp-sound-status">Dreamscape · ready</div></div><button class="hp-close" id="hp-sound-close" aria-label="Close player">×</button></div>
+    <div class="hp-head"><div class="hp-logo">✦</div><div><div class="hp-title">Hyper-Pop Radio</div><div class="hp-muted" id="hp-sound-status">Dreamscape · ready</div></div><button class="hp-reset" id="hp-sound-reset" type="button" title="Move music button to its original spot" aria-label="Reset music button position">↺</button><button class="hp-close" id="hp-sound-close" aria-label="Close player">×</button></div>
     <div class="hp-actions"><button class="hp-play" id="hp-sound-play" type="button">Play music</button><button id="hp-sound-mute" type="button">Mute</button></div>
     <label for="hp-sound-theme">SOUNDTRACK</label><select id="hp-sound-theme">
       <option value="dreamscape">Dreamscape · homepage</option><option value="explore">Open Skies · browsing</option><option value="tools">Soft Circuits · tools</option><option value="menu">Starlight Menu · accounts</option><option value="arcade">Arcade Drift · games</option><option value="puzzle">Quiet Focus · puzzles</option><option value="memory">Memory Garden · memory games</option><option value="surprise">Wonder Loop · surprises</option><option value="danger">Redshift · danger</option>
@@ -240,31 +259,74 @@
   document.body.append(orb,panel);
   const vol=panel.querySelector("#hp-sound-volume"), themeSelect=panel.querySelector("#hp-sound-theme");
   themeSelect.value=theme;
-  function openPanel(open) { playerOpen=open; panel.hidden=!open; orb.setAttribute("aria-expanded",String(open)); persist(); }
+  function positionPanel() {
+    if (panel.hidden || !orb.isConnected) return;
+    const r=orb.getBoundingClientRect(), gap=10, margin=12;
+    const width=Math.min(300,innerWidth-28), height=panel.offsetHeight || 290;
+    const leftSide=r.left+ r.width/2 > innerWidth/2;
+    let left=leftSide ? r.right-width : r.left;
+    left=Math.max(margin,Math.min(innerWidth-width-margin,left));
+    let top=r.top-height-gap;
+    if(top<margin) top=r.bottom+gap;
+    top=Math.max(margin,Math.min(innerHeight-height-margin,top));
+    panel.style.left=left+"px"; panel.style.top=top+"px";
+    panel.style.right="auto"; panel.style.bottom="auto";
+  }
+  function openPanel(open) { playerOpen=open; panel.hidden=!open; orb.setAttribute("aria-expanded",String(open)); if(open) requestPanelPosition(); persist(); }
+  function requestPanelPosition(){ positionPanel(); }
   orb.addEventListener("click",()=>{ if(movedOrb){movedOrb=false;return;} openPanel(!playerOpen); });
   panel.querySelector("#hp-sound-close").addEventListener("click",()=>openPanel(false));
+  panel.querySelector("#hp-sound-reset").addEventListener("click",()=>{
+    orb.style.left=""; orb.style.top=""; orb.style.right="14px"; orb.style.bottom="14px";
+    try{localStorage.removeItem("hyper-pop-sound-orb-position");}catch(_){}
+    positionPanel();
+  });
   panel.querySelector("#hp-sound-play").addEventListener("click",()=>enabled?stop():start());
   panel.querySelector("#hp-sound-mute").addEventListener("click",()=>{if(enabled && volume>0){volume=0;vol.value="0";if(ctx)master.gain.setTargetAtTime(0,ctx.currentTime,.12);}else{if(volume===0){volume=.2;vol.value=".2";} if(!enabled)start(); else if(ctx)master.gain.setTargetAtTime(volume,ctx.currentTime,.12);}persist();});
   vol.addEventListener("input",()=>{volume=Number(vol.value);persist();if(ctx&&enabled)master.gain.setTargetAtTime(volume,ctx.currentTime,.12);});
   themeSelect.addEventListener("change",()=>changeTheme(themeSelect.value));
 
-  // Drag orb with pointer input. A short click toggles the player; a drag moves it.
+  // Touch-safe dragging: the page does not scroll while the orb is being moved.
+  orb.addEventListener("dragstart",e=>e.preventDefault());
   orb.addEventListener("pointerdown",e=>{
-    drag={x:e.clientX,y:e.clientY,left:orb.offsetLeft,top:orb.offsetTop,moved:false};
-    orb.setPointerCapture(e.pointerId);
+    if(e.button!==undefined && e.button!==0)return;
+    e.preventDefault();
+    drag={x:e.clientX,y:e.clientY,left:orb.getBoundingClientRect().left,top:orb.getBoundingClientRect().top,moved:false};
+    try{orb.setPointerCapture(e.pointerId);}catch(_){}
   });
   orb.addEventListener("pointermove",e=>{
     if(!drag)return;
+    if(e.cancelable)e.preventDefault();
     const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
     if(Math.abs(dx)+Math.abs(dy)>7)drag.moved=true;
     if(drag.moved){
       orb.style.left=Math.max(0,Math.min(innerWidth-orb.offsetWidth,drag.left+dx))+"px";
       orb.style.top=Math.max(0,Math.min(innerHeight-orb.offsetHeight,drag.top+dy))+"px";
       orb.style.right="auto";orb.style.bottom="auto";
+      positionPanel();
     }
   });
-  orb.addEventListener("pointerup",()=>{if(drag&&drag.moved){movedOrb=true;const r=orb.getBoundingClientRect();try{localStorage.setItem("hyper-pop-sound-orb-position",JSON.stringify({x:r.left,y:r.top}));}catch(_){} setTimeout(()=>{drag=null;},0);}else drag=null;});
+  const finishDrag=()=>{
+    if(drag&&drag.moved){
+      movedOrb=true;
+      const r=orb.getBoundingClientRect();
+      try{localStorage.setItem("hyper-pop-sound-orb-position",JSON.stringify({x:r.left,y:r.top}));}catch(_){}
+      positionPanel();
+    }
+    drag=null;
+  };
+  orb.addEventListener("pointerup",finishDrag);
+  orb.addEventListener("pointercancel",finishDrag);
+  window.addEventListener("resize",()=>{
+    const r=orb.getBoundingClientRect();
+    orb.style.left=Math.max(0,Math.min(innerWidth-orb.offsetWidth,r.left))+"px";
+    orb.style.top=Math.max(0,Math.min(innerHeight-orb.offsetHeight,r.top))+"px";
+    orb.style.right="auto";orb.style.bottom="auto";
+    positionPanel();
+  });
   try{const p=JSON.parse(localStorage.getItem("hyper-pop-sound-orb-position")||"null");if(p&&Number.isFinite(p.x)&&Number.isFinite(p.y)){orb.style.left=Math.max(0,Math.min(innerWidth-54,p.x))+"px";orb.style.top=Math.max(0,Math.min(innerHeight-54,p.y))+"px";orb.style.right="auto";orb.style.bottom="auto";}}catch(_){}
+
+  if(playerOpen) positionPanel();
 
   // Page-specific soundtrack and common game-event hooks.
   window.HyperPopSoundtrack={
