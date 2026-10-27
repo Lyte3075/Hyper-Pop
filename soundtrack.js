@@ -13,25 +13,27 @@
 
 
   const getPageTheme = (pathname = location.pathname) => {
-    const path = String(pathname).toLowerCase();
-    const title = (document.querySelector("h1")?.textContent || document.title || "").toLowerCase();
-    const key = path + " " + title;
-    if (/dont|do-not-press|danger/.test(key)) return "danger";
-    if (/random|surprise|lucky|picker|decision-wheel|slot|quote|thoughts|name-forge/.test(key)) return "surprise";
-    if (/leaderboard|account|accounts|auth|profile|login|signup/.test(key)) return "menu";
+    // Classify from the page's own path and heading only. Never use the
+    // site-wide "Hyper-Pop" document title as a keyword: "pop" matched every page.
+    const path = String(pathname).toLowerCase().split("?")[0].split("#")[0];
+    const heading = (document.querySelector("h1")?.textContent || "")
+      .toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    const file = path.split("/").pop().replace(/\.html?$/, "").replace(/[^a-z0-9]+/g, " ");
+    const key = (file + " " + heading).trim();
+    if (/dont|do not press|danger|red button/.test(key)) return "danger";
+    if (/random|surprise|lucky|picker|decision wheel|slot|quote|thoughts|name forge|fortune/.test(key)) return "surprise";
+    if (/leaderboard|account|accounts|auth|profile|login|signup|sign up/.test(key)) return "menu";
     if (/memory|matching|pairs/.test(key)) return "memory";
-    if (/number|math|calc|puzzle|sudoku|wordle|trivia|quiz|chess|tic.?tac|gn-math/.test(key)) return "puzzle";
-    if (/reaction|aim|clicker|sheep|game|craft|maze|stock|pop|snake|tetris|2048|flappy|runner|arcade|pong|minesweeper|dino|tic.?tac|dice|coin|jump|basket|breakout|space-invader|whack|pinball|tap-lab|tap-counter|duckmath|nebula|racing|racer|platform|shooter/.test(key)) return "arcade";
+    if (/number sprint|number|math|calc|puzzle|sudoku|wordle|trivia|quiz|chess|tic tac|gn math|crossword/.test(key)) return "puzzle";
+    if (/reaction|aim trainer|clicker|speedy sheep|sheep|game|craft|maze|stock|snake|tetris|2048|flappy|runner|arcade|pong|minesweeper|dino|dice|coin|jump|basket|breakout|space invader|whack|pinball|tap lab|tap counter|duckmath|nebula|racing|racer|platform|shooter/.test(key)) return "arcade";
     if (/proxy|browser|search|duck|korona|cherri|web/.test(key)) return "explore";
-    if (/tool|terminal|recipe|settings|converter|generator|palette|stopwatch|color-mixer|doodle|timer|calculator/.test(key)) return "tools";
+    if (/tool|terminal|recipe|settings|converter|generator|palette|stopwatch|color mixer|doodle|timer|calculator/.test(key)) return "tools";
     if (/about|directory|readme|help|faq/.test(key)) return "menu";
-    if (path === "/" || /\/index\.html?$/.test(path)) return "dreamscape";
-    // New pages that do not match a named category still get a stable theme
-    // chosen from their own path, instead of all falling back to the homepage track.
+    if (path === "/" || /(^|\/)index$/.test(file)) return "dreamscape";
     const available = ["explore","tools","menu","arcade","puzzle","memory","surprise"];
-    let hash=0;
-    for (let i=0;i<key.length;i++) hash=((hash*31)+key.charCodeAt(i))|0;
-    return available[Math.abs(hash)%available.length];
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) hash = ((hash * 31) + key.charCodeAt(i)) | 0;
+    return available[Math.abs(hash) % available.length];
   };
 
   let ctx, master, musicBus, fxBus, enabled = false, playerOpen = false;
@@ -226,6 +228,7 @@
       musicBus.gain.cancelScheduledValues(ctx.currentTime);
       musicBus.gain.setTargetAtTime(0.0001,ctx.currentTime,0.06);
       switchTimer=setTimeout(()=>{
+        switchTimer=null;
         silenceCurrentVoices();
         step=0; chordIndex=-1;
         pendingPreviousTheme=null;
@@ -321,30 +324,35 @@
   panel.querySelector("#hp-sound-mute").addEventListener("click",()=>{if(enabled && volume>0){volume=0;vol.value="0";if(ctx)master.gain.setTargetAtTime(0,ctx.currentTime,.12);}else{if(volume===0){volume=.2;vol.value=".2";} if(!enabled)start(); else if(ctx)master.gain.setTargetAtTime(volume,ctx.currentTime,.12);}persist();});
   vol.addEventListener("input",()=>{volume=Number(vol.value);persist();if(ctx&&enabled)master.gain.setTargetAtTime(volume,ctx.currentTime,.12);});
   themeSelect.addEventListener("change",()=>changeTheme(themeSelect.value));
-  pageMode.addEventListener("change",()=>{
-    pageMusic=pageMode.checked;
-    if (!pageMusic && switchTimer) {
-      clearTimeout(switchTimer);
-      switchTimer=null;
-      theme=pendingPreviousTheme || theme;
-      pendingPreviousTheme=null;
-      themeSelect.value=theme;
+  function setPageMusicEnabled(value) {
+    pageMusic = Boolean(value);
+    pageMode.checked = pageMusic;
+    if (!pageMusic) {
+      if (switchTimer) clearTimeout(switchTimer);
+      switchTimer = null;
+      if (pendingPreviousTheme) theme = pendingPreviousTheme;
+      pendingPreviousTheme = null;
+      themeSelect.value = theme;
       if (ctx && enabled) {
-        silenceCurrentVoices();
-        step=0; chordIndex=-1;
-        musicBus.gain.cancelScheduledValues(ctx.currentTime);
-        musicBus.gain.setValueAtTime(0.0001,ctx.currentTime);
-        musicBus.gain.setTargetAtTime(0.82,ctx.currentTime,0.12);
-        nextStepTime=ctx.currentTime+0.14;
         if (scheduler) clearInterval(scheduler);
-        scheduler=setInterval(schedulerTick,80);
+        scheduler = null;
+        silenceCurrentVoices();
+        step = 0; chordIndex = -1;
+        musicBus.gain.cancelScheduledValues(ctx.currentTime);
+        musicBus.gain.setValueAtTime(0.0001, ctx.currentTime);
+        musicBus.gain.setTargetAtTime(0.82, ctx.currentTime, 0.12);
+        nextStepTime = ctx.currentTime + 0.14;
+        scheduler = setInterval(schedulerTick, 80);
         schedulerTick();
       }
+      setStatus(themeLabel(theme) + " · page matching off");
+    } else {
+      setStatus("Page-matched music enabled");
+      changeTheme(getPageTheme(location.pathname));
     }
     persist();
-    if(pageMusic) changeTheme(getPageTheme(location.pathname));
-    setStatus(pageMusic ? "Page-matched music enabled" : themeLabel(theme)+" · keeping current track");
-  });
+  }
+  pageMode.addEventListener("change", () => setPageMusicEnabled(pageMode.checked));
 
   // Touch-safe dragging: the page does not scroll while the orb is being moved.
   orb.addEventListener("dragstart",e=>e.preventDefault());
@@ -414,7 +422,7 @@
       changeTheme(next);
     },
     get pageMusic(){ return pageMusic; },
-    setPageMusic(value){ pageMusic=Boolean(value); pageMode.checked=pageMusic; persist(); if(pageMusic) changeTheme(getPageTheme(location.pathname)); },
+    setPageMusic(value){ setPageMusicEnabled(value); },
     setVolume(v){volume=Math.max(0,Math.min(.5,Number(v)||0));vol.value=String(volume);persist();if(ctx&&enabled)master.gain.setTargetAtTime(volume,ctx.currentTime,.12);},
     get enabled(){return enabled;},
     get theme(){return theme;}
