@@ -26,7 +26,7 @@
     'account.js?v=split-2',
     'terminal.js?v=cmdfix-10'
   ];
-  files.push('soundtrack.js?v=page-mode-4');
+  files.push('soundtrack.js?v=page-mode-5');
 
   files.forEach(function(file){
     var node = document.createElement('script');
