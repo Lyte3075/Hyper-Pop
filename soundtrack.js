@@ -210,7 +210,7 @@
     @media(max-width:500px){#hp-sound-orb{right:12px;bottom:12px;width:50px;height:50px}#hp-sound-panel{right:12px;bottom:72px}}
   `;
   document.head.appendChild(style);
-  const orb=document.createElement("button");
+  const orb=document.getElementById("hp-sound-orb") || document.createElement("button");
   orb.id="hp-sound-orb"; orb.type="button"; orb.setAttribute("aria-label","Open Hyper-Pop music player"); orb.setAttribute("aria-expanded",String(playerOpen));
   orb.innerHTML='<span aria-hidden="true">✦</span><span class="hp-pulse"></span>';
   const panel=document.createElement("section");
