@@ -11,8 +11,6 @@
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   if (!AudioContextClass) return;
 
-  const excluded = /\/(?:duck|korona|cherri|v5-static|UW|yt2|package|emulator|scramjet-static)(?:\/|$)/i;
-  if (excluded.test(location.pathname)) return;
 
   const page = location.pathname.toLowerCase();
   const getPageTheme = () => {
