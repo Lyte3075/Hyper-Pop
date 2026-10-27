@@ -35,7 +35,7 @@
   let volume = 0.2, scheduler = null, nextStepTime = 0, step = 0, chordIndex = -1;
   let pageMusic = true;
   let theme = getPageTheme(), eventName = "Dreamscape", currentNodes = [];
-  let drag = null, movedOrb = false, lastEventAt = 0, switchTimer = null;
+  let drag = null, movedOrb = false, lastEventAt = 0, switchTimer = null, pendingPreviousTheme = null;
   try {
     const saved = JSON.parse(localStorage.getItem(STORE) || "{}");
     if (Number.isFinite(saved.volume)) volume = Math.max(0, Math.min(0.5, saved.volume));
@@ -214,6 +214,7 @@
   }
   function changeTheme(next) {
     if (!progression[next] || next===theme) return;
+    pendingPreviousTheme=theme;
     theme=next;
     if (switchTimer) clearTimeout(switchTimer);
     if(enabled && ctx) {
@@ -224,6 +225,7 @@
       switchTimer=setTimeout(()=>{
         silenceCurrentVoices();
         step=0; chordIndex=-1;
+        pendingPreviousTheme=null;
         if(!enabled || !ctx) return;
         musicBus.gain.cancelScheduledValues(ctx.currentTime);
         musicBus.gain.setValueAtTime(0.0001,ctx.currentTime);
@@ -321,11 +323,19 @@
     if (!pageMusic && switchTimer) {
       clearTimeout(switchTimer);
       switchTimer=null;
+      theme=pendingPreviousTheme || theme;
+      pendingPreviousTheme=null;
+      themeSelect.value=theme;
       if (ctx && enabled) {
+        silenceCurrentVoices();
+        step=0; chordIndex=-1;
         musicBus.gain.cancelScheduledValues(ctx.currentTime);
+        musicBus.gain.setValueAtTime(0.0001,ctx.currentTime);
         musicBus.gain.setTargetAtTime(0.82,ctx.currentTime,0.12);
         nextStepTime=ctx.currentTime+0.14;
-        if (!scheduler) scheduler=setInterval(schedulerTick,80);
+        if (scheduler) clearInterval(scheduler);
+        scheduler=setInterval(schedulerTick,80);
+        schedulerTick();
       }
     }
     persist();
