@@ -254,7 +254,13 @@
     <label for="hp-sound-volume">VOLUME</label><input id="hp-sound-volume" type="range" min="0" max="0.5" step="0.01" value="${volume}" aria-label="Music volume">
     <div class="hp-muted" style="margin-top:9px">Original instrumental soundscapes · tap Play if your browser blocks autoplay</div>
   `;
-  document.body.append(orb,panel);
+  const mountPlayer = () => {
+    const host = document.body || document.documentElement;
+    if (orb.parentNode !== host || panel.parentNode !== host) host.append(orb, panel);
+    if (playerOpen) positionPanel();
+  };
+  if (document.body) mountPlayer();
+  else document.addEventListener("DOMContentLoaded", mountPlayer, { once: true });
   const vol=panel.querySelector("#hp-sound-volume"), themeSelect=panel.querySelector("#hp-sound-theme");
   themeSelect.value=theme;
   function positionPanel() {
