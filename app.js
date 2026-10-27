@@ -43,6 +43,7 @@
   // links are fetched and swapped while the shared player stays mounted.
   if (!window.__HP_SOFT_NAV__) {
     window.__HP_SOFT_NAV__ = true;
+    document.head.querySelectorAll('style,link[rel="stylesheet"]').forEach(n=>n.setAttribute('data-hp-page-style',''));
     const sharedScripts = () => [...document.head.querySelectorAll('script[src]')];
     async function navigateHyperPop(url, addHistory=true) {
       const target = new URL(url, location.href);
@@ -84,6 +85,15 @@
         });
 
         if (addHistory) history.pushState({hyperPop:true}, '', target.pathname + target.search + target.hash);
+        // Load page-specific head scripts after the new body is in place.
+        for (const oldScript of parsed.head.querySelectorAll('script[src]')) {
+          const src = oldScript.getAttribute('src') || '';
+          if (/(^|\/)app\.js(?:\?|$)|soundtrack\.js|account\.js|terminal\.js/.test(src)) continue;
+          await new Promise((resolve,reject) => {
+            const node=document.createElement('script'); node.src=new URL(src,target.href).href;
+            node.onload=resolve; node.onerror=reject; document.body.append(node);
+          });
+        }
         // Re-run page scripts in isolated function scopes to avoid top-level let/const
         // collisions when visiting multiple games without reloading the document.
         for (const oldScript of parsed.body.querySelectorAll('script')) {
