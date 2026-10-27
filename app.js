@@ -27,7 +27,7 @@
     'account.js?v=split-2',
     'terminal.js?v=cmdfix-10'
   ];
-  if (!excluded) files.push('soundtrack.js?v=dreamscape-4');
+  if (!excluded) files.push('soundtrack.js?v=dreamscape-5');
 
   files.forEach(function(file){
     var node = document.createElement('script');
