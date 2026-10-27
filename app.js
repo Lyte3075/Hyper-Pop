@@ -26,7 +26,7 @@
     'account.js?v=split-2',
     'terminal.js?v=cmdfix-10'
   ];
-  files.push('soundtrack.js?v=dreamscape-9');
+  files.push('soundtrack.js?v=page-mode-1');
 
   files.forEach(function(file){
     var node = document.createElement('script');
@@ -121,10 +121,8 @@
         window.dispatchEvent(new CustomEvent('hyperpop:navigate',{detail:{url:target.href,path:target.pathname}}));
         // Re-evaluate the unlock state without recreating the preserved terminal.
         window.HyperPopCommandPrompt?.sync?.();
-        if (window.HyperPopSoundtrack?.setTheme) {
-          const p=target.pathname.toLowerCase();
-          const next=/dont|do-not-press/.test(p)?'danger':/random|surprise/.test(p)?'surprise':/leaderboard|account|accounts|auth|profile/.test(p)?'menu':/memory/.test(p)?'memory':/number|math|calc/.test(p)?'puzzle':/reaction|aim|clicker|sheep|game|craft|maze|stock|pop/.test(p)?'arcade':/proxy|browser|search/.test(p)?'explore':/tool|terminal|recipe|settings/.test(p)?'tools':'dreamscape';
-          window.HyperPopSoundtrack.setTheme(next);
+        if (window.HyperPopSoundtrack?.onPageChange) {
+          window.HyperPopSoundtrack.onPageChange(target.pathname);
         }
       } catch (error) {
         console.warn('[Hyper-Pop] Soft navigation fell back to a full page load:',error);
