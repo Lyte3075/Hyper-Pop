@@ -217,7 +217,7 @@
   }
   function changeTheme(next) {
     if (!progression[next] || next===theme) return;
-    pendingPreviousTheme=theme;
+    if (!switchTimer) pendingPreviousTheme=theme;
     theme=next;
     if (switchTimer) clearTimeout(switchTimer);
     if(enabled && ctx) {
