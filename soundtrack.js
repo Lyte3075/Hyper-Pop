@@ -24,11 +24,14 @@
     if (/reaction|aim|clicker|sheep|game|craft|maze|stock|pop|snake|tetris|2048|flappy|runner|arcade|pong|minesweeper|dino|tic.?tac|dice|coin|jump|basket|breakout|space-invader|whack|pinball|tap-lab|tap-counter|duckmath|nebula|racing|racer|platform|shooter/.test(key)) return "arcade";
     if (/proxy|browser|search|duck|korona|cherri|web/.test(key)) return "explore";
     if (/tool|terminal|recipe|settings|converter|generator|palette|stopwatch|color-mixer|doodle|timer|calculator/.test(key)) return "tools";
-    if (/index\.html|hyper-pop/.test(path) && !title) return "dreamscape";
-    // A deterministic fallback gives every page a non-random, page-specific category
-    // rather than making unknown pages silently reuse the homepage track.
     if (/about|directory|readme|help|faq/.test(key)) return "menu";
-    return "dreamscape";
+    if (path === "/" || /\/index\.html?$/.test(path)) return "dreamscape";
+    // New pages that do not match a named category still get a stable theme
+    // chosen from their own path, instead of all falling back to the homepage track.
+    const available = ["explore","tools","menu","arcade","puzzle","memory","surprise"];
+    let hash=0;
+    for (let i=0;i<key.length;i++) hash=((hash*31)+key.charCodeAt(i))|0;
+    return available[Math.abs(hash)%available.length];
   };
 
   let ctx, master, musicBus, fxBus, enabled = false, playerOpen = false;
