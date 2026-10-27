@@ -16,9 +16,7 @@
     fallbackOrb.setAttribute('aria-label', 'Open Hyper-Pop music player');
     fallbackOrb.textContent = '✦';
     fallbackOrb.addEventListener('click', function(){
-      var player = document.getElementById('hp-sound-panel');
-      if (player) player.hidden = !player.hidden;
-      else console.warn('[Hyper-Pop] Music player script has not initialized yet.');
+      if (!document.getElementById('hp-sound-panel')) console.warn('[Hyper-Pop] Music player script has not initialized yet.');
     });
     (document.body || document.documentElement).appendChild(fallbackOrb);
   }
