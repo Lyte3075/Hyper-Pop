@@ -52,8 +52,10 @@
         location.href = target.href; return;
       }
       if (target.href === currentUrl) return;
-      if (target.pathname === location.pathname && target.search === location.search) {
-        if (target.hash) location.hash = target.hash;
+      const current = new URL(currentUrl);
+      if (target.pathname === current.pathname && target.search === current.search) {
+        currentUrl = target.href;
+        if (target.hash) document.getElementById(decodeURIComponent(target.hash.slice(1)))?.scrollIntoView();
         return;
       }
       try {
