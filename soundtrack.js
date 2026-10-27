@@ -12,27 +12,30 @@
   if (!AudioContextClass) return;
 
 
-  const page = location.pathname.toLowerCase();
-  const getPageTheme = () => {
-    if (/dont|do-not-press/.test(page)) return "danger";
-    if (/random|surprise/.test(page)) return "surprise";
-    if (/leaderboard|account|accounts|auth|profile/.test(page)) return "menu";
-    if (/memory/.test(page)) return "memory";
-    if (/number|math|calc/.test(page)) return "puzzle";
-    if (/reaction|aim|clicker|sheep|game|craft|maze|stock|pop/.test(page)) return "arcade";
-    if (/proxy|browser|search/.test(page)) return "explore";
-    if (/tool|terminal|recipe|settings/.test(page)) return "tools";
+  const getPageTheme = (pathname = location.pathname) => {
+    const path = String(pathname).toLowerCase();
+    // Specific page types come first so game pages consistently get their own music.
+    if (/dont|do-not-press/.test(path)) return "danger";
+    if (/random|surprise|lucky/.test(path)) return "surprise";
+    if (/leaderboard|account|accounts|auth|profile|login|signup/.test(path)) return "menu";
+    if (/memory|matching|pairs/.test(path)) return "memory";
+    if (/number|math|calc|puzzle|sudoku|wordle|trivia|quiz/.test(path)) return "puzzle";
+    if (/reaction|aim|clicker|sheep|game|craft|maze|stock|pop|snake|tetris|2048|flappy|runner|arcade|pong|minesweeper/.test(path)) return "arcade";
+    if (/proxy|browser|search|duck|korona/.test(path)) return "explore";
+    if (/tool|terminal|recipe|settings|converter|generator/.test(path)) return "tools";
     return "dreamscape";
   };
 
   let ctx, master, musicBus, fxBus, enabled = false, playerOpen = false;
   let volume = 0.2, scheduler = null, nextStepTime = 0, step = 0, chordIndex = -1;
+  let pageMusic = true;
   let theme = getPageTheme(), eventName = "Dreamscape", currentNodes = [];
   let drag = null, movedOrb = false, lastEventAt = 0, switchTimer = null;
   try {
     const saved = JSON.parse(localStorage.getItem(STORE) || "{}");
     if (Number.isFinite(saved.volume)) volume = Math.max(0, Math.min(0.5, saved.volume));
     playerOpen = saved.open === true;
+    pageMusic = saved.pageMusic !== false;
   } catch (_) {}
 
   const progression = {
@@ -60,7 +63,7 @@
   const scale = [0,2,4,7,9,12,14,16,19];
 
   function persist() {
-    try { localStorage.setItem(STORE, JSON.stringify({volume, open:playerOpen})); } catch (_) {}
+    try { localStorage.setItem(STORE, JSON.stringify({volume, open:playerOpen, pageMusic})); } catch (_) {}
   }
   function initAudio() {
     if (ctx) return;
@@ -236,7 +239,7 @@
     #hp-sound-orb:active{transform:scale(.94);border-color:#7df9ff88}#hp-sound-orb:focus-visible{outline:3px solid #7df9ff;outline-offset:3px}
     #hp-sound-orb svg{width:20px;height:20px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
     #hp-sound-panel{position:fixed;z-index:9999;left:auto;top:auto;right:18px;bottom:82px;width:min(300px,calc(100vw - 28px));padding:15px;border-radius:20px;border:1px solid #9b7bff55;background:rgba(15,14,31,.94);color:#f7f4ff;box-shadow:0 16px 50px #0008;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);font:13px/1.4 system-ui,sans-serif}
-    #hp-sound-panel[hidden]{display:none}#hp-sound-panel .hp-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}#hp-sound-panel .hp-logo{width:38px;height:38px;display:grid;place-items:center;border-radius:13px;background:#9b7bff25;font-size:22px}#hp-sound-panel .hp-title{font-size:15px;font-weight:750}#hp-sound-panel .hp-muted{font-size:11px;color:#aaa7c1;margin-top:2px}#hp-sound-panel .hp-close{margin-left:auto;background:transparent;border:0;color:#aaa7c1;font-size:22px;cursor:pointer}#hp-sound-panel .hp-reset{width:24px;height:24px;min-width:24px;padding:0!important;display:grid;place-items:center;border-radius:7px!important;font-size:13px!important;color:#7df9ff!important;border-color:#7df9ff44!important}#hp-sound-panel button:not(.hp-close){background:#ffffff0c;color:#fff;border:1px solid #ffffff22;border-radius:11px;padding:9px 11px;font:inherit;cursor:pointer}#hp-sound-panel .hp-actions{display:flex;gap:8px;align-items:center}#hp-sound-panel .hp-play{flex:1;background:#9b7bff26!important}#hp-sound-panel label{display:block;color:#aaa7c1;font-size:10px;letter-spacing:.08em;margin:12px 0 5px}#hp-sound-panel input{width:100%;accent-color:#9b7bff}#hp-sound-panel select{width:100%;padding:9px;background:#17162a;color:#fff;border:1px solid #ffffff22;border-radius:10px;font:inherit}
+    #hp-sound-panel[hidden]{display:none}#hp-sound-panel .hp-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}#hp-sound-panel .hp-logo{width:38px;height:38px;display:grid;place-items:center;border-radius:13px;background:#9b7bff25;font-size:22px}#hp-sound-panel .hp-title{font-size:15px;font-weight:750}#hp-sound-panel .hp-muted{font-size:11px;color:#aaa7c1;margin-top:2px}#hp-sound-panel .hp-close{margin-left:auto;background:transparent;border:0;color:#aaa7c1;font-size:22px;cursor:pointer}#hp-sound-panel .hp-reset{width:24px;height:24px;min-width:24px;padding:0!important;display:grid;place-items:center;border-radius:7px!important;font-size:13px!important;color:#7df9ff!important;border-color:#7df9ff44!important}#hp-sound-panel button:not(.hp-close){background:#ffffff0c;color:#fff;border:1px solid #ffffff22;border-radius:11px;padding:9px 11px;font:inherit;cursor:pointer}#hp-sound-panel .hp-actions{display:flex;gap:8px;align-items:center}#hp-sound-panel .hp-play{flex:1;background:#9b7bff26!important}#hp-sound-panel label{display:block;color:#aaa7c1;font-size:10px;letter-spacing:.08em;margin:12px 0 5px}#hp-sound-panel input{width:100%;accent-color:#9b7bff}#hp-sound-panel .hp-setting{display:flex;align-items:center;gap:9px;margin-top:13px;padding:10px;border:1px solid #ffffff18;border-radius:12px;background:#ffffff06;color:#eeeafc;font-size:12px;letter-spacing:0}#hp-sound-panel .hp-setting input{width:16px;height:16px;flex:0 0 16px;margin:0}#hp-sound-panel .hp-setting span{display:block}#hp-sound-panel .hp-setting small{display:block;color:#aaa7c1;font-size:10px;margin-top:2px}#hp-sound-panel select{width:100%;padding:9px;background:#17162a;color:#fff;border:1px solid #ffffff22;border-radius:10px;font:inherit}
     @media(max-width:500px){#hp-sound-orb{right:14px;bottom:14px;width:42px;height:42px}#hp-sound-panel{right:12px;bottom:68px}}
   `;
   document.head.appendChild(style);
@@ -252,6 +255,7 @@
       <option value="dreamscape">Dreamscape · homepage</option><option value="explore">Open Skies · browsing</option><option value="tools">Soft Circuits · tools</option><option value="menu">Starlight Menu · accounts</option><option value="arcade">Arcade Drift · games</option><option value="puzzle">Quiet Focus · puzzles</option><option value="memory">Memory Garden · memory games</option><option value="surprise">Wonder Loop · surprises</option><option value="danger">Redshift · danger</option>
     </select>
     <label for="hp-sound-volume">VOLUME</label><input id="hp-sound-volume" type="range" min="0" max="0.5" step="0.01" value="${volume}" aria-label="Music volume">
+    <label class="hp-setting" for="hp-sound-page-mode"><input id="hp-sound-page-mode" type="checkbox" ${pageMusic ? "checked" : ""}><span><strong>Match music to each page</strong><small>Games use Arcade Drift, puzzles use Quiet Focus, and so on. Turn off to keep your current song.</small></span></label>
     <div class="hp-muted" style="margin-top:9px">Original instrumental soundscapes · tap Play if your browser blocks autoplay</div>
   `;
   const mountPlayer = () => {
@@ -262,6 +266,7 @@
   if (document.body) mountPlayer();
   else document.addEventListener("DOMContentLoaded", mountPlayer, { once: true });
   const vol=panel.querySelector("#hp-sound-volume"), themeSelect=panel.querySelector("#hp-sound-theme");
+  const pageMode=panel.querySelector("#hp-sound-page-mode");
   const defaultInset=14;
   function applyAnchoredPosition(pos){
     const w=orb.offsetWidth||42,h=orb.offsetHeight||42;
@@ -306,6 +311,12 @@
   panel.querySelector("#hp-sound-mute").addEventListener("click",()=>{if(enabled && volume>0){volume=0;vol.value="0";if(ctx)master.gain.setTargetAtTime(0,ctx.currentTime,.12);}else{if(volume===0){volume=.2;vol.value=".2";} if(!enabled)start(); else if(ctx)master.gain.setTargetAtTime(volume,ctx.currentTime,.12);}persist();});
   vol.addEventListener("input",()=>{volume=Number(vol.value);persist();if(ctx&&enabled)master.gain.setTargetAtTime(volume,ctx.currentTime,.12);});
   themeSelect.addEventListener("change",()=>changeTheme(themeSelect.value));
+  pageMode.addEventListener("change",()=>{
+    pageMusic=pageMode.checked;
+    persist();
+    if(pageMusic) changeTheme(getPageTheme(location.pathname));
+    setStatus(pageMusic ? "Page-matched music enabled" : "Keeping current soundtrack");
+  });
 
   // Touch-safe dragging: the page does not scroll while the orb is being moved.
   orb.addEventListener("dragstart",e=>e.preventDefault());
@@ -368,6 +379,9 @@
   // Page-specific soundtrack and common game-event hooks.
   window.HyperPopSoundtrack={
     play:start,pause:stop,playEvent:eventSound,setTheme:changeTheme,
+    onPageChange(pathname){ if(pageMusic) changeTheme(getPageTheme(pathname)); },
+    get pageMusic(){ return pageMusic; },
+    setPageMusic(value){ pageMusic=Boolean(value); pageMode.checked=pageMusic; persist(); if(pageMusic) changeTheme(getPageTheme(location.pathname)); },
     setVolume(v){volume=Math.max(0,Math.min(.5,Number(v)||0));vol.value=String(volume);persist();if(ctx&&enabled)master.gain.setTargetAtTime(volume,ctx.currentTime,.12);},
     get enabled(){return enabled;},
     get theme(){return theme;}
