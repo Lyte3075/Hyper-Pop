@@ -271,8 +271,8 @@
 
         function init() {
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x0a0908);
-            scene.fog = new THREE.FogExp2(0x181512, 0.035);
+            scene.background = new THREE.Color(0x07152f);
+            scene.fog = new THREE.FogExp2(0x101a32, 0.035);
 
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.set(4, 1.6, 4);
@@ -355,7 +355,7 @@
 
         function buildMaze() {
             const wallMat = new THREE.MeshStandardMaterial({ color: 0x263b25, roughness: 0.95 });
-            const floorMat = new THREE.MeshStandardMaterial({ color: 0x172318, roughness: 1 });
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x3b2b20, roughness: 1 });
             const roofMat = new THREE.MeshStandardMaterial({ color: 0x101a12, roughness: 1 });
             const lockerMat = new THREE.MeshStandardMaterial({ color: 0x25442a, metalness: 0.2, roughness: 0.9 });
 
