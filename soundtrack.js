@@ -13,27 +13,38 @@
 
 
   const getPageTheme = (pathname = location.pathname) => {
-    // Classify from the page's own path and heading only. Never use the
-    // site-wide "Hyper-Pop" document title as a keyword: "pop" matched every page.
     const path = String(pathname).toLowerCase().split("?")[0].split("#")[0];
-    const heading = (document.querySelector("h1")?.textContent || "")
-      .toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-    const file = path.split("/").pop().replace(/\.html?$/, "").replace(/[^a-z0-9]+/g, " ");
-    const key = (file + " " + heading).trim();
-    if (/dont|do not press|danger|red button/.test(key)) return "danger";
-    if (/random|surprise|lucky|picker|decision wheel|slot|quote|thoughts|name forge|fortune/.test(key)) return "surprise";
-    if (/leaderboard|account|accounts|auth|profile|login|signup|sign up/.test(key)) return "menu";
-    if (/memory|matching|pairs/.test(key)) return "memory";
-    if (/number sprint|number|math|calc|puzzle|sudoku|wordle|trivia|quiz|chess|tic tac|gn math|crossword/.test(key)) return "puzzle";
-    if (/reaction|aim trainer|clicker|speedy sheep|sheep|game|craft|maze|stock|snake|tetris|2048|flappy|runner|arcade|pong|minesweeper|dino|dice|coin|jump|basket|breakout|space invader|whack|pinball|tap lab|tap counter|duckmath|nebula|racing|racer|platform|shooter/.test(key)) return "arcade";
-    if (/proxy|browser|search|duck|korona|cherri|web/.test(key)) return "explore";
-    if (/tool|terminal|recipe|settings|converter|generator|palette|stopwatch|color mixer|doodle|timer|calculator/.test(key)) return "tools";
-    if (/about|directory|readme|help|faq/.test(key)) return "menu";
-    if (path === "/" || /(^|\/)index$/.test(file)) return "dreamscape";
-    const available = ["explore","tools","menu","arcade","puzzle","memory","surprise"];
-    let hash = 0;
-    for (let i = 0; i < key.length; i++) hash = ((hash * 31) + key.charCodeAt(i)) | 0;
-    return available[Math.abs(hash) % available.length];
+    const file = (path.split("/").pop() || "index").replace(/\\.html?$/, "");
+    const explicit = {
+      "": "dreamscape", "index": "dreamscape",
+      "proxy": "explore", "proxy-legacy": "explore",
+      "dont": "danger",
+      "accounts": "menu", "auth": "menu", "leaderboard": "menu",
+      "memory": "memory",
+      "number": "puzzle", "gn-math": "puzzle", "chess": "puzzle", "tictactoe": "puzzle",
+      "clicker": "arcade", "aim": "arcade", "color-rush": "arcade", "dino-run": "arcade",
+      "frameshot": "arcade", "frameshot-3d": "arcade", "gravity-dodge": "arcade",
+      "hyper-craft": "arcade", "maze-of-shadows": "arcade", "nebula-breach": "arcade",
+      "pong": "arcade", "reaction": "arcade", "snake": "arcade", "stocks": "arcade",
+      "tictactoe": "puzzle",
+      "coin": "surprise", "decision-wheel": "surprise", "dice": "surprise",
+      "higher-lower": "surprise", "picker": "surprise", "quote": "surprise",
+      "random": "surprise", "random-name": "surprise", "slot": "surprise", "thoughts": "surprise",
+      "color-mixer": "tools", "doodle": "tools", "palette": "tools",
+      "stopwatch": "tools", "tap-counter": "tools"
+    };
+    if (Object.prototype.hasOwnProperty.call(explicit, file)) return explicit[file];
+    const heading = (document.querySelector("h1")?.textContent || "").toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ").trim();
+    if (/web proxy|proxy|browser|search|korona|browse/.test(heading)) return "explore";
+    if (/tools|terminal|recipe|converter|generator|palette|stopwatch|color mixer|doodle|timer|calculator/.test(heading)) return "tools";
+    if (/do not press|danger|red button/.test(heading)) return "danger";
+    if (/memory|matching pairs/.test(heading)) return "memory";
+    if (/number sprint|math|puzzle|sudoku|wordle|trivia|quiz|crossword/.test(heading)) return "puzzle";
+    if (/random|surprise|lucky|picker|decision wheel|quote|fortune/.test(heading)) return "surprise";
+    if (/game|arcade|sheep|clicker|maze|snake|tetris|runner|pong|racing|shooter/.test(heading)) return "arcade";
+    if (/account|profile|login|sign up|help|about|directory/.test(heading)) return "menu";
+    return "dreamscape";
   };
 
   let ctx, master, musicBus, fxBus, enabled = false, playerOpen = false;
@@ -218,32 +229,14 @@
     old.forEach(node=>{ try{node.onended=null; node.stop();}catch(_){} });
   }
   function changeTheme(next) {
-    if (!progression[next] || next===theme) return;
-    if (!switchTimer) pendingPreviousTheme=theme;
-    theme=next;
-    if (switchTimer) clearTimeout(switchTimer);
-    if(enabled && ctx) {
-      if(scheduler) clearInterval(scheduler);
-      scheduler=null;
-      musicBus.gain.cancelScheduledValues(ctx.currentTime);
-      musicBus.gain.setTargetAtTime(0.0001,ctx.currentTime,0.06);
-      switchTimer=setTimeout(()=>{
-        switchTimer=null;
-        silenceCurrentVoices();
-        step=0; chordIndex=-1;
-        pendingPreviousTheme=null;
-        if(!enabled || !ctx) return;
-        musicBus.gain.cancelScheduledValues(ctx.currentTime);
-        musicBus.gain.setValueAtTime(0.0001,ctx.currentTime);
-        musicBus.gain.setTargetAtTime(0.82,ctx.currentTime,0.12);
-        nextStepTime=ctx.currentTime+0.14;
-        scheduler=setInterval(schedulerTick,80);
-        schedulerTick();
-        switchTimer=null;
-      },220);
-    }
-    themeSelect.value=theme;
-    setStatus(themeLabel(theme)+(enabled?" · switching track":" · ready"));
+    if (!progression[next]) return;
+    // A theme change affects the next musical phrases only. Do not stop the
+    // AudioContext, silence active notes, reset the beat, or restart the scheduler.
+    // This keeps playback continuous while allowing the arrangement to evolve.
+    theme = next;
+    themeSelect.value = theme;
+    setStatus(themeLabel(theme) + (enabled ? " · playing" : " · ready"));
+    persist();
   }
 
   const style = document.createElement("style");
@@ -327,28 +320,14 @@
   function setPageMusicEnabled(value) {
     pageMusic = Boolean(value);
     pageMode.checked = pageMusic;
-    if (!pageMusic) {
-      if (switchTimer) clearTimeout(switchTimer);
-      switchTimer = null;
-      if (pendingPreviousTheme) theme = pendingPreviousTheme;
-      pendingPreviousTheme = null;
-      themeSelect.value = theme;
-      if (ctx && enabled) {
-        if (scheduler) clearInterval(scheduler);
-        scheduler = null;
-        silenceCurrentVoices();
-        step = 0; chordIndex = -1;
-        musicBus.gain.cancelScheduledValues(ctx.currentTime);
-        musicBus.gain.setValueAtTime(0.0001, ctx.currentTime);
-        musicBus.gain.setTargetAtTime(0.82, ctx.currentTime, 0.12);
-        nextStepTime = ctx.currentTime + 0.14;
-        scheduler = setInterval(schedulerTick, 80);
-        schedulerTick();
-      }
-      setStatus(themeLabel(theme) + " · page matching off");
-    } else {
-      setStatus("Page-matched music enabled");
+    if (pageMusic) {
       changeTheme(getPageTheme(location.pathname));
+      setStatus(themeLabel(theme) + " · page matching on");
+    } else {
+      // The current selected theme is now pinned. Nothing in the audio engine
+      // needs to be restarted because theme changes no longer interrupt playback.
+      themeSelect.value = theme;
+      setStatus(themeLabel(theme) + " · page matching off");
     }
     persist();
   }
@@ -417,9 +396,7 @@
     play:start,pause:stop,playEvent:eventSound,setTheme:changeTheme,
     onPageChange(pathname){
       if (!pageMusic) return;
-      // Defer until the incoming page DOM is present, so title-based matching is current.
-      const next=getPageTheme(pathname);
-      changeTheme(next);
+      changeTheme(getPageTheme(pathname));
     },
     get pageMusic(){ return pageMusic; },
     setPageMusic(value){ setPageMusicEnabled(value); },
