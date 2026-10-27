@@ -65,7 +65,10 @@
         const parsed = new DOMParser().parseFromString(markup, 'text/html');
         if (!parsed.body || !parsed.title) throw new Error('Invalid page response');
 
-        const playerNodes = ['hp-sound-orb','hp-sound-panel']
+        // Keep shared floating controls mounted while page content is swapped.
+        // The terminal owns event listeners and state, so rebuilding it on every
+        // navigation can make its launcher disappear.
+        const persistentNodes = ['hp-sound-orb','hp-sound-panel','hp-terminal-launcher','hp-terminal']
           .map(id => document.getElementById(id)).filter(Boolean);
         const bodyAttrs = [...parsed.body.attributes].map(a => [a.name,a.value]);
         [...document.body.attributes].forEach(a => document.body.removeAttribute(a.name));
@@ -74,7 +77,7 @@
         [...parsed.body.childNodes].forEach(node => {
           if (!(node.nodeType === 1 && node.tagName === 'SCRIPT')) document.body.append(node.cloneNode(true));
         });
-        playerNodes.forEach(node => document.body.append(node));
+        persistentNodes.forEach(node => document.body.append(node));
 
         // Refresh page-specific CSS/metadata, but leave the shared runtime scripts
         // alone so its audio engine and playback position are never restarted.
@@ -116,6 +119,8 @@
         }
         window.scrollTo(0,0);
         window.dispatchEvent(new CustomEvent('hyperpop:navigate',{detail:{url:target.href,path:target.pathname}}));
+        // Re-evaluate the unlock state without recreating the preserved terminal.
+        window.HyperPopCommandPrompt?.sync?.();
         if (window.HyperPopSoundtrack?.setTheme) {
           const p=target.pathname.toLowerCase();
           const next=/dont|do-not-press/.test(p)?'danger':/random|surprise/.test(p)?'surprise':/leaderboard|account|accounts|auth|profile/.test(p)?'menu':/memory/.test(p)?'memory':/number|math|calc/.test(p)?'puzzle':/reaction|aim|clicker|sheep|game|craft|maze|stock|pop/.test(p)?'arcade':/proxy|browser|search/.test(p)?'explore':/tool|terminal|recipe|settings/.test(p)?'tools':'dreamscape';
