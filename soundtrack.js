@@ -14,7 +14,7 @@
 
   const getPageTheme = (pathname = location.pathname) => {
     const path = String(pathname).toLowerCase().split("?")[0].split("#")[0];
-    const file = (path.split("/").pop() || "index").replace(/\\.html?$/, "");
+    const file = (path.split("/").pop() || "index").replace(/\.html?$/, "");
     const explicit = {
       "": "dreamscape", "index": "dreamscape",
       "proxy": "explore", "proxy-legacy": "explore",
