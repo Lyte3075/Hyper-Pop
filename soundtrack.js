@@ -262,6 +262,23 @@
   if (document.body) mountPlayer();
   else document.addEventListener("DOMContentLoaded", mountPlayer, { once: true });
   const vol=panel.querySelector("#hp-sound-volume"), themeSelect=panel.querySelector("#hp-sound-theme");
+  const defaultInset=14;
+  function applyAnchoredPosition(pos){
+    const w=orb.offsetWidth||42,h=orb.offsetHeight||42;
+    const right=Math.max(defaultInset,Math.min(innerWidth-w-defaultInset,Number(pos.right ?? defaultInset)));
+    const bottom=Math.max(defaultInset,Math.min(innerHeight-h-defaultInset,Number(pos.bottom ?? defaultInset)));
+    orb.style.left="auto";orb.style.top="auto";orb.style.right=right+"px";orb.style.bottom=bottom+"px";
+  }
+  function saveAnchoredPosition(){
+    const r=orb.getBoundingClientRect();
+    const rightSide=(innerWidth-r.right)<r.left;
+    const bottomSide=(innerHeight-r.bottom)<r.top;
+    const pos={right:rightSide?innerWidth-r.right:undefined,left:rightSide?undefined:r.left,bottom:bottomSide?innerHeight-r.bottom:undefined,top:bottomSide?undefined:r.top};
+    // Convert to edge-anchored insets so rotation/resizing keeps the same corner relationship.
+    const anchored={right:rightSide?pos.right:Math.max(defaultInset,innerWidth-r.left-orb.offsetWidth),bottom:bottomSide?pos.bottom:Math.max(defaultInset,innerHeight-r.top-orb.offsetHeight)};
+    applyAnchoredPosition(anchored);
+    try{localStorage.setItem("hyper-pop-sound-orb-position",JSON.stringify(anchored));}catch(_){}
+  }
   themeSelect.value=theme;
   function positionPanel() {
     if (panel.hidden || !orb.isConnected) return;
@@ -281,7 +298,7 @@
   orb.addEventListener("click",()=>{ if(movedOrb){movedOrb=false;return;} openPanel(!playerOpen); });
   panel.querySelector("#hp-sound-close").addEventListener("click",()=>openPanel(false));
   panel.querySelector("#hp-sound-reset").addEventListener("click",()=>{
-    orb.style.left=""; orb.style.top=""; orb.style.right="14px"; orb.style.bottom="14px";
+    applyAnchoredPosition({right:defaultInset,bottom:defaultInset});
     try{localStorage.removeItem("hyper-pop-sound-orb-position");}catch(_){}
     positionPanel();
   });
@@ -314,21 +331,37 @@
     if(drag&&drag.moved){
       movedOrb=true;
       const r=orb.getBoundingClientRect();
-      try{localStorage.setItem("hyper-pop-sound-orb-position",JSON.stringify({x:r.left,y:r.top}));}catch(_){}
+      saveAnchoredPosition();
       positionPanel();
     }
     drag=null;
   };
   orb.addEventListener("pointerup",finishDrag);
   orb.addEventListener("pointercancel",finishDrag);
-  window.addEventListener("resize",()=>{
-    const r=orb.getBoundingClientRect();
-    orb.style.left=Math.max(0,Math.min(innerWidth-orb.offsetWidth,r.left))+"px";
-    orb.style.top=Math.max(0,Math.min(innerHeight-orb.offsetHeight,r.top))+"px";
-    orb.style.right="auto";orb.style.bottom="auto";
-    positionPanel();
-  });
-  try{const p=JSON.parse(localStorage.getItem("hyper-pop-sound-orb-position")||"null");if(p&&Number.isFinite(p.x)&&Number.isFinite(p.y)){orb.style.left=Math.max(0,Math.min(innerWidth-54,p.x))+"px";orb.style.top=Math.max(0,Math.min(innerHeight-54,p.y))+"px";orb.style.right="auto";orb.style.bottom="auto";}}catch(_){}
+  let resizeFrame=0;
+  function repositionForViewport(){
+    cancelAnimationFrame(resizeFrame);
+    resizeFrame=requestAnimationFrame(()=>{
+      let saved=null;
+      try{saved=JSON.parse(localStorage.getItem("hyper-pop-sound-orb-position")||"null");}catch(_){}
+      if(saved&&Number.isFinite(saved.right)&&Number.isFinite(saved.bottom)){
+        applyAnchoredPosition(saved);
+      }else if(saved&&Number.isFinite(saved.x)&&Number.isFinite(saved.y)){
+        // Migrate older absolute-coordinate saves into a stable corner anchor.
+        const x=Math.max(defaultInset,Math.min(innerWidth-orb.offsetWidth-defaultInset,saved.x));
+        const y=Math.max(defaultInset,Math.min(innerHeight-orb.offsetHeight-defaultInset,saved.y));
+        applyAnchoredPosition({right:innerWidth-x-orb.offsetWidth< x ? innerWidth-x-orb.offsetWidth:Math.max(defaultInset,innerWidth-x-orb.offsetWidth),bottom:Math.max(defaultInset,innerHeight-y-orb.offsetHeight)});
+        saveAnchoredPosition();
+      }else{
+        applyAnchoredPosition({right:defaultInset,bottom:defaultInset});
+      }
+      positionPanel();
+    });
+  }
+  window.addEventListener("resize",repositionForViewport,{passive:true});
+  window.addEventListener("orientationchange",repositionForViewport,{passive:true});
+  if(window.visualViewport) window.visualViewport.addEventListener("resize",repositionForViewport,{passive:true});
+  repositionForViewport();
 
   if(playerOpen) positionPanel();
 
