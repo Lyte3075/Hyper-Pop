@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Maze of Shadows: The Overgrowth: The Overgrowth</title>
+    <title>Maze of Shadows: The Overgrowth</title>
     <style>
         body, html {
             margin: 0; padding: 0;
@@ -49,11 +49,11 @@
 
         #ui {
             position: absolute; top: 15px; left: 15px;
-            color: #a8ff55; font-size: 13px; z-index: 20;
+            color: #ff3333; font-size: 13px; z-index: 20;
             pointer-events: none; text-shadow: 0 0 5px #000;
         }
         .bar-bg { width: 140px; height: 8px; background: #222; border: 1px solid #555; margin: 3px 0 6px 0; }
-        #health-bar { width: 100%; height: 100%; background: #75e34b; }
+        #health-bar { width: 100%; height: 100%; background: #ff0000; }
         #stamina-bar { width: 100%; height: 100%; background: #00ff88; }
         #battery-bar { width: 100%; height: 100%; background: #ffff00; }
 
@@ -63,7 +63,7 @@
         }
         #danger-level {
             color: #ff3300; font-weight: bold; font-size: 12px; margin-bottom: 8px;
-            text-shadow: 0 0 5px #75e34b;
+            text-shadow: 0 0 5px #ff0000;
         }
 
         .game-btn {
@@ -80,7 +80,7 @@
 
         #game-over {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(20, 0, 0, 0.95); color: #75e34b;
+            background: rgba(20, 0, 0, 0.95); color: #ff0000;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             z-index: 30; font-size: 24px; display: none; text-align: center; padding: 20px;
             box-sizing: border-box;
@@ -91,7 +91,7 @@
         }
         #start-btn {
             padding: 12px 28px; font-size: 16px; background: #330000;
-            color: #fff; border: 1px solid #75e34b; margin-top: 25px; cursor: pointer;
+            color: #fff; border: 1px solid #ff0000; margin-top: 25px; cursor: pointer;
         }
     #hp-back{position:fixed;left:14px;top:14px;z-index:1000;padding:9px 13px;border:1px solid #ffffff33;border-radius:11px;background:#050505dd;color:#fff;text-decoration:none;font:700 13px monospace;backdrop-filter:blur(8px);box-shadow:0 8px 24px #0008}#hp-back:hover{border-color:#f44;color:#fff}
 </style>
@@ -99,7 +99,7 @@
 <style id="hyperpop-back-style">#hyperpop-back{position:fixed;top:14px;right:14px;left:auto;z-index:9999;display:flex;align-items:center;gap:7px;padding:9px 13px;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:rgba(10,10,20,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;text-decoration:none;font:700 13px system-ui,sans-serif;box-shadow:0 8px 30px #0008;cursor:pointer;touch-action:manipulation}#hyperpop-back:hover{background:rgba(255,255,255,.14);transform:translateY(-1px)}@media(max-width:600px){#hyperpop-back{top:10px;right:10px;left:auto;padding:8px 11px;font-size:12px}}</style></head>
 <body><a id="hyperpop-back" href="index.html" aria-label="Back to Hyper-Pop">← Hyper-Pop</a>
 
-    <a id="chapter-menu-back" href="maze-of-shadows-menu.html" aria-label="Back to chapter menu">← CHAPTER MENU</a><style>#chapter-menu-back{position:fixed;top:14px;left:14px;z-index:9999;padding:9px 13px;border:1px solid #a8ff5580;border-radius:999px;background:#061006dd;color:#d7ffc2;text-decoration:none;font:700 12px monospace;pointer-events:auto;touch-action:manipulation}</style><div id="game-container"></div>
+<div id="game-container"></div>
     <canvas id="fx-canvas"></canvas>
 
     <div id="ui">
@@ -354,10 +354,10 @@
         }
 
         function buildMaze() {
-            const wallMat = new THREE.MeshStandardMaterial({ color: 0x333338, roughness: 0.8 });
-            const floorMat = new THREE.MeshStandardMaterial({ color: 0x1a1a20, roughness: 0.7 });
-            const roofMat = new THREE.MeshStandardMaterial({ color: 0x222228, roughness: 0.9 });
-            const lockerMat = new THREE.MeshStandardMaterial({ color: 0x1c3b2b, metalness: 0.6, roughness: 0.4 });
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0x263b25, roughness: 0.95 });
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x172318, roughness: 1 });
+            const roofMat = new THREE.MeshStandardMaterial({ color: 0x101a12, roughness: 1 });
+            const lockerMat = new THREE.MeshStandardMaterial({ color: 0x25442a, metalness: 0.2, roughness: 0.9 });
 
             const mazeWidth = mazeGrid[0].length * cellSize;
             const mazeHeight = mazeGrid.length * cellSize;
