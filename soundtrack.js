@@ -20,7 +20,7 @@
     if (/leaderboard|account|accounts|auth|profile|login|signup/.test(path)) return "menu";
     if (/memory|matching|pairs/.test(path)) return "memory";
     if (/number|math|calc|puzzle|sudoku|wordle|trivia|quiz/.test(path)) return "puzzle";
-    if (/reaction|aim|clicker|sheep|game|craft|maze|stock|pop|snake|tetris|2048|flappy|runner|arcade|pong|minesweeper/.test(path)) return "arcade";
+    if (/reaction|aim|clicker|sheep|game|craft|maze|stock|pop|snake|tetris|2048|flappy|runner|arcade|pong|minesweeper|dino|slot|tic.?tac|dice|coin|jump|basket|breakout|space-invader|whack|pinball|memory-match/.test(path)) return "arcade";
     if (/proxy|browser|search|duck|korona/.test(path)) return "explore";
     if (/tool|terminal|recipe|settings|converter|generator/.test(path)) return "tools";
     return "dreamscape";
