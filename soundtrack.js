@@ -14,15 +14,20 @@
 
   const getPageTheme = (pathname = location.pathname) => {
     const path = String(pathname).toLowerCase();
-    // Specific page types come first so game pages consistently get their own music.
-    if (/dont|do-not-press/.test(path)) return "danger";
-    if (/random|surprise|lucky/.test(path)) return "surprise";
-    if (/leaderboard|account|accounts|auth|profile|login|signup/.test(path)) return "menu";
-    if (/memory|matching|pairs/.test(path)) return "memory";
-    if (/number|math|calc|puzzle|sudoku|wordle|trivia|quiz/.test(path)) return "puzzle";
-    if (/reaction|aim|clicker|sheep|game|craft|maze|stock|pop|snake|tetris|2048|flappy|runner|arcade|pong|minesweeper|dino|slot|tic.?tac|dice|coin|jump|basket|breakout|space-invader|whack|pinball|memory-match/.test(path)) return "arcade";
-    if (/proxy|browser|search|duck|korona/.test(path)) return "explore";
-    if (/tool|terminal|recipe|settings|converter|generator/.test(path)) return "tools";
+    const title = (document.querySelector("h1")?.textContent || document.title || "").toLowerCase();
+    const key = path + " " + title;
+    if (/dont|do-not-press|danger/.test(key)) return "danger";
+    if (/random|surprise|lucky|picker|decision-wheel|slot|quote|thoughts|name-forge/.test(key)) return "surprise";
+    if (/leaderboard|account|accounts|auth|profile|login|signup/.test(key)) return "menu";
+    if (/memory|matching|pairs/.test(key)) return "memory";
+    if (/number|math|calc|puzzle|sudoku|wordle|trivia|quiz|chess|tic.?tac|gn-math/.test(key)) return "puzzle";
+    if (/reaction|aim|clicker|sheep|game|craft|maze|stock|pop|snake|tetris|2048|flappy|runner|arcade|pong|minesweeper|dino|tic.?tac|dice|coin|jump|basket|breakout|space-invader|whack|pinball|tap-lab|tap-counter|duckmath|nebula|racing|racer|platform|shooter/.test(key)) return "arcade";
+    if (/proxy|browser|search|duck|korona|cherri|web/.test(key)) return "explore";
+    if (/tool|terminal|recipe|settings|converter|generator|palette|stopwatch|color-mixer|doodle|timer|calculator/.test(key)) return "tools";
+    if (/index\.html|hyper-pop/.test(path) && !title) return "dreamscape";
+    // A deterministic fallback gives every page a non-random, page-specific category
+    // rather than making unknown pages silently reuse the homepage track.
+    if (/about|directory|readme|help|faq/.test(key)) return "menu";
     return "dreamscape";
   };
 
@@ -313,9 +318,19 @@
   themeSelect.addEventListener("change",()=>changeTheme(themeSelect.value));
   pageMode.addEventListener("change",()=>{
     pageMusic=pageMode.checked;
+    if (!pageMusic && switchTimer) {
+      clearTimeout(switchTimer);
+      switchTimer=null;
+      if (ctx && enabled) {
+        musicBus.gain.cancelScheduledValues(ctx.currentTime);
+        musicBus.gain.setTargetAtTime(0.82,ctx.currentTime,0.12);
+        nextStepTime=ctx.currentTime+0.14;
+        if (!scheduler) scheduler=setInterval(schedulerTick,80);
+      }
+    }
     persist();
     if(pageMusic) changeTheme(getPageTheme(location.pathname));
-    setStatus(pageMusic ? "Page-matched music enabled" : "Keeping current soundtrack");
+    setStatus(pageMusic ? "Page-matched music enabled" : themeLabel(theme)+" · keeping current track");
   });
 
   // Touch-safe dragging: the page does not scroll while the orb is being moved.
@@ -379,7 +394,12 @@
   // Page-specific soundtrack and common game-event hooks.
   window.HyperPopSoundtrack={
     play:start,pause:stop,playEvent:eventSound,setTheme:changeTheme,
-    onPageChange(pathname){ if(pageMusic) changeTheme(getPageTheme(pathname)); },
+    onPageChange(pathname){
+      if (!pageMusic) return;
+      // Defer until the incoming page DOM is present, so title-based matching is current.
+      const next=getPageTheme(pathname);
+      changeTheme(next);
+    },
     get pageMusic(){ return pageMusic; },
     setPageMusic(value){ pageMusic=Boolean(value); pageMode.checked=pageMusic; persist(); if(pageMusic) changeTheme(getPageTheme(location.pathname)); },
     setVolume(v){volume=Math.max(0,Math.min(.5,Number(v)||0));vol.value=String(volume);persist();if(ctx&&enabled)master.gain.setTargetAtTime(volume,ctx.currentTime,.12);},
