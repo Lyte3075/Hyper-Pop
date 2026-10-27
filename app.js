@@ -4,8 +4,10 @@
   var base = new URL('.', script && script.src ? script.src : location.href);
   var path = location.pathname;
 
+  // FrameShot Classic intentionally has no shared soundtrack player.
+  var soundtrackDisabled = document.body && document.body.dataset.noSoundtrack === 'true';
   // Render a visible fallback orb immediately, even before soundtrack.js loads.
-  if (!document.getElementById('hp-sound-orb')) {
+  if (!soundtrackDisabled && !document.getElementById('hp-sound-orb')) {
     var fallbackStyle = document.createElement('style');
     fallbackStyle.textContent = '#hp-sound-orb{position:fixed!important;z-index:2147483647!important;right:14px;bottom:14px;width:42px;height:42px;border:1px solid #ffffff22;border-radius:12px;background:#0b0b12ef;color:#7df9ff;box-shadow:0 8px 30px #0008;display:grid;place-items:center;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-user-drag:none;backdrop-filter:blur(12px)} #hp-sound-orb svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}';
     (document.head || document.documentElement).appendChild(fallbackStyle);
@@ -26,7 +28,7 @@
     'account.js?v=split-2',
     'terminal.js?v=cmdfix-10'
   ];
-  files.push('soundtrack.js?v=dreamscape-9');
+  if (!soundtrackDisabled) files.push('soundtrack.js?v=page-mode-6');
 
   files.forEach(function(file){
     var node = document.createElement('script');
@@ -121,10 +123,8 @@
         window.dispatchEvent(new CustomEvent('hyperpop:navigate',{detail:{url:target.href,path:target.pathname}}));
         // Re-evaluate the unlock state without recreating the preserved terminal.
         window.HyperPopCommandPrompt?.sync?.();
-        if (window.HyperPopSoundtrack?.setTheme) {
-          const p=target.pathname.toLowerCase();
-          const next=/dont|do-not-press/.test(p)?'danger':/random|surprise/.test(p)?'surprise':/leaderboard|account|accounts|auth|profile/.test(p)?'menu':/memory/.test(p)?'memory':/number|math|calc/.test(p)?'puzzle':/reaction|aim|clicker|sheep|game|craft|maze|stock|pop/.test(p)?'arcade':/proxy|browser|search/.test(p)?'explore':/tool|terminal|recipe|settings/.test(p)?'tools':'dreamscape';
-          window.HyperPopSoundtrack.setTheme(next);
+        if (window.HyperPopSoundtrack?.onPageChange) {
+          window.HyperPopSoundtrack.onPageChange(target.pathname);
         }
       } catch (error) {
         console.warn('[Hyper-Pop] Soft navigation fell back to a full page load:',error);

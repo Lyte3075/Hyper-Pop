@@ -12,27 +12,51 @@
   if (!AudioContextClass) return;
 
 
-  const page = location.pathname.toLowerCase();
-  const getPageTheme = () => {
-    if (/dont|do-not-press/.test(page)) return "danger";
-    if (/random|surprise/.test(page)) return "surprise";
-    if (/leaderboard|account|accounts|auth|profile/.test(page)) return "menu";
-    if (/memory/.test(page)) return "memory";
-    if (/number|math|calc/.test(page)) return "puzzle";
-    if (/reaction|aim|clicker|sheep|game|craft|maze|stock|pop/.test(page)) return "arcade";
-    if (/proxy|browser|search/.test(page)) return "explore";
-    if (/tool|terminal|recipe|settings/.test(page)) return "tools";
+  const getPageTheme = (pathname = location.pathname) => {
+    const path = String(pathname).toLowerCase().split("?")[0].split("#")[0];
+    const file = (path.split("/").pop() || "index").replace(/\.html?$/, "");
+    const explicit = {
+      "": "dreamscape", "index": "dreamscape",
+      "proxy": "explore", "proxy-legacy": "explore",
+      "dont": "danger",
+      "accounts": "menu", "auth": "menu", "leaderboard": "menu",
+      "memory": "memory",
+      "number": "puzzle", "gn-math": "puzzle", "chess": "puzzle", "tictactoe": "puzzle",
+      "clicker": "arcade", "aim": "arcade", "color-rush": "arcade", "dino-run": "arcade",
+      "frameshot": "arcade", "frameshot-3d": "danger", "gravity-dodge": "arcade",
+      "hyper-craft": "arcade", "maze-of-shadows": "danger", "nebula-breach": "arcade",
+      "pong": "arcade", "reaction": "arcade", "snake": "arcade", "stocks": "arcade",
+      "tictactoe": "puzzle",
+      "coin": "surprise", "decision-wheel": "surprise", "dice": "surprise",
+      "higher-lower": "surprise", "picker": "surprise", "quote": "surprise",
+      "random": "surprise", "random-name": "surprise", "slot": "surprise", "thoughts": "surprise",
+      "color-mixer": "tools", "doodle": "tools", "palette": "tools",
+      "stopwatch": "tools", "tap-counter": "tools"
+    };
+    if (Object.prototype.hasOwnProperty.call(explicit, file)) return explicit[file];
+    const heading = (document.querySelector("h1")?.textContent || "").toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ").trim();
+    if (/web proxy|proxy|browser|search|korona|browse/.test(heading)) return "explore";
+    if (/tools|terminal|recipe|converter|generator|palette|stopwatch|color mixer|doodle|timer|calculator/.test(heading)) return "tools";
+    if (/do not press|danger|red button/.test(heading)) return "danger";
+    if (/memory|matching pairs/.test(heading)) return "memory";
+    if (/number sprint|math|puzzle|sudoku|wordle|trivia|quiz|crossword/.test(heading)) return "puzzle";
+    if (/random|surprise|lucky|picker|decision wheel|quote|fortune/.test(heading)) return "surprise";
+    if (/game|arcade|sheep|clicker|maze|snake|tetris|runner|pong|racing|shooter/.test(heading)) return "arcade";
+    if (/account|profile|login|sign up|help|about|directory/.test(heading)) return "menu";
     return "dreamscape";
   };
 
   let ctx, master, musicBus, fxBus, enabled = false, playerOpen = false;
   let volume = 0.2, scheduler = null, nextStepTime = 0, step = 0, chordIndex = -1;
+  let pageMusic = true;
   let theme = getPageTheme(), eventName = "Dreamscape", currentNodes = [];
-  let drag = null, movedOrb = false, lastEventAt = 0, switchTimer = null;
+  let drag = null, movedOrb = false, lastEventAt = 0, switchTimer = null, pendingPreviousTheme = null;
   try {
     const saved = JSON.parse(localStorage.getItem(STORE) || "{}");
     if (Number.isFinite(saved.volume)) volume = Math.max(0, Math.min(0.5, saved.volume));
     playerOpen = saved.open === true;
+    pageMusic = saved.pageMusic !== false;
   } catch (_) {}
 
   const progression = {
@@ -44,7 +68,7 @@
     puzzle: [[220,261.63,329.63,392],[246.94,293.66,369.99,440],[196,246.94,329.63,392],[174.61,220,293.66,349.23]],
     memory: [[261.63,329.63,392,493.88],[220,261.63,329.63,392],[246.94,311.13,369.99,440],[196,246.94,293.66,392]],
     surprise: [[293.66,369.99,440,587.33],[220,277.18,329.63,440],[261.63,329.63,392,523.25],[196,246.94,329.63,392]],
-    danger: [[164.81,196,246.94,293.66],[146.83,174.61,220,261.63],[164.81,207.65,246.94,311.13],[130.81,196,233.08,293.66]]
+    danger: [[146.83,174.61,220,261.63],[130.81,155.56,196,233.08],[116.54,146.83,174.61,220],[130.81,155.56,196,233.08]]
   };
   const tracks = {
     dreamscape:{bpm:76,wave:"sine",motif:[0,2,4,7,4,2,1,4,7,4,2,5,4,2,0,2],extra:4,filter:2300},
@@ -55,12 +79,12 @@
     puzzle:{bpm:58,wave:"triangle",motif:[0,2,5,4,1,3,6,4,2,5,3,1,4,6,3,2],extra:8,filter:1400},
     memory:{bpm:72,wave:"sine",motif:[0,3,5,7,5,3,2,4,6,4,2,1,3,5,4,2],extra:5,filter:1900},
     surprise:{bpm:104,wave:"triangle",motif:[0,4,7,3,8,5,2,6,1,7,4,8,3,6,2,5],extra:2,filter:3500},
-    danger:{bpm:88,wave:"sawtooth",motif:[0,1,4,2,0,5,3,1,6,4,2,0,3,5,1,2],extra:2,filter:1100}
+    danger:{bpm:84,wave:"triangle",motif:[0,2,1,3,2,1,0,2,3,2,1,0,1,3,2,1],extra:4,filter:1450}
   };
   const scale = [0,2,4,7,9,12,14,16,19];
 
   function persist() {
-    try { localStorage.setItem(STORE, JSON.stringify({volume, open:playerOpen})); } catch (_) {}
+    try { localStorage.setItem(STORE, JSON.stringify({volume, open:playerOpen, pageMusic})); } catch (_) {}
   }
   function initAudio() {
     if (ctx) return;
@@ -134,7 +158,7 @@
     const idx = track.motif[step % track.motif.length];
     const base = chord[idx % chord.length] * (step % 8 === 6 ? 2 : 1);
     tone(base, when, {type:track.wave, level:theme==="arcade" ? 0.009 : 0.013, attack:theme==="arcade" ? 0.025 : 0.12, hold:0.18, release:theme==="arcade" ? 0.35 : 1.1, cutoff:track.filter});
-    if (step % track.extra === 0) tone(base * (theme==="danger" ? 1.414 : 1.5), when + (theme==="arcade" ? 0.06 : 0.16), {type:theme==="danger" ? "sawtooth" : "sine", level:0.006, attack:0.08, hold:0.12, release:theme==="arcade" ? 0.3 : 1.4, cutoff:track.filter*1.2});
+    if (step % track.extra === 0) tone(base * (theme==="danger" ? 1.5 : 1.5), when + (theme==="arcade" ? 0.06 : 0.16), {type:theme==="danger" ? "triangle" : "sine", level:theme==="danger" ? 0.0045 : 0.006, attack:0.08, hold:0.12, release:theme==="arcade" ? 0.3 : 1.4, cutoff:track.filter*1.2});
     if (theme === "arcade" && step % 2 === 0) tone(base / 2, when, {type:"square", level:0.008, attack:0.015, hold:0.09, release:0.22, cutoff:900});
     step++;
   }
@@ -205,29 +229,14 @@
     old.forEach(node=>{ try{node.onended=null; node.stop();}catch(_){} });
   }
   function changeTheme(next) {
-    if (!progression[next] || next===theme) return;
-    theme=next;
-    if (switchTimer) clearTimeout(switchTimer);
-    if(enabled && ctx) {
-      if(scheduler) clearInterval(scheduler);
-      scheduler=null;
-      musicBus.gain.cancelScheduledValues(ctx.currentTime);
-      musicBus.gain.setTargetAtTime(0.0001,ctx.currentTime,0.06);
-      switchTimer=setTimeout(()=>{
-        silenceCurrentVoices();
-        step=0; chordIndex=-1;
-        if(!enabled || !ctx) return;
-        musicBus.gain.cancelScheduledValues(ctx.currentTime);
-        musicBus.gain.setValueAtTime(0.0001,ctx.currentTime);
-        musicBus.gain.setTargetAtTime(0.82,ctx.currentTime,0.12);
-        nextStepTime=ctx.currentTime+0.14;
-        scheduler=setInterval(schedulerTick,80);
-        schedulerTick();
-        switchTimer=null;
-      },220);
-    }
-    themeSelect.value=theme;
-    setStatus(themeLabel(theme)+(enabled?" · switching track":" · ready"));
+    if (!progression[next]) return;
+    // A theme change affects the next musical phrases only. Do not stop the
+    // AudioContext, silence active notes, reset the beat, or restart the scheduler.
+    // This keeps playback continuous while allowing the arrangement to evolve.
+    theme = next;
+    themeSelect.value = theme;
+    setStatus(themeLabel(theme) + (enabled ? " · playing" : " · ready"));
+    persist();
   }
 
   const style = document.createElement("style");
@@ -236,7 +245,7 @@
     #hp-sound-orb:active{transform:scale(.94);border-color:#7df9ff88}#hp-sound-orb:focus-visible{outline:3px solid #7df9ff;outline-offset:3px}
     #hp-sound-orb svg{width:20px;height:20px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
     #hp-sound-panel{position:fixed;z-index:9999;left:auto;top:auto;right:18px;bottom:82px;width:min(300px,calc(100vw - 28px));padding:15px;border-radius:20px;border:1px solid #9b7bff55;background:rgba(15,14,31,.94);color:#f7f4ff;box-shadow:0 16px 50px #0008;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);font:13px/1.4 system-ui,sans-serif}
-    #hp-sound-panel[hidden]{display:none}#hp-sound-panel .hp-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}#hp-sound-panel .hp-logo{width:38px;height:38px;display:grid;place-items:center;border-radius:13px;background:#9b7bff25;font-size:22px}#hp-sound-panel .hp-title{font-size:15px;font-weight:750}#hp-sound-panel .hp-muted{font-size:11px;color:#aaa7c1;margin-top:2px}#hp-sound-panel .hp-close{margin-left:auto;background:transparent;border:0;color:#aaa7c1;font-size:22px;cursor:pointer}#hp-sound-panel .hp-reset{width:24px;height:24px;min-width:24px;padding:0!important;display:grid;place-items:center;border-radius:7px!important;font-size:13px!important;color:#7df9ff!important;border-color:#7df9ff44!important}#hp-sound-panel button:not(.hp-close){background:#ffffff0c;color:#fff;border:1px solid #ffffff22;border-radius:11px;padding:9px 11px;font:inherit;cursor:pointer}#hp-sound-panel .hp-actions{display:flex;gap:8px;align-items:center}#hp-sound-panel .hp-play{flex:1;background:#9b7bff26!important}#hp-sound-panel label{display:block;color:#aaa7c1;font-size:10px;letter-spacing:.08em;margin:12px 0 5px}#hp-sound-panel input{width:100%;accent-color:#9b7bff}#hp-sound-panel select{width:100%;padding:9px;background:#17162a;color:#fff;border:1px solid #ffffff22;border-radius:10px;font:inherit}
+    #hp-sound-panel[hidden]{display:none}#hp-sound-panel .hp-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}#hp-sound-panel .hp-logo{width:38px;height:38px;display:grid;place-items:center;border-radius:13px;background:#9b7bff25;font-size:22px}#hp-sound-panel .hp-title{font-size:15px;font-weight:750}#hp-sound-panel .hp-muted{font-size:11px;color:#aaa7c1;margin-top:2px}#hp-sound-panel .hp-close{margin-left:auto;background:transparent;border:0;color:#aaa7c1;font-size:22px;cursor:pointer}#hp-sound-panel .hp-reset{width:24px;height:24px;min-width:24px;padding:0!important;display:grid;place-items:center;border-radius:7px!important;font-size:13px!important;color:#7df9ff!important;border-color:#7df9ff44!important}#hp-sound-panel button:not(.hp-close){background:#ffffff0c;color:#fff;border:1px solid #ffffff22;border-radius:11px;padding:9px 11px;font:inherit;cursor:pointer}#hp-sound-panel .hp-actions{display:flex;gap:8px;align-items:center}#hp-sound-panel .hp-play{flex:1;background:#9b7bff26!important}#hp-sound-panel label{display:block;color:#aaa7c1;font-size:10px;letter-spacing:.08em;margin:12px 0 5px}#hp-sound-panel input{width:100%;accent-color:#9b7bff}#hp-sound-panel .hp-setting{display:flex;align-items:center;gap:9px;margin-top:13px;padding:10px;border:1px solid #ffffff18;border-radius:12px;background:#ffffff06;color:#eeeafc;font-size:12px;letter-spacing:0}#hp-sound-panel .hp-setting input{width:16px;height:16px;flex:0 0 16px;margin:0}#hp-sound-panel .hp-setting span{display:block}#hp-sound-panel .hp-setting small{display:block;color:#aaa7c1;font-size:10px;margin-top:2px}#hp-sound-panel select{width:100%;padding:9px;background:#17162a;color:#fff;border:1px solid #ffffff22;border-radius:10px;font:inherit}
     @media(max-width:500px){#hp-sound-orb{right:14px;bottom:14px;width:42px;height:42px}#hp-sound-panel{right:12px;bottom:68px}}
   `;
   document.head.appendChild(style);
@@ -252,6 +261,7 @@
       <option value="dreamscape">Dreamscape · homepage</option><option value="explore">Open Skies · browsing</option><option value="tools">Soft Circuits · tools</option><option value="menu">Starlight Menu · accounts</option><option value="arcade">Arcade Drift · games</option><option value="puzzle">Quiet Focus · puzzles</option><option value="memory">Memory Garden · memory games</option><option value="surprise">Wonder Loop · surprises</option><option value="danger">Redshift · danger</option>
     </select>
     <label for="hp-sound-volume">VOLUME</label><input id="hp-sound-volume" type="range" min="0" max="0.5" step="0.01" value="${volume}" aria-label="Music volume">
+    <label class="hp-setting" for="hp-sound-page-mode"><input id="hp-sound-page-mode" type="checkbox" ${pageMusic ? "checked" : ""}><span><strong>Match music to each page</strong><small>Games use Arcade Drift, puzzles use Quiet Focus, and so on. Turn off to keep your current song.</small></span></label>
     <div class="hp-muted" style="margin-top:9px">Original instrumental soundscapes · tap Play if your browser blocks autoplay</div>
   `;
   const mountPlayer = () => {
@@ -262,6 +272,7 @@
   if (document.body) mountPlayer();
   else document.addEventListener("DOMContentLoaded", mountPlayer, { once: true });
   const vol=panel.querySelector("#hp-sound-volume"), themeSelect=panel.querySelector("#hp-sound-theme");
+  const pageMode=panel.querySelector("#hp-sound-page-mode");
   const defaultInset=14;
   function applyAnchoredPosition(pos){
     const w=orb.offsetWidth||42,h=orb.offsetHeight||42;
@@ -306,6 +317,21 @@
   panel.querySelector("#hp-sound-mute").addEventListener("click",()=>{if(enabled && volume>0){volume=0;vol.value="0";if(ctx)master.gain.setTargetAtTime(0,ctx.currentTime,.12);}else{if(volume===0){volume=.2;vol.value=".2";} if(!enabled)start(); else if(ctx)master.gain.setTargetAtTime(volume,ctx.currentTime,.12);}persist();});
   vol.addEventListener("input",()=>{volume=Number(vol.value);persist();if(ctx&&enabled)master.gain.setTargetAtTime(volume,ctx.currentTime,.12);});
   themeSelect.addEventListener("change",()=>changeTheme(themeSelect.value));
+  function setPageMusicEnabled(value) {
+    pageMusic = Boolean(value);
+    pageMode.checked = pageMusic;
+    if (pageMusic) {
+      changeTheme(getPageTheme(location.pathname));
+      setStatus(themeLabel(theme) + " · page matching on");
+    } else {
+      // The current selected theme is now pinned. Nothing in the audio engine
+      // needs to be restarted because theme changes no longer interrupt playback.
+      themeSelect.value = theme;
+      setStatus(themeLabel(theme) + " · page matching off");
+    }
+    persist();
+  }
+  pageMode.addEventListener("change", () => setPageMusicEnabled(pageMode.checked));
 
   // Touch-safe dragging: the page does not scroll while the orb is being moved.
   orb.addEventListener("dragstart",e=>e.preventDefault());
@@ -368,6 +394,12 @@
   // Page-specific soundtrack and common game-event hooks.
   window.HyperPopSoundtrack={
     play:start,pause:stop,playEvent:eventSound,setTheme:changeTheme,
+    onPageChange(pathname){
+      if (!pageMusic) return;
+      changeTheme(getPageTheme(pathname));
+    },
+    get pageMusic(){ return pageMusic; },
+    setPageMusic(value){ setPageMusicEnabled(value); },
     setVolume(v){volume=Math.max(0,Math.min(.5,Number(v)||0));vol.value=String(volume);persist();if(ctx&&enabled)master.gain.setTargetAtTime(volume,ctx.currentTime,.12);},
     get enabled(){return enabled;},
     get theme(){return theme;}
