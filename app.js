@@ -8,13 +8,13 @@
   // Render a visible fallback orb immediately, even before soundtrack.js loads.
   if (!excluded && !document.getElementById('hp-sound-orb')) {
     var fallbackStyle = document.createElement('style');
-    fallbackStyle.textContent = '#hp-sound-orb{position:fixed!important;z-index:2147483647!important;right:12px;bottom:12px;width:50px;height:50px;border:1px solid #b8a4ff;border-radius:18px;background:linear-gradient(145deg,#9b7bff,#4be0e3);color:#11111f;box-shadow:0 8px 30px #0008;display:grid;place-items:center;font-size:25px;cursor:pointer;touch-action:manipulation}';
+    fallbackStyle.textContent = '#hp-sound-orb{position:fixed!important;z-index:2147483647!important;right:14px;bottom:14px;width:42px;height:42px;border:1px solid #ffffff22;border-radius:12px;background:#0b0b12ef;color:#7df9ff;box-shadow:0 8px 30px #0008;display:grid;place-items:center;cursor:pointer;touch-action:manipulation;backdrop-filter:blur(12px)} #hp-sound-orb svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}';
     (document.head || document.documentElement).appendChild(fallbackStyle);
     var fallbackOrb = document.createElement('button');
     fallbackOrb.id = 'hp-sound-orb';
     fallbackOrb.type = 'button';
     fallbackOrb.setAttribute('aria-label', 'Open Hyper-Pop music player');
-    fallbackOrb.textContent = '✦';
+    fallbackOrb.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
     fallbackOrb.addEventListener('click', function(){
       if (!document.getElementById('hp-sound-panel')) console.warn('[Hyper-Pop] Music player script has not initialized yet.');
     });
