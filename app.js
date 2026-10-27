@@ -43,6 +43,7 @@
   // links are fetched and swapped while the shared player stays mounted.
   if (!window.__HP_SOFT_NAV__) {
     window.__HP_SOFT_NAV__ = true;
+    let currentUrl = location.href;
     document.head.querySelectorAll('style,link[rel="stylesheet"]').forEach(n=>n.setAttribute('data-hp-page-style',''));
     const sharedScripts = () => [...document.head.querySelectorAll('script[src]')];
     async function navigateHyperPop(url, addHistory=true) {
@@ -50,6 +51,7 @@
       if (target.origin !== location.origin || !target.pathname.startsWith(new URL('.', location.href).pathname)) {
         location.href = target.href; return;
       }
+      if (target.href === currentUrl) return;
       if (target.pathname === location.pathname && target.search === location.search) {
         if (target.hash) location.hash = target.hash;
         return;
@@ -85,6 +87,7 @@
         });
 
         if (addHistory) history.pushState({hyperPop:true}, '', target.pathname + target.search + target.hash);
+        currentUrl = target.href;
         // Load page-specific head scripts after the new body is in place.
         for (const oldScript of parsed.head.querySelectorAll('script[src]')) {
           const src = oldScript.getAttribute('src') || '';
