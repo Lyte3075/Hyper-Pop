@@ -48,7 +48,17 @@
     surprise: [[293.66,369.99,440,587.33],[220,277.18,329.63,440],[261.63,329.63,392,523.25],[196,246.94,329.63,392]],
     danger: [[164.81,196,246.94,293.66],[146.83,174.61,220,261.63],[164.81,207.65,246.94,311.13],[130.81,196,233.08,293.66]]
   };
-  const motif = [0,2,4,7,4,2,1,4,7,4,2,5,4,2,0,2];
+  const tracks = {
+    dreamscape:{bpm:76,wave:"sine",motif:[0,2,4,7,4,2,1,4,7,4,2,5,4,2,0,2],extra:4,filter:2300},
+    explore:{bpm:94,wave:"triangle",motif:[0,2,3,5,7,5,3,2,4,5,7,8,7,5,2,3],extra:2,filter:3200},
+    tools:{bpm:82,wave:"sine",motif:[0,3,1,4,2,5,3,6,4,2,5,1,3,0,4,2],extra:6,filter:1700},
+    menu:{bpm:68,wave:"sine",motif:[0,4,2,7,5,2,4,8,7,4,2,5,8,4,2,0],extra:3,filter:2800},
+    arcade:{bpm:118,wave:"square",motif:[0,2,4,2,5,4,7,5,0,2,5,7,8,7,5,2],extra:1,filter:1500},
+    puzzle:{bpm:58,wave:"triangle",motif:[0,2,5,4,1,3,6,4,2,5,3,1,4,6,3,2],extra:8,filter:1400},
+    memory:{bpm:72,wave:"sine",motif:[0,3,5,7,5,3,2,4,6,4,2,1,3,5,4,2],extra:5,filter:1900},
+    surprise:{bpm:104,wave:"triangle",motif:[0,4,7,3,8,5,2,6,1,7,4,8,3,6,2,5],extra:2,filter:3500},
+    danger:{bpm:88,wave:"sawtooth",motif:[0,1,4,2,0,5,3,1,6,4,2,0,3,5,1,2],extra:2,filter:1100}
+  };
   const scale = [0,2,4,7,9,12,14,16,19];
 
   function persist() {
@@ -122,25 +132,29 @@
   function beat(when) {
     if (step % 16 === 0) setChord(Math.floor(step / 16), when);
     const chord = (progression[theme] || progression.dreamscape)[Math.floor(step / 16) % 4];
-    const idx = motif[step % motif.length];
+    const track = tracks[theme] || tracks.dreamscape;
+    const idx = track.motif[step % track.motif.length];
     const base = chord[idx % chord.length] * (step % 8 === 6 ? 2 : 1);
-    tone(base, when, {type:"sine", level:0.013, attack:0.12, hold:0.18, release:1.1, cutoff:2300});
-    if (step % 4 === 2) tone(base * 1.5, when + 0.16, {type:"sine", level:0.006, attack:0.2, hold:0.12, release:1.4, cutoff:2800});
-    if (theme === "arcade" && step % 4 === 0) {
-      tone(base / 2, when, {type:"triangle", level:0.014, attack:0.025, hold:0.12, release:0.48, cutoff:900});
-    }
+    tone(base, when, {type:track.wave, level:theme==="arcade" ? 0.009 : 0.013, attack:theme==="arcade" ? 0.025 : 0.12, hold:0.18, release:theme==="arcade" ? 0.35 : 1.1, cutoff:track.filter});
+    if (step % track.extra === 0) tone(base * (theme==="danger" ? 1.414 : 1.5), when + (theme==="arcade" ? 0.06 : 0.16), {type:theme==="danger" ? "sawtooth" : "sine", level:0.006, attack:0.08, hold:0.12, release:theme==="arcade" ? 0.3 : 1.4, cutoff:track.filter*1.2});
+    if (theme === "arcade" && step % 2 === 0) tone(base / 2, when, {type:"square", level:0.008, attack:0.015, hold:0.09, release:0.22, cutoff:900});
     step++;
   }
   function schedulerTick() {
     if (!enabled || !ctx) return;
     while (nextStepTime < ctx.currentTime + 0.28) {
       beat(nextStepTime);
-      nextStepTime += 60 / 76 * 0.5;
+      nextStepTime += 60 / ((tracks[theme] || tracks.dreamscape).bpm) * 0.5;
     }
   }
   function start() {
     initAudio();
     ctx.resume().then(() => {
+      if (ctx.state !== "running") {
+        setStatus("Tap anywhere to start music");
+        updateControls();
+        return;
+      }
       enabled = true;
       master.gain.cancelScheduledValues(ctx.currentTime);
       master.gain.setTargetAtTime(volume, ctx.currentTime, 1.1);
@@ -201,18 +215,17 @@
 
   const style = document.createElement("style");
   style.textContent = `
-    #hp-sound-orb{position:fixed;z-index:10000;right:18px;bottom:18px;width:54px;height:54px;border:1px solid #b8a4ff88;border-radius:19px;background:linear-gradient(145deg,#9b7bff,#4be0e3);color:#11111f;box-shadow:0 8px 30px #0008,0 0 24px #9b7bff22;display:grid;place-items:center;font-size:25px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
-    #hp-sound-orb:active{cursor:grabbing}#hp-sound-orb:focus-visible{outline:3px solid #fff;outline-offset:3px}
-    #hp-sound-orb .hp-pulse{position:absolute;inset:-5px;border:1px solid #9b7bff77;border-radius:23px;animation:hp-sound-pulse 3s ease-in-out infinite;pointer-events:none}
-    @keyframes hp-sound-pulse{0%,100%{transform:scale(.94);opacity:.28}50%{transform:scale(1.1);opacity:.75}}
+    #hp-sound-orb{position:fixed;z-index:10000;right:14px;bottom:14px;width:42px;height:42px;border:1px solid #ffffff22;border-radius:12px;background:#0b0b12ef;color:#7df9ff;font:800 18px monospace;box-shadow:0 8px 30px #0008;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:grid;place-items:center;cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none;transition:transform .15s,border-color .15s}
+    #hp-sound-orb:active{transform:scale(.94);border-color:#7df9ff88}#hp-sound-orb:focus-visible{outline:3px solid #7df9ff;outline-offset:3px}
+    #hp-sound-orb svg{width:20px;height:20px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
     #hp-sound-panel{position:fixed;z-index:9999;right:18px;bottom:82px;width:min(300px,calc(100vw - 28px));padding:15px;border-radius:20px;border:1px solid #9b7bff55;background:rgba(15,14,31,.94);color:#f7f4ff;box-shadow:0 16px 50px #0008;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);font:13px/1.4 system-ui,sans-serif}
     #hp-sound-panel[hidden]{display:none}#hp-sound-panel .hp-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}#hp-sound-panel .hp-logo{width:38px;height:38px;display:grid;place-items:center;border-radius:13px;background:#9b7bff25;font-size:22px}#hp-sound-panel .hp-title{font-size:15px;font-weight:750}#hp-sound-panel .hp-muted{font-size:11px;color:#aaa7c1;margin-top:2px}#hp-sound-panel .hp-close{margin-left:auto;background:transparent;border:0;color:#aaa7c1;font-size:22px;cursor:pointer}#hp-sound-panel button:not(.hp-close){background:#ffffff0c;color:#fff;border:1px solid #ffffff22;border-radius:11px;padding:9px 11px;font:inherit;cursor:pointer}#hp-sound-panel .hp-actions{display:flex;gap:8px;align-items:center}#hp-sound-panel .hp-play{flex:1;background:#9b7bff26!important}#hp-sound-panel label{display:block;color:#aaa7c1;font-size:10px;letter-spacing:.08em;margin:12px 0 5px}#hp-sound-panel input{width:100%;accent-color:#9b7bff}#hp-sound-panel select{width:100%;padding:9px;background:#17162a;color:#fff;border:1px solid #ffffff22;border-radius:10px;font:inherit}
-    @media(max-width:500px){#hp-sound-orb{right:12px;bottom:12px;width:50px;height:50px}#hp-sound-panel{right:12px;bottom:72px}}
+    @media(max-width:500px){#hp-sound-orb{right:14px;bottom:14px;width:42px;height:42px}#hp-sound-panel{right:12px;bottom:68px}}
   `;
   document.head.appendChild(style);
   const orb=document.getElementById("hp-sound-orb") || document.createElement("button");
   orb.id="hp-sound-orb"; orb.type="button"; orb.setAttribute("aria-label","Open Hyper-Pop music player"); orb.setAttribute("aria-expanded",String(playerOpen));
-  orb.innerHTML='<span aria-hidden="true">✦</span><span class="hp-pulse"></span>';
+  orb.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
   const panel=document.createElement("section");
   panel.id="hp-sound-panel"; panel.hidden=!playerOpen; panel.setAttribute("aria-label","Hyper-Pop music player");
   panel.innerHTML=`
@@ -278,7 +291,18 @@
     if(e.key.length===1 && /[a-z0-9]/i.test(e.key) && !/INPUT|TEXTAREA/.test(e.target.tagName))eventSound("typing");
   });
 
-  // Attempt autoplay. Browsers that block audible autoplay leave a clear one-tap control.
-  setStatus("Starting soundtrack…");
+  // Try autoplay, then start on the first user gesture if the browser blocks sound.
+  setStatus("Ready · trying autoplay");
   start();
+  const startOnFirstGesture = () => {
+    if (!enabled) start();
+    if (enabled || (ctx && ctx.state === "running")) {
+      document.removeEventListener("pointerdown", startOnFirstGesture, true);
+      document.removeEventListener("touchstart", startOnFirstGesture, true);
+      document.removeEventListener("keydown", startOnFirstGesture, true);
+    }
+  };
+  document.addEventListener("pointerdown", startOnFirstGesture, true);
+  document.addEventListener("touchstart", startOnFirstGesture, true);
+  document.addEventListener("keydown", startOnFirstGesture, true);
 })();
