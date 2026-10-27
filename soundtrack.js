@@ -23,8 +23,8 @@
       "memory": "memory",
       "number": "puzzle", "gn-math": "puzzle", "chess": "puzzle", "tictactoe": "puzzle",
       "clicker": "arcade", "aim": "arcade", "color-rush": "arcade", "dino-run": "arcade",
-      "frameshot": "arcade", "frameshot-3d": "arcade", "gravity-dodge": "arcade",
-      "hyper-craft": "arcade", "maze-of-shadows": "arcade", "nebula-breach": "arcade",
+      "frameshot": "arcade", "frameshot-3d": "danger", "gravity-dodge": "arcade",
+      "hyper-craft": "arcade", "maze-of-shadows": "danger", "nebula-breach": "arcade",
       "pong": "arcade", "reaction": "arcade", "snake": "arcade", "stocks": "arcade",
       "tictactoe": "puzzle",
       "coin": "surprise", "decision-wheel": "surprise", "dice": "surprise",
@@ -68,7 +68,7 @@
     puzzle: [[220,261.63,329.63,392],[246.94,293.66,369.99,440],[196,246.94,329.63,392],[174.61,220,293.66,349.23]],
     memory: [[261.63,329.63,392,493.88],[220,261.63,329.63,392],[246.94,311.13,369.99,440],[196,246.94,293.66,392]],
     surprise: [[293.66,369.99,440,587.33],[220,277.18,329.63,440],[261.63,329.63,392,523.25],[196,246.94,329.63,392]],
-    danger: [[164.81,196,246.94,293.66],[146.83,174.61,220,261.63],[164.81,207.65,246.94,311.13],[130.81,196,233.08,293.66]]
+    danger: [[146.83,174.61,220,261.63],[130.81,155.56,196,233.08],[116.54,146.83,174.61,220],[130.81,155.56,196,233.08]]
   };
   const tracks = {
     dreamscape:{bpm:76,wave:"sine",motif:[0,2,4,7,4,2,1,4,7,4,2,5,4,2,0,2],extra:4,filter:2300},
@@ -79,7 +79,7 @@
     puzzle:{bpm:58,wave:"triangle",motif:[0,2,5,4,1,3,6,4,2,5,3,1,4,6,3,2],extra:8,filter:1400},
     memory:{bpm:72,wave:"sine",motif:[0,3,5,7,5,3,2,4,6,4,2,1,3,5,4,2],extra:5,filter:1900},
     surprise:{bpm:104,wave:"triangle",motif:[0,4,7,3,8,5,2,6,1,7,4,8,3,6,2,5],extra:2,filter:3500},
-    danger:{bpm:88,wave:"sawtooth",motif:[0,1,4,2,0,5,3,1,6,4,2,0,3,5,1,2],extra:2,filter:1100}
+    danger:{bpm:84,wave:"triangle",motif:[0,2,1,3,2,1,0,2,3,2,1,0,1,3,2,1],extra:4,filter:1450}
   };
   const scale = [0,2,4,7,9,12,14,16,19];
 
@@ -158,7 +158,7 @@
     const idx = track.motif[step % track.motif.length];
     const base = chord[idx % chord.length] * (step % 8 === 6 ? 2 : 1);
     tone(base, when, {type:track.wave, level:theme==="arcade" ? 0.009 : 0.013, attack:theme==="arcade" ? 0.025 : 0.12, hold:0.18, release:theme==="arcade" ? 0.35 : 1.1, cutoff:track.filter});
-    if (step % track.extra === 0) tone(base * (theme==="danger" ? 1.414 : 1.5), when + (theme==="arcade" ? 0.06 : 0.16), {type:theme==="danger" ? "sawtooth" : "sine", level:0.006, attack:0.08, hold:0.12, release:theme==="arcade" ? 0.3 : 1.4, cutoff:track.filter*1.2});
+    if (step % track.extra === 0) tone(base * (theme==="danger" ? 1.5 : 1.5), when + (theme==="arcade" ? 0.06 : 0.16), {type:theme==="danger" ? "triangle" : "sine", level:theme==="danger" ? 0.0045 : 0.006, attack:0.08, hold:0.12, release:theme==="arcade" ? 0.3 : 1.4, cutoff:track.filter*1.2});
     if (theme === "arcade" && step % 2 === 0) tone(base / 2, when, {type:"square", level:0.008, attack:0.015, hold:0.09, release:0.22, cutoff:900});
     step++;
   }
