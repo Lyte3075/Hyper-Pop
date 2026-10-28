@@ -1792,9 +1792,16 @@
         }
 
         function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
+            if (!camera || !renderer) return;
+            const container = document.getElementById('game-container');
+            const rect = container ? container.getBoundingClientRect() : null;
+            const width = Math.max(1, Math.round(rect && rect.width ? rect.width : window.innerWidth));
+            const height = Math.max(1, Math.round(rect && rect.height ? rect.height : window.innerHeight));
+            camera.aspect = width / height;
             camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setSize(width, height, false);
+            renderer.domElement.style.width = '100%';
+            renderer.domElement.style.height = '100%';
             resizeFxCanvas();
         }
 
