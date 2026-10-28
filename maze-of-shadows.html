@@ -159,11 +159,12 @@
         let rotation = { yaw: 0, pitch: 0 };
         let breathTimer = 0;
         let shakeIntensity = 0;
-        const walkSpeed = 0.07, sprintSpeed = 0.14;
+        const walkSpeed = 0.07, sprintSpeed = 0.14; // Sprint stamina lasts 25% longer via a lower drain rate.
 
         // Entities & World Arrays
         let lockers = [], monsters = [], wallBoxes = [], keys = [], items = [], exitGate = null;
         let exitGlowLight = null, exitDoorMesh = null, exitPadlocks = [];
+        let banisherActive = false, banisherNextAt = 45 + Math.random()*35, banisherUntil = 0, banisherSaved = null, banisherOverlay = null;
         let guideArrows = [], trailPoints = [];
 
         // Input Tracking
@@ -188,7 +189,10 @@
             'wraith': "HINT: The Wraith freezes when you look at it. Keep line of sight on it to escape!",
             'phantom': "HINT: The Phantom is nearly invisible. Look for its faint purple glow and tread quietly!",
             'banshee': "HINT: The Banshee moves super fast when it hears sprinting! Walk slowly when near it.",
-            'devourer': "HINT: The Devourer is an ultimate apex predator. Use Adrenaline shots to outrun it!"
+            'devourer': "HINT: The Devourer is an ultimate apex predator. Use Adrenaline shots to outrun it!",
+            'demogorgon': "HINT: The Demogorgon is relentless. Keep moving and use corners to break its approach.",
+            'smiler': "HINT: The Smiler's grin is a warning. Keep your distance and find a locker when the lights fail.",
+            'ghost': "HINT: The Ghost drifts silently through the dark. Watch for its pale blue glow."
         };
 
         // Huge 21x21 Grid (3 = Exit Wall)
@@ -889,15 +893,39 @@
         }
 
         function spawnMonster(type, x, z) {
-            let height=2.45, radius=0.34, eyeColor=0xff1b12;
-            if(type==='crawler')eyeColor=0xffe45c;if(type==='phantasm')eyeColor=0xb46bff;if(type==='wraith')eyeColor=0x65f4ff;if(type==='phantom')eyeColor=0xff5bff;if(type==='banshee')eyeColor=0xff8b28;
-            if(type==='devourer'){eyeColor=0xff0033;height=3.35;radius=0.58;}if(type==='brute'){eyeColor=0xff5a18;height=2.95;radius=0.48;}
-            const monster=new THREE.Group(),isGhost=['phantom','phantasm','wraith'].includes(type);
-            const bodyMat=new THREE.MeshStandardMaterial({color:type==='phantom'?0x211027:(type==='crawler'?0x181c19:0x101214),transparent:type==='phantom',opacity:type==='phantom'?0.58:1,roughness:0.94,metalness:0.02});
+            let height=2.45, radius=0.34, eyeColor=0xff1b1b, bodyColor=0x101214, opacity=1;
+            const colors={brute:[0xff5a18,0x241b18],stalker:[0xff2020,0x171313],crawler:[0xffe45c,0x182018],phantasm:[0xb46bff,0x342044],wraith:[0x65f4ff,0x253a40],phantom:[0xff5bff,0x211027],banshee:[0xff8b28,0x382015],devourer:[0xff0033,0x1d080d],ghost:[0xb9eaff,0x9ebed1],demogorgon:[0xff321f,0x5b211c],smiler:[0xfff3a1,0x090909]};
+            if(colors[type]){eyeColor=colors[type][0];bodyColor=colors[type][1];}
+            if(type==='devourer'){height=3.35;radius=0.58;}if(type==='brute'){height=2.95;radius=0.48;}
+            if(type==='demogorgon'){height=3.15;radius=0.46;}if(type==='smiler'){height=2.35;radius=0.38;}
+            const monster=new THREE.Group(),isGhost=['phantom','phantasm','wraith','ghost'].includes(type);
+            if(type==='phantom')opacity=0.58;if(type==='ghost')opacity=0.46;
+            const bodyMat=new THREE.MeshStandardMaterial({color:bodyColor,transparent:opacity<1,opacity,roughness:0.94,metalness:0.02});
             const boneMat=new THREE.MeshStandardMaterial({color:isGhost?0x403447:0x25292b,roughness:0.9}),mouthMat=new THREE.MeshStandardMaterial({color:0x030304,roughness:1}),eyeMat=new THREE.MeshBasicMaterial({color:eyeColor});
             const glowMat=new THREE.MeshBasicMaterial({color:eyeColor,transparent:true,opacity:0.22,side:THREE.DoubleSide});
             const orb=(x,y,z,mat,seg=20)=>{const m=new THREE.Mesh(new THREE.SphereGeometry(1,seg,Math.max(12,seg-4)),mat);m.scale.set(x,y,z);return m;};
             const torso=orb(radius*1.08,height*0.24,radius*0.76,bodyMat,24);torso.position.set(0,height*0.49,0);monster.add(torso);
+            if(type==='ghost'){
+                torso.scale.set(radius*0.95,height*0.31,radius*0.72);
+                const tail=new THREE.Mesh(new THREE.ConeGeometry(radius*0.72,height*0.55,12),bodyMat);tail.position.set(0,height*0.22,-0.02);tail.rotation.x=Math.PI;monster.add(tail);
+                for(let j=0;j<3;j++){const wisp=orb(0.07,0.14,0.07,glowMat,12);wisp.position.set((j-1)*0.17,height*(0.18+j*0.06),0.02);monster.add(wisp);}
+            }
+            if(type==='demogorgon'){
+                // Petal-shaped, open flower head with a dark central maw.
+                const petalsMat=new THREE.MeshStandardMaterial({color:0x8f3025,roughness:0.86});
+                for(let j=0;j<5;j++){const petal=orb(0.105,0.32,0.13,petalsMat,16);const a=j*Math.PI*2/5;petal.position.set(Math.cos(a)*0.22,height*0.82+Math.sin(a)*0.04,Math.sin(a)*0.2+0.12);petal.rotation.z=Math.cos(a)*0.72;petal.rotation.y=a;head.add(petal);}
+                const maw=orb(0.16,0.18,0.09,mouthMat,16);maw.position.set(0,0.0,0.26);head.add(maw);
+                for(let j=0;j<8;j++){const tooth=new THREE.Mesh(new THREE.ConeGeometry(0.025,0.09,6),boneMat);const a=j*Math.PI/4;tooth.position.set(Math.cos(a)*0.13,-0.01,0.32+Math.sin(a)*0.04);tooth.rotation.x=Math.PI;head.add(tooth);}
+            }
+            if(type==='smiler'){
+                // Backrooms-style silhouette: a floating black shape and a wide glowing crescent grin.
+                torso.scale.set(radius*1.0,height*0.3,radius*0.6);
+                const grinMat=new THREE.MeshBasicMaterial({color:0xfff4a8});
+                const grin=new THREE.Mesh(new THREE.TorusGeometry(0.24,0.035,8,28,Math.PI),grinMat);
+                grin.position.set(0,height*0.78,0.31);grin.rotation.z=Math.PI;head.add(grin);
+                for(let j=0;j<6;j++){const tooth=new THREE.Mesh(new THREE.BoxGeometry(0.045,0.075,0.025),grinMat);tooth.position.set(-0.18+j*0.072,height*0.78-0.025,0.33);head.add(tooth);}
+                for(const side of [-1,1]){const eye=orb(0.045,0.045,0.035,grinMat,12);eye.position.set(side*0.14,height*0.89,0.28);monster.add(eye);}
+            }
             const chest=orb(radius*0.83,height*0.18,radius*0.78,boneMat,20);chest.position.set(0,height*0.64,0.035);monster.add(chest);
             const hs=type==='devourer'?0.42:(type==='brute'?0.34:0.29),head=new THREE.Group();head.position.set(0,height*0.79,radius*0.1);monster.add(head);
             const skull=orb(hs*0.88,hs*1.15,hs*0.92,bodyMat,24);skull.position.y=hs*0.12;head.add(skull);
@@ -913,10 +941,15 @@
                 for(let j=0;j<3;j++){const claw=new THREE.Mesh(new THREE.ConeGeometry(0.045,0.22,8),boneMat);claw.position.set((j-1)*0.09,-len*1.16,radius*0.12);claw.rotation.x=-0.25;claw.rotation.z=Math.PI;arm.add(claw);}arms.push(arm);
                 const leg=new THREE.Group();leg.position.set(side*radius*0.37,height*0.29,0);monster.add(leg);const thigh=orb(radius*0.31,height*0.17,radius*0.33,boneMat,18);thigh.position.y=-height*0.075;leg.add(thigh);const shin=orb(radius*0.22,height*0.14,radius*0.23,bodyMat,18);shin.position.set(0,-height*0.2,radius*0.1);leg.add(shin);const foot=orb(radius*0.27,radius*0.13,radius*0.44,boneMat,18);foot.position.set(0,-height*0.29,radius*0.25);leg.add(foot);legs.push(leg);}
             if(type==='brute'||type==='devourer'){const hump=orb(radius*1.28,height*0.19,radius*0.95,boneMat,24);hump.position.set(0,height*0.65,-radius*0.45);monster.add(hump);for(let i=0;i<4;i++){const spike=new THREE.Mesh(new THREE.ConeGeometry(0.13,0.34,8),boneMat);spike.position.set((i-1.5)*radius*0.35,height*0.79,-radius*(0.65+(i%2)*0.2));spike.rotation.x=-0.5;monster.add(spike);}}
+            // Keep every decorative part attached to the creature group to prevent stray floating pieces.
+            monster.traverse(part=>{if(part.isMesh){part.frustumCulled=false;part.userData.monsterPart=true;}});
             if(type==='crawler'){monster.scale.set(1.18,0.62,1.25);torso.rotation.x=Math.PI/2.4;head.position.set(0,0.52,radius*1.1);arms.forEach((a,i)=>{a.position.y=0.5;a.rotation.z=i?-0.65:0.65;});legs.forEach((l,i)=>{l.position.y=0.26;l.rotation.z=i?-0.35:0.35;});}
             monster.position.set(x,type==='crawler'?0.24:0,z);
-            monster.userData={type,baseSpeed:type==='banshee'?0.045:0.035,isEnraged:false,dps:type==='brute'?35:(type==='devourer'?60:20),path:[],state:'patrol',repathTimer:0,lastTargetCell:null,armPivots:arms,legPivots:legs,headPivot:head,gaitTime:Math.random()*Math.PI*2,height,isGhost,radius,stuckTimer:0};
-            if(type==='devourer')monster.userData.baseSpeed=0.052;scene.add(monster);monsters.push(monster);
+            monster.userData={type,baseSpeed:type==='banshee'?0.045:(type==='demogorgon'?0.041:(type==='smiler'?0.038:0.035)),isEnraged:false,dps:type==='brute'?35:(type==='devourer'?60:(type==='demogorgon'?42:(type==='smiler'?30:20))),path:[],state:'patrol',repathTimer:0,lastTargetCell:null,armPivots:arms,legPivots:legs,headPivot:head,gaitTime:Math.random()*Math.PI*2,height,isGhost,radius,stuckTimer:0};
+            if(type==='devourer')monster.userData.baseSpeed=0.052;
+            if(type==='ghost')monster.userData.baseSpeed=0.032;
+            if(type==='smiler')monster.userData.baseSpeed=0.036;
+            scene.add(monster);monsters.push(monster);
         }
 
         function checkProgressiveDifficulty() {
@@ -938,6 +971,13 @@
             } else if (keysFound === 7 && monsters.length === 7) {
                 spawnMonster('devourer', 20, 60);
                 dangerElem.innerText = "THREAT LEVEL: EXTREME";
+            } else if (keysFound === 8 && !monsters.some(m=>m.userData.type==='demogorgon')) {
+                spawnMonster('demogorgon', 12, 68);
+                dangerElem.innerText = "THREAT LEVEL: CRITICAL";
+            } else if (keysFound === 9 && !monsters.some(m=>m.userData.type==='smiler')) {
+                spawnMonster('smiler', 68, 12);
+                spawnMonster('ghost', 12, 12);
+                dangerElem.innerText = "THREAT LEVEL: CRITICAL";
             }
         }
 
@@ -1167,12 +1207,52 @@
             }
         });
 
+        // THE BANISHER: a rare 30-second blackout encounter.
+        function playBanisherWarning(){
+            try{
+                const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+                const c=new AC(),now=c.currentTime;
+                // Original descending, rattling rush cue, inspired by horror-game warning stingers.
+                const master=c.createGain();master.gain.setValueAtTime(0.0001,now);master.gain.exponentialRampToValueAtTime(0.22,now+0.12);master.gain.exponentialRampToValueAtTime(0.0001,now+2.4);master.connect(c.destination);
+                for(let i=0;i<7;i++){const o=c.createOscillator(),g=c.createGain();o.type=i%2?'sawtooth':'triangle';o.frequency.setValueAtTime(240-i*24,now+i*0.08);o.frequency.exponentialRampToValueAtTime(42+i*3,now+1.8);g.gain.setValueAtTime(0.16,now+i*0.08);g.gain.exponentialRampToValueAtTime(0.0001,now+2.2);o.connect(g);g.connect(master);o.start(now+i*0.08);o.stop(now+2.3);}
+            }catch(e){}
+        }
+        function startBanisherEvent(now){
+            banisherActive=true;banisherUntil=now+30000;banisherSaved={ambient:ambientLight.intensity,flashlight:flashlight.intensity,bg:scene.background.clone(),fog:scene.fog.color.clone(),visibility:monsters.map(m=>m.visible)};
+            document.getElementById('status-msg').innerText="THE BANISHER IS HERE. HIDE.";
+            playBanisherWarning();
+            if(!isHidden){health=0;document.getElementById('status-text').innerText="THE BANISHER FOUND YOU";document.getElementById('death-hint').innerText="The Banisher wipes out every entity for 30 seconds. Only a locker can protect you.";document.getElementById('game-over').style.display='flex';isGameOver=true;return;}
+            monsters.forEach(m=>m.visible=false);
+            banisherOverlay=document.createElement('div');banisherOverlay.id='banisher-blackout';banisherOverlay.style.cssText='position:fixed;inset:0;background:#000;z-index:10000;pointer-events:none';document.body.appendChild(banisherOverlay);
+        }
+        function updateBanisher(now){
+            if(!banisherActive){
+                if(now>=banisherNextAt){startBanisherEvent(now);banisherNextAt=now+90000+Math.random()*90000;}
+                return;
+            }
+            if(!banisherOverlay||!document.getElementById('banisher-blackout')){
+                banisherOverlay=document.createElement('div');banisherOverlay.id='banisher-blackout';banisherOverlay.style.cssText='position:fixed;inset:0;background:#000;z-index:10000;pointer-events:none';document.body.appendChild(banisherOverlay);
+            }
+            // Brief, irregular light flickers before the blackout settles.
+            if(now<banisherUntil-27000){const flicker=Math.random();ambientLight.intensity=flicker>0.42?0.05:0;flashlight.intensity=flicker>0.55?0.18:0;banisherOverlay.style.opacity=flicker>0.55?'0.94':'1';}
+            else{ambientLight.intensity=0;flashlight.intensity=0;banisherOverlay.style.opacity='1';}
+            if(now>=banisherUntil){
+                banisherActive=false;
+                if(banisherSaved){ambientLight.intensity=banisherSaved.ambient;flashlight.intensity=flashlightOn?3.5:0;scene.background.copy(banisherSaved.bg);scene.fog.color.copy(banisherSaved.fog);monsters.forEach((m,i)=>m.visible=banisherSaved.visibility[i]!==false);}
+                if(banisherOverlay){banisherOverlay.remove();banisherOverlay=null;}
+                document.getElementById('status-msg').innerText="";
+                banisherNextAt=now+60000+Math.random()*90000;
+            }
+        }
+
         function animate() {
             if (isGameOver) return;
             requestAnimationFrame(animate);
             if (isPaused) { lastTime = performance.now(); return; }
 
             const now = performance.now();
+            updateBanisher(now);
+            if(banisherActive && isHidden){renderer.render(scene,camera);lastTime=now;return;}
             const delta = (now - lastTime) / 1000;
             lastTime = now;
 
@@ -1192,7 +1272,7 @@
             if ((isSprinting || keysPressed['ShiftLeft'] || adrenalineTimer > 0) && !isHidden) {
                 if ((stamina > 0 || adrenalineTimer > 0) && isMoving) {
                     speed = sprintSpeed * (adrenalineTimer > 0 ? 1.25 : 1.0);
-                    if (adrenalineTimer <= 0) stamina = Math.max(0, stamina - 0.6);
+                    if (adrenalineTimer <= 0) stamina = Math.max(0, stamina - 0.48);
                 }
             } else {
                 stamina = Math.min(maxStamina, stamina + 0.8);
