@@ -15,6 +15,7 @@
     const print=(text,cls='')=>{const d=document.createElement('div');d.className=cls;d.textContent=text;out.appendChild(d);out.scrollTop=out.scrollHeight};
     const help=`COMMANDS
 /help                  Show all commands
+/astra                  INSANE SITE WITH SOOOO MANY GOOD GAMES.
 /geography-lessons     A bunch of games
 /gust                  A really advanced static web proxy
 /helios                A built in web proxy
@@ -55,22 +56,27 @@ TIP: /js is the universal cheat and can be used for game-specific cheats too.`;
     function setCommon(n){const value=Number(n);if(!Number.isFinite(value))return false;const ids=['score','n','count','points','coins','money','clicks','best','high','total'];let touched=0;ids.forEach(id=>{const el=document.getElementById(id);if(el){el.textContent=String(value);if('value' in el)el.value=String(value);touched++}});['score','points','coins','money','clicks','hyperpop-score'].forEach(k=>localStorage.setItem('hyperpop-'+k,String(value)));return touched}
     async function argsForRecipe(q){const s=String(q||'').trim().toLowerCase();if(!s){print('Usage: /recipe <thing> + <thing>','hp-warn');return}const parts=s.split(/\s*\+\s*/).map(x=>x.trim()).filter(Boolean);if(parts.length!==2){print('Usage: /recipe <thing> + <thing>','hp-warn');return}const wanted=[parts[0],parts[1]].sort().join('+');const map=new Map();const add=(k,v)=>{const key=String(k||'').toLowerCase().trim();if(key&&Array.isArray(v)&&v.length>=2&&!map.has(key))map.set(key,[String(v[0]),String(v[1])])};const parse=src=>{const re=/"([^"]+\+[^"]+)"\s*:\s*\[\s*"([^"]*)"\s*,\s*"([^"]+)"\s*\]|'([^']+\+[^']+)'\s*:\s*\[\s*'([^']*)'\s*,\s*'([^']+)'\s*\]/g;let m;while((m=re.exec(String(src||''))))add(m[1]||m[4],[m[2]||m[5],m[3]||m[6]])};try{if(window.HYPERCRAFT_RECIPES)Object.entries(window.HYPERCRAFT_RECIPES).forEach(([k,v])=>add(k,v));if(window.HYPERCRAFT_EXTRA)Object.entries(window.HYPERCRAFT_EXTRA).forEach(([k,v])=>add(k,v));const page=await fetch(new URL('hyper-craft.html',location.href),{cache:'no-store'});if(page.ok)parse(await page.text());const extra=await fetch(new URL('hyper-craft-recipes.js',location.href),{cache:'no-store'});if(extra.ok)parse(await extra.text())}catch(e){}const found=map.get(wanted);if(found)print(parts[0]+' + '+parts[1]+' → '+found[0]+' '+found[1],'hp-ok');else print('No recipe exists for '+parts[0]+' + '+parts[1]+'.','hp-err');return found}
     async function command(raw){const clean=String(raw||'').replace(/[\u200B-\u200D\uFEFF]/g,'').trim();const parts=clean.split(/\s+/),cmd=(parts.shift()||'').toLowerCase().replace(/^\/+$/,'/'),arg=parts.join(' ');if(!cmd)return;print('> '+raw,'hp-cmd');try{if(cmd==='/recipe'||cmd==='/r'){argsForRecipe(arg);return}if(cmd==='/recipes'){const q=arg.trim().toLowerCase();print('HYPER-CRAFT RECIPE LOOKUP'+String.fromCharCode(10)+(q?'Searching for: '+arg:'Showing recipe database')+String.fromCharCode(10),'hp-ok');const map=new Map();const add=(k,v)=>{const key=String(k||'').toLowerCase().trim();if(key&&Array.isArray(v)&&v.length>=2&&!map.has(key))map.set(key,[String(v[0]),String(v[1])])};const parse=src=>{const re=/"([^"]+\+[^"]+)"\s*:\s*\[\s*"([^"]*)"\s*,\s*"([^"]+)"\s*\]|'([^']+\+[^']+)'\s*:\s*\[\s*'([^']*)'\s*,\s*'([^']+)'\s*\]/g;let m;while((m=re.exec(String(src||''))))add(m[1]||m[4],[m[2]||m[5],m[3]||m[6]])};try{if(window.HYPERCRAFT_EXTRA)Object.entries(window.HYPERCRAFT_EXTRA).forEach(([k,v])=>add(k,v));const page=await fetch(new URL('hyper-craft.html',location.href),{cache:'no-store'});if(page.ok)parse(await page.text());const extra=await fetch(new URL('hyper-craft-recipes.js',location.href),{cache:'no-store'});if(extra.ok)parse(await extra.text())}catch(e){}const rows=[...map.entries()].filter(([k,v])=>!q||v[1].toLowerCase().includes(q)).sort((a,b)=>a[0].localeCompare(b[0])).slice(0,500).map(([k,v])=>k.split('+').join(' + ')+' → '+v[0]+' '+v[1]);if(rows.length){print(rows.join(String.fromCharCode(10)),'hp-ok');if(rows.length===500)print('Showing first 500 matches. Narrow the search for more.','hp-warn')}else print('No matching Hyper-Craft recipes found'+(q?' for "'+arg+'".':' in the loaded database.'),'hp-err');return}
+
+//Link/Page Commands
+if(cmd==='/geography-lessons'){location.href='dragonx-astra/logo.svg';return}
 if(cmd==='/geography-lessons'){location.href='geography-lessons/index.html';return}
-if(cmd==='/gust'){location.href='https://hyper-pop.pntr.dev/GUST/index.html';return}
-if(cmd==='/helios'){location.href='https://hyper-pop.pntr.dev/Helios/index.html';return}
+if(cmd==='/gust'){location.href='GUST/index.html';return}
+if(cmd==='/helios'){location.href='Helios/index.html';return}
 if(cmd==='/ugum'){location.href='ugum/index.html';return}
 if(cmd==='/gn-math'){location.href='gn-math.html';return}
-if(cmd==='/korona'){location.href='https://hyper-pop.pntr.dev/korona/korona.html';return}
-if(cmd==='/cherri'){location.href='https://hyper-pop.pntr.dev/cherri/cherri.html';return}
-if(cmd==='/duck'){location.href='https://hyper-pop.pntr.dev/duck/package/index.html';return}
-if(cmd==='/uv-static'){location.href='https://hyper-pop.pntr.dev/UV-STATIC/active/index.html';return}
-if(cmd==='/uw'){location.href='https://hyper-pop.pntr.dev/UW/index.html';return}
+if(cmd==='/korona'){location.href='korona/korona.html';return}
+if(cmd==='/cherri'){location.href='cherri/cherri.html';return}
+if(cmd==='/duck'){location.href='duck/package/index.html';return}
+if(cmd==='/uv-static'){location.href='UV-STATIC/active/index.html';return}
+if(cmd==='/uw'){location.href='UW/index.html';return}
 if(cmd==='/v5-static'){location.href=location.pathname.includes('/v5-static/')?'./index.html':'v5-static/index.html';return}
-if(cmd==='/orbit'){location.href='https://hyper-pop.pntr.dev/orbit/index.html';return}
-if(cmd==='/yt'){location.href='https://hyper-pop.pntr.dev/yt/index.html';return}
-if(cmd==='/yt2'){location.href='https://hyper-pop.pntr.dev/yt2/index.html';return}
-if(cmd==='/ytd'){location.href='https://hyper-pop.pntr.dev/ytd/index.html';return}
+if(cmd==='/orbit'){location.href='orbit/index.html';return}
+if(cmd==='/yt'){location.href='yt/index.html';return}
+if(cmd==='/yt2'){location.href='yt2/index.html';return}
+if(cmd==='/ytd'){location.href='ytd/index.html';return}
 if(cmd==='/home'){const p=location.pathname;const i=p.indexOf('/v5-static/');location.href=(i>=0?p.slice(0,i):'')+'/index.html';return}
+
+//Other Commands
 if(cmd==='/help'){print(help,'hp-ok');return}
 if(cmd==='/close'){term.classList.remove('open');return}
 if(cmd==='/clear'){out.textContent='';return}

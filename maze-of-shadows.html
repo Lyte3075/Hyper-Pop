@@ -93,11 +93,11 @@
             padding: 12px 28px; font-size: 16px; background: #330000;
             color: #fff; border: 1px solid #ff0000; margin-top: 25px; cursor: pointer;
         }
-    #hp-back{position:fixed;left:14px;top:14px;z-index:1000;padding:9px 13px;border:1px solid #ffffff33;border-radius:11px;background:#050505dd;color:#fff;text-decoration:none;font:700 13px monospace;backdrop-filter:blur(8px);box-shadow:0 8px 24px #0008}#hp-back:hover{border-color:#f44;color:#fff}
+
 </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<style id="hyperpop-back-style">#hyperpop-back{position:fixed;top:14px;right:14px;left:auto;z-index:9999;display:flex;align-items:center;gap:7px;padding:9px 13px;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:rgba(10,10,20,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;text-decoration:none;font:700 13px system-ui,sans-serif;box-shadow:0 8px 30px #0008;cursor:pointer;touch-action:manipulation}#hyperpop-back:hover{background:rgba(255,255,255,.14);transform:translateY(-1px)}@media(max-width:600px){#hyperpop-back{top:10px;right:10px;left:auto;padding:8px 11px;font-size:12px}}</style></head>
-<body><a id="hyperpop-back" href="index.html" aria-label="Back to Hyper-Pop">← Hyper-Pop</a>
+</head>
+<body>
 
     <div id="game-container"></div>
     <canvas id="fx-canvas"></canvas>
@@ -118,7 +118,7 @@
     <button id="flashlight-btn" class="game-btn">LIGHT</button>
     <button id="sprint-btn" class="game-btn">RUN</button>
     <button id="hide-btn" class="game-btn">HIDE</button>
-    <button id="use-item-btn" class="game-btn">ITEM</button>
+    <button id="use-item-btn" class="game-btn">USE ITEM</button>
 
     <div id="touch-overlay">
         <div id="touch-move-zone"></div>
@@ -325,7 +325,7 @@
             useItemBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 if (nearbyPickup) collectItem(nearbyPickup);
-                else useInventoryItem();
+                /* Interaction never consumes inventory items. */
             });
 
             animate();
@@ -779,7 +779,7 @@
                 if (e.code === 'KeyE') {
                     if (currentLocker || isHidden) toggleHideInLocker();
                     else if (nearbyPickup) collectItem(nearbyPickup);
-                    else useInventoryItem();
+                    /* Interaction never consumes inventory items. */
                 }
             });
             window.addEventListener('keyup', (e) => keysPressed[e.code] = false);
@@ -816,10 +816,23 @@
         }
 
         let lastTime = performance.now();
+        let isPaused = false;
+        window.addEventListener('message', (event) => {
+            if (event.data?.type === 'MOS_PAUSE') {
+                isPaused = true;
+                keysPressed = {};
+                moveVector.x = 0;
+                moveVector.z = 0;
+            } else if (event.data?.type === 'MOS_RESUME') {
+                isPaused = false;
+                lastTime = performance.now();
+            }
+        });
 
         function animate() {
             if (isGameOver) return;
             requestAnimationFrame(animate);
+            if (isPaused) { lastTime = performance.now(); return; }
 
             const now = performance.now();
             const delta = (now - lastTime) / 1000;
@@ -1095,5 +1108,22 @@ const hpSoundLoop=setInterval(()=>{
  if(dangerEl){const txt=dangerEl.textContent||'';const m=txt.match(/(\d+)/);const danger=m?Number(m[1]):0;if(danger>hpLastDanger&&danger>=70)HPFX.scare();hpLastDanger=danger}
  if(isMoving&&now-hpLastStep>220){HPFX.step();hpLastStep=now}
 },100);
-</script><script src="app.js?v=radio-13"></script></body>
+</script><script src="app.js?v=radio-13"></script>
+<script id="mos-campaign-bridge">
+(function(){
+ const read=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch{return d}};
+ function campaignWin(){const c=read('mosCampaignV1',{unlocked:1,beaten:[]});if(!c.beaten.includes(1))c.beaten.push(1);c.unlocked=Math.max(c.unlocked||1,2);c.lastChapter=1;localStorage.setItem('mosCampaignV1',JSON.stringify(c));saveButton.style.display='block';}
+ function saveChapterOne(slot){const slots=read('mosSaveSlotsV1',[null,null,null]);const campaign=read('mosCampaignV1',{unlocked:1,beaten:[]});const completed=campaign.beaten&&campaign.beaten.includes(1);slots[slot]={chapter:completed?2:1,savedAt:Date.now(),health:Math.round(health),battery:Math.round(battery),inventory:Object.entries(inventory).map(([k,v])=>k+' ×'+v).join(', '),state:{health,battery,stamina,keysFound,inventory,player:{x:camera.position.x,z:camera.position.z,yaw:rotation.yaw,pitch:rotation.pitch},keyStates:keys.map(k=>k.collected),itemStates:items.map(i=>i.collected),sourceChapter:1}};localStorage.setItem('mosSaveSlotsV1',JSON.stringify(slots));alert('Progress saved to slot '+(slot+1)+(completed?' · Next: Chapter 2':''))}
+ const saveButton=document.createElement('button');saveButton.textContent='SAVE PROGRESS';saveButton.style.cssText='display:none;margin:8px auto;background:#101010dd;color:#fff;border:1px solid #ffffff66;border-radius:8px;padding:12px 18px;font:bold 12px monospace;touch-action:manipulation';saveButton.onclick=()=>{const n=prompt('Save to slot 1, 2, or 3?');if(['1','2','3'].includes(n))saveChapterOne(Number(n)-1)};const winButtons=document.createElement('div');winButtons.style.cssText='width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;margin-top:8px';const menuButton=document.createElement('button');menuButton.textContent='BACK TO MENU';menuButton.style.cssText=saveButton.style.cssText.replace('display:none;','');menuButton.onclick=()=>{try{parent.document.getElementById('exitChapter').click()}catch{location.href='maze-of-shadows-menu.html'}};const nextButton=document.createElement('button');nextButton.textContent='NEXT CHAPTER';nextButton.style.cssText=menuButton.style.cssText;nextButton.onclick=()=>{try{parent.launchChapter2()}catch{location.href='maze-of-shadows-menu.html'}};winButtons.append(menuButton,nextButton,saveButton);document.getElementById('game-over').appendChild(winButtons);
+ const inv=document.createElement('div');inv.id='mos-roblox-inventory';inv.style.cssText='position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:9998;display:flex;gap:5px;max-width:95vw';document.body.appendChild(inv);
+ function renderInventory(){inv.innerHTML='';Object.entries(inventory).forEach(([name,count],i)=>{const b=document.createElement('button');b.innerHTML='<small style="display:block;color:#ffe28a">'+(i+1)+'</small>'+name+'<br><b>×'+count+'</b>';b.style.cssText='min-width:65px;min-height:52px;background:#050805dd;color:white;border:1px solid #ffffff88;border-radius:7px;font:11px monospace;touch-action:manipulation';b.onclick=()=>{if(name==='medkit'&&count>0&&health<maxHealth){health=Math.min(maxHealth,health+40);inventory.medkit--}else if(name==='battery'&&count>0&&battery<100){battery=Math.min(100,battery+50);inventory.battery--}else if(name==='adrenaline'&&count>0){adrenalineTimer=8;inventory.adrenaline--}renderInventory()};inv.appendChild(b)})}
+ const _mosRenderOnPickup=collectItem;collectItem=function(item){const result=_mosRenderOnPickup(item);renderInventory();return result};
+ renderInventory();
+ window.addEventListener('keydown',e=>{if(/^Digit[1-9]$/.test(e.code)){const i=Number(e.code.slice(5))-1;const name=Object.keys(inventory)[i];if(!name)return;const count=inventory[name];if(count<=0)return;if(name==='medkit'&&health<maxHealth){health=Math.min(maxHealth,health+40);inventory[name]--}else if(name==='battery'&&battery<100){battery=Math.min(100,battery+50);inventory[name]--}else if(name==='adrenaline'){adrenalineTimer=8;inventory[name]--}renderInventory()}});
+ const loadSlot=new URLSearchParams(location.search).get('loadSlot');if(loadSlot){window.addEventListener('load',()=>setTimeout(()=>{const s=read('mosSaveSlotsV1',[])[Number(loadSlot)-1];if(s&&s.chapter===1&&s.state){const d=s.state;health=d.health;battery=d.battery;stamina=d.stamina;keysFound=d.keysFound;inventory=d.inventory;camera.position.set(d.player.x,1.6,d.player.z);rotation.yaw=d.player.yaw;rotation.pitch=d.player.pitch;d.keyStates.forEach((v,i)=>{if(keys[i]){keys[i].collected=v;if(v)scene.remove(keys[i].mesh)}});d.itemStates.forEach((v,i)=>{if(items[i]){items[i].collected=v;if(v)scene.remove(items[i].mesh)}});document.getElementById('key-tracker').innerText='KEYS FOUND: '+keysFound+' / 9';renderInventory()}},100))}
+ window.addEventListener('message',event=>{const msg=event.data;if(!msg||msg.type!=='MOS_LOAD_SLOT')return;const s=read('mosSaveSlotsV1',[])[Number(msg.slot)-1];if(!s||s.chapter!==1||!s.state)return;const d=s.state;health=d.health??health;battery=d.battery??battery;stamina=d.stamina??stamina;keysFound=d.keysFound??keysFound;if(d.inventory)Object.assign(inventory,d.inventory);if(d.player){camera.position.set(d.player.x,1.6,d.player.z);rotation.yaw=d.player.yaw;rotation.pitch=d.player.pitch}if(d.keyStates)d.keyStates.forEach((v,i)=>{if(keys[i]){keys[i].collected=v;if(v)scene.remove(keys[i].mesh)}});if(d.itemStates)d.itemStates.forEach((v,i)=>{if(items[i]){items[i].collected=v;if(v)scene.remove(items[i].mesh)}});document.getElementById('key-tracker').innerText='KEYS FOUND: '+keysFound+' / 9';renderInventory()});
+ const observer=setInterval(()=>{const panel=document.getElementById('game-over'),title=document.getElementById('status-text'),inv=document.getElementById('mos-roblox-inventory');if(panel&&panel.style.display==='flex'){if(inv)inv.style.display='none';if(title&&/ESCAPED/i.test(title.textContent))campaignWin()}else if(inv)inv.style.display='flex'},250);
+ window.addEventListener('beforeunload',()=>clearInterval(observer));
+})();
+</script></body>
 </html>
