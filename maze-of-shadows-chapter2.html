@@ -1064,9 +1064,11 @@
                 new THREE.Vector3(newPosition.x - radius, 0.2, newPosition.z - radius),
                 new THREE.Vector3(newPosition.x + radius, 2.0, newPosition.z + radius)
             );
-
             for (let i = 0; i < wallBoxes.length; i++) {
                 if (playerBox.intersectsBox(wallBoxes[i])) return true;
+            }
+            for (const lockerBox of lockerBoxes) {
+                if (playerBox.intersectsBox(lockerBox)) return true;
             }
             return false;
         }
@@ -1565,7 +1567,7 @@
             let activeAttacker = null;
             let closestDistance = 999;
             let closestMonsterType = null;
-            const playerCell = worldToCell(camera.position.x, camera.position.z);
+            const playerCell = nearestWalkableCell(camera.position.x,camera.position.z,worldToCell(camera.position.x,camera.position.z));
             const noiseRadius = isHidden ? 0 : (speed === sprintSpeed ? 18 : (isMoving ? 8 : 2));
 
             for (let monster of monsters) {
@@ -1592,9 +1594,14 @@
                     monster.userData.state = 'chase';
                 }
 
-                if (monster.userData.state === 'chase' && !isHidden) {
+                const ai = monster.userData;
+                ai.repathTimer = (ai.repathTimer || 0) - delta;
+                const targetChanged = !ai.lastTargetCell || ai.lastTargetCell.r !== playerCell.r || ai.lastTargetCell.c !== playerCell.c;
+                if (ai.state === 'chase' && !isHidden && (ai.repathTimer <= 0 || targetChanged)) {
                     const mCell = worldToCell(monster.position.x, monster.position.z);
-                    monster.userData.path = findAStarPath(mCell, playerCell) || [];
+                    ai.path = findAStarPath(nearestWalkableCell(monster.position.x,monster.position.z,mCell), playerCell) || [];
+                    ai.lastTargetCell = { ...playerCell };
+                    ai.repathTimer = 0.28;
                 }
 
                 if (monster.userData.type === 'stalker') {
@@ -1608,28 +1615,71 @@
                     if (speed === sprintSpeed) mSpeed = 0.11;
                 }
 
-                if (mSpeed > 0 && monster.userData.path && monster.userData.path.length > 1) {
-                    let nextCell = monster.userData.path[1];
-                    let targetPos = cellToWorld(nextCell.c, nextCell.r);
-                    targetPos.y = monster.position.y;
-
-                    let moveDir = targetPos.clone().sub(monster.position).normalize();
-                    monster.position.add(moveDir.multiplyScalar(mSpeed));
-
-                    if (monster.position.distanceTo(targetPos) < 0.6) {                        monster.userData.path.shift();
+                if (ai.state === 'patrol' && (ai.repathTimer <= 0 || !ai.path || ai.path.length <= 1)) {
+                    const reachable = [];
+                    for (let attempt = 0; attempt < 18; attempt++) {
+                        const randomC = Math.floor(Math.random() * (mazeGrid[0].length - 2)) + 1;
+                        const randomR = Math.floor(Math.random() * (mazeGrid.length - 2)) + 1;
+                        if (mazeGrid[randomR][randomC] === 0) reachable.push({ r: randomR, c: randomC });
                     }
-                } else if (monster.userData.state === 'patrol' || (monster.userData.path && monster.userData.path.length <= 1)) {
-                    monster.userData.state = 'patrol';
-                    let randomC = Math.floor(Math.random() * (mazeGrid[0].length - 2)) + 1;
-                    let randomR = Math.floor(Math.random() * (mazeGrid.length - 2)) + 1;
-                    if (mazeGrid[randomR][randomC] !== 1 && mazeGrid[randomR][randomC] !== 3) {
-                        let mCell = worldToCell(monster.position.x, monster.position.z);
-                        monster.userData.path = findAStarPath(mCell, { r: randomR, c: randomC }) || [];
+                    if (reachable.length) {
+                        const mCell = worldToCell(monster.position.x, monster.position.z);
+                        ai.path = findAStarPath(nearestWalkableCell(monster.position.x,monster.position.z,mCell), reachable[Math.floor(Math.random() * reachable.length)]) || [];
                     }
+                    ai.repathTimer = 1.1 + Math.random() * 1.4;
+                }
+                if(mSpeed>0&&ai.path&&ai.path.length>1){
+                    const next=ai.path[1],waypoint=cellToWorld(next.c,next.r);waypoint.y=monster.position.y;
+                    const pathDir=waypoint.clone().sub(monster.position);pathDir.y=0;
+                    // Once the route reaches the player's cell, steer toward the player's actual position.
+                    const finalStep=ai.state==='chase'&&ai.path.length<=2;
+                    const target=finalStep?new THREE.Vector3(camera.position.x,monster.position.y,camera.position.z):waypoint;
+                    const dir=target.clone().sub(monster.position);dir.y=0;
+                    if(dir.lengthSq()>0.001){
+                        dir.normalize();
+                        const speedScale=ai.state==='chase'?1.05:0.72;
+                        const step=Math.min(mSpeed*60*delta*speedScale,Math.max(0.025,dir.length()));
+                        const angles=[0,0.18,-0.18,0.38,-0.38,0.68,-0.68,1.0,-1.0,1.35,-1.35,Math.PI/2,-Math.PI/2];
+                        let chosen=null,best=-Infinity;
+                        for(const a of angles){
+                            const d=dir.clone().applyAxisAngle(new THREE.Vector3(0,1,0),a);
+                            const p=monster.position.clone().add(d.clone().multiplyScalar(step));
+                            const cell=worldToCell(p.x,p.z);
+                            if(!mazeGrid[cell.r]||mazeGrid[cell.r][cell.c]!==0)continue;
+                            const radius=ai.radius*0.34;
+                            const box=new THREE.Box3(new THREE.Vector3(p.x-radius,0.05,p.z-radius),new THREE.Vector3(p.x+radius,ai.height,p.z+radius));
+                            if(wallBoxes.some(w=>box.intersectsBox(w)))continue;
+                            const remain=Math.hypot(target.x-p.x,target.z-p.z);
+                            const progress=Math.hypot(target.x-monster.position.x,target.z-monster.position.z)-remain;
+                            const score=progress*3-remain*0.012-Math.abs(a)*0.001;
+                            if(score>best){best=score;chosen=d;}
+                        }
+                        if(chosen){
+                            monster.position.add(chosen.multiplyScalar(step));
+                            const yaw=Math.atan2(chosen.x,chosen.z);
+                            const turn=Math.atan2(Math.sin(yaw-monster.rotation.y),Math.cos(yaw-monster.rotation.y));
+                            monster.rotation.y+=turn*Math.min(1,delta*5.5);
+                            ai.stuckTimer=0;
+                        }else{
+                            ai.stuckTimer+=delta;
+                            if(ai.stuckTimer>0.18){
+                                ai.path=[];
+                                ai.repathTimer=0;
+                                ai.lastTargetCell=null;
+                                // Nudge the next route calculation to start from the nearest walkable cell.
+                                const safe=nearestWalkableCell(monster.position.x,monster.position.z);
+                                monster.position.x=safe.c*cellSize;
+                                monster.position.z=safe.r*cellSize;
+                                ai.stuckTimer=0;
+                            }
+                        }
+                    }
+                    if(monster.position.distanceTo(waypoint)<0.42)ai.path.shift();
+                    ai.gaitTime+=delta*(ai.state==='chase'?13:6);if(ai.armPivots)ai.armPivots.forEach((a,i)=>a.rotation.x=Math.sin(ai.gaitTime+i*Math.PI)*(ai.state==='chase'?0.92:0.4));if(ai.legPivots)ai.legPivots.forEach((l,i)=>l.rotation.x=Math.sin(ai.gaitTime+i*Math.PI)*(ai.state==='chase'?0.65:0.25));if(ai.headPivot)ai.headPivot.rotation.x=Math.sin(ai.gaitTime*0.5)*0.06;
                 }
 
-                if (!isHidden && distToPlayer < 1.4) {
-                    health -= monster.userData.dps * delta;
+                if (!isHidden && distToPlayer < 2.35 && (ai.state === 'chase' || distToPlayer < 1.4)) {
+                    health -= monster.userData.dps * 1.5 * delta;
                     activeAttacker = monster.userData.type;
                 }
             }
