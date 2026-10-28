@@ -788,7 +788,7 @@
                         lockerBox.expandByScalar(-0.06);
                         lockerBoxes.push(lockerBox);
                     }
-                    else if (mazeGrid[r][c] === 3)                    else if (mazeGrid[r][c] === 3) {
+                    else if (mazeGrid[r][c] === 3) {
                         // EXIT BUILT INTO THE OUTER PERIMETER WALL
                         const outerWall = new THREE.Mesh(wallGeo, wallMat);
                         outerWall.position.set(x, 1.75, z);
@@ -1699,10 +1699,26 @@
             renderProximityOverlay(closestDistance, closestMonsterType);
             document.getElementById('health-bar').style.width = `${Math.max(0, (health / maxHealth) * 100)}%`;
 
-            if (health <= 0) {
+            if (health <= 0 && !banisherDeathSequence && !monsterDeathSequence) {
                 isGameOver = true;
-                document.getElementById('death-hint').innerText = deathHints[activeAttacker] || "Stay quiet and don't sprint near monsters!";
-                document.getElementById('game-over').style.display = 'flex';
+                monsterDeathSequence = true;
+                const scare=document.getElementById('banisher-jumpscare');
+                const monsterType=activeAttacker || 'brute';
+                scare.className='monster-scare scare-'+monsterType;
+                scare.querySelector('.scare-label').textContent=monsterType.toUpperCase()+' FOUND YOU';
+                scare.style.display='flex';
+                void scare.offsetWidth;
+                scare.classList.add('active');
+                playBanisherJumpscare();
+                document.getElementById('status-text').innerText=monsterType.toUpperCase()+' GOT YOU';
+                document.getElementById('death-hint').innerText=deathHints[monsterType] || 'Keep moving. Learn its pattern. Do not let it close the distance.';
+                document.getElementById('game-over').style.display='none';
+                setTimeout(()=>{
+                    scare.classList.remove('active');
+                    scare.style.display='none';
+                    scare.className='';
+                    document.getElementById('game-over').style.display='flex';
+                },1250);
             }
 
             renderer.render(scene, camera);
