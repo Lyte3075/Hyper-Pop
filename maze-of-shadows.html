@@ -353,10 +353,92 @@
             return new THREE.CanvasTexture(canvas);
         }
 
+        // Procedural, locally generated textures add grime without external assets.
+        function createHospitalTexture(kind) {
+            const canvas = document.createElement('canvas');
+            canvas.width = canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            const palettes = {
+                wall: ['#484642', '#5b5750', '#353633'],
+                floor: ['#343432', '#45423c', '#252725'],
+                roof: ['#292b2c', '#383735', '#202223']
+            };
+            const colors = palettes[kind] || palettes.wall;
+            ctx.fillStyle = colors[0];
+            ctx.fillRect(0, 0, 512, 512);
+
+            // Uneven plaster and concrete mottling.
+            for (let i = 0; i < 1500; i++) {
+                const x = Math.random() * 512, y = Math.random() * 512;
+                const radius = 2 + Math.random() * (kind === 'floor' ? 20 : 30);
+                ctx.globalAlpha = 0.035 + Math.random() * 0.13;
+                ctx.fillStyle = colors[1 + (Math.random() > 0.5 ? 0 : 1)];
+                ctx.beginPath();
+                ctx.ellipse(x, y, radius, radius * (0.25 + Math.random() * 0.8), Math.random() * 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+
+            if (kind === 'wall') {
+                // Water damage streaks and peeling paint patches.
+                for (let i = 0; i < 34; i++) {
+                    const x = Math.random() * 512, y = Math.random() * 390;
+                    const h = 25 + Math.random() * 115;
+                    const grad = ctx.createLinearGradient(x, y, x, y + h);
+                    grad.addColorStop(0, 'rgba(17,20,18,0.32)');
+                    grad.addColorStop(1, 'rgba(17,20,18,0)');
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(x, y, 3 + Math.random() * 18, h);
+                }
+                for (let i = 0; i < 18; i++) {
+                    const x = Math.random() * 480, y = Math.random() * 480;
+                    ctx.fillStyle = 'rgba(19,21,19,0.24)';
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + 12 + Math.random() * 34, y + 3 + Math.random() * 12);
+                    ctx.lineTo(x + 4 + Math.random() * 24, y + 15 + Math.random() * 22);
+                    ctx.lineTo(x - 3, y + 9);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            } else if (kind === 'floor') {
+                // Scuffs across worn, neglected linoleum.
+                for (let i = 0; i < 95; i++) {
+                    ctx.strokeStyle = 'rgba(12,13,12,' + (0.08 + Math.random() * 0.2) + ')';
+                    ctx.lineWidth = 1 + Math.random() * 5;
+                    ctx.beginPath();
+                    const x = Math.random() * 512, y = Math.random() * 512;
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + (Math.random() - 0.5) * 65, y + (Math.random() - 0.5) * 24);
+                    ctx.stroke();
+                }
+            } else {
+                // Patchy ceiling panels and dark seams.
+                ctx.strokeStyle = 'rgba(8,9,9,0.5)';
+                ctx.lineWidth = 4;
+                for (let p = 0; p <= 512; p += 128) {
+                    ctx.beginPath(); ctx.moveTo(p, 0); ctx.lineTo(p, 512); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(0, p); ctx.lineTo(512, p); ctx.stroke();
+                }
+                for (let i = 0; i < 9; i++) {
+                    ctx.fillStyle = 'rgba(8,10,10,0.28)';
+                    ctx.fillRect(Math.random() * 480, Math.random() * 480, 15 + Math.random() * 55, 8 + Math.random() * 24);
+                }
+            }
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(kind === 'floor' ? 3 : 2, kind === 'wall' ? 1.5 : 2);
+            texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            return texture;
+        }
+
         function buildMaze() {
-            const wallMat = new THREE.MeshStandardMaterial({ color: 0x333338, roughness: 0.8 });
-            const floorMat = new THREE.MeshStandardMaterial({ color: 0x1a1a20, roughness: 0.7 });
-            const roofMat = new THREE.MeshStandardMaterial({ color: 0x222228, roughness: 0.9 });
+            const wallTex = createHospitalTexture('wall');
+            const floorTex = createHospitalTexture('floor');
+            const roofTex = createHospitalTexture('roof');
+            const wallMat = new THREE.MeshStandardMaterial({ map: wallTex, color: 0xb8b2a5, roughness: 0.94 });
+            const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, color: 0xaaa59b, roughness: 0.96 });
+            const roofMat = new THREE.MeshStandardMaterial({ map: roofTex, color: 0xaaa9a2, roughness: 0.98 });
             const lockerMat = new THREE.MeshStandardMaterial({ color: 0x1c3b2b, metalness: 0.6, roughness: 0.4 });
 
             const mazeWidth = mazeGrid[0].length * cellSize;
