@@ -15,7 +15,7 @@
     const print=(text,cls='')=>{const d=document.createElement('div');d.className=cls;d.textContent=text;out.appendChild(d);out.scrollTop=out.scrollHeight};
     const help=`COMMANDS
 /help                  Show all commands
-/astra                  INSANE SITE WITH SOOOO MANY GOOD GAMES.
+/astra                 INSANE SITE WITH SOOOO MANY GOOD GAMES.
 /geography-lessons     A bunch of games
 /gust                  A really advanced static web proxy
 /helios                A built in web proxy
@@ -58,7 +58,7 @@ TIP: /js is the universal cheat and can be used for game-specific cheats too.`;
     async function command(raw){const clean=String(raw||'').replace(/[\u200B-\u200D\uFEFF]/g,'').trim();const parts=clean.split(/\s+/),cmd=(parts.shift()||'').toLowerCase().replace(/^\/+$/,'/'),arg=parts.join(' ');if(!cmd)return;print('> '+raw,'hp-cmd');try{if(cmd==='/recipe'||cmd==='/r'){argsForRecipe(arg);return}if(cmd==='/recipes'){const q=arg.trim().toLowerCase();print('HYPER-CRAFT RECIPE LOOKUP'+String.fromCharCode(10)+(q?'Searching for: '+arg:'Showing recipe database')+String.fromCharCode(10),'hp-ok');const map=new Map();const add=(k,v)=>{const key=String(k||'').toLowerCase().trim();if(key&&Array.isArray(v)&&v.length>=2&&!map.has(key))map.set(key,[String(v[0]),String(v[1])])};const parse=src=>{const re=/"([^"]+\+[^"]+)"\s*:\s*\[\s*"([^"]*)"\s*,\s*"([^"]+)"\s*\]|'([^']+\+[^']+)'\s*:\s*\[\s*'([^']*)'\s*,\s*'([^']+)'\s*\]/g;let m;while((m=re.exec(String(src||''))))add(m[1]||m[4],[m[2]||m[5],m[3]||m[6]])};try{if(window.HYPERCRAFT_EXTRA)Object.entries(window.HYPERCRAFT_EXTRA).forEach(([k,v])=>add(k,v));const page=await fetch(new URL('hyper-craft.html',location.href),{cache:'no-store'});if(page.ok)parse(await page.text());const extra=await fetch(new URL('hyper-craft-recipes.js',location.href),{cache:'no-store'});if(extra.ok)parse(await extra.text())}catch(e){}const rows=[...map.entries()].filter(([k,v])=>!q||v[1].toLowerCase().includes(q)).sort((a,b)=>a[0].localeCompare(b[0])).slice(0,500).map(([k,v])=>k.split('+').join(' + ')+' → '+v[0]+' '+v[1]);if(rows.length){print(rows.join(String.fromCharCode(10)),'hp-ok');if(rows.length===500)print('Showing first 500 matches. Narrow the search for more.','hp-warn')}else print('No matching Hyper-Craft recipes found'+(q?' for "'+arg+'".':' in the loaded database.'),'hp-err');return}
 
 //Link/Page Commands
-if(cmd==='/geography-lessons'){location.href='dragonx-astra/logo.svg';return}
+if(cmd==='/astra'){location.href='dragonx-astra/logo.svg';return}
 if(cmd==='/geography-lessons'){location.href='geography-lessons/index.html';return}
 if(cmd==='/gust'){location.href='GUST/index.html';return}
 if(cmd==='/helios'){location.href='Helios/index.html';return}
