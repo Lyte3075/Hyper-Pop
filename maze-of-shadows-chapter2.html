@@ -272,12 +272,13 @@
         function init() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x020b2b);
-            scene.fog = new THREE.FogExp2(0x07132b, 0.035);
+            scene.fog = new THREE.FogExp2(0x020b2b, 0.035);
 
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.set(4, 1.6, 4);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setClearColor(0x020b2b, 1);
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.getElementById('game-container').appendChild(renderer.domElement);
 
@@ -816,10 +817,23 @@
         }
 
         let lastTime = performance.now();
+        let isPaused = false;
+        window.addEventListener('message', (event) => {
+            if (event.data?.type === 'MOS_PAUSE') {
+                isPaused = true;
+                keysPressed = {};
+                moveVector.x = 0;
+                moveVector.z = 0;
+            } else if (event.data?.type === 'MOS_RESUME') {
+                isPaused = false;
+                lastTime = performance.now();
+            }
+        });
 
         function animate() {
             if (isGameOver) return;
             requestAnimationFrame(animate);
+            if (isPaused) { lastTime = performance.now(); return; }
 
             const now = performance.now();
             const delta = (now - lastTime) / 1000;
