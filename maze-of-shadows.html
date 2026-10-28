@@ -111,29 +111,29 @@
         #banisher-jumpscare.active { display: flex; animation: scareFlash 1.15s steps(2,end) forwards; }
         #banisher-jumpscare .scare-face {
             position: relative; width: min(88vw, 520px); aspect-ratio: 1 / 1;
-            border-radius: 48% 48% 42% 42%; background: radial-gradient(ellipse at 50% 45%, #292020 0%, #080606 58%, #000 76%);
-            box-shadow: 0 0 45px #a00000, inset 0 0 60px #000;
+            border-radius: 50%; background: radial-gradient(ellipse at 42% 32%, #fff 0%, #f4f4f4 48%, #bdbdbd 78%, #555 100%);
+            box-shadow: 0 0 55px #fff, 0 0 120px #d7d7d7, inset -18px -22px 42px #777;
             transform: scale(.18) rotate(-8deg); animation: scareLunge .72s cubic-bezier(.1,.85,.2,1) forwards;
         }
         #banisher-jumpscare .scare-eye {
-            position: absolute; top: 28%; width: 22%; height: 17%; background: #ff1010;
-            border-radius: 50% 50% 35% 35%; box-shadow: 0 0 15px #ff0000, 0 0 42px #d00000;
-            animation: eyeFlicker .09s steps(2,end) infinite;
+            position: absolute; top: 29%; width: 13%; height: 19%; background: #050505;
+            border-radius: 50%; box-shadow: 0 0 9px #000, inset 0 0 5px #333;
         }
-        #banisher-jumpscare .scare-eye.left { left: 16%; transform: rotate(15deg); }
-        #banisher-jumpscare .scare-eye.right { right: 16%; transform: rotate(-15deg); }
+        #banisher-jumpscare .scare-eye.left { left: 25%; transform: rotate(12deg); }
+        #banisher-jumpscare .scare-eye.right { right: 25%; transform: rotate(-12deg); }
         #banisher-jumpscare .scare-mouth {
-            position: absolute; left: 25%; top: 54%; width: 50%; height: 29%;
-            border-radius: 48% 48% 35% 35%; background: #000; border: 4px solid #4b0909;
-            box-shadow: 0 0 18px #a00000; overflow: hidden;
+            position: absolute; left: 17%; top: 52%; width: 66%; height: 30%;
+            border-radius: 10% 10% 48% 48% / 10% 10% 75% 75%; background: #050505;
+            border: 3px solid #111; box-shadow: 0 4px 0 #777; overflow: hidden;
+            clip-path: polygon(0 0, 15% 8%, 30% 12%, 50% 16%, 70% 12%, 85% 8%, 100% 0, 94% 65%, 78% 90%, 50% 100%, 22% 90%, 6% 65%);
         }
         #banisher-jumpscare .scare-mouth:before {
-            content: ''; position: absolute; top: 0; left: -3%; width: 106%; height: 32%;
-            background: repeating-linear-gradient(90deg,#eee 0 9%,#300 9% 12%);
+            content: ''; position: absolute; top: 2%; left: 2%; width: 96%; height: 27%;
+            background: repeating-linear-gradient(90deg,#fff 0 10%,#aaa 10% 11.5%);
         }
         #banisher-jumpscare .scare-mouth:after {
-            content: ''; position: absolute; bottom: 0; left: -3%; width: 106%; height: 27%;
-            background: repeating-linear-gradient(90deg,#eee 0 9%,#300 9% 12%);
+            content: ''; position: absolute; bottom: 2%; left: 5%; width: 90%; height: 21%;
+            background: repeating-linear-gradient(90deg,#eee 0 10%,#777 10% 11.5%);
         }
         #banisher-jumpscare .scare-label {
             position: absolute; bottom: 9%; left: 0; width: 100%; color: #ff1616;
@@ -205,6 +205,7 @@
     <script>
         // --- GAME SYSTEM ---
         let scene, camera, renderer;
+        let banisherDeathSequence = false;
         let flashlight, ambientLight;
         let fxCanvas, fxCtx;
         let isGameOver = false;
@@ -1411,12 +1412,21 @@
                 }else{
                     health=0;
                     isGameOver=true;
+                    banisherDeathSequence=true;
                     document.getElementById('status-text').innerText='THE BANISHER FOUND YOU';
                     document.getElementById('death-hint').innerHTML='Hide in a locker or you will suffer its <span class="banisher-wrath">wrath.</span>';
                     const scare=document.getElementById('banisher-jumpscare');
+                    document.getElementById('game-over').style.display='none';
+                    scare.style.display='flex';
+                    scare.classList.remove('active');
+                    void scare.offsetWidth;
                     scare.classList.add('active');
                     playBanisherJumpscare();
-                    setTimeout(()=>{scare.classList.remove('active');scare.style.display='none';document.getElementById('game-over').style.display='flex';},1250);
+                    setTimeout(()=>{
+                        scare.classList.remove('active');
+                        scare.style.display='none';
+                        document.getElementById('game-over').style.display='flex';
+                    },1250);
                 }
                 return;
             }
@@ -1698,7 +1708,7 @@
             renderProximityOverlay(closestDistance, closestMonsterType);
             document.getElementById('health-bar').style.width = `${Math.max(0, (health / maxHealth) * 100)}%`;
 
-            if (health <= 0) {
+            if (health <= 0 && !banisherDeathSequence) {
                 isGameOver = true;
                 document.getElementById('death-hint').innerText = deathHints[activeAttacker] || "Stay quiet and don't sprint near monsters!";
                 document.getElementById('game-over').style.display = 'flex';
