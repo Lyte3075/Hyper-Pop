@@ -575,6 +575,39 @@
             const rimLight = new THREE.HemisphereLight(0x334d83, 0x171b12, 0.55);
             scene.add(rimLight);
 
+            const lockerBodyMat=new THREE.MeshStandardMaterial({color:0x243b31,metalness:0.55,roughness:0.38}),lockerDoorMat=new THREE.MeshStandardMaterial({color:0x344b40,metalness:0.62,roughness:0.34}),lockerDarkMat=new THREE.MeshStandardMaterial({color:0x080d0b,roughness:0.98}),lockerTrimMat=new THREE.MeshStandardMaterial({color:0x111a16,metalness:0.65,roughness:0.32}),lockerHandleMat=new THREE.MeshStandardMaterial({color:0x9aa39b,metalness:0.82,roughness:0.24});
+            function makeLocker(){
+                const g=new THREE.Group();
+                // Enclosed cabinet: back, top, bottom and side walls make the interior feel like a real locker.
+                const back=new THREE.Mesh(new THREE.BoxGeometry(0.94,2.48,0.07),lockerBodyMat);back.position.set(0,0,-0.265);g.add(back);
+                for(const side of [-1,1]){const wall=new THREE.Mesh(new THREE.BoxGeometry(0.075,2.48,0.56),lockerBodyMat);wall.position.set(side*0.47,0,0);g.add(wall);}
+                const top=new THREE.Mesh(new THREE.BoxGeometry(0.98,0.075,0.58),lockerBodyMat);top.position.y=1.28;g.add(top);
+                const bottom=new THREE.Mesh(new THREE.BoxGeometry(0.98,0.075,0.58),lockerBodyMat);bottom.position.y=-1.28;g.add(bottom);
+                const inner=new THREE.Mesh(new THREE.BoxGeometry(0.83,2.32,0.018),lockerDarkMat);inner.position.set(0,0,-0.218);g.add(inner);
+                // True viewing slots: the door is built from separated bars, leaving open gaps.
+                // The player can see the room through these gaps while hidden.
+                const doorZ=0.305, doorDepth=0.045, doorWidth=0.84;
+                for(const side of [-1,1]){
+                    const rail=new THREE.Mesh(new THREE.BoxGeometry(0.17,2.38,doorDepth),lockerDoorMat);
+                    rail.position.set(side*0.335,0.01,doorZ);g.add(rail);
+                }
+                for(let i=0;i<7;i++){
+                    const bar=new THREE.Mesh(new THREE.BoxGeometry(0.52,0.19,doorDepth),lockerDoorMat);
+                    bar.position.set(-0.02,-1.08+i*0.36,doorZ);g.add(bar);
+                }
+                // Dark interior edges frame each opening without covering it.
+                for(let i=0;i<6;i++){
+                    const y=-0.90+i*0.36;
+                    const lip=new THREE.Mesh(new THREE.BoxGeometry(0.53,0.025,0.018),lockerTrimMat);
+                    lip.position.set(-0.02,y,doorZ+0.03);g.add(lip);
+                }
+                for(const side of [-1,1]){const seam=new THREE.Mesh(new THREE.BoxGeometry(0.045,2.46,0.08),lockerTrimMat);seam.position.set(side*0.45,0,0.35);g.add(seam);const hinge=new THREE.Mesh(new THREE.BoxGeometry(0.055,0.22,0.09),lockerTrimMat);hinge.position.set(side*0.39,0.72,0.385);g.add(hinge);const h2=hinge.clone();h2.position.y=-0.72;g.add(h2);}
+                const handle=new THREE.Mesh(new THREE.BoxGeometry(0.075,0.27,0.065),lockerHandleMat);handle.position.set(0.27,0.02,0.375);g.add(handle);
+                const latch=new THREE.Mesh(new THREE.BoxGeometry(0.11,0.055,0.07),lockerTrimMat);latch.position.set(0.27,-0.16,0.375);g.add(latch);
+                return g;
+            }
+
+
             const mazeWidth = mazeGrid[0].length * cellSize;
             const mazeDepth = mazeGrid.length * cellSize;
             const asphaltMat = new THREE.MeshStandardMaterial({ color: 0x171b22, roughness: 0.96 });
@@ -741,18 +774,21 @@
                         }
                     } 
                     else if (mazeGrid[r][c] === 2) {
-                        const locker = new THREE.Mesh(lockerGeo, lockerMat);
-                        let offsetX = 0, offsetZ = -1.6;
-
-                        if (r > 0 && mazeGrid[r-1][c] === 1) offsetZ = -1.6;
-                        else if (r < mazeGrid.length-1 && mazeGrid[r+1][c] === 1) offsetZ = 1.6;
-                        else if (c > 0 && mazeGrid[r][c-1] === 1) { offsetX = -1.6; offsetZ = 0; locker.rotation.y = Math.PI/2; }
-                        else if (c < mazeGrid[0].length-1 && mazeGrid[r][c+1] === 1) { offsetX = 1.6; offsetZ = 0; locker.rotation.y = Math.PI/2; }
-
-                        locker.position.set(x + offsetX, 1.3, z + offsetZ);
+                        const locker = makeLocker();
+                        let offsetX = 0, offsetZ = -(cellSize / 2 - 0.22);
+                        if (r > 0 && mazeGrid[r-1][c] === 1) { offsetZ = -1.58; locker.rotation.y = 0; }
+                        else if (r < mazeGrid.length-1 && mazeGrid[r+1][c] === 1) { offsetZ = cellSize / 2 - 0.22; locker.rotation.y = Math.PI; }
+                        else if (c > 0 && mazeGrid[r][c-1] === 1) { offsetX = -(cellSize / 2 - 0.22); offsetZ = 0; locker.rotation.y = Math.PI / 2; }
+                        else if (c < mazeGrid[0].length-1 && mazeGrid[r][c+1] === 1) { offsetX = cellSize / 2 - 0.22; offsetZ = 0; locker.rotation.y = -Math.PI / 2; }
+                        locker.position.set(x + offsetX, 1.36, z + offsetZ);
                         scene.add(locker);
-                        lockers.push(locker);                    }
-                    else if (mazeGrid[r][c] === 3) {
+                        lockers.push(locker);
+                        locker.updateMatrixWorld(true);
+                        const lockerBox = new THREE.Box3().setFromObject(locker);
+                        lockerBox.expandByScalar(-0.06);
+                        lockerBoxes.push(lockerBox);
+                    }
+                    else if (mazeGrid[r][c] === 3)                    else if (mazeGrid[r][c] === 3) {
                         // EXIT BUILT INTO THE OUTER PERIMETER WALL
                         const outerWall = new THREE.Mesh(wallGeo, wallMat);
                         outerWall.position.set(x, 1.75, z);
@@ -882,42 +918,46 @@
             });
         }
 
-        function updateGuideIndicators() {
+        function updateGuideIndicators(foundKeyPosition = null) {
+            if (keyArrowTimer) clearTimeout(keyArrowTimer);
             guideArrows.forEach(a => scene.remove(a));
             trailPoints.forEach(t => scene.remove(t));
-            guideArrows = [];
-            trailPoints = [];
+            guideArrows = []; trailPoints = []; keyArrowTimer = null;
+            if (!foundKeyPosition) return;
 
-            let uncollectedKeys = keys.filter(k => !k.collected);
-            if (uncollectedKeys.length === 0) return;
-
-            let pCell = worldToCell(camera.position.x, camera.position.z);
-            let targetKey = uncollectedKeys[0];
-            let path = findAStarPath(pCell, targetKey.cell);
-
-            if (path && path.length > 2) {
-                const dotGeo = new THREE.CircleGeometry(0.25, 8);
-                const dotMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, side: THREE.DoubleSide });
-
-                for (let i = 1; i < Math.min(path.length, 6); i++) {
-                    let dot = new THREE.Mesh(dotGeo, dotMat);
-                    let worldPos = cellToWorld(path[i].c, path[i].r);
-                    dot.position.set(worldPos.x, 0.02, worldPos.z);
-                    dot.rotation.x = Math.PI / 2;
-                    scene.add(dot);
-                    trailPoints.push(dot);
-                }
-
-                const arrowGeo = new THREE.ConeGeometry(0.3, 0.8, 3);
-                const arrowMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
-                const arrow = new THREE.Mesh(arrowGeo, arrowMat);
-
-                let nextCellPos = cellToWorld(path[1].c, path[1].r);
-                arrow.position.set(nextCellPos.x, 1.8, nextCellPos.z);
-                arrow.rotation.x = Math.PI / 2;
-                scene.add(arrow);
-                guideArrows.push(arrow);
+            // The arrow remains at the collected key's location, not above the player.
+            const remaining = keys.filter(k => !k.collected);
+            if (!remaining.length) return;
+            const origin = foundKeyPosition.clone();
+            let target = remaining[0], bestDistance = Infinity;
+            for (const candidate of remaining) {
+                const d = origin.distanceTo(candidate.mesh.position);
+                if (d < bestDistance) { bestDistance = d; target = candidate; }
             }
+            const direction = new THREE.Vector3(target.mesh.position.x-origin.x,0,target.mesh.position.z-origin.z);
+            if (direction.lengthSq() < 0.001) return;
+            direction.normalize();
+
+            // Single-color luminous triangular pyramid, pointing horizontally at the nearest remaining key.
+            const arrow = new THREE.Mesh(
+                new THREE.ConeGeometry(0.34,0.95,3),
+                new THREE.MeshBasicMaterial({color:0x39f6ff,side:THREE.DoubleSide})
+            );
+            arrow.position.set(origin.x,1.8,origin.z);
+            arrow.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);
+            arrow.userData.keyArrow = true;
+            scene.add(arrow); guideArrows.push(arrow);
+
+            const halo = new THREE.Mesh(new THREE.RingGeometry(0.32,0.43,24),
+                new THREE.MeshBasicMaterial({color:0x39f6ff,side:THREE.DoubleSide}));
+            halo.position.set(origin.x,0.06,origin.z); halo.rotation.x=-Math.PI/2;
+            scene.add(halo); trailPoints.push(halo);
+
+            keyArrowTimer = setTimeout(() => {
+                guideArrows.forEach(a=>scene.remove(a));
+                trailPoints.forEach(t=>scene.remove(t));
+                guideArrows=[]; trailPoints=[]; keyArrowTimer=null;
+            },15000);
         }
 
         function spawnMonster(type, x, z) {
@@ -1064,37 +1104,39 @@
 
             if (!isHidden && currentLocker) {
                 isHidden = true;
+                hidingLocker = currentLocker;
                 preHideYaw = rotation.yaw;
-                camera.position.set(currentLocker.position.x, 1.6, currentLocker.position.z);
+                // Move the player into the locker interior. While hidden, the player is damage-proof.
+                camera.position.set(hidingLocker.position.x, 1.6, hidingLocker.position.z);
+                rotation.yaw = hidingLocker.rotation.y + Math.PI;
+                rotation.pitch = 0;
                 document.getElementById('status-msg').innerText = "HIDDEN IN LOCKER";
                 hideBtn.innerText = "EXIT";
-
-                monsters.forEach(m => {
-                    if (m.userData.type !== 'phantasm') m.userData.state = 'patrol';
-                });
-
+                monsters.forEach(m => { if (m.userData.type !== 'phantasm') m.userData.state = 'patrol'; });
                 if (phantasm) {
                     phantasm.visible = false;
                     phantasm.position.set(-999, -999, -999);
                 }
-            } 
-            else if (isHidden) {
-                isHidden = false;
-                let backVector = new THREE.Vector3(0, 0, 1.6).applyAxisAngle(new THREE.Vector3(0, 1, 0), preHideYaw);
-                let targetExitPos = (currentLocker ? currentLocker.position.clone() : camera.position.clone()).add(backVector);
+            } else if (isHidden) {
+                const locker = hidingLocker || currentLocker;
+                // Spawn directly outside the locker door, using its actual facing direction.
+                const doorOut = new THREE.Vector3(0, 0, 1).applyAxisAngle(
+                    new THREE.Vector3(0, 1, 0), locker ? locker.rotation.y : 0
+                );
+                const base = locker ? locker.position.clone() : camera.position.clone();
+                let targetExitPos = base.add(doorOut.multiplyScalar(1.35));
                 targetExitPos.y = 1.6;
-
-                if (checkCollisions(targetExitPos, 0.25)) {
-                    let defaultFront = new THREE.Vector3(0, 0, 1.6).applyAxisAngle(new THREE.Vector3(0, 1, 0), currentLocker ? currentLocker.rotation.y : 0);
-                    targetExitPos = currentLocker.position.clone().add(defaultFront);
+                if (locker && checkCollisions(targetExitPos, 0.25)) {
+                    targetExitPos.copy(locker.position).add(doorOut.multiplyScalar(2.1));
                     targetExitPos.y = 1.6;
                 }
-
+                isHidden = false;
                 camera.position.copy(targetExitPos);
                 rotation.yaw = preHideYaw;
+                currentLocker = null;
+                hidingLocker = null;
                 document.getElementById('status-msg').innerText = "";
                 hideBtn.innerText = "HIDE";
-
                 if (phantasm) {
                     phantasm.visible = true;
                     phantasm.position.set(16, 1.2, 28);
@@ -1420,7 +1462,7 @@
             if ((isSprinting || keysPressed['ShiftLeft'] || adrenalineTimer > 0) && !isHidden) {
                 if ((stamina > 0 || adrenalineTimer > 0) && isMoving) {
                     speed = sprintSpeed * (adrenalineTimer > 0 ? 1.25 : 1.0);
-                    if (adrenalineTimer <= 0) stamina = Math.max(0, stamina - 0.6);
+                    if (adrenalineTimer <= 0) stamina = Math.max(0, stamina - 0.48);
                 }
             } else {
                 stamina = Math.min(maxStamina, stamina + 0.8);
@@ -1438,13 +1480,14 @@
                 if (!k.collected) {
                     k.mesh.rotation.y += 0.03;
                     if (camera.position.distanceTo(k.mesh.position) < 1.5) {
+                        const collectedKeyPosition = k.mesh.position.clone();
                         k.collected = true;
                         scene.remove(k.mesh);
                         keysFound++;
                         if(keysFound===1&&!banisherScheduled){banisherScheduled=true;banisherNextAt=performance.now()+35000+Math.random()*25000;}
                         document.getElementById('key-tracker').innerText = `FUEL CANISTERS: ${keysFound} / ${totalKeys}`;
                         checkProgressiveDifficulty();
-                        updateGuideIndicators();
+                        updateGuideIndicators(collectedKeyPosition);
                     }
                 }
             });
