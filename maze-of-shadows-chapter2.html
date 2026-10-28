@@ -94,7 +94,128 @@
             color: #fff; border: 1px solid #ff0000; margin-top: 25px; cursor: pointer;
         }
 
-</style>
+        /* Individual creature-specific jumpscare silhouettes and motion. */
+        #banisher-jumpscare.monster-scare .scare-face { will-change: transform, filter, border-radius, clip-path; }
+        #banisher-jumpscare.scare-brute .scare-face { animation: scareBrute 0.82s cubic-bezier(.15,.8,.2,1) forwards; }
+        #banisher-jumpscare.scare-stalker .scare-face { animation: scareStalker .95s steps(5,end) forwards; }
+        #banisher-jumpscare.scare-crawler .scare-face { animation: scareCrawler .8s cubic-bezier(.2,.9,.3,1) forwards; transform-origin: 50% 80%; }
+        #banisher-jumpscare.scare-phantasm .scare-face, #banisher-jumpscare.scare-phantom .scare-face { animation: scarePhantasm 1s ease-out forwards; }
+        #banisher-jumpscare.scare-wraith .scare-face { animation: scareWraith .9s steps(7,end) forwards; }
+        #banisher-jumpscare.scare-banshee .scare-face { animation: scareBanshee 1s cubic-bezier(.1,.7,.1,1) forwards; }
+        #banisher-jumpscare.scare-devourer .scare-face { animation: scareDevourer .78s cubic-bezier(.05,.9,.15,1) forwards; }
+        #banisher-jumpscare.scare-demogorgon .scare-face { animation: scareDemogorgon .86s steps(4,end) forwards; }
+        #banisher-jumpscare.scare-ghost .scare-face { animation: scareGhost 1.1s ease-in-out forwards; }
+        #banisher-jumpscare.scare-smiler .scare-face { animation: scareSmiler .9s cubic-bezier(.03,.85,.2,1) forwards; border-radius: 46% 54% 48% 52%; }
+        #banisher-jumpscare.scare-smiler .scare-eye { top: 23%; width: 9%; height: 23%; border-radius: 8% 8% 50% 50%; background: #000; box-shadow: 0 0 0 7px #fff, 0 0 25px 12px #000; }
+        #banisher-jumpscare.scare-smiler .scare-eye.left { left: 27%; transform: rotate(9deg) scaleY(1.2); }
+        #banisher-jumpscare.scare-smiler .scare-eye.right { right: 27%; transform: rotate(-9deg) scaleY(1.2); }
+        #banisher-jumpscare.scare-smiler .scare-mouth { top: 52%; left: 8%; width: 84%; height: 34%; border-radius: 8% 8% 50% 50%; clip-path: polygon(0 0,12% 10%,24% 14%,38% 12%,50% 19%,62% 12%,76% 14%,88% 10%,100% 0,92% 70%,75% 95%,50% 100%,25% 95%,8% 70%); box-shadow: 0 0 28px #000, inset 0 0 15px #550000; }
+        #banisher-jumpscare.scare-smiler .scare-mouth:before { top: 1%; height: 35%; background: repeating-linear-gradient(90deg,#fff 0 5%,#111 5% 6.5%); }
+        #banisher-jumpscare.scare-smiler .scare-mouth:after { bottom: 1%; height: 29%; background: repeating-linear-gradient(90deg,#fff 0 5%,#111 5% 6.5%); }
+        #banisher-jumpscare.scare-brute .scare-mouth { height: 42%; top: 47%; border-radius: 2%; clip-path: polygon(0 0,100% 0,86% 100%,14% 100%); }
+        #banisher-jumpscare.scare-stalker .scare-eye { height: 26%; width: 8%; top: 25%; border-radius: 0; }
+        #banisher-jumpscare.scare-crawler .scare-eye { top: 34%; height: 10%; width: 19%; border-radius: 50%; }
+        #banisher-jumpscare.scare-crawler .scare-mouth { top: 53%; height: 38%; left: 28%; width: 44%; border-radius: 50%; clip-path: none; }
+        #banisher-jumpscare.scare-wraith .scare-eye { height: 25%; width: 8%; background: #aaffff; box-shadow: 0 0 22px #00faff; }
+        #banisher-jumpscare.scare-wraith .scare-mouth { left: 35%; width: 30%; height: 38%; border-radius: 50%; background: #001014; }
+        #banisher-jumpscare.scare-banshee .scare-mouth { top: 46%; height: 43%; border-radius: 50% 50% 8% 8%; clip-path: polygon(0 0,100% 0,80% 100%,20% 100%); }
+        #banisher-jumpscare.scare-devourer .scare-mouth { top: 43%; height: 48%; left: 12%; width: 76%; border-radius: 50%; clip-path: ellipse(48% 50% at 50% 50%); }
+        #banisher-jumpscare.scare-demogorgon .scare-eye { top: 18%; height: 13%; width: 13%; border-radius: 50%; background: #ff210c; box-shadow: 0 0 22px #ff1600; }
+        #banisher-jumpscare.scare-demogorgon .scare-mouth { top: 35%; left: 15%; width: 70%; height: 57%; border-radius: 50%; clip-path: polygon(50% 0,100% 50%,50% 100%,0 50%); }
+        #banisher-jumpscare.scare-ghost .scare-eye { background: #172b44; opacity: .7; box-shadow: 0 0 20px #bcecff; }
+        #banisher-jumpscare.scare-ghost .scare-mouth { background: #1b2c40; height: 40%; border-radius: 50%; filter: blur(2px); }
+        @keyframes scareBrute { 0%{transform:scale(.1) translateY(35vh);filter:brightness(.2)} 55%{transform:scale(1.25) translateY(-2vh);filter:brightness(1.7)} 72%{transform:scale(.94) translateX(-2vw)} 100%{transform:scale(1.08);filter:brightness(1.1)} }
+        @keyframes scareStalker { 0%{transform:translateX(-55vw) scale(.2) skewX(20deg)} 35%{transform:translateX(12vw) scale(.6) skewX(-18deg)} 55%{transform:translateX(-8vw) scale(.8) skewX(12deg)} 100%{transform:translateX(0) scale(1.1);filter:contrast(2)} }
+        @keyframes scareCrawler { 0%{transform:translateY(50vh) rotate(25deg) scale(.15)} 60%{transform:translateY(-3vh) rotate(-8deg) scale(1.25)} 80%{transform:translateY(2vh) rotate(4deg) scale(1)} 100%{transform:translateY(0) rotate(0) scale(1.08)} }
+        @keyframes scarePhantasm { 0%{transform:scale(1.8);opacity:0;filter:blur(30px)} 40%{opacity:.9;filter:blur(4px)} 65%{transform:scale(.82);opacity:.4;filter:blur(12px)} 100%{transform:scale(1.15);opacity:1;filter:blur(0) contrast(1.8)} }
+        @keyframes scareWraith { 0%,100%{transform:scale(.3) translateX(0);opacity:.2} 20%{transform:scale(1.4) translateX(-5vw);opacity:1} 40%{transform:scale(.7) translateX(5vw);opacity:.35} 60%{transform:scale(1.35) translateX(-2vw);opacity:1} 80%{transform:scale(.9) translateX(2vw);opacity:.65} }
+        @keyframes scareBanshee { 0%{transform:scale(.05) rotate(-35deg);filter:brightness(4)} 35%{transform:scale(1.4) rotate(12deg);filter:brightness(2)} 52%{transform:scale(1.1) rotate(-8deg)} 100%{transform:scale(1.15) rotate(0);filter:brightness(1.3)} }
+        @keyframes scareDevourer { 0%{transform:scale(.05);filter:brightness(.1)} 45%{transform:scale(1.45);filter:brightness(2.4)} 62%{transform:scale(.9)} 100%{transform:scale(1.2);filter:brightness(1.2)} }
+        @keyframes scareDemogorgon { 0%{transform:scale(.1) rotate(-15deg)} 25%{transform:scale(1.5) rotate(10deg)} 50%{transform:scale(1.05) rotate(-8deg)} 75%{transform:scale(1.3) rotate(4deg)} 100%{transform:scale(1.12) rotate(0)} }
+        @keyframes scareGhost { 0%{transform:scale(.2);opacity:0;filter:blur(15px)} 35%{transform:scale(1.3);opacity:.9;filter:blur(0)} 65%{transform:scale(.85);opacity:.3;filter:blur(8px)} 100%{transform:scale(1.08);opacity:1;filter:blur(1px)} }
+        @keyframes scareSmiler { 0%{transform:scale(.015) rotate(-12deg);filter:brightness(8) contrast(2)} 38%{transform:scale(1.55) rotate(5deg);filter:brightness(1.8) contrast(1.5)} 56%{transform:scale(1.15) rotate(-3deg)} 72%{transform:scale(1.3) rotate(1deg)} 100%{transform:scale(1.12);filter:brightness(1.1) contrast(1.3)} }
+
+        #game-over {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(20, 0, 0, 0.95); color: #ff0000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 30; font-size: 24px; display: none; text-align: center; padding: 20px;
+            box-sizing: border-box;
+        }
+        #death-hint {
+            color: #ffaaaa; font-size: 15px; max-width: 450px; margin-top: 15px;
+            line-height: 1.4; border-top: 1px solid #550000; padding-top: 15px;
+        }
+        #death-hint .banisher-wrath {
+            display: inline-block; color: #ff1515; font-weight: 900; letter-spacing: 2px;
+            text-shadow: 0 0 4px #ff0000, 0 0 12px #b00000, 0 0 24px #650000;
+            animation: wrathPulse .55s steps(2,end) infinite, wrathShake .16s infinite;
+        }
+        @keyframes wrathPulse {
+            0%,100% { opacity: 1; text-shadow: 0 0 4px #ff0000, 0 0 12px #b00000, 0 0 24px #650000; }
+            50% { opacity: .45; text-shadow: 0 0 10px #ff0000, 0 0 28px #ff0000; }
+        }
+        @keyframes wrathShake {
+            0%,100% { transform: translateX(0) skewX(0); }
+            25% { transform: translateX(-1px) skewX(-3deg); }
+            75% { transform: translateX(1px) skewX(3deg); }
+        }
+        #banisher-jumpscare {
+            position: fixed; inset: 0; z-index: 10000; display: none; overflow: hidden;
+            align-items: center; justify-content: center; background: #000;
+            perspective: 500px;
+        }
+        #banisher-jumpscare.active { display: flex; animation: scareFlash 1.15s steps(2,end) forwards; }
+        #banisher-jumpscare .scare-face {
+            position: relative; width: min(88vw, 520px); aspect-ratio: 1 / 1;
+            border-radius: 50%; background: radial-gradient(ellipse at 42% 32%, #fff 0%, #f4f4f4 48%, #bdbdbd 78%, #555 100%);
+            box-shadow: 0 0 55px #fff, 0 0 120px #d7d7d7, inset -18px -22px 42px #777;
+            transform: scale(.18) rotate(-8deg); animation: scareLunge .72s cubic-bezier(.1,.85,.2,1) forwards;
+        }
+        #banisher-jumpscare .scare-eye {
+            position: absolute; top: 29%; width: 13%; height: 19%; background: #050505;
+            border-radius: 50%; box-shadow: 0 0 9px #000, inset 0 0 5px #333;
+        }
+        #banisher-jumpscare .scare-eye.left { left: 25%; transform: rotate(12deg); }
+        #banisher-jumpscare .scare-eye.right { right: 25%; transform: rotate(-12deg); }
+        #banisher-jumpscare .scare-mouth {
+            position: absolute; left: 17%; top: 52%; width: 66%; height: 30%;
+            border-radius: 10% 10% 48% 48% / 10% 10% 75% 75%; background: #050505;
+            border: 3px solid #111; box-shadow: 0 4px 0 #777; overflow: hidden;
+            clip-path: polygon(0 0, 15% 8%, 30% 12%, 50% 16%, 70% 12%, 85% 8%, 100% 0, 94% 65%, 78% 90%, 50% 100%, 22% 90%, 6% 65%);
+        }
+        #banisher-jumpscare .scare-mouth:before {
+            content: ''; position: absolute; top: 2%; left: 2%; width: 96%; height: 27%;
+            background: repeating-linear-gradient(90deg,#fff 0 10%,#aaa 10% 11.5%);
+        }
+        #banisher-jumpscare .scare-mouth:after {
+            content: ''; position: absolute; bottom: 2%; left: 5%; width: 90%; height: 21%;
+            background: repeating-linear-gradient(90deg,#eee 0 10%,#777 10% 11.5%);
+        }
+        #banisher-jumpscare .scare-label {
+            position: absolute; bottom: 9%; left: 0; width: 100%; color: #ff1616;
+            font: 900 clamp(20px,5vw,42px) monospace; text-align: center;
+            letter-spacing: .15em; text-shadow: 0 0 12px #f00;
+        }
+        @keyframes scareLunge {
+            0% { transform: scale(.18) rotate(-8deg); filter: brightness(.25); }
+            65% { transform: scale(1.18) rotate(3deg); filter: brightness(1.7); }
+            100% { transform: scale(1) rotate(0); filter: brightness(1); }
+        }
+        @keyframes scareFlash {
+            0%,20%,45%,70% { background: #000; }
+            10%,35%,60%,85% { background: #260000; }
+            100% { background: #000; }
+        }
+        @keyframes eyeFlicker { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+        #start-btn {
+            padding: 12px 28px; font-size: 16px; background: #330000;
+            color: #fff; border: 1px solid #ff0000; margin-top: 25px; cursor: pointer;
+        }
+
+ #jumpscare .scare-text,#jumpscare .jumpscare-text,#jumpscare .message,#scare .scare-text,#scare .jumpscare-text,#banisher-jumpscare .scare-label{display:none!important}
+
+    </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
@@ -127,6 +248,13 @@
 
     <div id="joystick-base"><div id="joystick-stick"></div></div>
 
+    <div id="banisher-jumpscare" aria-hidden="true">
+        <div class="scare-face">
+            <div class="scare-eye left"></div><div class="scare-eye right"></div>
+            <div class="scare-mouth"></div>
+            <div class="scare-label">FOUND YOU</div>
+        </div>
+    </div>
     <div id="game-over">
         <h1 id="status-text">THE MAZE CLAIMED YOU</h1>
         <div id="death-hint">Hint goes here...</div>
@@ -164,6 +292,10 @@
         // Entities & World Arrays
         let lockers = [], monsters = [], wallBoxes = [], keys = [], items = [], exitGate = null;
         let exitGlowLight = null, exitDoorMesh = null;
+        let banisherDeathSequence = false;
+        let monsterDeathSequence = false;
+        let banisherActive = false, banisherScheduled = false, banisherNextAt = 0, banisherStartedAt = 0, banisherSpawnAt = 0, banisherUntil = 0, banisherLastFrame = 0, banisherPhase = '', banisherFace = null, banisherSaved = null, banisherLockerTarget = null;
+
         let guideArrows = [], trailPoints = [];
 
         // Input Tracking
@@ -268,6 +400,8 @@
         function cellToWorld(c, r) {
             return new THREE.Vector3(c * cellSize, 0, r * cellSize);
         }
+
+        function nearestWalkableCell(x,z,origin){const p=origin||worldToCell(x,z);if(mazeGrid[p.r]&&mazeGrid[p.r][p.c]===0)return p;let best=null,bd=Infinity;for(let r=Math.max(0,p.r-2);r<=Math.min(mazeGrid.length-1,p.r+2);r++)for(let c=Math.max(0,p.c-2);c<=Math.min(mazeGrid[0].length-1,p.c+2);c++){if(mazeGrid[r][c]!==0)continue;const d=Math.hypot(c*cellSize-x,r*cellSize-z);if(d<bd){bd=d;best={r,c};}}return best||{r:1,c:1};}
 
         function init() {
             scene = new THREE.Scene();
@@ -787,50 +921,73 @@
         }
 
         function spawnMonster(type, x, z) {
-            let height = 2.4, radius = 0.35;
-            let eyeColor = 0xff0000;
-
-            if (type === 'crawler') eyeColor = 0xffff00;
-            if (type === 'phantasm') eyeColor = 0xaa00ff;
-            if (type === 'wraith') eyeColor = 0x00ffff;
-            if (type === 'phantom') eyeColor = 0xff00ff;
-            if (type === 'banshee') eyeColor = 0xff8800;
-            if (type === 'devourer') { eyeColor = 0xff0033; height = 3.5; radius = 0.65; }
-            if (type === 'brute') { eyeColor = 0xff6600; height = 3.0; radius = 0.55; }
-
-            const bodyGeo = new THREE.CylinderGeometry(radius, radius * 0.6, height, 8);
-            const bodyMat = new THREE.MeshStandardMaterial({ 
-                color: (type === 'phantom') ? 0x110022 : 0x080808, 
-                transparent: (type === 'phantom'), 
-                opacity: (type === 'phantom') ? 0.4 : 1.0,
-                roughness: 0.5 
-            });
-            const monster = new THREE.Mesh(bodyGeo, bodyMat);
-
-            const eyeGeo = new THREE.SphereGeometry(0.07, 8, 8);
-            const eyeMat = new THREE.MeshBasicMaterial({ color: eyeColor });
-            const eye1 = new THREE.Mesh(eyeGeo, eyeMat);
-            const eye2 = new THREE.Mesh(eyeGeo, eyeMat);
-            eye1.position.set(-0.14, height/2 - 0.3, radius - 0.05);
-            eye2.position.set(0.14, height/2 - 0.3, radius - 0.05);
-            monster.add(eye1); monster.add(eye2);
-
-            monster.position.set(x, height/2, z);
-            monster.userData = { 
-                type: type, 
-                baseSpeed: 0.035, 
-                isEnraged: false, 
-                dps: 20,
-                path: [],
-                state: 'patrol'
-            };
-
-            if (type === 'brute') monster.userData.dps = 35;
-            if (type === 'banshee') monster.userData.baseSpeed = 0.025;
-            if (type === 'devourer') { monster.userData.dps = 60; monster.userData.baseSpeed = 0.05; }
-
-            scene.add(monster);
-            monsters.push(monster);
+            let height=2.45, radius=0.34, eyeColor=0xff1b1b, bodyColor=0x101214, opacity=1;
+            const colors={brute:[0xff5a18,0x241b18],stalker:[0xff2020,0x171313],crawler:[0xffe45c,0x182018],phantasm:[0xb46bff,0x342044],wraith:[0x65f4ff,0x253a40],phantom:[0xff5bff,0x211027],banshee:[0xff8b28,0x382015],devourer:[0xff0033,0x1d080d],ghost:[0xb9eaff,0x9ebed1],demogorgon:[0xff321f,0x5b211c],smiler:[0xfff3a1,0x090909]};
+            if(colors[type]){eyeColor=colors[type][0];bodyColor=colors[type][1];}
+            if(type==='devourer'){height=3.35;radius=0.58;}if(type==='brute'){height=2.95;radius=0.48;}
+            if(type==='demogorgon'){height=3.15;radius=0.46;}if(type==='smiler'){height=2.35;radius=0.38;}
+            const monster=new THREE.Group(),isGhost=['phantom','phantasm','wraith','ghost'].includes(type);
+            if(type==='phantom')opacity=0.58;if(type==='ghost')opacity=0.46;
+            const bodyMat=new THREE.MeshStandardMaterial({color:bodyColor,transparent:opacity<1,opacity,roughness:0.94,metalness:0.02});
+            const boneMat=new THREE.MeshStandardMaterial({color:isGhost?0x403447:0x25292b,roughness:0.9}),mouthMat=new THREE.MeshStandardMaterial({color:0x030304,roughness:1}),eyeMat=new THREE.MeshBasicMaterial({color:eyeColor});
+            const glowMat=new THREE.MeshBasicMaterial({color:eyeColor,transparent:true,opacity:0.22,side:THREE.DoubleSide});
+            const orb=(x,y,z,mat,seg=20)=>{const m=new THREE.Mesh(new THREE.SphereGeometry(1,seg,Math.max(12,seg-4)),mat);m.scale.set(x,y,z);return m;};
+            const torso=orb(radius*1.08,height*0.24,radius*0.76,bodyMat,24);torso.position.set(0,height*0.49,0);monster.add(torso);
+            if(type==='ghost'){
+                torso.scale.set(radius*0.95,height*0.31,radius*0.72);
+                const tail=new THREE.Mesh(new THREE.ConeGeometry(radius*0.72,height*0.55,12),bodyMat);tail.position.set(0,height*0.22,-0.02);tail.rotation.x=Math.PI;monster.add(tail);
+                for(let j=0;j<3;j++){const wisp=orb(0.07,0.14,0.07,glowMat,12);wisp.position.set((j-1)*0.17,height*(0.18+j*0.06),0.02);monster.add(wisp);}
+            }
+            if(type==='demogorgon'){
+                // Petal-shaped, open flower head with a dark central maw.
+                const petalsMat=new THREE.MeshStandardMaterial({color:0x8f3025,roughness:0.86});
+                for(let j=0;j<5;j++){const petal=orb(0.105,0.32,0.13,petalsMat,16);const a=j*Math.PI*2/5;petal.position.set(Math.cos(a)*0.22,height*0.82+Math.sin(a)*0.04,Math.sin(a)*0.2+0.12);petal.rotation.z=Math.cos(a)*0.72;petal.rotation.y=a;head.add(petal);}
+                const maw=orb(0.16,0.18,0.09,mouthMat,16);maw.position.set(0,0.0,0.26);head.add(maw);
+                for(let j=0;j<8;j++){const tooth=new THREE.Mesh(new THREE.ConeGeometry(0.025,0.09,6),boneMat);const a=j*Math.PI/4;tooth.position.set(Math.cos(a)*0.13,-0.01,0.32+Math.sin(a)*0.04);tooth.rotation.x=Math.PI;head.add(tooth);}
+            }
+            if(type==='smiler'){
+                // The Smiler is an unnaturally pale floating face, with sunken black eyes
+                // and a stretched, jagged grin. Its face is visible before the body.
+                torso.scale.set(radius*0.72,height*0.2,radius*0.45);
+                torso.position.y=height*0.44;
+                const faceMat=new THREE.MeshBasicMaterial({color:0xf7f7f4});
+                const blackMat=new THREE.MeshBasicMaterial({color:0x020202});
+                const face=orb(0.57,0.43,0.12,faceMat,32);face.position.set(0,height*0.79,0.22);monster.add(face);
+                for(const side of [-1,1]){
+                    const socket=orb(0.13,0.095,0.045,blackMat,20);socket.position.set(side*0.2,height*0.84,0.335);monster.add(socket);
+                    const pin=orb(0.035,0.035,0.018,new THREE.MeshBasicMaterial({color:0xffffff}),12);pin.position.set(side*0.2,height*0.84,0.377);monster.add(pin);
+                }
+                const grinMat=new THREE.MeshBasicMaterial({color:0x030303});
+                const grin=new THREE.Mesh(new THREE.ShapeGeometry((()=>{const sh=new THREE.Shape();sh.moveTo(-0.43,0.04);sh.quadraticCurveTo(0,-0.16,0.43,0.04);sh.lineTo(0.35,-0.19);sh.quadraticCurveTo(0,-0.32,-0.35,-0.19);sh.closePath();return sh;})()),grinMat);
+                grin.position.set(0,height*0.68,0.355);monster.add(grin);
+                const toothMat=new THREE.MeshBasicMaterial({color:0xffffff});
+                for(let j=0;j<9;j++){const tooth=new THREE.Mesh(new THREE.BoxGeometry(0.055,0.09,0.025),toothMat);tooth.position.set(-0.31+j*0.078,height*0.68-0.015,0.37);monster.add(tooth);}
+                const underGlow=new THREE.PointLight(0xffffff,0.65,4);underGlow.position.set(0,height*0.78,0.6);monster.add(underGlow);
+            }
+            const chest=orb(radius*0.83,height*0.18,radius*0.78,boneMat,20);chest.position.set(0,height*0.64,0.035);monster.add(chest);
+            const hs=type==='devourer'?0.42:(type==='brute'?0.34:0.29),head=new THREE.Group();head.position.set(0,height*0.79,radius*0.1);monster.add(head);
+            const skull=orb(hs*0.88,hs*1.15,hs*0.92,bodyMat,24);skull.position.y=hs*0.12;head.add(skull);
+            const brow=orb(hs*1.02,hs*0.25,hs*0.38,boneMat,18);brow.position.set(0,hs*0.25,hs*0.62);head.add(brow);
+            const mouth=new THREE.Mesh(new THREE.BoxGeometry(hs*1.02,hs*0.43,0.045),mouthMat);mouth.position.set(0,-hs*0.43,hs*0.72);head.add(mouth);
+            for(let i=0;i<5;i++){const fang=new THREE.Mesh(new THREE.ConeGeometry(0.035,0.12,8),boneMat);fang.position.set((i-2)*hs*0.32,-hs*0.34,hs*0.77);fang.rotation.x=Math.PI;head.add(fang);}
+            for(const side of [-1,1]){const socket=orb(0.105,0.085,0.045,mouthMat,16);socket.position.set(side*hs*0.37,hs*0.14,hs*0.76);head.add(socket);const eye=orb(type==='devourer'?0.075:0.058,0.065,0.05,eyeMat,16);eye.position.copy(socket.position);eye.position.z+=0.035;head.add(eye);const halo=orb(0.15,0.13,0.06,glowMat,16);halo.position.copy(eye.position);halo.position.z-=0.018;head.add(halo);}
+            const arms=[],legs=[];
+            for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*radius*0.78,height*0.66,0);monster.add(arm);const len=height*(type==='crawler'?0.27:0.37);
+                const upper=orb(radius*0.27,len*0.53,radius*0.27,bodyMat,18);upper.position.y=-len*0.39;upper.rotation.z=side*-0.16;arm.add(upper);
+                const elbow=orb(radius*0.22,radius*0.22,radius*0.22,boneMat,16);elbow.position.y=-len*0.76;arm.add(elbow);
+                const fore=orb(radius*0.18,len*0.32,radius*0.2,bodyMat,18);fore.position.set(side*radius*0.05,-len*0.94,radius*0.04);arm.add(fore);
+                for(let j=0;j<3;j++){const claw=new THREE.Mesh(new THREE.ConeGeometry(0.045,0.22,8),boneMat);claw.position.set((j-1)*0.09,-len*1.16,radius*0.12);claw.rotation.x=-0.25;claw.rotation.z=Math.PI;arm.add(claw);}arms.push(arm);
+                const leg=new THREE.Group();leg.position.set(side*radius*0.37,height*0.29,0);monster.add(leg);const thigh=orb(radius*0.31,height*0.17,radius*0.33,boneMat,18);thigh.position.y=-height*0.075;leg.add(thigh);const shin=orb(radius*0.22,height*0.14,radius*0.23,bodyMat,18);shin.position.set(0,-height*0.2,radius*0.1);leg.add(shin);const foot=orb(radius*0.27,radius*0.13,radius*0.44,boneMat,18);foot.position.set(0,-height*0.29,radius*0.25);leg.add(foot);legs.push(leg);}
+            if(type==='brute'||type==='devourer'){const hump=orb(radius*1.28,height*0.19,radius*0.95,boneMat,24);hump.position.set(0,height*0.65,-radius*0.45);monster.add(hump);for(let i=0;i<4;i++){const spike=new THREE.Mesh(new THREE.ConeGeometry(0.13,0.34,8),boneMat);spike.position.set((i-1.5)*radius*0.35,height*0.79,-radius*(0.65+(i%2)*0.2));spike.rotation.x=-0.5;monster.add(spike);}}
+            // Keep every decorative part attached to the creature group to prevent stray floating pieces.
+            monster.traverse(part=>{if(part.isMesh){part.frustumCulled=false;part.userData.monsterPart=true;}});
+            if(type==='crawler'){monster.scale.set(1.18,0.62,1.25);torso.rotation.x=Math.PI/2.4;head.position.set(0,0.52,radius*1.1);arms.forEach((a,i)=>{a.position.y=0.5;a.rotation.z=i?-0.65:0.65;});legs.forEach((l,i)=>{l.position.y=0.26;l.rotation.z=i?-0.35:0.35;});}
+            monster.position.set(x,type==='crawler'?0.24:0,z);
+            monster.userData={type,baseSpeed:type==='banshee'?0.045:(type==='demogorgon'?0.041:(type==='smiler'?0.038:0.035)),isEnraged:false,dps:type==='brute'?35:(type==='devourer'?60:(type==='demogorgon'?42:(type==='smiler'?30:20))),path:[],state:'patrol',repathTimer:0,lastTargetCell:null,armPivots:arms,legPivots:legs,headPivot:head,gaitTime:Math.random()*Math.PI*2,height,isGhost,radius,stuckTimer:0};
+            if(type==='devourer')monster.userData.baseSpeed=0.052;
+            if(type==='ghost')monster.userData.baseSpeed=0.032;
+            if(type==='smiler')monster.userData.baseSpeed=0.036;
+            scene.add(monster);monsters.push(monster);
         }
 
         function checkProgressiveDifficulty() {
@@ -852,6 +1009,13 @@
             } else if (keysFound === 7 && monsters.length === 7) {
                 spawnMonster('devourer', 20, 60);
                 dangerElem.innerText = "THREAT LEVEL: EXTREME";
+            } else if (keysFound === 8 && !monsters.some(m=>m.userData.type==='demogorgon')) {
+                spawnMonster('demogorgon', 12, 68);
+                dangerElem.innerText = "THREAT LEVEL: CRITICAL";
+            } else if (keysFound === 9 && !monsters.some(m=>m.userData.type==='smiler')) {
+                spawnMonster('smiler', 68, 12);
+                spawnMonster('ghost', 12, 12);
+                dangerElem.innerText = "THREAT LEVEL: CRITICAL";
             }
         }
 
@@ -1078,10 +1242,164 @@
             }
         });
 
+        function playBanisherWarning(){
+            try{
+                const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+                const c=new AC(),t=c.currentTime;
+                const master=c.createGain();master.gain.setValueAtTime(0.0001,t);master.gain.linearRampToValueAtTime(0.32,t+0.25);master.connect(c.destination);
+                // Wind bed
+                const nbuf=c.createBuffer(1,c.sampleRate*4,c.sampleRate),nd=nbuf.getChannelData(0);
+                for(let i=0;i<nd.length;i++)nd[i]=(Math.random()*2-1)*0.65;
+                const wind=c.createBufferSource();wind.buffer=nbuf;wind.loop=true;
+                const wf=c.createBiquadFilter();wf.type='lowpass';wf.frequency.value=420;
+                const wg=c.createGain();wg.gain.value=0.55;wind.connect(wf);wf.connect(wg);wg.connect(master);wind.start(t);
+                // Layered rising, rough screams
+                for(let j=0;j<3;j++){const o=c.createOscillator(),g=c.createGain(),f=c.createBiquadFilter();o.type=j===1?'sawtooth':'triangle';o.frequency.setValueAtTime(115+j*45,t+0.15);o.frequency.linearRampToValueAtTime(620-j*75,t+2.6);o.frequency.linearRampToValueAtTime(180+j*25,t+4.8);f.type='bandpass';f.frequency.value=900+j*400;f.Q.value=2;g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(0.12,t+0.7+j*0.2);g.gain.linearRampToValueAtTime(0.0001,t+4.9);o.connect(f);f.connect(g);g.connect(master);o.start(t);o.stop(t+5);}
+                master.gain.setValueAtTime(0.32,t+4.7);master.gain.exponentialRampToValueAtTime(0.0001,t+5.2);
+                wind.stop(t+5.25);setTimeout(()=>c.close().catch(()=>{}),5600);
+            }catch(e){}
+        }
+        function playBanisherJumpscare(){
+            try {
+                const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+                const c=new AC(),t=c.currentTime,master=c.createGain();master.gain.setValueAtTime(0.9,t);master.gain.exponentialRampToValueAtTime(0.0001,t+1.05);master.connect(c.destination);
+                const noise=c.createBuffer(1,c.sampleRate,c.sampleRate),data=noise.getChannelData(0);
+                for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*(i/c.sampleRate<0.18?1:Math.max(0,1-(i/c.sampleRate-0.18)/0.85));
+                const src=c.createBufferSource();src.buffer=noise;
+                const filter=c.createBiquadFilter();filter.type='bandpass';filter.frequency.setValueAtTime(1200,t);filter.frequency.exponentialRampToValueAtTime(180,t+0.9);filter.Q.value=0.8;
+                const gain=c.createGain();gain.gain.setValueAtTime(0.0001,t);gain.gain.linearRampToValueAtTime(0.75,t+0.035);gain.gain.exponentialRampToValueAtTime(0.0001,t+1.02);
+                src.connect(filter);filter.connect(gain);gain.connect(master);src.start(t);src.stop(t+1.05);
+                const osc=c.createOscillator(),og=c.createGain();osc.type='sawtooth';osc.frequency.setValueAtTime(260,t);osc.frequency.exponentialRampToValueAtTime(48,t+0.9);og.gain.setValueAtTime(0.0001,t);og.gain.linearRampToValueAtTime(0.42,t+0.04);og.gain.exponentialRampToValueAtTime(0.0001,t+0.9);osc.connect(og);og.connect(master);osc.start(t);osc.stop(t+0.92);
+                setTimeout(()=>c.close().catch(()=>{}),1250);
+            } catch(e) {}
+        }
+        function playBanisherBang(){
+            try{
+                const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+                const c=new AC(),t=c.currentTime,master=c.createGain();master.gain.value=0.7;master.gain.exponentialRampToValueAtTime(0.0001,t+0.65);master.connect(c.destination);
+                const b=c.createBuffer(1,c.sampleRate*0.55,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2);
+                const n=c.createBufferSource();n.buffer=b;const f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=650;n.connect(f);f.connect(master);n.start(t);n.stop(t+0.55);
+                const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(100,t);o.frequency.exponentialRampToValueAtTime(28,t+0.3);g.gain.value=0.7;g.gain.exponentialRampToValueAtTime(0.0001,t+0.35);o.connect(g);g.connect(master);o.start(t);o.stop(t+0.4);setTimeout(()=>c.close().catch(()=>{}),800);
+            }catch(e){}
+        }
+        function makeBanisherFace(){
+            const root=new THREE.Group();
+            const dark=new THREE.MeshStandardMaterial({color:0x030303,roughness:1});
+            const skin=new THREE.MeshStandardMaterial({color:0x151313,roughness:0.96});
+            const white=new THREE.MeshBasicMaterial({color:0xf4f1e9});
+            const red=new THREE.MeshBasicMaterial({color:0xff1010});
+            const orb=(x,y,z,mat)=>{const m=new THREE.Mesh(new THREE.SphereGeometry(1,18,14),mat);m.scale.set(x,y,z);return m;};
+            const head=orb(0.64,0.76,0.38,skin);head.position.y=2.05;root.add(head);
+            const brow=orb(0.68,0.14,0.16,dark);brow.position.set(0,2.43,0.3);root.add(brow);
+            for(const side of [-1,1]){
+                const socket=orb(0.2,0.23,0.09,dark);socket.position.set(side*0.25,2.18,0.35);root.add(socket);
+                const eye=orb(0.105,0.13,0.055,red);eye.position.set(side*0.25,2.18,0.43);root.add(eye);
+                const glint=orb(0.035,0.045,0.025,white);glint.position.set(side*0.25-0.025,2.2,0.48);root.add(glint);
+            }
+            const mouth=orb(0.37,0.2,0.09,dark);mouth.position.set(0,1.82,0.4);root.add(mouth);
+            for(let i=0;i<7;i++){const tooth=new THREE.Mesh(new THREE.ConeGeometry(0.045,0.15,5),white);tooth.position.set(-0.27+i*0.09,1.94,0.48);tooth.rotation.x=Math.PI;root.add(tooth);}
+            for(let i=0;i<5;i++){const spike=new THREE.Mesh(new THREE.ConeGeometry(0.12,0.48,7),dark);spike.position.set((i-2)*0.22,2.66+(i%2)*0.08,0);root.add(spike);}
+            root.traverse(o=>{if(o.isMesh)o.frustumCulled=false;});
+            root.userData.isBanisherFace=true;
+            return root;
+        }
+        function startBanisherEvent(now){
+            if(banisherActive||isGameOver)return;
+            banisherActive=true;banisherStartedAt=now;banisherPhase='warning';banisherSpawnAt=now+5000;banisherUntil=0;banisherSaved={ambient:ambientLight.intensity,flashlight:flashlight.intensity,fogColor:scene.fog.color.clone(),fogDensity:scene.fog.density,background:scene.background.clone(),visibility:monsters.map(m=>m.visible)};banisherLockerTarget=null;
+            scene.fog.color.set(0x050506);scene.fog.density=0.045;scene.background.set(0x050506);
+            monsters.forEach(m=>m.visible=false);
+            document.getElementById('status-msg').innerText='THE AIR SCREAMS. HIDE NOW.';
+            playBanisherWarning();
+        }
+        function endBanisherEvent(now){
+            banisherActive=false;banisherPhase='';banisherStartedAt=0;banisherLockerTarget=null;
+            if(banisherFace){scene.remove(banisherFace);banisherFace=null;}
+            if(banisherSaved){
+                ambientLight.intensity=banisherSaved.ambient;
+                flashlight.intensity=flashlightOn?banisherSaved.flashlight:0;
+                scene.fog.color.copy(banisherSaved.fogColor);scene.fog.density=banisherSaved.fogDensity;scene.background.copy(banisherSaved.background);
+                monsters.forEach((m,i)=>m.visible=banisherSaved.visibility[i]!==false);
+            }
+            document.getElementById('status-msg').innerText='';
+            banisherNextAt=performance.now()+35000+Math.random()*25000;
+        }
+        function updateBanisher(now){
+            if(!banisherActive){
+                if(banisherScheduled&&banisherNextAt>0&&now>=banisherNextAt)startBanisherEvent(now);
+                return;
+            }
+            // Keep the scene itself dark. Flicker only the flashlight during the 5-second warning.
+            scene.fog.color.set(0x050506);scene.fog.density=0.045;scene.background.set(0x050506);
+            if(banisherPhase==='warning'){
+                flashlight.intensity=flashlightOn?(Math.random()<0.43?3.5:0):0;
+                ambientLight.intensity=Math.random()<0.12?0.12:0;
+                if(now>=banisherSpawnAt){
+                    banisherPhase='hunt';banisherUntil=now+18000;
+                    banisherFace=makeBanisherFace();
+                    const edge=Math.floor(Math.random()*4),maxX=(mazeGrid[0].length-2)*cellSize,maxZ=(mazeGrid.length-2)*cellSize;
+                    const sx=edge===0?cellSize:(edge===1?maxX:(Math.random()*maxX));
+                    const sz=edge===2?cellSize:(edge===3?maxZ:(Math.random()*maxZ));
+                    banisherFace.position.set(sx,0,sz);banisherLastFrame=now;scene.add(banisherFace);
+                    document.getElementById('status-msg').innerText='IT IS HUNTING YOU';
+                }
+                return;
+            }
+            flashlight.intensity=flashlightOn?(Math.random()<0.18?2.4:0.12):0;ambientLight.intensity=0;
+            if(!banisherFace){banisherFace=makeBanisherFace();banisherFace.position.set(camera.position.x+12,0,camera.position.z+12);scene.add(banisherFace);}
+            if(isHidden&&hidingLocker)banisherLockerTarget=hidingLocker;
+            const target=banisherLockerTarget?banisherLockerTarget.position:camera.position;
+            const dx=target.x-banisherFace.position.x,dz=target.z-banisherFace.position.z,dist=Math.hypot(dx,dz)||0.001;
+            // A very fast rush through the maze, with a slight circling motion to make it feel like it is sweeping the map.
+            const speed=0.34;
+            const step=Math.min(dist,speed* Math.max(0.016,(now-(banisherLastFrame||now))/16.67));
+            banisherFace.position.x+=dx/dist*step;banisherFace.position.z+=dz/dist*step;
+            banisherFace.position.y=0.16+Math.sin(now*0.025)*0.14;
+            banisherFace.rotation.y=Math.atan2(dx,dz);
+            banisherLastFrame=now;
+            if(dist<2.2){
+                // Hiding is an explicit safe state: the Banisher can never damage a hidden player.
+                if(isHidden && hidingLocker){
+                    banisherLockerTarget=hidingLocker;
+                    playBanisherBang();
+                    // Slam into the locker, recoil away, and leave without hurting the hidden player.
+                    const safeLocker=hidingLocker||currentLocker;const rx=banisherFace.position.x-safeLocker.position.x,rz=banisherFace.position.z-safeLocker.position.z,rl=Math.hypot(rx,rz)||1;
+                    banisherFace.position.x+=rx/rl*4.5;banisherFace.position.z+=rz/rl*4.5;
+                    document.getElementById('status-msg').innerText='BANG! ... IT IS GONE';
+                    endBanisherEvent(now);
+                }else{
+                    health=0;
+                    isGameOver=true;
+                    banisherDeathSequence=true;
+                    document.getElementById('status-text').innerText='THE BANISHER FOUND YOU';
+                    document.getElementById('death-hint').innerHTML='Hide in a locker or you will suffer its <span class="banisher-wrath">wrath.</span>';
+                    const scare=document.getElementById('banisher-jumpscare');
+                    document.getElementById('game-over').style.display='none';
+                    scare.style.display='flex';
+                    scare.classList.remove('active');
+                    void scare.offsetWidth;
+                    scare.classList.add('active');
+                    playBanisherJumpscare();
+                    setTimeout(()=>{
+                        scare.classList.remove('active');
+                        scare.style.display='none';
+                        document.getElementById('game-over').style.display='flex';
+                    },1250);
+                }
+                return;
+            }
+            if(now>=banisherUntil){
+                // If it has swept the maze without finding the player, it vanishes into the fog.
+                endBanisherEvent(now);
+            }
+        }
+
         function animate() {
             if (isGameOver) return;
             requestAnimationFrame(animate);
             if (isPaused) { lastTime = performance.now(); return; }
+
+            const now = performance.now();
+            updateBanisher(now);
 
             const now = performance.now();
             const delta = (now - lastTime) / 1000;
@@ -1125,6 +1443,7 @@
                         k.collected = true;
                         scene.remove(k.mesh);
                         keysFound++;
+                        if(keysFound===1&&!banisherScheduled){banisherScheduled=true;banisherNextAt=performance.now()+35000+Math.random()*25000;}
                         document.getElementById('key-tracker').innerText = `FUEL CANISTERS: ${keysFound} / ${totalKeys}`;
                         checkProgressiveDifficulty();
                         updateGuideIndicators();
