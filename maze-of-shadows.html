@@ -501,9 +501,23 @@
                 const top=new THREE.Mesh(new THREE.BoxGeometry(0.98,0.075,0.58),lockerBodyMat);top.position.y=1.28;g.add(top);
                 const bottom=new THREE.Mesh(new THREE.BoxGeometry(0.98,0.075,0.58),lockerBodyMat);bottom.position.y=-1.28;g.add(bottom);
                 const inner=new THREE.Mesh(new THREE.BoxGeometry(0.83,2.32,0.018),lockerDarkMat);inner.position.set(0,0,-0.218);g.add(inner);
-                // Front door has narrow viewing slits, with dark gaps behind them.
-                const doorBacking=new THREE.Mesh(new THREE.BoxGeometry(0.84,2.38,0.045),lockerDoorMat);doorBacking.position.set(0,0.01,0.305);g.add(doorBacking);
-                for(let i=0;i<6;i++){const slit=new THREE.Mesh(new THREE.BoxGeometry(0.42,0.035,0.012),lockerDarkMat);slit.position.set(-0.04,0.66-i*0.115,0.332);g.add(slit);const lip=new THREE.Mesh(new THREE.BoxGeometry(0.44,0.018,0.018),lockerTrimMat);lip.position.set(-0.04,0.682-i*0.115,0.339);g.add(lip);}
+                // True viewing slots: the door is built from separated bars, leaving open gaps.
+                // The player can see the room through these gaps while hidden.
+                const doorZ=0.305, doorDepth=0.045, doorWidth=0.84;
+                for(const side of [-1,1]){
+                    const rail=new THREE.Mesh(new THREE.BoxGeometry(0.17,2.38,doorDepth),lockerDoorMat);
+                    rail.position.set(side*0.335,0.01,doorZ);g.add(rail);
+                }
+                for(let i=0;i<7;i++){
+                    const bar=new THREE.Mesh(new THREE.BoxGeometry(0.52,0.19,doorDepth),lockerDoorMat);
+                    bar.position.set(-0.02,-1.08+i*0.36,doorZ);g.add(bar);
+                }
+                // Dark interior edges frame each opening without covering it.
+                for(let i=0;i<6;i++){
+                    const y=-0.90+i*0.36;
+                    const lip=new THREE.Mesh(new THREE.BoxGeometry(0.53,0.025,0.018),lockerTrimMat);
+                    lip.position.set(-0.02,y,doorZ+0.03);g.add(lip);
+                }
                 for(const side of [-1,1]){const seam=new THREE.Mesh(new THREE.BoxGeometry(0.045,2.46,0.08),lockerTrimMat);seam.position.set(side*0.45,0,0.35);g.add(seam);const hinge=new THREE.Mesh(new THREE.BoxGeometry(0.055,0.22,0.09),lockerTrimMat);hinge.position.set(side*0.39,0.72,0.385);g.add(hinge);const h2=hinge.clone();h2.position.y=-0.72;g.add(h2);}
                 const handle=new THREE.Mesh(new THREE.BoxGeometry(0.075,0.27,0.065),lockerHandleMat);handle.position.set(0.27,0.02,0.375);g.add(handle);
                 const latch=new THREE.Mesh(new THREE.BoxGeometry(0.11,0.055,0.07),lockerTrimMat);latch.position.set(0.27,-0.16,0.375);g.add(latch);
@@ -974,6 +988,9 @@
                 isHidden = true;
                 preHideYaw = rotation.yaw;
                 camera.position.set(currentLocker.position.x, 1.6, currentLocker.position.z);
+                // Face the locker door (+Z) so the open slits show the room outside.
+                rotation.yaw = Math.PI;
+                rotation.pitch = 0;
                 document.getElementById('status-msg').innerText = "HIDDEN IN LOCKER";
                 hideBtn.innerText = "EXIT";
 
@@ -1341,7 +1358,7 @@
                     }
                     if (reachable.length) {
                         const mCell = worldToCell(monster.position.x, monster.position.z);
-                        ai.path = findAStarPath(mCell, reachable[Math.floor(Math.random() * reachable.length)]) || [];
+                        ai.path = findAStarPath(nearestWalkableCell(monster.position.x,monster.position.z,mCell), reachable[Math.floor(Math.random() * reachable.length)]) || [];
                     }
                     ai.repathTimer = 1.1 + Math.random() * 1.4;
                 }
@@ -1353,15 +1370,43 @@
                     const target=finalStep?new THREE.Vector3(camera.position.x,monster.position.y,camera.position.z):waypoint;
                     const dir=target.clone().sub(monster.position);dir.y=0;
                     if(dir.lengthSq()>0.001){
-                        dir.normalize();const speedScale=ai.state==='chase'?1.18:0.78,step=Math.min(mSpeed*60*delta*speedScale,dir.length()),angles=[0,0.32,-0.32,0.68,-0.68,1.05,-1.05];let chosen=null,best=-Infinity;
-                        for(const a of angles){const d=dir.clone().applyAxisAngle(new THREE.Vector3(0,1,0),a),p=monster.position.clone().add(d.clone().multiplyScalar(Math.max(0.08,step))),cell=worldToCell(p.x,p.z);if(!mazeGrid[cell.r]||mazeGrid[cell.r][cell.c]!==0)continue;
-                            const box=new THREE.Box3(new THREE.Vector3(p.x-ai.radius*0.42,0.05,p.z-ai.radius*0.42),new THREE.Vector3(p.x+ai.radius*0.42,ai.height,p.z+ai.radius*0.42));if(wallBoxes.some(w=>box.intersectsBox(w)))continue;
-                            const remain=Math.hypot(target.x-p.x,target.z-p.z),lx=((p.x%cellSize)+cellSize)%cellSize,lz=((p.z%cellSize)+cellSize)%cellSize,clear=Math.min(lx,cellSize-lx,lz,cellSize-lz);
-                            // Prefer progress toward the player, but don't reward wall-hugging.
-                            const score=-remain+Math.min(clear,0.7)*0.035-Math.abs(a)*0.018;if(score>best){best=score;chosen=d;}
+                        dir.normalize();
+                        const speedScale=ai.state==='chase'?1.05:0.72;
+                        const step=Math.min(mSpeed*60*delta*speedScale,Math.max(0.025,dir.length()));
+                        const angles=[0,0.18,-0.18,0.38,-0.38,0.68,-0.68,1.0,-1.0,1.35,-1.35,Math.PI/2,-Math.PI/2];
+                        let chosen=null,best=-Infinity;
+                        for(const a of angles){
+                            const d=dir.clone().applyAxisAngle(new THREE.Vector3(0,1,0),a);
+                            const p=monster.position.clone().add(d.clone().multiplyScalar(step));
+                            const cell=worldToCell(p.x,p.z);
+                            if(!mazeGrid[cell.r]||mazeGrid[cell.r][cell.c]!==0)continue;
+                            const radius=ai.radius*0.34;
+                            const box=new THREE.Box3(new THREE.Vector3(p.x-radius,0.05,p.z-radius),new THREE.Vector3(p.x+radius,ai.height,p.z+radius));
+                            if(wallBoxes.some(w=>box.intersectsBox(w)))continue;
+                            const remain=Math.hypot(target.x-p.x,target.z-p.z);
+                            const progress=Math.hypot(target.x-monster.position.x,target.z-monster.position.z)-remain;
+                            const score=progress*3-remain*0.012-Math.abs(a)*0.001;
+                            if(score>best){best=score;chosen=d;}
                         }
-                        if(chosen){monster.position.add(chosen.multiplyScalar(step));const yaw=Math.atan2(chosen.x,chosen.z);monster.rotation.y+=Math.atan2(Math.sin(yaw-monster.rotation.y),Math.cos(yaw-monster.rotation.y))*Math.min(1,delta*9);ai.stuckTimer=0;}
-                        else{ai.stuckTimer+=delta;if(ai.stuckTimer>0.25){ai.path=[];ai.repathTimer=0;}}
+                        if(chosen){
+                            monster.position.add(chosen.multiplyScalar(step));
+                            const yaw=Math.atan2(chosen.x,chosen.z);
+                            const turn=Math.atan2(Math.sin(yaw-monster.rotation.y),Math.cos(yaw-monster.rotation.y));
+                            monster.rotation.y+=turn*Math.min(1,delta*5.5);
+                            ai.stuckTimer=0;
+                        }else{
+                            ai.stuckTimer+=delta;
+                            if(ai.stuckTimer>0.18){
+                                ai.path=[];
+                                ai.repathTimer=0;
+                                ai.lastTargetCell=null;
+                                // Nudge the next route calculation to start from the nearest walkable cell.
+                                const safe=nearestWalkableCell(monster.position.x,monster.position.z);
+                                monster.position.x=safe.c*cellSize;
+                                monster.position.z=safe.r*cellSize;
+                                ai.stuckTimer=0;
+                            }
+                        }
                     }
                     if(monster.position.distanceTo(waypoint)<0.42)ai.path.shift();
                     ai.gaitTime+=delta*(ai.state==='chase'?13:6);if(ai.armPivots)ai.armPivots.forEach((a,i)=>a.rotation.x=Math.sin(ai.gaitTime+i*Math.PI)*(ai.state==='chase'?0.92:0.4));if(ai.legPivots)ai.legPivots.forEach((l,i)=>l.rotation.x=Math.sin(ai.gaitTime+i*Math.PI)*(ai.state==='chase'?0.65:0.25));if(ai.headPivot)ai.headPivot.rotation.x=Math.sin(ai.gaitTime*0.5)*0.06;
@@ -1415,9 +1460,7 @@ const _useInventoryItem=useInventoryItem;useInventoryItem=function(){HPFX.use();
 const _toggleHideInLocker=toggleHideInLocker;toggleHideInLocker=function(){HPFX.hide();return _toggleHideInLocker()};
 window.addEventListener('keydown',e=>{
  const k=e.key.toLowerCase();
- if(['w','a','s','d','shift'].includes(k))HPFX.step();
  if(k==='f'||k==='e'||k===' ')HPFX.use();
- if(k==='shift')HPFX.step();
 },{passive:true});
 let hpLastHealth=health,hpLastDanger=0,hpLastStep=0;
 const mazeArrowKeys={left:false,right:false,up:false,down:false};
@@ -1454,7 +1497,7 @@ const hpSoundLoop=setInterval(()=>{
  if(health<hpLastHealth){HPFX.scare();hpLastHealth=health}
  const dangerEl=document.getElementById('danger-level');
  if(dangerEl){const txt=dangerEl.textContent||'';const m=txt.match(/(\d+)/);const danger=m?Number(m[1]):0;if(danger>hpLastDanger&&danger>=70)HPFX.scare();hpLastDanger=danger}
- if(isMoving&&now-hpLastStep>220){HPFX.step();hpLastStep=now}
+
 },100);
 </script><script src="app.js?v=radio-13"></script>
 <script id="mos-campaign-bridge">
