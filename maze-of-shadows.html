@@ -164,7 +164,7 @@
         // Entities & World Arrays
         let lockers = [], monsters = [], wallBoxes = [], keys = [], items = [], exitGate = null;
         let exitGlowLight = null, exitDoorMesh = null, exitPadlocks = [];
-        let banisherActive = false, banisherScheduled = false, banisherNextAt = 0, banisherStartedAt = 0, banisherUntil = 0, banisherSaved = null, banisherOverlay = null;
+        let banisherActive = false, banisherScheduled = false, banisherNextAt = 0, banisherStartedAt = 0, banisherSpawnAt = 0, banisherUntil = 0, banisherLastFrame = 0, banisherPhase = '', banisherFace = null, banisherSaved = null;
         let guideArrows = [], trailPoints = [];
 
         // Input Tracking
@@ -1207,80 +1207,122 @@
             }
         });
 
-        // THE BANISHER: a model-free void encounter triggered 35-60 seconds after the first key, then at random 35-60 second intervals.
-        function playBanisherBang(){
+        // THE BANISHER: fog-blackout warning, then a fast physical face that hunts the player.
+        function playBanisherWarning(){
             try{
                 const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
                 const c=new AC(),t=c.currentTime;
-                const master=c.createGain();master.gain.setValueAtTime(0.55,t);master.gain.exponentialRampToValueAtTime(0.0001,t+0.48);master.connect(c.destination);
-                const noiseBuffer=c.createBuffer(1,c.sampleRate*0.42,c.sampleRate),data=noiseBuffer.getChannelData(0);
-                for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*Math.pow(1-i/data.length,2);
-                const noise=c.createBufferSource();noise.buffer=noiseBuffer;const filter=c.createBiquadFilter();filter.type='lowpass';filter.frequency.setValueAtTime(900,t);filter.frequency.exponentialRampToValueAtTime(110,t+0.35);noise.connect(filter);filter.connect(master);noise.start(t);noise.stop(t+0.42);
-                const thump=c.createOscillator(),tg=c.createGain();thump.type='sine';thump.frequency.setValueAtTime(95,t);thump.frequency.exponentialRampToValueAtTime(32,t+0.22);tg.gain.setValueAtTime(0.7,t);tg.gain.exponentialRampToValueAtTime(0.0001,t+0.28);thump.connect(tg);tg.connect(master);thump.start(t);thump.stop(t+0.3);
-                setTimeout(()=>c.close().catch(()=>{}),700);
+                const master=c.createGain();master.gain.setValueAtTime(0.0001,t);master.gain.linearRampToValueAtTime(0.32,t+0.25);master.connect(c.destination);
+                // Wind bed
+                const nbuf=c.createBuffer(1,c.sampleRate*4,c.sampleRate),nd=nbuf.getChannelData(0);
+                for(let i=0;i<nd.length;i++)nd[i]=(Math.random()*2-1)*0.65;
+                const wind=c.createBufferSource();wind.buffer=nbuf;wind.loop=true;
+                const wf=c.createBiquadFilter();wf.type='lowpass';wf.frequency.value=420;
+                const wg=c.createGain();wg.gain.value=0.55;wind.connect(wf);wf.connect(wg);wg.connect(master);wind.start(t);
+                // Layered rising, rough screams
+                for(let j=0;j<3;j++){const o=c.createOscillator(),g=c.createGain(),f=c.createBiquadFilter();o.type=j===1?'sawtooth':'triangle';o.frequency.setValueAtTime(115+j*45,t+0.15);o.frequency.linearRampToValueAtTime(620-j*75,t+2.6);o.frequency.linearRampToValueAtTime(180+j*25,t+4.8);f.type='bandpass';f.frequency.value=900+j*400;f.Q.value=2;g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(0.12,t+0.7+j*0.2);g.gain.linearRampToValueAtTime(0.0001,t+4.9);o.connect(f);f.connect(g);g.connect(master);o.start(t);o.stop(t+5);}
+                master.gain.setValueAtTime(0.32,t+4.7);master.gain.exponentialRampToValueAtTime(0.0001,t+5.2);
+                wind.stop(t+5.25);setTimeout(()=>c.close().catch(()=>{}),5600);
             }catch(e){}
+        }
+        function playBanisherBang(){
+            try{
+                const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+                const c=new AC(),t=c.currentTime,master=c.createGain();master.gain.value=0.7;master.gain.exponentialRampToValueAtTime(0.0001,t+0.65);master.connect(c.destination);
+                const b=c.createBuffer(1,c.sampleRate*0.55,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2);
+                const n=c.createBufferSource();n.buffer=b;const f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=650;n.connect(f);f.connect(master);n.start(t);n.stop(t+0.55);
+                const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(100,t);o.frequency.exponentialRampToValueAtTime(28,t+0.3);g.gain.value=0.7;g.gain.exponentialRampToValueAtTime(0.0001,t+0.35);o.connect(g);g.connect(master);o.start(t);o.stop(t+0.4);setTimeout(()=>c.close().catch(()=>{}),800);
+            }catch(e){}
+        }
+        function makeBanisherFace(){
+            const root=new THREE.Group();
+            const dark=new THREE.MeshStandardMaterial({color:0x030303,roughness:1});
+            const skin=new THREE.MeshStandardMaterial({color:0x151313,roughness:0.96});
+            const white=new THREE.MeshBasicMaterial({color:0xf4f1e9});
+            const red=new THREE.MeshBasicMaterial({color:0xff1010});
+            const orb=(x,y,z,mat)=>{const m=new THREE.Mesh(new THREE.SphereGeometry(1,18,14),mat);m.scale.set(x,y,z);return m;};
+            const head=orb(0.64,0.76,0.38,skin);head.position.y=2.05;root.add(head);
+            const brow=orb(0.68,0.14,0.16,dark);brow.position.set(0,2.43,0.3);root.add(brow);
+            for(const side of [-1,1]){
+                const socket=orb(0.2,0.23,0.09,dark);socket.position.set(side*0.25,2.18,0.35);root.add(socket);
+                const eye=orb(0.105,0.13,0.055,red);eye.position.set(side*0.25,2.18,0.43);root.add(eye);
+                const glint=orb(0.035,0.045,0.025,white);glint.position.set(side*0.25-0.025,2.2,0.48);root.add(glint);
+            }
+            const mouth=orb(0.37,0.2,0.09,dark);mouth.position.set(0,1.82,0.4);root.add(mouth);
+            for(let i=0;i<7;i++){const tooth=new THREE.Mesh(new THREE.ConeGeometry(0.045,0.15,5),white);tooth.position.set(-0.27+i*0.09,1.94,0.48);tooth.rotation.x=Math.PI;root.add(tooth);}
+            for(let i=0;i<5;i++){const spike=new THREE.Mesh(new THREE.ConeGeometry(0.12,0.48,7),dark);spike.position.set((i-2)*0.22,2.66+(i%2)*0.08,0);root.add(spike);}
+            root.traverse(o=>{if(o.isMesh)o.frustumCulled=false;});
+            root.userData.isBanisherFace=true;
+            return root;
         }
         function startBanisherEvent(now){
             if(banisherActive||isGameOver)return;
-            banisherActive=true;
-            banisherStartedAt=now;
-            banisherUntil=now+(isHidden?2600:1700);
-            banisherSaved={ambient:ambientLight.intensity,flashlight:flashlight.intensity,visibility:monsters.map(m=>m.visible)};
-            // The Banisher has no 3D model. The world itself disappears into a void.
+            banisherActive=true;banisherStartedAt=now;banisherPhase='warning';banisherSpawnAt=now+5000;banisherUntil=0;banisherSaved={ambient:ambientLight.intensity,flashlight:flashlight.intensity,fogColor:scene.fog.color.clone(),fogDensity:scene.fog.density,background:scene.background.clone(),visibility:monsters.map(m=>m.visible)};
+            scene.fog.color.set(0x000000);scene.fog.density=0.105;scene.background.set(0x000000);
             monsters.forEach(m=>m.visible=false);
-            banisherOverlay=document.createElement('div');
-            banisherOverlay.id='banisher-blackout';
-            banisherOverlay.style.cssText='position:fixed;inset:0;background:#000;z-index:10000;pointer-events:none;overflow:hidden';
-            const smile=document.createElement('div');
-            smile.id='banisher-smile';
-            smile.innerHTML='<div style="display:flex;gap:clamp(12px,3vw,42px);justify-content:center;align-items:center"><i style="display:block;width:clamp(9px,2.5vw,30px);height:clamp(22px,6vw,70px);background:#fff;border-radius:50%;box-shadow:0 0 22px #fff"></i><i style="display:block;width:clamp(9px,2.5vw,30px);height:clamp(22px,6vw,70px);background:#fff;border-radius:50%;box-shadow:0 0 22px #fff"></i></div><div style="margin:clamp(8px,2vw,24px) auto 0;width:100%;height:clamp(18px,4vw,44px);background:#fff;border-radius:8px 8px 55% 55%;box-shadow:0 0 28px #fff;clip-path:polygon(0 0,100% 0,88% 60%,75% 100%,25% 100%,12% 60%)"></div>';
-            smile.style.cssText='position:absolute;left:50%;top:50%;width:min(44vw,260px);transform:translate(-50%,-50%) scale(0.025);opacity:0;color:#fff;filter:drop-shadow(0 0 24px #fff);';
-            banisherOverlay.appendChild(smile);
-            document.body.appendChild(banisherOverlay);
-            document.getElementById('status-msg').innerText=isHidden?'SOMETHING IS SLAMMING THE LOCKER...':'DON’T LET IT REACH YOU';
+            document.getElementById('status-msg').innerText='THE AIR SCREAMS. HIDE NOW.';
             playBanisherWarning();
-            if(isHidden){
-                // It finds the locker, slams it once, then tears away into the void.
-                setTimeout(()=>{if(banisherActive){playBanisherBang();document.getElementById('status-msg').innerText='IT LEFT...';}},950);
-            }else{
-                setTimeout(()=>{
-                    if(!banisherActive||isGameOver)return;
-                    health=0;
-                    document.getElementById('status-text').innerText='THE SMILE FOUND YOU';
-                    document.getElementById('death-hint').innerText='When the world becomes a void, hide in a locker before the white smile reaches you.';
-                    document.getElementById('game-over').style.display='flex';
-                    isGameOver=true;
-                },1550);
+        }
+        function endBanisherEvent(now){
+            banisherActive=false;banisherPhase='';banisherStartedAt=0;
+            if(banisherFace){scene.remove(banisherFace);banisherFace=null;}
+            if(banisherSaved){
+                ambientLight.intensity=banisherSaved.ambient;
+                flashlight.intensity=flashlightOn?banisherSaved.flashlight:0;
+                scene.fog.color.copy(banisherSaved.fogColor);scene.fog.density=banisherSaved.fogDensity;scene.background.copy(banisherSaved.background);
+                monsters.forEach((m,i)=>m.visible=banisherSaved.visibility[i]!==false);
             }
+            document.getElementById('status-msg').innerText='';
+            banisherNextAt=performance.now()+35000+Math.random()*25000;
         }
         function updateBanisher(now){
             if(!banisherActive){
                 if(banisherScheduled&&banisherNextAt>0&&now>=banisherNextAt)startBanisherEvent(now);
                 return;
             }
-            if(!banisherOverlay||!document.getElementById('banisher-blackout'))return;
-            const smile=document.getElementById('banisher-smile');
-            const duration=banisherUntil-(banisherStartedAt||now);
-            const elapsed=Math.max(0,now-(banisherStartedAt||now));
-            if(smile){
-                const progress=Math.min(1,elapsed/(isHidden?950:1550));
-                const scale=0.025+progress*2.8;
-                smile.style.transform='translate(-50%,-50%) scale('+scale+')';
-                smile.style.opacity=String(Math.min(1,progress*2.8));
-            }
-            ambientLight.intensity=0;
-            flashlight.intensity=0;
-            if(now>=banisherUntil){
-                banisherActive=false;
-                if(banisherSaved){
-                    ambientLight.intensity=banisherSaved.ambient;
-                    flashlight.intensity=flashlightOn?3.5:0;
-                    monsters.forEach((m,i)=>m.visible=banisherSaved.visibility[i]!==false);
+            // Keep the scene itself dark. Flicker only the flashlight during the 5-second warning.
+            scene.fog.color.set(0x000000);scene.fog.density=0.105;scene.background.set(0x000000);
+            if(banisherPhase==='warning'){
+                flashlight.intensity=flashlightOn?(Math.random()<0.43?3.5:0):0;
+                ambientLight.intensity=Math.random()<0.12?0.12:0;
+                if(now>=banisherSpawnAt){
+                    banisherPhase='hunt';banisherUntil=now+18000;
+                    banisherFace=makeBanisherFace();
+                    const edge=Math.floor(Math.random()*4),maxX=(mazeGrid[0].length-2)*cellSize,maxZ=(mazeGrid.length-2)*cellSize;
+                    const sx=edge===0?cellSize:(edge===1?maxX:(Math.random()*maxX));
+                    const sz=edge===2?cellSize:(edge===3?maxZ:(Math.random()*maxZ));
+                    banisherFace.position.set(sx,0,sz);scene.add(banisherFace);
+                    document.getElementById('status-msg').innerText='IT IS HUNTING YOU';
                 }
-                if(banisherOverlay){banisherOverlay.remove();banisherOverlay=null;}
-                document.getElementById('status-msg').innerText='';
-                banisherStartedAt=0;
-                banisherNextAt=performance.now()+35000+Math.random()*25000;
+                return;
+            }
+            flashlight.intensity=flashlightOn?(Math.random()<0.18?2.4:0.12):0;ambientLight.intensity=0;
+            if(!banisherFace){banisherFace=makeBanisherFace();banisherFace.position.set(camera.position.x+12,0,camera.position.z+12);scene.add(banisherFace);}
+            const target=isHidden&&currentLocker?currentLocker.position:camera.position;
+            const dx=target.x-banisherFace.position.x,dz=target.z-banisherFace.position.z,dist=Math.hypot(dx,dz)||0.001;
+            // A very fast rush through the maze, with a slight circling motion to make it feel like it is sweeping the map.
+            const speed=0.34;
+            const step=Math.min(dist,speed* Math.max(0.016,(now-(banisherLastFrame||now))/16.67));
+            banisherFace.position.x+=dx/dist*step;banisherFace.position.z+=dz/dist*step;
+            banisherFace.position.y=0.16+Math.sin(now*0.025)*0.14;
+            banisherFace.rotation.y=Math.atan2(dx,dz);
+            banisherLastFrame=now;
+            if(dist<1.7){
+                if(isHidden&&currentLocker){
+                    playBanisherBang();
+                    // Slam into the locker, recoil away, and leave without hurting the hidden player.
+                    const rx=banisherFace.position.x-currentLocker.position.x,rz=banisherFace.position.z-currentLocker.position.z,rl=Math.hypot(rx,rz)||1;
+                    banisherFace.position.x+=rx/rl*4.5;banisherFace.position.z+=rz/rl*4.5;
+                    document.getElementById('status-msg').innerText='BANG! ... IT IS GONE';
+                    endBanisherEvent(now);
+                }else{
+                    health=0;document.getElementById('status-text').innerText='THE BANISHER FOUND YOU';document.getElementById('death-hint').innerText='When the lights begin to flicker and the fog turns black, hide in a locker before the face reaches you.';document.getElementById('game-over').style.display='flex';isGameOver=true;
+                }
+                return;
+            }
+            if(now>=banisherUntil){
+                // If it has swept the maze without finding the player, it vanishes into the fog.
+                endBanisherEvent(now);
             }
         }
 
@@ -1291,7 +1333,7 @@
 
             const now = performance.now();
             updateBanisher(now);
-            if(banisherActive && isHidden){renderer.render(scene,camera);lastTime=now;return;}
+
             const delta = (now - lastTime) / 1000;
             lastTime = now;
 
