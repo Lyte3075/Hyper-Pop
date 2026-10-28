@@ -816,10 +816,23 @@
         }
 
         let lastTime = performance.now();
+        let isPaused = false;
+        window.addEventListener('message', (event) => {
+            if (event.data?.type === 'MOS_PAUSE') {
+                isPaused = true;
+                keysPressed = {};
+                moveVector.x = 0;
+                moveVector.z = 0;
+            } else if (event.data?.type === 'MOS_RESUME') {
+                isPaused = false;
+                lastTime = performance.now();
+            }
+        });
 
         function animate() {
             if (isGameOver) return;
             requestAnimationFrame(animate);
+            if (isPaused) { lastTime = performance.now(); return; }
 
             const now = performance.now();
             const delta = (now - lastTime) / 1000;
