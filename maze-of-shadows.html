@@ -307,7 +307,8 @@
             [1,0,0,0,1,0,0,0,0,0,2,0,0,0,1,0,0,0,0,0,3],
             [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
         ];
-        const cellSize = 2.8;
+        // Expanded world spacing: keep the same 21x21 logical maze while giving each corridor/room cell more physical room.
+        const cellSize = 3.8;
 
         // Pathfinding Algorithm
         function findAStarPath(startCell, targetCell) {
@@ -711,11 +712,11 @@
                         wallBoxes.push(new THREE.Box3().setFromObject(wall));
                     } 
                     else if (mazeGrid[r][c] === 2) {
-                        const locker=makeLocker();let offsetX=0,offsetZ=-1.58;
+                        const locker=makeLocker();let offsetX=0,offsetZ=-(cellSize / 2 - 0.22);
                         if(r>0&&mazeGrid[r-1][c]===1){offsetZ=-1.58;locker.rotation.y=0;}
-                        else if(r<mazeGrid.length-1&&mazeGrid[r+1][c]===1){offsetZ=1.58;locker.rotation.y=Math.PI;}
-                        else if(c>0&&mazeGrid[r][c-1]===1){offsetX=-1.58;offsetZ=0;locker.rotation.y=Math.PI/2;}
-                        else if(c<mazeGrid[0].length-1&&mazeGrid[r][c+1]===1){offsetX=1.58;offsetZ=0;locker.rotation.y=-Math.PI/2;}
+                        else if(r<mazeGrid.length-1&&mazeGrid[r+1][c]===1){offsetZ=(cellSize / 2 - 0.22);locker.rotation.y=Math.PI;}
+                        else if(c>0&&mazeGrid[r][c-1]===1){offsetX=-(cellSize / 2 - 0.22);offsetZ=0;locker.rotation.y=Math.PI/2;}
+                        else if(c<mazeGrid[0].length-1&&mazeGrid[r][c+1]===1){offsetX=(cellSize / 2 - 0.22);offsetZ=0;locker.rotation.y=-Math.PI/2;}
                         locker.position.set(x+offsetX,1.36,z+offsetZ);scene.add(locker);lockers.push(locker);
                         locker.updateMatrixWorld(true);
                         const lockerBox = new THREE.Box3().setFromObject(locker);
