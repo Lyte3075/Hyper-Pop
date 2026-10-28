@@ -357,7 +357,21 @@
         function buildMaze() {
             const wallMat = new THREE.MeshStandardMaterial({ color: 0x142719, roughness: 0.95 });
             const floorMat = new THREE.MeshStandardMaterial({ color: 0x3b2b20, roughness: 1 });
-            // Chapter 2 is an open-air courtyard, so leave the ceiling out and show the midnight-blue sky.
+            const roofMat = new THREE.MeshBasicMaterial({ color: 0x020b2b, side: THREE.DoubleSide });
+            const lockerMat = new THREE.MeshStandardMaterial({ color: 0x25442a, metalness: 0.2, roughness: 0.9 });
+
+            const mazeWidth = mazeGrid[0].length * cellSize;
+            const mazeHeight = mazeGrid.length * cellSize;
+
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(mazeWidth, mazeHeight), floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.set(mazeWidth/2 - cellSize/2, 0, mazeHeight/2 - cellSize/2);
+            scene.add(floor);
+
+            const roof = new THREE.Mesh(new THREE.PlaneGeometry(mazeWidth, mazeHeight), roofMat);
+            roof.rotation.x = Math.PI / 2;
+            roof.position.set(mazeWidth/2 - cellSize/2, 3.5, mazeHeight/2 - cellSize/2);
+            scene.add(roof);
 
             const wallGeo = new THREE.BoxGeometry(cellSize, 3.5, cellSize);
             const lockerGeo = new THREE.BoxGeometry(1.0, 2.6, 0.5);
