@@ -164,7 +164,7 @@
         // Entities & World Arrays
         let lockers = [], monsters = [], wallBoxes = [], keys = [], items = [], exitGate = null;
         let exitGlowLight = null, exitDoorMesh = null, exitPadlocks = [];
-        let banisherActive = false, banisherNextAt = 0, banisherStartedAt = 0, banisherUntil = 0, banisherSaved = null, banisherOverlay = null;
+        let banisherActive = false, banisherScheduled = false, banisherNextAt = 0, banisherStartedAt = 0, banisherUntil = 0, banisherSaved = null, banisherOverlay = null;
         let guideArrows = [], trailPoints = [];
 
         // Input Tracking
@@ -1255,7 +1255,7 @@
         }
         function updateBanisher(now){
             if(!banisherActive){
-                if(banisherStartedAt>0&&now>=banisherNextAt)startBanisherEvent(now);
+                if(banisherScheduled&&banisherNextAt>0&&now>=banisherNextAt)startBanisherEvent(now);
                 return;
             }
             if(!banisherOverlay||!document.getElementById('banisher-blackout'))return;
@@ -1332,7 +1332,7 @@
                         k.collected = true;
                         scene.remove(k.mesh);
                         keysFound++;
-                        if(keysFound===1&&!banisherStartedAt&&!banisherActive)banisherNextAt=performance.now()+35000+Math.random()*25000;
+                        if(keysFound===1&&!banisherScheduled){banisherScheduled=true;banisherNextAt=performance.now()+35000+Math.random()*25000;}
                         if (exitPadlocks[keysFound - 1]) {
                             const padlock = exitPadlocks[keysFound - 1];
                             padlock.visible = false;
