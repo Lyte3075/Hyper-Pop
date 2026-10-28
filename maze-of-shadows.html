@@ -466,13 +466,13 @@
             const handleMat = new THREE.MeshStandardMaterial({ color: 0x9da5a7, metalness: 0.8, roughness: 0.28 });
             const fixtureMat = new THREE.MeshStandardMaterial({ color: 0xb9c4c5, emissive: 0x8babb4, emissiveIntensity: 0.35 });
             const doorPlacements = [
-                { r: 2, c: 3, side: 'east', label: 'PATIENT 04' },
-                { r: 4, c: 7, side: 'south', label: 'WARD B' },
-                { r: 8, c: 6, side: 'east', label: 'EXAM 02' },
-                { r: 10, c: 9, side: 'north', label: 'SUPPLY' },
-                { r: 12, c: 13, side: 'west', label: 'PATIENT 11' },
-                { r: 16, c: 5, side: 'east', label: 'NURSES' },
-                { r: 18, c: 17, side: 'west', label: 'RECORDS' }
+                { r: 2, c: 2, side: 'east', label: 'PATIENT 04' },
+                { r: 4, c: 7, side: 'west', label: 'WARD B' },
+                { r: 8, c: 6, side: 'north', label: 'EXAM 02' },
+                { r: 10, c: 8, side: 'east', label: 'SUPPLY' },
+                { r: 12, c: 12, side: 'east', label: 'PATIENT 11' },
+                { r: 16, c: 6, side: 'east', label: 'NURSES' },
+                { r: 18, c: 12, side: 'south', label: 'RECORDS' }
             ];
             function addHospitalDoor(x, z, side, label) {
                 const group = new THREE.Group();
