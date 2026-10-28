@@ -416,22 +416,7 @@
                     ctx.closePath();
                     ctx.fill();
                 }
-                // Dark, dried blood marks with thin downward runs.
-                for (let i = 0; i < 3; i++) {
-                    const x = 30 + Math.random() * 452, y = 90 + Math.random() * 290;
-                    const w = 34 + Math.random() * 62, h = 22 + Math.random() * 42;
-                    ctx.fillStyle = 'rgba(76,8,13,0.68)';
-                    ctx.beginPath();
-                    ctx.ellipse(x, y, w / 2, h / 2, (Math.random() - 0.5) * 0.8, 0, Math.PI * 2);
-                    ctx.fill();
-                    for (let d = 0; d < 1 + Math.floor(Math.random() * 2); d++) {
-                        const dx = x + (Math.random() - 0.5) * w;
-                        const drip = 12 + Math.random() * 48;
-                        ctx.strokeStyle = 'rgba(58,5,10,0.72)';
-                        ctx.lineWidth = 1 + Math.random() * 3;
-                        ctx.beginPath(); ctx.moveTo(dx, y + h * 0.25); ctx.lineTo(dx + (Math.random() - 0.5) * 5, y + drip); ctx.stroke();
-                    }
-                }
+                // Keep blood out of the repeating wall texture; a few unique wall splats are placed in-world.
             } else if (kind === 'floor') {
                 // Scuffs, cracked seams and dark dried blood smears on worn linoleum.
                 ctx.strokeStyle = 'rgba(13,16,17,0.42)';
@@ -729,6 +714,34 @@
                 const glow = new THREE.PointLight(0x9dbbc5, 0.22, 5);
                 glow.position.set(x, 2.75, z - 1.4);
                 scene.add(glow);
+            }
+
+            // Rare, large dried blood splats on selected corridor walls only.
+            // These are separate decals so blood does not repeat across every wall tile.
+            const bloodMat = new THREE.MeshBasicMaterial({ color: 0x4b080d, transparent: true, opacity: 0.88, side: THREE.DoubleSide, depthWrite: false });
+            const bloodDripMat = new THREE.MeshBasicMaterial({ color: 0x310509, transparent: true, opacity: 0.82, side: THREE.DoubleSide, depthWrite: false });
+            const wallBloodSpots = [
+                {r:3,c:2,side:'east',scale:1.0},
+                {r:8,c:14,side:'west',scale:1.25},
+                {r:13,c:6,side:'south',scale:0.9},
+                {r:17,c:14,side:'north',scale:1.15}
+            ];
+            for (const spot of wallBloodSpots) {
+                const stain = new THREE.Group();
+                const main = new THREE.Mesh(new THREE.CircleGeometry(0.36 * spot.scale, 11), bloodMat);
+                main.scale.set(1.25, 0.72, 1);
+                stain.add(main);
+                for (let d = 0; d < 3; d++) {
+                    const drip = new THREE.Mesh(new THREE.PlaneGeometry(0.045 * spot.scale, (0.24 + d * 0.12) * spot.scale), bloodDripMat);
+                    drip.position.set((d - 1) * 0.17 * spot.scale, -0.22 - d * 0.04, 0.008);
+                    stain.add(drip);
+                }
+                const x = spot.c * cellSize, z = spot.r * cellSize;
+                if (spot.side === 'east') { stain.position.set(x + cellSize / 2 + 0.012, 1.9, z); stain.rotation.y = Math.PI / 2; }
+                if (spot.side === 'west') { stain.position.set(x - cellSize / 2 - 0.012, 1.9, z); stain.rotation.y = -Math.PI / 2; }
+                if (spot.side === 'north') { stain.position.set(x, 1.9, z - cellSize / 2 - 0.012); stain.rotation.y = Math.PI; }
+                if (spot.side === 'south') { stain.position.set(x, 1.9, z + cellSize / 2 + 0.012); }
+                scene.add(stain);
             }
 
             // Worn clinical wayfinding plates and emergency markers scattered through corridors.
@@ -1243,6 +1256,9 @@
                     }
                 }
             });
+
+            // Keep exit padlocks synchronized with collected keys, including restored save slots.
+            exitPadlocks.forEach((lock, index) => { lock.visible = index >= keysFound; });
 
             // Pickup Item Detection
             nearbyPickup = null;
