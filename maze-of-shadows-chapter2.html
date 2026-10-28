@@ -510,121 +510,66 @@
 
         // Procedural, locally generated textures add grime without external assets.
         function createHospitalTexture(kind) {
+            // Chapter 2's courtyard palette: dark soil, dense overgrowth, and a blue-black night ceiling.
             const canvas = document.createElement('canvas');
             canvas.width = canvas.height = 512;
             const ctx = canvas.getContext('2d');
-            const palettes = {
-                wall: ['#41464a', '#596065', '#292f33'],
-                floor: ['#353a3e', '#4a5054', '#252a2e'],
-                roof: ['#292e32', '#3b4145', '#202529']
-            };
-            const colors = palettes[kind] || palettes.wall;
-            ctx.fillStyle = colors[0];
-            ctx.fillRect(0, 0, 512, 512);
 
-            // Uneven plaster and concrete mottling.
-            for (let i = 0; i < 1500; i++) {
-                const x = Math.random() * 512, y = Math.random() * 512;
-                const radius = 2 + Math.random() * (kind === 'floor' ? 20 : 30);
-                ctx.globalAlpha = 0.035 + Math.random() * 0.13;
-                ctx.fillStyle = colors[1 + (Math.random() > 0.5 ? 0 : 1)];
-                ctx.beginPath();
-                ctx.ellipse(x, y, radius, radius * (0.25 + Math.random() * 0.8), Math.random() * 3, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            ctx.globalAlpha = 1;
-
-            if (kind === 'wall') {
-                // Institutional paintwork: a faded upper wall, clinical lower band and tile joints.
-                ctx.fillStyle = 'rgba(174,190,194,0.12)';
-                ctx.fillRect(0, 0, 512, 145);
-                ctx.fillStyle = 'rgba(15,22,25,0.24)';
-                ctx.fillRect(0, 326, 512, 186);
-                ctx.fillStyle = 'rgba(151,174,178,0.15)';
-                ctx.fillRect(0, 332, 512, 5);
-                ctx.strokeStyle = 'rgba(12,17,19,0.28)';
-                ctx.lineWidth = 2;
-                for (let y = 352; y < 512; y += 40) {
-                    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(512, y); ctx.stroke();
-                }
-                for (let x = 0; x <= 512; x += 64) {
-                    ctx.beginPath(); ctx.moveTo(x, 352); ctx.lineTo(x, 512); ctx.stroke();
-                }
-                // Water damage streaks and flaking paint.
-                for (let i = 0; i < 42; i++) {
-                    const x = Math.random() * 512, y = Math.random() * 390;
-                    const h = 25 + Math.random() * 130;
-                    const grad = ctx.createLinearGradient(x, y, x, y + h);
-                    grad.addColorStop(0, 'rgba(17,20,18,0.38)');
-                    grad.addColorStop(1, 'rgba(17,20,18,0)');
-                    ctx.fillStyle = grad;
-                    ctx.fillRect(x, y, 3 + Math.random() * 20, h);
-                }
-                for (let i = 0; i < 24; i++) {
-                    const x = Math.random() * 480, y = Math.random() * 480;
-                    ctx.fillStyle = 'rgba(19,21,19,0.3)';
-                    ctx.beginPath();
-                    ctx.moveTo(x, y);
-                    ctx.lineTo(x + 12 + Math.random() * 34, y + 3 + Math.random() * 12);
-                    ctx.lineTo(x + 4 + Math.random() * 24, y + 15 + Math.random() * 22);
-                    ctx.lineTo(x - 3, y + 9);
-                    ctx.closePath();
-                    ctx.fill();
-                }
-                // Keep blood out of the repeating wall texture; a few unique wall splats are placed in-world.
-            } else if (kind === 'floor') {
-                // Scuffs, cracked seams and dark dried blood smears on worn linoleum.
-                ctx.strokeStyle = 'rgba(13,16,17,0.42)';
-                ctx.lineWidth = 2;
-                for (let p = 0; p <= 512; p += 128) {
-                    ctx.beginPath(); ctx.moveTo(p, 0); ctx.lineTo(p, 512); ctx.stroke();
-                    ctx.beginPath(); ctx.moveTo(0, p); ctx.lineTo(512, p); ctx.stroke();
-                }
-                for (let i = 0; i < 95; i++) {
-                    ctx.strokeStyle = 'rgba(12,13,12,' + (0.08 + Math.random() * 0.2) + ')';
-                    ctx.lineWidth = 1 + Math.random() * 5;
-                    ctx.beginPath();
+            if (kind === 'floor') {
+                ctx.fillStyle = '#302b25';
+                ctx.fillRect(0, 0, 512, 512);
+                for (let i = 0; i < 5200; i++) {
                     const x = Math.random() * 512, y = Math.random() * 512;
+                    ctx.fillStyle = Math.random() > 0.5
+                        ? 'rgba(111,91,63,' + (Math.random() * 0.18) + ')'
+                        : 'rgba(8,12,9,' + (Math.random() * 0.3) + ')';
+                    ctx.fillRect(x, y, 1 + Math.random() * 3, 1 + Math.random() * 2);
+                    if (i % 11 === 0) {
+                        ctx.strokeStyle = 'rgba(12,16,11,' + (Math.random() * 0.35) + ')';
+                        ctx.beginPath();
+                        ctx.moveTo(x, y);
+                        ctx.lineTo(x + Math.random() * 8 - 4, y + Math.random() * 8 - 4);
+                        ctx.stroke();
+                    }
+                }
+            } else if (kind === 'wall') {
+                ctx.fillStyle = '#17291b';
+                ctx.fillRect(0, 0, 512, 512);
+                for (let i = 0; i < 5200; i++) {
+                    const x = Math.random() * 512, y = Math.random() * 512;
+                    ctx.strokeStyle = Math.random() > 0.7 ? '#4c5b31' : (Math.random() > 0.5 ? '#30452a' : '#203923');
+                    ctx.globalAlpha = 0.25 + Math.random() * 0.55;
+                    ctx.lineWidth = 0.5 + Math.random() * 1.5;
+                    ctx.beginPath();
                     ctx.moveTo(x, y);
-                    ctx.lineTo(x + (Math.random() - 0.5) * 65, y + (Math.random() - 0.5) * 24);
+                    ctx.quadraticCurveTo(x + Math.random() * 8 - 4, y - 5, x + Math.random() * 8 - 4, y - 9 - Math.random() * 12);
                     ctx.stroke();
                 }
-                for (let i = 0; i < 22; i++) {
-                    const x = Math.random() * 512, y = Math.random() * 512;
-                    ctx.save();
-                    ctx.translate(x, y);
-                    ctx.rotate((Math.random() - 0.5) * 1.1);
-                    ctx.fillStyle = 'rgba(67,5,11,' + (0.28 + Math.random() * 0.35) + ')';
-                    ctx.beginPath();
-                    ctx.ellipse(0, 0, 8 + Math.random() * 25, 3 + Math.random() * 10, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    for (let j = 0; j < 4; j++) {
-                        ctx.beginPath();
-                        ctx.arc((Math.random() - 0.5) * 45, (Math.random() - 0.5) * 18, 1 + Math.random() * 3, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
-                    ctx.restore();
+                ctx.globalAlpha = 1;
+                for (let i = 0; i < 180; i++) {
+                    ctx.fillStyle = 'rgba(7,14,8,' + (0.08 + Math.random() * 0.22) + ')';
+                    ctx.fillRect(Math.random() * 512, Math.random() * 512, 4 + Math.random() * 24, 3 + Math.random() * 18);
                 }
             } else {
-                // Patchy ceiling panels and dark seams.
-                ctx.strokeStyle = 'rgba(8,9,9,0.5)';
+                ctx.fillStyle = '#06132d';
+                ctx.fillRect(0, 0, 512, 512);
+                ctx.strokeStyle = 'rgba(3,8,20,0.55)';
                 ctx.lineWidth = 4;
                 for (let p = 0; p <= 512; p += 128) {
                     ctx.beginPath(); ctx.moveTo(p, 0); ctx.lineTo(p, 512); ctx.stroke();
                     ctx.beginPath(); ctx.moveTo(0, p); ctx.lineTo(512, p); ctx.stroke();
                 }
-                for (let i = 0; i < 9; i++) {
-                    ctx.fillStyle = 'rgba(8,10,10,0.28)';
-                    ctx.fillRect(Math.random() * 480, Math.random() * 480, 15 + Math.random() * 55, 8 + Math.random() * 24);
-                }
             }
+
             const texture = new THREE.CanvasTexture(canvas);
             texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
             texture.repeat.set(kind === 'floor' ? 1.15 : 2, kind === 'wall' ? 1.5 : 2);
+            texture.colorSpace = THREE.SRGBColorSpace;
             texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
             return texture;
         }
 
+        
         function buildMaze() {
             const wallTex = createHospitalTexture('wall');
             const floorTex = createHospitalTexture('floor');
