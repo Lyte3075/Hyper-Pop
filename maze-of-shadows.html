@@ -164,7 +164,7 @@
         // Entities & World Arrays
         let lockers = [], monsters = [], wallBoxes = [], keys = [], items = [], exitGate = null;
         let exitGlowLight = null, exitDoorMesh = null, exitPadlocks = [];
-        let banisherActive = false, banisherNextAt = 45 + Math.random()*35, banisherUntil = 0, banisherSaved = null, banisherOverlay = null;
+        let banisherActive = false, banisherNextAt = 0, banisherStartedAt = 0, banisherUntil = 0, banisherSaved = null, banisherOverlay = null;
         let guideArrows = [], trailPoints = [];
 
         // Input Tracking
@@ -1207,41 +1207,80 @@
             }
         });
 
-        // THE BANISHER: a rare 30-second blackout encounter.
-        function playBanisherWarning(){
+        // THE BANISHER: a model-free void encounter triggered 35-60 seconds after the first key, then at random 35-60 second intervals.
+        function playBanisherBang(){
             try{
                 const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
-                const c=new AC(),now=c.currentTime;
-                // Original descending, rattling rush cue, inspired by horror-game warning stingers.
-                const master=c.createGain();master.gain.setValueAtTime(0.0001,now);master.gain.exponentialRampToValueAtTime(0.22,now+0.12);master.gain.exponentialRampToValueAtTime(0.0001,now+2.4);master.connect(c.destination);
-                for(let i=0;i<7;i++){const o=c.createOscillator(),g=c.createGain();o.type=i%2?'sawtooth':'triangle';o.frequency.setValueAtTime(240-i*24,now+i*0.08);o.frequency.exponentialRampToValueAtTime(42+i*3,now+1.8);g.gain.setValueAtTime(0.16,now+i*0.08);g.gain.exponentialRampToValueAtTime(0.0001,now+2.2);o.connect(g);g.connect(master);o.start(now+i*0.08);o.stop(now+2.3);}
+                const c=new AC(),t=c.currentTime;
+                const master=c.createGain();master.gain.setValueAtTime(0.55,t);master.gain.exponentialRampToValueAtTime(0.0001,t+0.48);master.connect(c.destination);
+                const noiseBuffer=c.createBuffer(1,c.sampleRate*0.42,c.sampleRate),data=noiseBuffer.getChannelData(0);
+                for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*Math.pow(1-i/data.length,2);
+                const noise=c.createBufferSource();noise.buffer=noiseBuffer;const filter=c.createBiquadFilter();filter.type='lowpass';filter.frequency.setValueAtTime(900,t);filter.frequency.exponentialRampToValueAtTime(110,t+0.35);noise.connect(filter);filter.connect(master);noise.start(t);noise.stop(t+0.42);
+                const thump=c.createOscillator(),tg=c.createGain();thump.type='sine';thump.frequency.setValueAtTime(95,t);thump.frequency.exponentialRampToValueAtTime(32,t+0.22);tg.gain.setValueAtTime(0.7,t);tg.gain.exponentialRampToValueAtTime(0.0001,t+0.28);thump.connect(tg);tg.connect(master);thump.start(t);thump.stop(t+0.3);
+                setTimeout(()=>c.close().catch(()=>{}),700);
             }catch(e){}
         }
         function startBanisherEvent(now){
-            banisherActive=true;banisherUntil=now+30000;banisherSaved={ambient:ambientLight.intensity,flashlight:flashlight.intensity,bg:scene.background.clone(),fog:scene.fog.color.clone(),visibility:monsters.map(m=>m.visible)};
-            document.getElementById('status-msg').innerText="THE BANISHER IS HERE. HIDE.";
-            playBanisherWarning();
-            if(!isHidden){health=0;document.getElementById('status-text').innerText="THE BANISHER FOUND YOU";document.getElementById('death-hint').innerText="The Banisher wipes out every entity for 30 seconds. Only a locker can protect you.";document.getElementById('game-over').style.display='flex';isGameOver=true;return;}
+            if(banisherActive||isGameOver)return;
+            banisherActive=true;
+            banisherStartedAt=now;
+            banisherUntil=now+(isHidden?2600:1700);
+            banisherSaved={ambient:ambientLight.intensity,flashlight:flashlight.intensity,visibility:monsters.map(m=>m.visible)};
+            // The Banisher has no 3D model. The world itself disappears into a void.
             monsters.forEach(m=>m.visible=false);
-            banisherOverlay=document.createElement('div');banisherOverlay.id='banisher-blackout';banisherOverlay.style.cssText='position:fixed;inset:0;background:#000;z-index:10000;pointer-events:none';document.body.appendChild(banisherOverlay);
+            banisherOverlay=document.createElement('div');
+            banisherOverlay.id='banisher-blackout';
+            banisherOverlay.style.cssText='position:fixed;inset:0;background:#000;z-index:10000;pointer-events:none;overflow:hidden';
+            const smile=document.createElement('div');
+            smile.id='banisher-smile';
+            smile.innerHTML='<div style="display:flex;gap:clamp(12px,3vw,42px);justify-content:center;align-items:center"><i style="display:block;width:clamp(9px,2.5vw,30px);height:clamp(22px,6vw,70px);background:#fff;border-radius:50%;box-shadow:0 0 22px #fff"></i><i style="display:block;width:clamp(9px,2.5vw,30px);height:clamp(22px,6vw,70px);background:#fff;border-radius:50%;box-shadow:0 0 22px #fff"></i></div><div style="margin:clamp(8px,2vw,24px) auto 0;width:100%;height:clamp(18px,4vw,44px);background:#fff;border-radius:8px 8px 55% 55%;box-shadow:0 0 28px #fff;clip-path:polygon(0 0,100% 0,88% 60%,75% 100%,25% 100%,12% 60%)"></div>';
+            smile.style.cssText='position:absolute;left:50%;top:50%;width:min(44vw,260px);transform:translate(-50%,-50%) scale(0.025);opacity:0;color:#fff;filter:drop-shadow(0 0 24px #fff);';
+            banisherOverlay.appendChild(smile);
+            document.body.appendChild(banisherOverlay);
+            document.getElementById('status-msg').innerText=isHidden?'SOMETHING IS SLAMMING THE LOCKER...':'DON’T LET IT REACH YOU';
+            playBanisherWarning();
+            if(isHidden){
+                // It finds the locker, slams it once, then tears away into the void.
+                setTimeout(()=>{if(banisherActive){playBanisherBang();document.getElementById('status-msg').innerText='IT LEFT...';}},950);
+            }else{
+                setTimeout(()=>{
+                    if(!banisherActive||isGameOver)return;
+                    health=0;
+                    document.getElementById('status-text').innerText='THE SMILE FOUND YOU';
+                    document.getElementById('death-hint').innerText='When the world becomes a void, hide in a locker before the white smile reaches you.';
+                    document.getElementById('game-over').style.display='flex';
+                    isGameOver=true;
+                },1550);
+            }
         }
         function updateBanisher(now){
             if(!banisherActive){
-                if(now>=banisherNextAt){startBanisherEvent(now);banisherNextAt=now+90000+Math.random()*90000;}
+                if(banisherStartedAt>0&&now>=banisherNextAt)startBanisherEvent(now);
                 return;
             }
-            if(!banisherOverlay||!document.getElementById('banisher-blackout')){
-                banisherOverlay=document.createElement('div');banisherOverlay.id='banisher-blackout';banisherOverlay.style.cssText='position:fixed;inset:0;background:#000;z-index:10000;pointer-events:none';document.body.appendChild(banisherOverlay);
+            if(!banisherOverlay||!document.getElementById('banisher-blackout'))return;
+            const smile=document.getElementById('banisher-smile');
+            const duration=banisherUntil-(banisherStartedAt||now);
+            const elapsed=Math.max(0,now-(banisherStartedAt||now));
+            if(smile){
+                const progress=Math.min(1,elapsed/(isHidden?950:1550));
+                const scale=0.025+progress*2.8;
+                smile.style.transform='translate(-50%,-50%) scale('+scale+')';
+                smile.style.opacity=String(Math.min(1,progress*2.8));
             }
-            // Brief, irregular light flickers before the blackout settles.
-            if(now<banisherUntil-27000){const flicker=Math.random();ambientLight.intensity=flicker>0.42?0.05:0;flashlight.intensity=flicker>0.55?0.18:0;banisherOverlay.style.opacity=flicker>0.55?'0.94':'1';}
-            else{ambientLight.intensity=0;flashlight.intensity=0;banisherOverlay.style.opacity='1';}
+            ambientLight.intensity=0;
+            flashlight.intensity=0;
             if(now>=banisherUntil){
                 banisherActive=false;
-                if(banisherSaved){ambientLight.intensity=banisherSaved.ambient;flashlight.intensity=flashlightOn?3.5:0;scene.background.copy(banisherSaved.bg);scene.fog.color.copy(banisherSaved.fog);monsters.forEach((m,i)=>m.visible=banisherSaved.visibility[i]!==false);}
+                if(banisherSaved){
+                    ambientLight.intensity=banisherSaved.ambient;
+                    flashlight.intensity=flashlightOn?3.5:0;
+                    monsters.forEach((m,i)=>m.visible=banisherSaved.visibility[i]!==false);
+                }
                 if(banisherOverlay){banisherOverlay.remove();banisherOverlay=null;}
-                document.getElementById('status-msg').innerText="";
-                banisherNextAt=now+60000+Math.random()*90000;
+                document.getElementById('status-msg').innerText='';
+                banisherStartedAt=0;
+                banisherNextAt=performance.now()+35000+Math.random()*25000;
             }
         }
 
@@ -1293,6 +1332,7 @@
                         k.collected = true;
                         scene.remove(k.mesh);
                         keysFound++;
+                        if(keysFound===1&&!banisherStartedAt&&!banisherActive)banisherNextAt=performance.now()+35000+Math.random()*25000;
                         if (exitPadlocks[keysFound - 1]) {
                             const padlock = exitPadlocks[keysFound - 1];
                             padlock.visible = false;
