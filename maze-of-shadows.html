@@ -147,6 +147,8 @@
         let isSprinting = false, isHidden = false, flashlightOn = true;
         let adrenalineTimer = 0;
         let currentLocker = null;
+        let hidingLocker = null;
+        let lockerBoxes = [];
         let preHideYaw = 0;
         let keysFound = 0;
         const totalKeys = 9;
@@ -607,7 +609,11 @@
                         else if(r<mazeGrid.length-1&&mazeGrid[r+1][c]===1){offsetZ=1.58;locker.rotation.y=Math.PI;}
                         else if(c>0&&mazeGrid[r][c-1]===1){offsetX=-1.58;offsetZ=0;locker.rotation.y=Math.PI/2;}
                         else if(c<mazeGrid[0].length-1&&mazeGrid[r][c+1]===1){offsetX=1.58;offsetZ=0;locker.rotation.y=-Math.PI/2;}
-                        locker.position.set(x+offsetX,1.36,z+offsetZ);scene.add(locker);lockers.push(locker);                    }
+                        locker.position.set(x+offsetX,1.36,z+offsetZ);scene.add(locker);lockers.push(locker);
+                        locker.updateMatrixWorld(true);
+                        const lockerBox = new THREE.Box3().setFromObject(locker);
+                        lockerBox.expandByScalar(-0.06);
+                        lockerBoxes.push(lockerBox);                    }
                     else if (mazeGrid[r][c] === 3) {
                         // EXIT BUILT INTO THE OUTER PERIMETER WALL
                         const outerWall = new THREE.Mesh(wallGeo, wallMat);
@@ -986,9 +992,11 @@
                 new THREE.Vector3(newPosition.x - radius, 0.2, newPosition.z - radius),
                 new THREE.Vector3(newPosition.x + radius, 2.0, newPosition.z + radius)
             );
-
             for (let i = 0; i < wallBoxes.length; i++) {
                 if (playerBox.intersectsBox(wallBoxes[i])) return true;
+            }
+            for (const lockerBox of lockerBoxes) {
+                if (playerBox.intersectsBox(lockerBox)) return true;
             }
             return false;
         }
@@ -1026,40 +1034,39 @@
 
             if (!isHidden && currentLocker) {
                 isHidden = true;
+                hidingLocker = currentLocker;
                 preHideYaw = rotation.yaw;
-                camera.position.set(currentLocker.position.x, 1.6, currentLocker.position.z);
-                // Face the locker door (+Z) so the open slits show the room outside.
-                rotation.yaw = Math.PI;
+                // Move the player into the locker interior. While hidden, the player is damage-proof.
+                camera.position.set(hidingLocker.position.x, 1.6, hidingLocker.position.z);
+                rotation.yaw = hidingLocker.rotation.y + Math.PI;
                 rotation.pitch = 0;
                 document.getElementById('status-msg').innerText = "HIDDEN IN LOCKER";
                 hideBtn.innerText = "EXIT";
-
-                monsters.forEach(m => {
-                    if (m.userData.type !== 'phantasm') m.userData.state = 'patrol';
-                });
-
+                monsters.forEach(m => { if (m.userData.type !== 'phantasm') m.userData.state = 'patrol'; });
                 if (phantasm) {
                     phantasm.visible = false;
                     phantasm.position.set(-999, -999, -999);
                 }
-            } 
-            else if (isHidden) {
-                isHidden = false;
-                let backVector = new THREE.Vector3(0, 0, 1.6).applyAxisAngle(new THREE.Vector3(0, 1, 0), preHideYaw);
-                let targetExitPos = (currentLocker ? currentLocker.position.clone() : camera.position.clone()).add(backVector);
+            } else if (isHidden) {
+                const locker = hidingLocker || currentLocker;
+                // Spawn directly outside the locker door, using its actual facing direction.
+                const doorOut = new THREE.Vector3(0, 0, 1).applyAxisAngle(
+                    new THREE.Vector3(0, 1, 0), locker ? locker.rotation.y : 0
+                );
+                const base = locker ? locker.position.clone() : camera.position.clone();
+                let targetExitPos = base.add(doorOut.multiplyScalar(1.35));
                 targetExitPos.y = 1.6;
-
-                if (checkCollisions(targetExitPos, 0.25)) {
-                    let defaultFront = new THREE.Vector3(0, 0, 1.6).applyAxisAngle(new THREE.Vector3(0, 1, 0), currentLocker ? currentLocker.rotation.y : 0);
-                    targetExitPos = currentLocker.position.clone().add(defaultFront);
+                if (locker && checkCollisions(targetExitPos, 0.25)) {
+                    targetExitPos.copy(locker.position).add(doorOut.multiplyScalar(2.1));
                     targetExitPos.y = 1.6;
                 }
-
+                isHidden = false;
                 camera.position.copy(targetExitPos);
                 rotation.yaw = preHideYaw;
+                currentLocker = null;
+                hidingLocker = null;
                 document.getElementById('status-msg').innerText = "";
                 hideBtn.innerText = "HIDE";
-
                 if (phantasm) {
                     phantasm.visible = true;
                     phantasm.position.set(16, 1.2, 28);
@@ -1291,14 +1298,14 @@
                     const edge=Math.floor(Math.random()*4),maxX=(mazeGrid[0].length-2)*cellSize,maxZ=(mazeGrid.length-2)*cellSize;
                     const sx=edge===0?cellSize:(edge===1?maxX:(Math.random()*maxX));
                     const sz=edge===2?cellSize:(edge===3?maxZ:(Math.random()*maxZ));
-                    banisherFace.position.set(sx,0,sz);scene.add(banisherFace);
+                    banisherFace.position.set(sx,0,sz);banisherLastFrame=now;scene.add(banisherFace);
                     document.getElementById('status-msg').innerText='IT IS HUNTING YOU';
                 }
                 return;
             }
             flashlight.intensity=flashlightOn?(Math.random()<0.18?2.4:0.12):0;ambientLight.intensity=0;
             if(!banisherFace){banisherFace=makeBanisherFace();banisherFace.position.set(camera.position.x+12,0,camera.position.z+12);scene.add(banisherFace);}
-            if(isHidden&&currentLocker)banisherLockerTarget=currentLocker;
+            if(isHidden&&hidingLocker)banisherLockerTarget=hidingLocker;
             const target=banisherLockerTarget?banisherLockerTarget.position:camera.position;
             const dx=target.x-banisherFace.position.x,dz=target.z-banisherFace.position.z,dist=Math.hypot(dx,dz)||0.001;
             // A very fast rush through the maze, with a slight circling motion to make it feel like it is sweeping the map.
@@ -1309,11 +1316,13 @@
             banisherFace.rotation.y=Math.atan2(dx,dz);
             banisherLastFrame=now;
             if(dist<2.2){
-                if(banisherLockerTarget&&(isHidden||currentLocker===banisherLockerTarget)){
+                // Hiding is an explicit safe state: the Banisher can never damage a hidden player.
+                if(isHidden && hidingLocker){
+                    banisherLockerTarget=hidingLocker;
                     banisherLockerTarget=currentLocker;
                     playBanisherBang();
                     // Slam into the locker, recoil away, and leave without hurting the hidden player.
-                    const rx=banisherFace.position.x-currentLocker.position.x,rz=banisherFace.position.z-currentLocker.position.z,rl=Math.hypot(rx,rz)||1;
+                    const safeLocker=hidingLocker||currentLocker;const rx=banisherFace.position.x-safeLocker.position.x,rz=banisherFace.position.z-safeLocker.position.z,rl=Math.hypot(rx,rz)||1;
                     banisherFace.position.x+=rx/rl*4.5;banisherFace.position.z+=rz/rl*4.5;
                     document.getElementById('status-msg').innerText='BANG! ... IT IS GONE';
                     endBanisherEvent(now);
@@ -1433,6 +1442,9 @@
                         break;
                     }
                 }
+            } else {
+                // Preserve the active locker reference for the entire hiding period.
+                currentLocker = hidingLocker;
             }
             hideBtn.style.display = (currentLocker || isHidden) ? 'flex' : 'none';
 
