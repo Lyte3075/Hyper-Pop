@@ -581,7 +581,7 @@
                 const label = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.2, 0.025), canLabelMat);
                 label.position.set(0, 0.58, 0.185);
                 canister.add(label);
-                canister.position.set(loc.c * cellSize, 0, loc.r * cellSize);
+                canister.position.set(loc.c * cellSize, 0.2, loc.r * cellSize);
                 canister.rotation.y = (index % 4) * Math.PI / 2;
                 scene.add(canister);
                 keys.push({ mesh: canister, collected: false, cell: loc });
