@@ -170,6 +170,7 @@
             color: #fff; border: 1px solid #ff0000; margin-top: 25px; cursor: pointer;
         }
 
+ #jumpscare .scare-text,#jumpscare .jumpscare-text,#jumpscare .message,#scare .scare-text,#scare .jumpscare-text{display:none!important}
 </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
@@ -306,7 +307,7 @@
             [1,0,0,0,1,0,0,0,0,0,2,0,0,0,1,0,0,0,0,0,3],
             [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
         ];
-        const cellSize = 4;
+        const cellSize = 2.8;
 
         // Pathfinding Algorithm
         function findAStarPath(startCell, targetCell) {
@@ -947,40 +948,46 @@
             });
         }
 
-        function updateGuideIndicators() {
+        function updateGuideIndicators(foundKeyPosition = null) {
             if (keyArrowTimer) clearTimeout(keyArrowTimer);
             guideArrows.forEach(a => scene.remove(a));
             trailPoints.forEach(t => scene.remove(t));
-            guideArrows = [];
-            trailPoints = [];
-            const uncollectedKeys = keys.filter(k => !k.collected);
-            if (!uncollectedKeys.length) return;
+            guideArrows = []; trailPoints = []; keyArrowTimer = null;
+            if (!foundKeyPosition) return;
 
-            // A single luminous compass arrow floats above the player and points toward
-            // the next uncollected key. It disappears after 15 seconds.
-            const target = uncollectedKeys[0].mesh.position;
-            const arrowGroup = new THREE.Group();
-            const glow = new THREE.MeshBasicMaterial({color:0x39f6ff});
-            const core = new THREE.MeshBasicMaterial({color:0xffffff});
-            const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.055,0.055,0.62,8),glow);
-            shaft.position.y = -0.12;
-            const tip = new THREE.Mesh(new THREE.ConeGeometry(0.19,0.42,7),core);
-            tip.position.y = 0.35;
-            arrowGroup.add(shaft,tip);
-            const halo = new THREE.PointLight(0x00eaff,1.6,5);
-            halo.position.y = 0.1;
-            arrowGroup.add(halo);
-            arrowGroup.position.set(camera.position.x,2.45,camera.position.z);
-            arrowGroup.rotation.x = Math.PI / 2;
-            arrowGroup.rotation.y = Math.atan2(target.x-camera.position.x,target.z-camera.position.z);
-            scene.add(arrowGroup);
-            guideArrows.push(arrowGroup);
-            arrowGroup.userData.target = target;
-            arrowGroup.userData.expiresAt = performance.now()+15000;
+            // The arrow remains at the collected key's location, not above the player.
+            const remaining = keys.filter(k => !k.collected);
+            if (!remaining.length) return;
+            const origin = foundKeyPosition.clone();
+            let target = remaining[0], bestDistance = Infinity;
+            for (const candidate of remaining) {
+                const d = origin.distanceTo(candidate.mesh.position);
+                if (d < bestDistance) { bestDistance = d; target = candidate; }
+            }
+            const direction = new THREE.Vector3(target.mesh.position.x-origin.x,0,target.mesh.position.z-origin.z);
+            if (direction.lengthSq() < 0.001) return;
+            direction.normalize();
+
+            // Single-color luminous triangular pyramid, pointing horizontally at the nearest remaining key.
+            const arrow = new THREE.Mesh(
+                new THREE.ConeGeometry(0.34,0.95,3),
+                new THREE.MeshBasicMaterial({color:0x39f6ff,side:THREE.DoubleSide})
+            );
+            arrow.position.set(origin.x,1.8,origin.z);
+            arrow.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);
+            arrow.rotateX(Math.PI/2);
+            arrow.userData.keyArrow = true;
+            scene.add(arrow); guideArrows.push(arrow);
+
+            const halo = new THREE.Mesh(new THREE.RingGeometry(0.32,0.43,24),
+                new THREE.MeshBasicMaterial({color:0x39f6ff,side:THREE.DoubleSide}));
+            halo.position.set(origin.x,0.06,origin.z); halo.rotation.x=-Math.PI/2;
+            scene.add(halo); trailPoints.push(halo);
+
             keyArrowTimer = setTimeout(() => {
-                guideArrows.forEach(a => scene.remove(a));
-                guideArrows = [];
-                keyArrowTimer = null;
+                guideArrows.forEach(a=>scene.remove(a));
+                trailPoints.forEach(t=>scene.remove(t));
+                guideArrows=[]; trailPoints=[]; keyArrowTimer=null;
             },15000);
         }
 
@@ -1514,10 +1521,10 @@
                 if (!k.collected) {
                     k.mesh.rotation.y += 0.03;
                     if (camera.position.distanceTo(k.mesh.position) < 1.5) {
+                        const collectedKeyPosition = k.mesh.position.clone();
                         k.collected = true;
                         scene.remove(k.mesh);
                         keysFound++;
-                        updateGuideIndicators();
                         if(keysFound===1&&!banisherScheduled){banisherScheduled=true;banisherNextAt=performance.now()+35000+Math.random()*25000;}
                         if (exitPadlocks[keysFound - 1]) {
                             const padlock = exitPadlocks[keysFound - 1];
@@ -1526,7 +1533,7 @@
                         }
                         document.getElementById('key-tracker').innerText = `KEYS FOUND: ${keysFound} / ${totalKeys}`;
                         checkProgressiveDifficulty();
-                        updateGuideIndicators();
+                        updateGuideIndicators(collectedKeyPosition);
                     }
                 }
             });
@@ -1722,7 +1729,7 @@
                 }
 
                 if (!isHidden && distToPlayer < 2.35 && (ai.state === 'chase' || distToPlayer < 1.4)) {
-                    health -= monster.userData.dps * delta;
+                    health -= monster.userData.dps * 1.5 * delta;
                     activeAttacker = monster.userData.type;
                 }
             }
