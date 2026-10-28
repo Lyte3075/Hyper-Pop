@@ -870,7 +870,7 @@
             });
             const boneMat = new THREE.MeshStandardMaterial({ color: isGhost ? 0x34313c : 0x202427, roughness: 0.85 });
             const eyeMat = new THREE.MeshBasicMaterial({ color: eyeColor });
-            const torso = new THREE.Mesh(new THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(radius * 0.72, height * 0.36, 4, 8) : new THREE.CylinderGeometry(radius * 0.7, radius, height * 0.48, 9), bodyMat);
+            const torso = new THREE.Mesh(THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(radius * 0.72, height * 0.36, 4, 8) : new THREE.CylinderGeometry(radius * 0.7, radius, height * 0.48, 9), bodyMat);
             torso.position.y = height * 0.52;
             monster.add(torso);
 
