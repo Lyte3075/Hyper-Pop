@@ -78,6 +78,20 @@
         #hide-btn { bottom: 25px; right: 90px; background: rgba(0, 150, 255, 0.6); display: none; }
         #use-item-btn { bottom: 100px; right: 90px; background: rgba(0, 255, 100, 0.6); display: none; }
 
+        #banisher-jumpscare.monster-scare .scare-face { background: radial-gradient(circle at 40% 32%,#fff 0%,#f1f1f1 48%,#888 100%); box-shadow:0 0 70px #fff,0 0 140px #aaa; }
+        #banisher-jumpscare.scare-brute .scare-face { border-radius:35% 35% 28% 28%; background:linear-gradient(90deg,#250500,#090000 25%,#35100a 50%,#090000 75%,#250500); }
+        #banisher-jumpscare.scare-stalker .scare-face { border-radius:48% 48% 20% 20%; background:radial-gradient(circle,#280000,#020000 68%); transform:scale(.18) skewX(-12deg); }
+        #banisher-jumpscare.scare-crawler .scare-face { border-radius:60% 35% 45% 25%; background:radial-gradient(circle,#ded8a4,#252516 65%,#000); }
+        #banisher-jumpscare.scare-phantasm .scare-face, #banisher-jumpscare.scare-phantom .scare-face { background:radial-gradient(circle,#c5a5ff,#382052 55%,#050008); filter:blur(.5px) contrast(1.6); }
+        #banisher-jumpscare.scare-wraith .scare-face { background:radial-gradient(circle,#d7ffff,#23717b 55%,#001014); box-shadow:0 0 80px #50f5ff; }
+        #banisher-jumpscare.scare-banshee .scare-face { background:radial-gradient(circle,#fff0d6,#7a1e00 60%,#100000); transform:scale(.18) rotate(10deg); }
+        #banisher-jumpscare.scare-devourer .scare-face { background:radial-gradient(circle,#6d0017,#130006 65%,#000); border-radius:30% 30% 50% 50%; }
+        #banisher-jumpscare.scare-demogorgon .scare-face { background:radial-gradient(circle,#9a251b,#210503 60%,#000); clip-path:polygon(50% 0,70% 12%,100% 35%,84% 72%,50% 100%,16% 72%,0 35%,30% 12%); }
+        #banisher-jumpscare.scare-ghost .scare-face { background:radial-gradient(circle,#effbff,#9cc9e2 55%,#273c59); opacity:.86; }
+        #banisher-jumpscare.scare-smiler .scare-face { background:radial-gradient(circle at 40% 30%,#fff 0%,#f5f5f5 55%,#aaa 100%); box-shadow:0 0 80px #fff,0 0 180px #fff; }
+        #banisher-jumpscare.monster-scare .scare-eye { background:#050000; box-shadow:0 0 18px #000; }
+        #banisher-jumpscare.monster-scare .scare-mouth { background:#020000; border-color:#111; box-shadow:0 0 25px #000; }
+        #banisher-jumpscare.monster-scare .scare-mouth:before, #banisher-jumpscare.monster-scare .scare-mouth:after { background:repeating-linear-gradient(90deg,#fff 0 7%,#555 7% 9%); }
         #game-over {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(20, 0, 0, 0.95); color: #ff0000;
@@ -206,6 +220,8 @@
         // --- GAME SYSTEM ---
         let scene, camera, renderer;
         let banisherDeathSequence = false;
+        let monsterDeathSequence = false;
+        let keyArrowTimer = null;
         let flashlight, ambientLight;
         let fxCanvas, fxCtx;
         let isGameOver = false;
@@ -352,7 +368,9 @@
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.set(4, 1.6, 4);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true });
+            const embeddedGame = window.self !== window.top;
+            renderer = new THREE.WebGLRenderer({ antialias: !embeddedGame, powerPreference: 'high-performance' });
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, embeddedGame ? 1 : 1.5));
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.getElementById('game-container').appendChild(renderer.domElement);
 
@@ -900,7 +918,6 @@
                 keys.push({ mesh: keyMesh, collected: false, cell: loc });
             });
 
-            updateGuideIndicators();
         }
 
         function spawnItems() {
@@ -931,41 +948,40 @@
         }
 
         function updateGuideIndicators() {
+            if (keyArrowTimer) clearTimeout(keyArrowTimer);
             guideArrows.forEach(a => scene.remove(a));
             trailPoints.forEach(t => scene.remove(t));
             guideArrows = [];
             trailPoints = [];
+            const uncollectedKeys = keys.filter(k => !k.collected);
+            if (!uncollectedKeys.length) return;
 
-            let uncollectedKeys = keys.filter(k => !k.collected);
-            if (uncollectedKeys.length === 0) return;
-
-            let pCell = worldToCell(camera.position.x, camera.position.z);
-            let targetKey = uncollectedKeys[0];
-            let path = findAStarPath(pCell, targetKey.cell);
-
-            if (path && path.length > 2) {
-                const dotGeo = new THREE.CircleGeometry(0.25, 8);
-                const dotMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, side: THREE.DoubleSide });
-
-                for (let i = 1; i < Math.min(path.length, 6); i++) {
-                    let dot = new THREE.Mesh(dotGeo, dotMat);
-                    let worldPos = cellToWorld(path[i].c, path[i].r);
-                    dot.position.set(worldPos.x, 0.02, worldPos.z);
-                    dot.rotation.x = Math.PI / 2;
-                    scene.add(dot);
-                    trailPoints.push(dot);
-                }
-
-                const arrowGeo = new THREE.ConeGeometry(0.3, 0.8, 3);
-                const arrowMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
-                const arrow = new THREE.Mesh(arrowGeo, arrowMat);
-
-                let nextCellPos = cellToWorld(path[1].c, path[1].r);
-                arrow.position.set(nextCellPos.x, 1.8, nextCellPos.z);
-                arrow.rotation.x = Math.PI / 2;
-                scene.add(arrow);
-                guideArrows.push(arrow);
-            }
+            // A single luminous compass arrow floats above the player and points toward
+            // the next uncollected key. It disappears after 15 seconds.
+            const target = uncollectedKeys[0].mesh.position;
+            const arrowGroup = new THREE.Group();
+            const glow = new THREE.MeshBasicMaterial({color:0x39f6ff});
+            const core = new THREE.MeshBasicMaterial({color:0xffffff});
+            const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.055,0.055,0.62,8),glow);
+            shaft.position.y = -0.12;
+            const tip = new THREE.Mesh(new THREE.ConeGeometry(0.19,0.42,7),core);
+            tip.position.y = 0.35;
+            arrowGroup.add(shaft,tip);
+            const halo = new THREE.PointLight(0x00eaff,1.6,5);
+            halo.position.y = 0.1;
+            arrowGroup.add(halo);
+            arrowGroup.position.set(camera.position.x,2.45,camera.position.z);
+            arrowGroup.rotation.x = Math.PI / 2;
+            arrowGroup.rotation.y = Math.atan2(target.x-camera.position.x,target.z-camera.position.z);
+            scene.add(arrowGroup);
+            guideArrows.push(arrowGroup);
+            arrowGroup.userData.target = target;
+            arrowGroup.userData.expiresAt = performance.now()+15000;
+            keyArrowTimer = setTimeout(() => {
+                guideArrows.forEach(a => scene.remove(a));
+                guideArrows = [];
+                keyArrowTimer = null;
+            },15000);
         }
 
         function spawnMonster(type, x, z) {
@@ -994,13 +1010,23 @@
                 for(let j=0;j<8;j++){const tooth=new THREE.Mesh(new THREE.ConeGeometry(0.025,0.09,6),boneMat);const a=j*Math.PI/4;tooth.position.set(Math.cos(a)*0.13,-0.01,0.32+Math.sin(a)*0.04);tooth.rotation.x=Math.PI;head.add(tooth);}
             }
             if(type==='smiler'){
-                // Backrooms-style silhouette: a floating black shape and a wide glowing crescent grin.
-                torso.scale.set(radius*1.0,height*0.3,radius*0.6);
-                const grinMat=new THREE.MeshBasicMaterial({color:0xfff4a8});
-                const grin=new THREE.Mesh(new THREE.TorusGeometry(0.24,0.035,8,28,Math.PI),grinMat);
-                grin.position.set(0,height*0.78,0.31);grin.rotation.z=Math.PI;head.add(grin);
-                for(let j=0;j<6;j++){const tooth=new THREE.Mesh(new THREE.BoxGeometry(0.045,0.075,0.025),grinMat);tooth.position.set(-0.18+j*0.072,height*0.78-0.025,0.33);head.add(tooth);}
-                for(const side of [-1,1]){const eye=orb(0.045,0.045,0.035,grinMat,12);eye.position.set(side*0.14,height*0.89,0.28);monster.add(eye);}
+                // The Smiler is an unnaturally pale floating face, with sunken black eyes
+                // and a stretched, jagged grin. Its face is visible before the body.
+                torso.scale.set(radius*0.72,height*0.2,radius*0.45);
+                torso.position.y=height*0.44;
+                const faceMat=new THREE.MeshBasicMaterial({color:0xf7f7f4});
+                const blackMat=new THREE.MeshBasicMaterial({color:0x020202});
+                const face=orb(0.57,0.43,0.12,faceMat,32);face.position.set(0,height*0.79,0.22);monster.add(face);
+                for(const side of [-1,1]){
+                    const socket=orb(0.13,0.095,0.045,blackMat,20);socket.position.set(side*0.2,height*0.84,0.335);monster.add(socket);
+                    const pin=orb(0.035,0.035,0.018,new THREE.MeshBasicMaterial({color:0xffffff}),12);pin.position.set(side*0.2,height*0.84,0.377);monster.add(pin);
+                }
+                const grinMat=new THREE.MeshBasicMaterial({color:0x030303});
+                const grin=new THREE.Mesh(new THREE.ShapeGeometry((()=>{const sh=new THREE.Shape();sh.moveTo(-0.43,0.04);sh.quadraticCurveTo(0,-0.16,0.43,0.04);sh.lineTo(0.35,-0.19);sh.quadraticCurveTo(0,-0.32,-0.35,-0.19);sh.closePath();return sh;})()),grinMat);
+                grin.position.set(0,height*0.68,0.355);monster.add(grin);
+                const toothMat=new THREE.MeshBasicMaterial({color:0xffffff});
+                for(let j=0;j<9;j++){const tooth=new THREE.Mesh(new THREE.BoxGeometry(0.055,0.09,0.025),toothMat);tooth.position.set(-0.31+j*0.078,height*0.68-0.015,0.37);monster.add(tooth);}
+                const underGlow=new THREE.PointLight(0xffffff,0.65,4);underGlow.position.set(0,height*0.78,0.6);monster.add(underGlow);
             }
             const chest=orb(radius*0.83,height*0.18,radius*0.78,boneMat,20);chest.position.set(0,height*0.64,0.035);monster.add(chest);
             const hs=type==='devourer'?0.42:(type==='brute'?0.34:0.29),head=new THREE.Group();head.position.set(0,height*0.79,radius*0.1);monster.add(head);
@@ -1443,6 +1469,13 @@
 
             const now = performance.now();
             updateBanisher(now);
+            guideArrows.forEach(a => {
+                if (a.userData.expiresAt && now < a.userData.expiresAt && a.userData.target) {
+                    a.position.set(camera.position.x,2.45,camera.position.z);
+                    a.rotation.y = Math.atan2(a.userData.target.x-camera.position.x,a.userData.target.z-camera.position.z);
+                    a.rotation.x = Math.PI/2;
+                }
+            });
 
             const delta = (now - lastTime) / 1000;
             lastTime = now;
@@ -1484,6 +1517,7 @@
                         k.collected = true;
                         scene.remove(k.mesh);
                         keysFound++;
+                        updateGuideIndicators();
                         if(keysFound===1&&!banisherScheduled){banisherScheduled=true;banisherNextAt=performance.now()+35000+Math.random()*25000;}
                         if (exitPadlocks[keysFound - 1]) {
                             const padlock = exitPadlocks[keysFound - 1];
@@ -1708,10 +1742,26 @@
             renderProximityOverlay(closestDistance, closestMonsterType);
             document.getElementById('health-bar').style.width = `${Math.max(0, (health / maxHealth) * 100)}%`;
 
-            if (health <= 0 && !banisherDeathSequence) {
+            if (health <= 0 && !banisherDeathSequence && !monsterDeathSequence) {
                 isGameOver = true;
-                document.getElementById('death-hint').innerText = deathHints[activeAttacker] || "Stay quiet and don't sprint near monsters!";
-                document.getElementById('game-over').style.display = 'flex';
+                monsterDeathSequence = true;
+                const scare=document.getElementById('banisher-jumpscare');
+                const monsterType=activeAttacker || 'brute';
+                scare.className='monster-scare scare-'+monsterType;
+                scare.querySelector('.scare-label').textContent=monsterType.toUpperCase()+' FOUND YOU';
+                scare.style.display='flex';
+                void scare.offsetWidth;
+                scare.classList.add('active');
+                playBanisherJumpscare();
+                document.getElementById('status-text').innerText=monsterType.toUpperCase()+' GOT YOU';
+                document.getElementById('death-hint').innerText=deathHints[monsterType] || 'Keep moving. Learn its pattern. Do not let it close the distance.';
+                document.getElementById('game-over').style.display='none';
+                setTimeout(()=>{
+                    scare.classList.remove('active');
+                    scare.style.display='none';
+                    scare.className='';
+                    document.getElementById('game-over').style.display='flex';
+                },1250);
             }
 
             renderer.render(scene, camera);
