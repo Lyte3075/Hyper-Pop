@@ -606,6 +606,7 @@
                 const latch=new THREE.Mesh(new THREE.BoxGeometry(0.11,0.055,0.07),lockerTrimMat);latch.position.set(0.27,-0.16,0.375);g.add(latch);
                 return g;
             }
+            window.makeLocker = makeLocker; // Expose the courtyard locker model to buildMaze().
 
 
             const mazeWidth = mazeGrid[0].length * cellSize;
