@@ -164,7 +164,7 @@
         // Entities & World Arrays
         let lockers = [], monsters = [], wallBoxes = [], keys = [], items = [], exitGate = null;
         let exitGlowLight = null, exitDoorMesh = null, exitPadlocks = [];
-        let banisherActive = false, banisherScheduled = false, banisherNextAt = 0, banisherStartedAt = 0, banisherSpawnAt = 0, banisherUntil = 0, banisherLastFrame = 0, banisherPhase = '', banisherFace = null, banisherSaved = null;
+        let banisherActive = false, banisherScheduled = false, banisherNextAt = 0, banisherStartedAt = 0, banisherSpawnAt = 0, banisherUntil = 0, banisherLastFrame = 0, banisherPhase = '', banisherFace = null, banisherSaved = null, banisherLockerTarget = null;
         let guideArrows = [], trailPoints = [];
 
         // Input Tracking
@@ -1257,14 +1257,14 @@
         }
         function startBanisherEvent(now){
             if(banisherActive||isGameOver)return;
-            banisherActive=true;banisherStartedAt=now;banisherPhase='warning';banisherSpawnAt=now+5000;banisherUntil=0;banisherSaved={ambient:ambientLight.intensity,flashlight:flashlight.intensity,fogColor:scene.fog.color.clone(),fogDensity:scene.fog.density,background:scene.background.clone(),visibility:monsters.map(m=>m.visible)};
-            scene.fog.color.set(0x000000);scene.fog.density=0.105;scene.background.set(0x000000);
+            banisherActive=true;banisherStartedAt=now;banisherPhase='warning';banisherSpawnAt=now+5000;banisherUntil=0;banisherSaved={ambient:ambientLight.intensity,flashlight:flashlight.intensity,fogColor:scene.fog.color.clone(),fogDensity:scene.fog.density,background:scene.background.clone(),visibility:monsters.map(m=>m.visible)};banisherLockerTarget=null;
+            scene.fog.color.set(0x050506);scene.fog.density=0.045;scene.background.set(0x050506);
             monsters.forEach(m=>m.visible=false);
             document.getElementById('status-msg').innerText='THE AIR SCREAMS. HIDE NOW.';
             playBanisherWarning();
         }
         function endBanisherEvent(now){
-            banisherActive=false;banisherPhase='';banisherStartedAt=0;
+            banisherActive=false;banisherPhase='';banisherStartedAt=0;banisherLockerTarget=null;
             if(banisherFace){scene.remove(banisherFace);banisherFace=null;}
             if(banisherSaved){
                 ambientLight.intensity=banisherSaved.ambient;
@@ -1281,7 +1281,7 @@
                 return;
             }
             // Keep the scene itself dark. Flicker only the flashlight during the 5-second warning.
-            scene.fog.color.set(0x000000);scene.fog.density=0.105;scene.background.set(0x000000);
+            scene.fog.color.set(0x050506);scene.fog.density=0.045;scene.background.set(0x050506);
             if(banisherPhase==='warning'){
                 flashlight.intensity=flashlightOn?(Math.random()<0.43?3.5:0):0;
                 ambientLight.intensity=Math.random()<0.12?0.12:0;
@@ -1298,7 +1298,8 @@
             }
             flashlight.intensity=flashlightOn?(Math.random()<0.18?2.4:0.12):0;ambientLight.intensity=0;
             if(!banisherFace){banisherFace=makeBanisherFace();banisherFace.position.set(camera.position.x+12,0,camera.position.z+12);scene.add(banisherFace);}
-            const target=isHidden&&currentLocker?currentLocker.position:camera.position;
+            if(isHidden&&currentLocker)banisherLockerTarget=currentLocker;
+            const target=banisherLockerTarget?banisherLockerTarget.position:camera.position;
             const dx=target.x-banisherFace.position.x,dz=target.z-banisherFace.position.z,dist=Math.hypot(dx,dz)||0.001;
             // A very fast rush through the maze, with a slight circling motion to make it feel like it is sweeping the map.
             const speed=0.34;
@@ -1307,8 +1308,9 @@
             banisherFace.position.y=0.16+Math.sin(now*0.025)*0.14;
             banisherFace.rotation.y=Math.atan2(dx,dz);
             banisherLastFrame=now;
-            if(dist<1.7){
-                if(isHidden&&currentLocker){
+            if(dist<2.2){
+                if(banisherLockerTarget&&(isHidden||currentLocker===banisherLockerTarget)){
+                    banisherLockerTarget=currentLocker;
                     playBanisherBang();
                     // Slam into the locker, recoil away, and leave without hurting the hidden player.
                     const rx=banisherFace.position.x-currentLocker.position.x,rz=banisherFace.position.z-currentLocker.position.z,rl=Math.hypot(rx,rz)||1;
