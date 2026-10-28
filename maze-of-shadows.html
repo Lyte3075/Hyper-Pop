@@ -1319,7 +1319,6 @@
                 // Hiding is an explicit safe state: the Banisher can never damage a hidden player.
                 if(isHidden && hidingLocker){
                     banisherLockerTarget=hidingLocker;
-                    banisherLockerTarget=currentLocker;
                     playBanisherBang();
                     // Slam into the locker, recoil away, and leave without hurting the hidden player.
                     const safeLocker=hidingLocker||currentLocker;const rx=banisherFace.position.x-safeLocker.position.x,rz=banisherFace.position.z-safeLocker.position.z,rl=Math.hypot(rx,rz)||1;
