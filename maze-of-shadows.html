@@ -372,8 +372,12 @@
             const embeddedGame = window.self !== window.top;
             renderer = new THREE.WebGLRenderer({ antialias: !embeddedGame, powerPreference: 'high-performance' });
             renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, embeddedGame ? 1 : 1.5));
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            document.getElementById('game-container').appendChild(renderer.domElement);
+            const gameContainer = document.getElementById('game-container');
+            renderer.setSize(Math.max(1, gameContainer.clientWidth), Math.max(1, gameContainer.clientHeight), false);
+            renderer.domElement.style.display = 'block';
+            renderer.domElement.style.width = '100%';
+            renderer.domElement.style.height = '100%';
+            gameContainer.appendChild(renderer.domElement);
 
             fxCanvas = document.getElementById('fx-canvas');
             fxCtx = fxCanvas.getContext('2d');
@@ -398,6 +402,12 @@
             setupTouchControls();
             setupKeyboardControls();
             window.addEventListener('resize', onWindowResize);
+            if (window.visualViewport) window.visualViewport.addEventListener('resize', onWindowResize);
+            if (window.ResizeObserver) {
+                const gameSizeObserver = new ResizeObserver(onWindowResize);
+                gameSizeObserver.observe(document.getElementById('game-container'));
+            }
+            requestAnimationFrame(onWindowResize);
 
             sprintBtn.addEventListener('touchstart', (e) => { e.preventDefault(); isSprinting = true; });
             sprintBtn.addEventListener('touchend', (e) => { e.preventDefault(); isSprinting = false; });
@@ -426,8 +436,16 @@
         }
 
         function resizeFxCanvas() {
-            fxCanvas.width = window.innerWidth;
-            fxCanvas.height = window.innerHeight;
+            const container = document.getElementById('game-container');
+            const rect = container ? container.getBoundingClientRect() : null;
+            const width = Math.max(1, Math.round(rect && rect.width ? rect.width : window.innerWidth));
+            const height = Math.max(1, Math.round(rect && rect.height ? rect.height : window.innerHeight));
+            const dpr = Math.min(window.devicePixelRatio || 1, window.self !== window.top ? 1 : 1.5);
+            fxCanvas.width = Math.round(width * dpr);
+            fxCanvas.height = Math.round(height * dpr);
+            fxCanvas.style.width = width + 'px';
+            fxCanvas.style.height = height + 'px';
+            if (fxCtx) fxCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
         }
 
         function createExitSignCanvas() {
