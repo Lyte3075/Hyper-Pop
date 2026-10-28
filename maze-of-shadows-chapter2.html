@@ -280,6 +280,8 @@
             const embeddedGame = window.self !== window.top;
             renderer = new THREE.WebGLRenderer({ antialias: !embeddedGame, powerPreference: 'high-performance' });
             renderer.setClearColor(0x020b2b, 1);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, embeddedGame ? 1 : 1.5));
             const gameContainer = document.getElementById('game-container');
             renderer.setSize(Math.max(1, gameContainer.clientWidth), Math.max(1, gameContainer.clientHeight), false);
@@ -374,13 +376,70 @@
             return new THREE.CanvasTexture(canvas);
         }
 
+        function makeGroundTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#302b25';
+            ctx.fillRect(0, 0, 256, 256);
+            for (let i = 0; i < 2600; i++) {
+                const x = Math.random() * 256, y = Math.random() * 256;
+                const shade = Math.floor(25 + Math.random() * 45);
+                ctx.fillStyle = Math.random() > 0.5 ? `rgba(111,91,63,${Math.random() * 0.18})` : `rgba(8,12,9,${Math.random() * 0.3})`;
+                ctx.fillRect(x, y, 1 + Math.random() * 3, 1 + Math.random() * 2);
+                if (i % 11 === 0) {
+                    ctx.strokeStyle = `rgba(12,16,11,${Math.random() * 0.35})`;
+                    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.random() * 8 - 4, y + Math.random() * 8 - 4); ctx.stroke();
+                }
+            }
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(mazeGrid[0].length / 2, mazeGrid.length / 2);
+            texture.colorSpace = THREE.SRGBColorSpace;
+            return texture;
+        }
+
+        function makeGrassTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128; canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#17291b';
+            ctx.fillRect(0, 0, 128, 256);
+            for (let i = 0; i < 1250; i++) {
+                const x = Math.random() * 128, y = Math.random() * 256;
+                const hue = Math.random() > 0.7 ? '#4c5b31' : (Math.random() > 0.5 ? '#30452a' : '#203923');
+                ctx.strokeStyle = hue;
+                ctx.globalAlpha = 0.25 + Math.random() * 0.55;
+                ctx.lineWidth = 0.5 + Math.random() * 1.5;
+                ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + Math.random() * 8 - 4, y - 5, x + Math.random() * 8 - 4, y - 9 - Math.random() * 12); ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(1, 1.5);
+            texture.colorSpace = THREE.SRGBColorSpace;
+            return texture;
+        }
+
         function addCourtyardDetails() {
             // Moonlit exterior atmosphere; keep the established blue night sky and dark courtyard palette.
             scene.background = new THREE.Color(0x06132d);
             scene.fog = new THREE.FogExp2(0x071326, 0.0065);
-            const moon = new THREE.DirectionalLight(0x8eafff, 0.75);
+            const moon = new THREE.DirectionalLight(0x9bb9ff, 1.05);
             moon.position.set(-28, 42, -18);
+            moon.castShadow = true;
+            moon.shadow.mapSize.set(1024, 1024);
+            moon.shadow.camera.left = -65;
+            moon.shadow.camera.right = 65;
+            moon.shadow.camera.top = 65;
+            moon.shadow.camera.bottom = -65;
+            moon.shadow.camera.near = 1;
+            moon.shadow.camera.far = 150;
+            moon.shadow.bias = -0.00035;
+            moon.shadow.normalBias = 0.035;
             scene.add(moon);
+            const rimLight = new THREE.HemisphereLight(0x334d83, 0x171b12, 0.55);
+            scene.add(rimLight);
 
             const mazeWidth = mazeGrid[0].length * cellSize;
             const mazeDepth = mazeGrid.length * cellSize;
@@ -419,6 +478,61 @@
                 }
             }
 
+            // Dense tree line and shrubs form a believable boundary beyond the playable maze.
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x211d19, roughness: 1 });
+            const canopyMats = [
+                new THREE.MeshStandardMaterial({ color: 0x101c1a, roughness: 1 }),
+                new THREE.MeshStandardMaterial({ color: 0x17251d, roughness: 1 }),
+                new THREE.MeshStandardMaterial({ color: 0x202a20, roughness: 1 })
+            ];
+            const shrubMat = new THREE.MeshStandardMaterial({ color: 0x1a2c1c, roughness: 1 });
+            const treePositions = [];
+            for (let i = -2; i <= mazeGrid[0].length + 2; i += 2) {
+                treePositions.push({ x: i * cellSize, z: -cellSize * 1.8, scale: 0.8 + (Math.abs(i) % 3) * 0.12 });
+                treePositions.push({ x: i * cellSize, z: mazeDepth + cellSize * 1.9, scale: 0.85 + (Math.abs(i + 1) % 3) * 0.1 });
+            }
+            for (let i = -1; i <= mazeGrid.length + 1; i += 3) {
+                treePositions.push({ x: -cellSize * 1.8, z: i * cellSize, scale: 0.9 });
+                treePositions.push({ x: mazeWidth + cellSize * 0.8, z: i * cellSize, scale: 1.05 });
+            }
+            treePositions.forEach((p, i) => {
+                const tree = new THREE.Group();
+                const scale = p.scale;
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18 * scale, 0.34 * scale, 2.7 * scale, 6), trunkMat);
+                trunk.position.y = 1.35 * scale;
+                trunk.castShadow = true;
+                tree.add(trunk);
+                for (let tier = 0; tier < 3; tier++) {
+                    const canopy = new THREE.Mesh(new THREE.ConeGeometry((1.25 - tier * 0.22) * scale, (2.1 - tier * 0.15) * scale, 7), canopyMats[(i + tier) % canopyMats.length]);
+                    canopy.position.y = (2.5 + tier * 0.82) * scale;
+                    canopy.castShadow = true;
+                    canopy.receiveShadow = true;
+                    tree.add(canopy);
+                }
+                tree.position.set(p.x, 0, p.z);
+                scene.add(tree);
+            });
+            // Low shrubs and broken branches soften the boundary where the grass meets the ground.
+            for (let i = 0; i < 46; i++) {
+                const angle = i * 2.399;
+                const edge = i % 4;
+                const x = edge === 0 ? -cellSize * 1.35 : edge === 1 ? mazeWidth + cellSize * 0.45 : (i % 21) * cellSize;
+                const z = edge === 2 ? -cellSize * 1.35 : edge === 3 ? mazeDepth + cellSize * 1.15 : (i % 19) * cellSize;
+                const shrub = new THREE.Mesh(new THREE.IcosahedronGeometry(0.65 + (i % 3) * 0.18, 1), shrubMat);
+                shrub.position.set(x + Math.cos(angle) * 0.6, 0.48, z + Math.sin(angle) * 0.6);
+                shrub.scale.y = 0.65;
+                shrub.castShadow = true;
+                scene.add(shrub);
+            }
+            // Far silhouettes make the horizon read as woods instead of a flat void.
+            const farMat = new THREE.MeshBasicMaterial({ color: 0x08101b });
+            for (let i = 0; i < 42; i++) {
+                const x = (i - 21) * 13;
+                const tree = new THREE.Mesh(new THREE.ConeGeometry(3.2 + (i % 4), 9 + (i % 5) * 1.8, 6), farMat);
+                tree.position.set(x, 4.5 + (i % 5) * 0.9, -75 - (i % 3) * 8);
+                scene.add(tree);
+            }
+
             // A damaged, abandoned car silhouette waits beyond the lot. Decorative only; the existing exit trigger stays authoritative.
             const carGroup = new THREE.Group();
             const carBody = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.85, 5.6), new THREE.MeshStandardMaterial({ color: 0x252b32, metalness: 0.45, roughness: 0.75 }));
@@ -445,24 +559,22 @@
         }
 
         function buildMaze() {
-            const wallMat = new THREE.MeshStandardMaterial({ color: 0x142719, roughness: 0.95 });
-            const floorMat = new THREE.MeshStandardMaterial({ color: 0x3b2b20, roughness: 1 });
-            const roofMat = new THREE.MeshBasicMaterial({ color: 0x020b2b, side: THREE.DoubleSide });
+            const grassTexture = makeGrassTexture();
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0x82916c, map: grassTexture, roughness: 1 });
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: makeGroundTexture(), roughness: 1 });
             const lockerMat = new THREE.MeshStandardMaterial({ color: 0x777d85, metalness: 0.35, roughness: 0.75 });
 
             const mazeWidth = mazeGrid[0].length * cellSize;
             const mazeHeight = mazeGrid.length * cellSize;
 
             const floor = new THREE.Mesh(new THREE.PlaneGeometry(mazeWidth, mazeHeight), floorMat);
+            floor.receiveShadow = true;
             floor.rotation.x = -Math.PI / 2;
             floor.position.set(mazeWidth/2 - cellSize/2, 0, mazeHeight/2 - cellSize/2);
             scene.add(floor);
             addCourtyardDetails();
 
-            const roof = new THREE.Mesh(new THREE.PlaneGeometry(mazeWidth, mazeHeight), roofMat);
-            roof.rotation.x = Math.PI / 2;
-            roof.position.set(mazeWidth/2 - cellSize/2, 3.5, mazeHeight/2 - cellSize/2);
-            scene.add(roof);
+            // This chapter is outdoors: leave the maze open to the night sky.
 
             const wallGeo = new THREE.BoxGeometry(cellSize, 3.5, cellSize);
             const lockerGeo = new THREE.BoxGeometry(1.0, 2.6, 0.5);
@@ -475,8 +587,24 @@
                     if (mazeGrid[r][c] === 1) {
                         const wall = new THREE.Mesh(wallGeo, wallMat);
                         wall.position.set(x, 1.75, z);
+                        wall.castShadow = true;
+                        wall.receiveShadow = true;
                         scene.add(wall);
                         wallBoxes.push(new THREE.Box3().setFromObject(wall));
+                        // A second, ragged crown of grass breaks the clean box silhouette.
+                        const crownMat = new THREE.MeshStandardMaterial({ color: 0x30462a, map: grassTexture, roughness: 1 });
+                        const crown = new THREE.Mesh(new THREE.BoxGeometry(cellSize * 0.94, 0.38, cellSize * 0.94), crownMat);
+                        crown.position.set(x, 3.48, z);
+                        crown.castShadow = true;
+                        crown.receiveShadow = true;
+                        scene.add(crown);
+                        for (let tuft = 0; tuft < 4; tuft++) {
+                            const blade = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.55 + (tuft % 2) * 0.22, 4), crownMat);
+                            blade.position.set(x + Math.cos(tuft * Math.PI / 2) * 1.1, 3.78, z + Math.sin(tuft * Math.PI / 2) * 1.1);
+                            blade.rotation.z = (tuft % 2 ? -0.16 : 0.16);
+                            blade.castShadow = true;
+                            scene.add(blade);
+                        }
                     } 
                     else if (mazeGrid[r][c] === 2) {
                         const locker = new THREE.Mesh(lockerGeo, lockerMat);
@@ -494,6 +622,8 @@
                         // EXIT BUILT INTO THE OUTER PERIMETER WALL
                         const outerWall = new THREE.Mesh(wallGeo, wallMat);
                         outerWall.position.set(x, 1.75, z);
+                        outerWall.castShadow = true;
+                        outerWall.receiveShadow = true;
                         scene.add(outerWall);
                         wallBoxes.push(new THREE.Box3().setFromObject(outerWall));
 
@@ -583,6 +713,7 @@
                 canister.add(label);
                 canister.position.set(loc.c * cellSize, 0.2, loc.r * cellSize);
                 canister.rotation.y = (index % 4) * Math.PI / 2;
+                canister.traverse(part => { if (part.isMesh) { part.castShadow = true; part.receiveShadow = true; } });
                 scene.add(canister);
                 keys.push({ mesh: canister, collected: false, cell: loc });
             });
