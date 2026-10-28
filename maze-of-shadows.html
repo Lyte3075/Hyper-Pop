@@ -559,7 +559,7 @@
             }
             const texture = new THREE.CanvasTexture(canvas);
             texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-            texture.repeat.set(kind === 'floor' ? 3 : 2, kind === 'wall' ? 1.5 : 2);
+            texture.repeat.set(kind === 'floor' ? 1.15 : 2, kind === 'wall' ? 1.5 : 2);
             texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
             return texture;
         }
