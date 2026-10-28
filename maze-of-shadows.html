@@ -170,7 +170,7 @@
             color: #fff; border: 1px solid #ff0000; margin-top: 25px; cursor: pointer;
         }
 
- #jumpscare .scare-text,#jumpscare .jumpscare-text,#jumpscare .message,#scare .scare-text,#scare .jumpscare-text{display:none!important}
+ #jumpscare .scare-text,#jumpscare .jumpscare-text,#jumpscare .message,#scare .scare-text,#scare .jumpscare-text,#banisher-jumpscare .scare-label{display:none!important}
 </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
@@ -975,7 +975,6 @@
             );
             arrow.position.set(origin.x,1.8,origin.z);
             arrow.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);
-            arrow.rotateX(Math.PI/2);
             arrow.userData.keyArrow = true;
             scene.add(arrow); guideArrows.push(arrow);
 
