@@ -374,6 +374,76 @@
             return new THREE.CanvasTexture(canvas);
         }
 
+        function addCourtyardDetails() {
+            // Moonlit exterior atmosphere; keep the established blue night sky and dark courtyard palette.
+            scene.background = new THREE.Color(0x06132d);
+            scene.fog = new THREE.FogExp2(0x071326, 0.0065);
+            const moon = new THREE.DirectionalLight(0x8eafff, 0.75);
+            moon.position.set(-28, 42, -18);
+            scene.add(moon);
+
+            const mazeWidth = mazeGrid[0].length * cellSize;
+            const mazeDepth = mazeGrid.length * cellSize;
+            const asphaltMat = new THREE.MeshStandardMaterial({ color: 0x171b22, roughness: 0.96 });
+            const roadMat = new THREE.MeshStandardMaterial({ color: 0x292d33, roughness: 1 });
+            const lineMat = new THREE.MeshBasicMaterial({ color: 0xc6c9c9 });
+            // Exterior parking apron beyond the exit side of the courtyard.
+            const lot = new THREE.Mesh(new THREE.PlaneGeometry(mazeWidth * 0.72, 28), asphaltMat);
+            lot.rotation.x = -Math.PI / 2;
+            lot.position.set(mazeWidth * 0.52, 0.025, mazeDepth + 14);
+            scene.add(lot);
+            const road = new THREE.Mesh(new THREE.PlaneGeometry(mazeWidth * 0.95, 9), roadMat);
+            road.rotation.x = -Math.PI / 2;
+            road.position.set(mazeWidth * 0.52, 0.035, mazeDepth + 31);
+            scene.add(road);
+            for (let i = -3; i <= 3; i++) {
+                const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.025, 7), lineMat);
+                stripe.position.set(mazeWidth * 0.52 + i * 4.2, 0.05, mazeDepth + 14);
+                scene.add(stripe);
+            }
+
+            // Scattered overgrowth clumps sit close to the edges of open cells, never in the movement center.
+            const grassMat = new THREE.MeshStandardMaterial({ color: 0x263d24, roughness: 1 });
+            const dryGrassMat = new THREE.MeshStandardMaterial({ color: 0x4a4930, roughness: 1 });
+            const bladeGeo = new THREE.ConeGeometry(0.11, 0.75, 4);
+            for (let r = 1; r < mazeGrid.length - 1; r++) {
+                for (let c = 1; c < mazeGrid[r].length - 1; c++) {
+                    if (mazeGrid[r][c] !== 0 || ((r * 7 + c * 11) % 5 !== 0)) continue;
+                    const x = c * cellSize, z = r * cellSize;
+                    for (let j = 0; j < 3; j++) {
+                        const blade = new THREE.Mesh(bladeGeo, (j === 2 ? dryGrassMat : grassMat));
+                        blade.position.set(x + (j - 1) * 0.32, 0.28, z + ((c + j) % 2 ? 1.05 : -1.05));
+                        blade.rotation.z = (j - 1) * 0.18;
+                        scene.add(blade);
+                    }
+                }
+            }
+
+            // A damaged, abandoned car silhouette waits beyond the lot. Decorative only; the existing exit trigger stays authoritative.
+            const carGroup = new THREE.Group();
+            const carBody = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.85, 5.6), new THREE.MeshStandardMaterial({ color: 0x252b32, metalness: 0.45, roughness: 0.75 }));
+            carBody.position.y = 0.85;
+            carGroup.add(carBody);
+            const cabin = new THREE.Mesh(new THREE.BoxGeometry(2.45, 0.85, 2.7), new THREE.MeshStandardMaterial({ color: 0x111923, metalness: 0.25, roughness: 0.4 }));
+            cabin.position.set(0, 1.55, -0.25);
+            carGroup.add(cabin);
+            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x08090b, roughness: 1 });
+            for (const x of [-1.58, 1.58]) for (const z of [-1.75, 1.75]) {
+                const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.48, 0.28, 12), wheelMat);
+                wheel.rotation.z = Math.PI / 2;
+                wheel.position.set(x, 0.48, z);
+                carGroup.add(wheel);
+            }
+            const lampMat = new THREE.MeshBasicMaterial({ color: 0xff3328 });
+            for (const x of [-1.05, 1.05]) {
+                const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.2, 0.08), lampMat);
+                lamp.position.set(x, 1.05, 2.83);
+                carGroup.add(lamp);
+            }
+            carGroup.position.set(mazeWidth * 0.52, 0, mazeDepth + 12);
+            scene.add(carGroup);
+        }
+
         function buildMaze() {
             const wallMat = new THREE.MeshStandardMaterial({ color: 0x142719, roughness: 0.95 });
             const floorMat = new THREE.MeshStandardMaterial({ color: 0x3b2b20, roughness: 1 });
@@ -387,6 +457,7 @@
             floor.rotation.x = -Math.PI / 2;
             floor.position.set(mazeWidth/2 - cellSize/2, 0, mazeHeight/2 - cellSize/2);
             scene.add(floor);
+            addCourtyardDetails();
 
             const roof = new THREE.Mesh(new THREE.PlaneGeometry(mazeWidth, mazeHeight), roofMat);
             roof.rotation.x = Math.PI / 2;
@@ -474,8 +545,14 @@
         }
 
         function spawnKeys() {
-            const keyGeo = new THREE.TorusGeometry(0.2, 0.05, 8, 16);
-            const keyMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.8, roughness: 0.2, emissive: 0xaa7700 });
+            // Fuel canister pickup model: body, shoulder, neck, cap, handle and hazard label.
+            const canBodyGeo = new THREE.BoxGeometry(0.72, 0.92, 0.34);
+            const canShoulderGeo = new THREE.BoxGeometry(0.52, 0.18, 0.34);
+            const canNeckGeo = new THREE.CylinderGeometry(0.11, 0.13, 0.16, 8);
+            const canCapGeo = new THREE.CylinderGeometry(0.14, 0.14, 0.08, 8);
+            const canMat = new THREE.MeshStandardMaterial({ color: 0xb83a2b, roughness: 0.65, metalness: 0.22, emissive: 0x260603 });
+            const canLabelMat = new THREE.MeshBasicMaterial({ color: 0xe7d8b5 });
+            const canHandleMat = new THREE.MeshStandardMaterial({ color: 0x2b2926, roughness: 0.7, metalness: 0.25 });
 
             const validSpawns = [
                 {c: 1, r: 7}, {c: 7, r: 1}, {c: 13, r: 3},
@@ -483,11 +560,31 @@
                 {c: 17, r: 11}, {c: 9, r: 17}, {c: 15, r: 17}
             ];
 
-            validSpawns.forEach((loc) => {
-                const keyMesh = new THREE.Mesh(keyGeo, keyMat);
-                keyMesh.position.set(loc.c * cellSize, 1.2, loc.r * cellSize);
-                scene.add(keyMesh);
-                keys.push({ mesh: keyMesh, collected: false, cell: loc });
+            validSpawns.forEach((loc, index) => {
+                const canister = new THREE.Group();
+                const body = new THREE.Mesh(canBodyGeo, canMat);
+                body.position.y = 0.52;
+                canister.add(body);
+                const shoulder = new THREE.Mesh(canShoulderGeo, canMat);
+                shoulder.position.set(0, 0.98, 0);
+                canister.add(shoulder);
+                const neck = new THREE.Mesh(canNeckGeo, canMat);
+                neck.position.set(0.13, 1.1, 0);
+                canister.add(neck);
+                const cap = new THREE.Mesh(canCapGeo, canHandleMat);
+                cap.position.set(0.13, 1.22, 0);
+                canister.add(cap);
+                const handle = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.045, 6, 12, Math.PI), canHandleMat);
+                handle.position.set(-0.12, 1.14, 0);
+                handle.rotation.y = Math.PI / 2;
+                canister.add(handle);
+                const label = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.2, 0.025), canLabelMat);
+                label.position.set(0, 0.58, 0.185);
+                canister.add(label);
+                canister.position.set(loc.c * cellSize, 0, loc.r * cellSize);
+                canister.rotation.y = (index % 4) * Math.PI / 2;
+                scene.add(canister);
+                keys.push({ mesh: canister, collected: false, cell: loc });
             });
 
             updateGuideIndicators();
