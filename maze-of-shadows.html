@@ -359,9 +359,9 @@
             canvas.width = canvas.height = 512;
             const ctx = canvas.getContext('2d');
             const palettes = {
-                wall: ['#484642', '#5b5750', '#353633'],
-                floor: ['#343432', '#45423c', '#252725'],
-                roof: ['#292b2c', '#383735', '#202223']
+                wall: ['#41464a', '#596065', '#292f33'],
+                floor: ['#353a3e', '#4a5054', '#252a2e'],
+                roof: ['#292e32', '#3b4145', '#202529']
             };
             const colors = palettes[kind] || palettes.wall;
             ctx.fillStyle = colors[0];
@@ -436,9 +436,9 @@
             const wallTex = createHospitalTexture('wall');
             const floorTex = createHospitalTexture('floor');
             const roofTex = createHospitalTexture('roof');
-            const wallMat = new THREE.MeshStandardMaterial({ map: wallTex, color: 0xb8b2a5, roughness: 0.94 });
-            const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, color: 0xaaa59b, roughness: 0.96 });
-            const roofMat = new THREE.MeshStandardMaterial({ map: roofTex, color: 0xaaa9a2, roughness: 0.98 });
+            const wallMat = new THREE.MeshStandardMaterial({ map: wallTex, color: 0xd0d4d6, roughness: 0.96 });
+            const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, color: 0xc4c9cc, roughness: 0.98 });
+            const roofMat = new THREE.MeshStandardMaterial({ map: roofTex, color: 0xb7bdc1, roughness: 0.98 });
             const lockerMat = new THREE.MeshStandardMaterial({ color: 0x1c3b2b, metalness: 0.6, roughness: 0.4 });
 
             const mazeWidth = mazeGrid[0].length * cellSize;
@@ -456,6 +456,57 @@
 
             const wallGeo = new THREE.BoxGeometry(cellSize, 3.5, cellSize);
             const lockerGeo = new THREE.BoxGeometry(1.0, 2.6, 0.5);
+
+            // Hospital room doors, faded wayfinding plaques, and wall-mounted fixtures.
+            // These are visual set dressing and do not alter maze collision or pathfinding.
+            const doorFrameMat = new THREE.MeshStandardMaterial({ color: 0x242a2e, roughness: 0.9 });
+            const doorMat = new THREE.MeshStandardMaterial({ color: 0x626b70, roughness: 0.86, metalness: 0.12 });
+            const signMat = new THREE.MeshStandardMaterial({ color: 0xc2c8c9, roughness: 0.8 });
+            const signInkMat = new THREE.MeshStandardMaterial({ color: 0x244c56, emissive: 0x10252a, roughness: 0.8 });
+            const handleMat = new THREE.MeshStandardMaterial({ color: 0x9da5a7, metalness: 0.8, roughness: 0.28 });
+            const fixtureMat = new THREE.MeshStandardMaterial({ color: 0xb9c4c5, emissive: 0x8babb4, emissiveIntensity: 0.35 });
+            const doorPlacements = [
+                { r: 2, c: 3, side: 'east', label: 'PATIENT 04' },
+                { r: 4, c: 7, side: 'south', label: 'WARD B' },
+                { r: 8, c: 6, side: 'east', label: 'EXAM 02' },
+                { r: 10, c: 9, side: 'north', label: 'SUPPLY' },
+                { r: 12, c: 13, side: 'west', label: 'PATIENT 11' },
+                { r: 16, c: 5, side: 'east', label: 'NURSES' },
+                { r: 18, c: 17, side: 'west', label: 'RECORDS' }
+            ];
+            function addHospitalDoor(x, z, side, label) {
+                const group = new THREE.Group();
+                const trim = new THREE.Mesh(new THREE.BoxGeometry(1.75, 2.85, 0.13), doorFrameMat);
+                trim.position.y = 1.42;
+                group.add(trim);
+                const panel = new THREE.Mesh(new THREE.BoxGeometry(1.48, 2.62, 0.09), doorMat);
+                panel.position.set(0, 1.42, 0.075);
+                group.add(panel);
+                const inset = new THREE.Mesh(new THREE.BoxGeometry(1.12, 1.72, 0.025), new THREE.MeshStandardMaterial({ color: 0x515a5f, roughness: 0.95 }));
+                inset.position.set(0, 1.48, 0.135);
+                group.add(inset);
+                const handle = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 6), handleMat);
+                handle.position.set(0.48, 1.25, 0.17);
+                group.add(handle);
+                const plaque = new THREE.Mesh(new THREE.BoxGeometry(1.12, 0.32, 0.07), signMat);
+                plaque.position.set(0, 2.95, 0.04);
+                group.add(plaque);
+                const labelCanvas = document.createElement('canvas');
+                labelCanvas.width = 256; labelCanvas.height = 64;
+                const labelCtx = labelCanvas.getContext('2d');
+                labelCtx.fillStyle = '#c2c8c9'; labelCtx.fillRect(0, 0, 256, 64);
+                labelCtx.fillStyle = '#244c56'; labelCtx.font = 'bold 25px monospace';
+                labelCtx.textAlign = 'center'; labelCtx.textBaseline = 'middle';
+                labelCtx.fillText(label, 128, 32);
+                const labelMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.05, 0.25), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(labelCanvas) }));
+                labelMesh.position.set(0, 2.95, 0.085);
+                group.add(labelMesh);
+                if (side === 'north') group.rotation.y = Math.PI;
+                if (side === 'east') group.rotation.y = Math.PI / 2;
+                if (side === 'west') group.rotation.y = -Math.PI / 2;
+                group.position.set(x, 0, z);
+                scene.add(group);
+            }
 
             for (let r = 0; r < mazeGrid.length; r++) {
                 for (let c = 0; c < mazeGrid[r].length; c++) {
@@ -531,6 +582,31 @@
                         exitGate = { position: new THREE.Vector3(x - 1.5, 1.6, z) };
                     }
                 }
+            }
+
+            // Place door facades on wall faces that border walkable corridors.
+            for (const d of doorPlacements) {
+                const x = d.c * cellSize, z = d.r * cellSize;
+                const faceOffsets = {
+                    north: { dx: 0, dz: -cellSize / 2 - 0.075 },
+                    south: { dx: 0, dz: cellSize / 2 + 0.075 },
+                    east: { dx: cellSize / 2 + 0.075, dz: 0 },
+                    west: { dx: -cellSize / 2 - 0.075, dz: 0 }
+                };
+                const f = faceOffsets[d.side];
+                addHospitalDoor(x + f.dx, z + f.dz, d.side, d.label);
+            }
+
+            // Small, worn wall lights add recognizable hospital architecture.
+            const lightCells = [{r:3,c:2},{r:5,c:8},{r:7,c:12},{r:11,c:4},{r:13,c:15},{r:17,c:9}];
+            for (const p of lightCells) {
+                const x = p.c * cellSize, z = p.r * cellSize;
+                const fixture = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.16, 0.12), fixtureMat);
+                fixture.position.set(x, 2.95, z - 1.88);
+                scene.add(fixture);
+                const glow = new THREE.PointLight(0x9dbbc5, 0.22, 5);
+                glow.position.set(x, 2.75, z - 1.4);
+                scene.add(glow);
             }
         }
 
