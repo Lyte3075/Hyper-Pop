@@ -89,6 +89,68 @@
             color: #ffaaaa; font-size: 15px; max-width: 450px; margin-top: 15px;
             line-height: 1.4; border-top: 1px solid #550000; padding-top: 15px;
         }
+        #death-hint .banisher-wrath {
+            display: inline-block; color: #ff1515; font-weight: 900; letter-spacing: 2px;
+            text-shadow: 0 0 4px #ff0000, 0 0 12px #b00000, 0 0 24px #650000;
+            animation: wrathPulse .55s steps(2,end) infinite, wrathShake .16s infinite;
+        }
+        @keyframes wrathPulse {
+            0%,100% { opacity: 1; text-shadow: 0 0 4px #ff0000, 0 0 12px #b00000, 0 0 24px #650000; }
+            50% { opacity: .45; text-shadow: 0 0 10px #ff0000, 0 0 28px #ff0000; }
+        }
+        @keyframes wrathShake {
+            0%,100% { transform: translateX(0) skewX(0); }
+            25% { transform: translateX(-1px) skewX(-3deg); }
+            75% { transform: translateX(1px) skewX(3deg); }
+        }
+        #banisher-jumpscare {
+            position: fixed; inset: 0; z-index: 10000; display: none; overflow: hidden;
+            align-items: center; justify-content: center; background: #000;
+            perspective: 500px;
+        }
+        #banisher-jumpscare.active { display: flex; animation: scareFlash 1.15s steps(2,end) forwards; }
+        #banisher-jumpscare .scare-face {
+            position: relative; width: min(88vw, 520px); aspect-ratio: 1 / 1;
+            border-radius: 48% 48% 42% 42%; background: radial-gradient(ellipse at 50% 45%, #292020 0%, #080606 58%, #000 76%);
+            box-shadow: 0 0 45px #a00000, inset 0 0 60px #000;
+            transform: scale(.18) rotate(-8deg); animation: scareLunge .72s cubic-bezier(.1,.85,.2,1) forwards;
+        }
+        #banisher-jumpscare .scare-eye {
+            position: absolute; top: 28%; width: 22%; height: 17%; background: #ff1010;
+            border-radius: 50% 50% 35% 35%; box-shadow: 0 0 15px #ff0000, 0 0 42px #d00000;
+            animation: eyeFlicker .09s steps(2,end) infinite;
+        }
+        #banisher-jumpscare .scare-eye.left { left: 16%; transform: rotate(15deg); }
+        #banisher-jumpscare .scare-eye.right { right: 16%; transform: rotate(-15deg); }
+        #banisher-jumpscare .scare-mouth {
+            position: absolute; left: 25%; top: 54%; width: 50%; height: 29%;
+            border-radius: 48% 48% 35% 35%; background: #000; border: 4px solid #4b0909;
+            box-shadow: 0 0 18px #a00000; overflow: hidden;
+        }
+        #banisher-jumpscare .scare-mouth:before {
+            content: ''; position: absolute; top: 0; left: -3%; width: 106%; height: 32%;
+            background: repeating-linear-gradient(90deg,#eee 0 9%,#300 9% 12%);
+        }
+        #banisher-jumpscare .scare-mouth:after {
+            content: ''; position: absolute; bottom: 0; left: -3%; width: 106%; height: 27%;
+            background: repeating-linear-gradient(90deg,#eee 0 9%,#300 9% 12%);
+        }
+        #banisher-jumpscare .scare-label {
+            position: absolute; bottom: 9%; left: 0; width: 100%; color: #ff1616;
+            font: 900 clamp(20px,5vw,42px) monospace; text-align: center;
+            letter-spacing: .15em; text-shadow: 0 0 12px #f00;
+        }
+        @keyframes scareLunge {
+            0% { transform: scale(.18) rotate(-8deg); filter: brightness(.25); }
+            65% { transform: scale(1.18) rotate(3deg); filter: brightness(1.7); }
+            100% { transform: scale(1) rotate(0); filter: brightness(1); }
+        }
+        @keyframes scareFlash {
+            0%,20%,45%,70% { background: #000; }
+            10%,35%,60%,85% { background: #260000; }
+            100% { background: #000; }
+        }
+        @keyframes eyeFlicker { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
         #start-btn {
             padding: 12px 28px; font-size: 16px; background: #330000;
             color: #fff; border: 1px solid #ff0000; margin-top: 25px; cursor: pointer;
@@ -127,6 +189,13 @@
 
     <div id="joystick-base"><div id="joystick-stick"></div></div>
 
+    <div id="banisher-jumpscare" aria-hidden="true">
+        <div class="scare-face">
+            <div class="scare-eye left"></div><div class="scare-eye right"></div>
+            <div class="scare-mouth"></div>
+            <div class="scare-label">FOUND YOU</div>
+        </div>
+    </div>
     <div id="game-over">
         <h1 id="status-text">YOU WERE CONSUMED</h1>
         <div id="death-hint">Hint goes here...</div>
@@ -1232,6 +1301,20 @@
                 wind.stop(t+5.25);setTimeout(()=>c.close().catch(()=>{}),5600);
             }catch(e){}
         }
+        function playBanisherJumpscare(){
+            try {
+                const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+                const c=new AC(),t=c.currentTime,master=c.createGain();master.gain.setValueAtTime(0.9,t);master.gain.exponentialRampToValueAtTime(0.0001,t+1.05);master.connect(c.destination);
+                const noise=c.createBuffer(1,c.sampleRate,c.sampleRate),data=noise.getChannelData(0);
+                for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*(i/c.sampleRate<0.18?1:Math.max(0,1-(i/c.sampleRate-0.18)/0.85));
+                const src=c.createBufferSource();src.buffer=noise;
+                const filter=c.createBiquadFilter();filter.type='bandpass';filter.frequency.setValueAtTime(1200,t);filter.frequency.exponentialRampToValueAtTime(180,t+0.9);filter.Q.value=0.8;
+                const gain=c.createGain();gain.gain.setValueAtTime(0.0001,t);gain.gain.linearRampToValueAtTime(0.75,t+0.035);gain.gain.exponentialRampToValueAtTime(0.0001,t+1.02);
+                src.connect(filter);filter.connect(gain);gain.connect(master);src.start(t);src.stop(t+1.05);
+                const osc=c.createOscillator(),og=c.createGain();osc.type='sawtooth';osc.frequency.setValueAtTime(260,t);osc.frequency.exponentialRampToValueAtTime(48,t+0.9);og.gain.setValueAtTime(0.0001,t);og.gain.linearRampToValueAtTime(0.42,t+0.04);og.gain.exponentialRampToValueAtTime(0.0001,t+0.9);osc.connect(og);og.connect(master);osc.start(t);osc.stop(t+0.92);
+                setTimeout(()=>c.close().catch(()=>{}),1250);
+            } catch(e) {}
+        }
         function playBanisherBang(){
             try{
                 const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
@@ -1326,7 +1409,14 @@
                     document.getElementById('status-msg').innerText='BANG! ... IT IS GONE';
                     endBanisherEvent(now);
                 }else{
-                    health=0;document.getElementById('status-text').innerText='THE BANISHER FOUND YOU';document.getElementById('death-hint').innerText='When the lights begin to flicker and the fog turns black, hide in a locker before the face reaches you.';document.getElementById('game-over').style.display='flex';isGameOver=true;
+                    health=0;
+                    isGameOver=true;
+                    document.getElementById('status-text').innerText='THE BANISHER FOUND YOU';
+                    document.getElementById('death-hint').innerHTML='Hide in a locker or you will suffer its <span class="banisher-wrath">wrath.</span>';
+                    const scare=document.getElementById('banisher-jumpscare');
+                    scare.classList.add('active');
+                    playBanisherJumpscare();
+                    setTimeout(()=>{scare.classList.remove('active');scare.style.display='none';document.getElementById('game-over').style.display='flex';},1250);
                 }
                 return;
             }
@@ -1635,6 +1725,7 @@ const _useInventoryItem=useInventoryItem;useInventoryItem=function(){HPFX.use();
 const _toggleHideInLocker=toggleHideInLocker;toggleHideInLocker=function(){HPFX.hide();return _toggleHideInLocker()};
 window.addEventListener('keydown',e=>{
  const k=e.key.toLowerCase();
+ // Movement keys are silent. Only interaction keys trigger the short UI sound.
  if(k==='f'||k==='e'||k===' ')HPFX.use();
 },{passive:true});
 let hpLastHealth=health,hpLastDanger=0,hpLastStep=0;
