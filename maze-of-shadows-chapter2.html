@@ -207,6 +207,12 @@
             100% { background: #000; }
         }
         @keyframes eyeFlicker { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+        #terminal-panel { position:fixed; inset:8% 7%; z-index:80; display:none; flex-direction:column; justify-content:center; padding:clamp(18px,4vw,42px); box-sizing:border-box; background:rgba(0,8,5,.97); border:2px solid #19ff83; box-shadow:0 0 35px #00ff6655,inset 0 0 28px #00ff6615; color:#7dffae; font:clamp(13px,2vw,18px) monospace; text-shadow:0 0 8px #00ff66; }
+        #terminal-panel.visible { display:flex; }
+        #terminal-panel h2 { margin:0 0 16px; font-size:clamp(18px,3vw,28px); letter-spacing:.12em; }
+        #terminal-output { white-space:pre-wrap; line-height:1.7; margin:0 0 20px; }
+        .terminal-action { align-self:flex-start; background:#03190c; border:1px solid #32ff8d; color:#a4ffc6; padding:12px 16px; font:bold 14px monospace; margin:5px 8px 0 0; cursor:pointer; }
+        #interact-computer-btn { position:fixed; left:50%; bottom:22%; transform:translateX(-50%); z-index:28; display:none; background:#03190cdd; border:1px solid #32ff8d; color:#a4ffc6; padding:12px 18px; font:bold 13px monospace; border-radius:8px; touch-action:manipulation; }
         #start-btn {
             padding: 12px 28px; font-size: 16px; background: #330000;
             color: #fff; border: 1px solid #ff0000; margin-top: 25px; cursor: pointer;
@@ -253,6 +259,15 @@
             <div class="scare-label">FOUND YOU</div>
         </div>
     </div>
+    <button id="interact-computer-btn">E · INTERACT</button>
+    <div id="terminal-panel" role="dialog" aria-modal="true" aria-label="Maze control terminal">
+        <h2>COURTYARD CONTROL // NODE 01</h2>
+        <pre id="terminal-output">SYSTEM ONLINE
+GREENHOUSE SECURITY GATE: LOCKED
+FUEL CANISTERS REQUIRED: 9
+ACCESS NODE READY...</pre>
+        <div><button id="terminal-unlock-btn" class="terminal-action">AUTHORIZE GATE RELEASE</button><button id="terminal-close-btn" class="terminal-action">CLOSE TERMINAL</button></div>
+    </div>
     <div id="game-over">
         <h1 id="status-text">YOU WERE CONSUMED</h1>
         <div id="death-hint">Hint goes here...</div>
@@ -295,6 +310,7 @@
         // Entities & World Arrays
         let lockers = [], monsters = [], wallBoxes = [], keys = [], items = [], exitGate = null;
         let exitGlowLight = null, exitDoorMesh = null, exitPadlocks = [];
+        let computerTerminal = null, terminalNearby = false, terminalOpen = false, gateUnlocked = false, exitGateBlocker = null, exitGateLeaves = [];
         let banisherActive = false, banisherScheduled = false, banisherNextAt = 0, banisherStartedAt = 0, banisherSpawnAt = 0, banisherUntil = 0, banisherLastFrame = 0, banisherPhase = '', banisherFace = null, banisherSaved = null, banisherLockerTarget = null;
         let guideArrows = [], trailPoints = [];
 
@@ -586,6 +602,8 @@
         }
 
         function buildMaze() {
+            // Open a broad, square control courtyard at the maze's center, matching the map concept.
+            for (let r = 9; r <= 11; r++) for (let col = 9; col <= 11; col++) mazeGrid[r][col] = 0;
             const wallTex = createHospitalTexture('wall');
             const floorTex = createHospitalTexture('floor');
             const wallMat = new THREE.MeshStandardMaterial({ map: wallTex, color: 0x52613b, roughness: 1.0 });
@@ -666,11 +684,19 @@
                         lockerBox.expandByScalar(-0.06);
                         lockerBoxes.push(lockerBox);                    }
                     else if (mazeGrid[r][c] === 3) {
-                        // EXIT BUILT INTO THE OUTER PERIMETER WALL
-                        const outerWall = new THREE.Mesh(wallGeo, wallMat);
-                        outerWall.position.set(x, 1.75, z);
-                        scene.add(outerWall);
-                        wallBoxes.push(new THREE.Box3().setFromObject(outerWall));
+                        // A barred metal security gate blocks the final corridor until the center terminal is used.
+                        const gateGroup = new THREE.Group();
+                        const gateFrameMat = new THREE.MeshStandardMaterial({color:0x283a35,metalness:0.82,roughness:0.3});
+                        const gateGlowMat = new THREE.MeshStandardMaterial({color:0x19ff83,emissive:0x087a39,emissiveIntensity:0.7,metalness:0.35});
+                        const gateWidth = cellSize * 0.92;
+                        const gateTop = new THREE.Mesh(new THREE.BoxGeometry(gateWidth,0.16,0.18),gateFrameMat); gateTop.position.y=3.1; gateGroup.add(gateTop);
+                        const gateBottom = new THREE.Mesh(new THREE.BoxGeometry(gateWidth,0.16,0.18),gateFrameMat); gateBottom.position.y=0.16; gateGroup.add(gateBottom);
+                        for(let bar=-4;bar<=4;bar++) { const rod=new THREE.Mesh(new THREE.BoxGeometry(0.105,2.95,0.13),bar%2===0?gateGlowMat:gateFrameMat); rod.position.set(bar*0.39,1.62,0); gateGroup.add(rod); }
+                        for(const side of [-1,1]) { const post=new THREE.Mesh(new THREE.BoxGeometry(0.2,3.25,0.3),gateFrameMat); post.position.set(side*gateWidth/2,1.62,0); gateGroup.add(post); }
+                        gateGroup.position.set(x,0,z);
+                        scene.add(gateGroup); exitGateLeaves=[gateGroup];
+                        exitGateBlocker = new THREE.Box3(new THREE.Vector3(x-gateWidth/2,0.1,z-0.35),new THREE.Vector3(x+gateWidth/2,3.3,z+0.35));
+                        wallBoxes.push(exitGateBlocker);
 
                         // Chapter 2 exit: a battered car waiting beyond the hedge maze.
                         const exitGroup = new THREE.Group();
@@ -738,6 +764,34 @@
                     }
                 }
             }
+
+            // Central square control plaza: worn concrete pad, inset warning lights, and a giant industrial terminal.
+            const plazaX = 10 * cellSize, plazaZ = 10 * cellSize;
+            const plazaMat = new THREE.MeshStandardMaterial({color:0x292f31,roughness:0.92,metalness:0.12});
+            const plaza = new THREE.Mesh(new THREE.PlaneGeometry(cellSize*2.92,cellSize*2.92),plazaMat); plaza.rotation.x=-Math.PI/2; plaza.position.set(plazaX,0.012,plazaZ); scene.add(plaza);
+            const plazaTrimMat = new THREE.MeshStandardMaterial({color:0x172b25,metalness:0.65,roughness:0.4,emissive:0x052d18});
+            for(const side of [-1,1]) {
+                const edgeX = new THREE.Mesh(new THREE.BoxGeometry(0.12,0.06,cellSize*2.9),plazaTrimMat); edgeX.position.set(plazaX+side*cellSize*1.43,0.05,plazaZ); scene.add(edgeX);
+                const edgeZ = new THREE.Mesh(new THREE.BoxGeometry(cellSize*2.9,0.06,0.12),plazaTrimMat); edgeZ.position.set(plazaX,0.05,plazaZ+side*cellSize*1.43); scene.add(edgeZ);
+            }
+            // Giant terminal tower, glowing green CRT-style display and chunky physical controls.
+            const terminal = new THREE.Group();
+            const terminalBaseMat = new THREE.MeshStandardMaterial({color:0x222a2a,metalness:0.75,roughness:0.35});
+            const terminalDarkMat = new THREE.MeshStandardMaterial({color:0x030a07,metalness:0.35,roughness:0.25,emissive:0x001e0b});
+            const terminalGreenMat = new THREE.MeshBasicMaterial({color:0x28ff7c});
+            const terminalBase = new THREE.Mesh(new THREE.BoxGeometry(2.7,0.48,1.8),terminalBaseMat); terminalBase.position.y=0.24; terminal.add(terminalBase);
+            const terminalPedestal = new THREE.Mesh(new THREE.BoxGeometry(1.85,1.55,1.25),terminalBaseMat); terminalPedestal.position.y=1.18; terminal.add(terminalPedestal);
+            const terminalScreen = new THREE.Mesh(new THREE.BoxGeometry(2.5,1.9,0.18),terminalDarkMat); terminalScreen.position.set(0,2.85,-0.05); terminal.add(terminalScreen);
+            const screenCanvas=document.createElement('canvas'); screenCanvas.width=512; screenCanvas.height=384;
+            const screenCtx=screenCanvas.getContext('2d'); screenCtx.fillStyle='#001108'; screenCtx.fillRect(0,0,512,384);
+            screenCtx.strokeStyle='#1aff72'; screenCtx.lineWidth=7; screenCtx.strokeRect(10,10,492,364);
+            screenCtx.fillStyle='#4cff91'; screenCtx.font='bold 30px monospace'; screenCtx.fillText('COURTYARD OS',28,55);
+            screenCtx.font='22px monospace'; screenCtx.fillText('> SECURITY NODE 01',28,108); screenCtx.fillText('> GATE STATUS: LOCKED',28,150); screenCtx.fillText('> FUEL CELLS: 09 REQUIRED',28,192); screenCtx.fillText('> WAITING FOR OPERATOR',28,234); screenCtx.fillText('> PRESS [E] TO CONNECT',28,300);
+            const screenFace=new THREE.Mesh(new THREE.PlaneGeometry(2.28,1.7),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(screenCanvas),emissive:0x00ff55})); screenFace.position.set(0,2.85,0.052); terminal.add(screenFace);
+            for(let i=0;i<5;i++){const keyLight=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.08,0.12),terminalGreenMat);keyLight.position.set(-0.55+i*0.28,2.02,0.59);terminal.add(keyLight);}
+            const terminalGlow=new THREE.PointLight(0x19ff70,1.7,10); terminalGlow.position.set(0,2.8,1.0); terminal.add(terminalGlow);
+            terminal.position.set(plazaX,0,plazaZ); terminal.rotation.y=Math.PI; scene.add(terminal);
+            computerTerminal={position:new THREE.Vector3(plazaX,1.5,plazaZ+2.1),screenCanvas,screenCtx,screenFace};
 
             // Exterior approach: the player begins on the hospital's front steps, enters the hedge maze, then reaches the parking lot and road.
             const centerX = 10 * cellSize;
@@ -1300,7 +1354,9 @@
             window.addEventListener('keydown', (e) => {
                 keysPressed[e.code] = true;
                 if (e.code === 'KeyE') {
-                    if (currentLocker || isHidden) toggleHideInLocker();
+                    if (terminalNearby) openComputerTerminal();
+                    else if (terminalOpen) authorizeGateRelease();
+                    else if (currentLocker || isHidden) toggleHideInLocker();
                     else if (nearbyPickup) collectItem(nearbyPickup);
                     /* Interaction never consumes inventory items. */
                 }
@@ -1595,6 +1651,11 @@
                 useItemBtn.style.display = 'none';
             }
 
+            // Terminal proximity and touch-friendly interaction prompt.
+            terminalNearby = !!computerTerminal && !gateUnlocked && Math.hypot(camera.position.x-computerTerminal.position.x,camera.position.z-computerTerminal.position.z)<3.2;
+            const terminalButton=document.getElementById('interact-computer-btn');
+            if(terminalButton) terminalButton.style.display=terminalNearby&&!terminalOpen?'block':'none';
+
             // Exit Wall Door Trigger
             if (exitGate && camera.position.distanceTo(exitGate.position) < 2.5) {
                 if (keysFound >= totalKeys) {
@@ -1808,6 +1869,27 @@
 
             renderer.render(scene, camera);
         }
+
+        function openComputerTerminal() {
+            if(!computerTerminal||gateUnlocked)return;
+            terminalOpen=true; isPaused=true;
+            document.getElementById('terminal-panel').classList.add('visible');
+            document.getElementById('terminal-output').textContent='COURTYARD OS v2.6.1\\n------------------------------\\nSECURITY GATE: LOCKED\\nFUEL CANISTERS: '+keysFound+' / '+totalKeys+'\\n\\nOperator connection established.\\nAuthorize the release sequence to open the maze exit.';
+            document.getElementById('interact-computer-btn').style.display='none';
+        }
+        function authorizeGateRelease() {
+            if(!terminalOpen)return;
+            gateUnlocked=true; terminalOpen=false; isPaused=false; lastTime=performance.now();
+            document.getElementById('terminal-panel').classList.remove('visible');
+            document.getElementById('terminal-output').textContent='ACCESS GRANTED\\nSECURITY GATE: OPEN\\nROUTE TO PARKING LOT: UNLOCKED';
+            if(exitGateBlocker){wallBoxes=wallBoxes.filter(box=>box!==exitGateBlocker);exitGateBlocker=null;}
+            exitGateLeaves.forEach(gate=>{gate.rotation.y=Math.PI/2;gate.position.x+=cellSize*0.48;});
+            document.getElementById('status-msg').innerText='GATE UNLOCKED. REACH THE PARKING LOT!';
+            if(computerTerminal){const ctx=computerTerminal.screenCtx;ctx.fillStyle='#001108';ctx.fillRect(0,0,512,384);ctx.strokeStyle='#1aff72';ctx.lineWidth=7;ctx.strokeRect(10,10,492,364);ctx.fillStyle='#4cff91';ctx.font='bold 34px monospace';ctx.fillText('ACCESS GRANTED',28,70);ctx.font='24px monospace';ctx.fillText('> GATE: OPEN',28,132);ctx.fillText('> ROUTE: CLEAR',28,176);ctx.fillText('> GET TO THE CAR',28,240);computerTerminal.screenFace.material.map.needsUpdate=true;}
+        }
+        document.getElementById('interact-computer-btn').addEventListener('click',openComputerTerminal);
+        document.getElementById('terminal-unlock-btn').addEventListener('click',authorizeGateRelease);
+        document.getElementById('terminal-close-btn').addEventListener('click',()=>{terminalOpen=false;isPaused=false;lastTime=performance.now();document.getElementById('terminal-panel').classList.remove('visible');});
 
         function onWindowResize() {
             if (!camera || !renderer) return;
