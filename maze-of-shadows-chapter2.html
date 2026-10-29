@@ -208,11 +208,11 @@
             100% { background: #000; }
         }
         @keyframes eyeFlicker { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
-        #terminal-panel { position:fixed; inset:8% 7%; z-index:80; display:none; flex-direction:column; justify-content:center; padding:clamp(18px,4vw,42px); box-sizing:border-box; background:rgba(0,8,5,.97); border:2px solid #19ff83; box-shadow:0 0 35px #00ff6655,inset 0 0 28px #00ff6615; color:#7dffae; font:clamp(13px,2vw,18px) monospace; text-shadow:0 0 8px #00ff66; }
+        #terminal-panel { position:fixed; inset:6% 5%; z-index:80; display:none; flex-direction:column; justify-content:center; gap:clamp(6px,1.2vh,12px); padding:clamp(10px,2.2vw,22px); box-sizing:border-box; overflow:auto; background:rgba(0,8,5,.97); border:2px solid #19ff83; box-shadow:0 0 35px #00ff6655,inset 0 0 28px #00ff6615; color:#7dffae; font:clamp(11px,1.5vw,15px) monospace; text-shadow:0 0 8px #00ff66; }
         #terminal-panel.visible { display:flex; }
-        #terminal-panel h2 { margin:0 0 16px; font-size:clamp(18px,3vw,28px); letter-spacing:.12em; }
-        #terminal-output { white-space:pre-wrap; line-height:1.7; margin:0 0 20px; }
-        .terminal-action { align-self:flex-start; background:#03190c; border:1px solid #32ff8d; color:#a4ffc6; padding:12px 16px; font:bold 14px monospace; margin:5px 8px 0 0; cursor:pointer; }
+        #terminal-panel h2 { margin:0 0 4px; font-size:clamp(15px,2.4vw,22px); letter-spacing:.08em; }
+        #terminal-output { white-space:pre-wrap; line-height:1.35; margin:0 0 4px; font-size:clamp(10px,1.35vw,13px); }
+        .terminal-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; width:100%; } .terminal-action { width:100%; min-width:0; box-sizing:border-box; align-self:stretch; background:#03190c; border:1px solid #32ff8d; color:#a4ffc6; padding:10px 8px; font:bold clamp(10px,1.4vw,13px) monospace; margin:0; cursor:pointer; white-space:normal; overflow-wrap:anywhere; } #chase-cutscene { position:fixed; inset:0; z-index:9000; display:none; align-items:center; justify-content:center; flex-direction:column; gap:16px; padding:24px; box-sizing:border-box; text-align:center; color:#b7ffd0; background:radial-gradient(ellipse at center,#071b11 0%,#010403 68%,#000 100%); font: bold clamp(16px,3vw,28px) monospace; letter-spacing:.12em; } #chase-cutscene.active { display:flex; animation:cutsceneFade .45s ease-out both; } #chase-cutscene .cutscene-small { font-size:clamp(11px,1.6vw,15px); letter-spacing:.08em; line-height:1.6; color:#74ffad; } #chase-cutscene .cutscene-warning { color:#ff4545; text-shadow:0 0 18px #ff0000; animation:warningPulse .6s steps(2,end) infinite; } @keyframes cutsceneFade { from{opacity:0} to{opacity:1} } @keyframes warningPulse { 50%{opacity:.45} }
         #interact-computer-btn { position:fixed; left:50%; bottom:22%; transform:translateX(-50%); z-index:28; display:none; background:#03190cdd; border:1px solid #32ff8d; color:#a4ffc6; padding:12px 18px; font:bold 13px monospace; border-radius:8px; touch-action:none; pointer-events:auto; -webkit-user-select:none; user-select:none; }
         /* The Static's warning is rendered through the 3D scene fog, not a screen overlay. */
         #banisher-jumpscare.scare-static { background:#f8f8f8; animation:staticFlash .08s steps(2,end) infinite!important; }
@@ -270,17 +270,14 @@
         </div>
     </div>
     <button id="interact-computer-btn">E · INTERACT</button>
+    <div id="chase-cutscene" aria-live="assertive"><div class="cutscene-warning">SECURITY BREACH</div><div>THE BANISHER HAS BEEN RELEASED</div><div class="cutscene-small">RUN. THE EXIT IS YOUR ONLY WAY OUT.</div><div id="chase-countdown" class="cutscene-small">HEAD START: 5</div></div>
     <div id="terminal-panel" role="dialog" aria-modal="true" aria-label="Maze control terminal">
         <h2>COURTYARD CONTROL // NODE 01</h2>
         <pre id="terminal-output">SYSTEM ONLINE
 GREENHOUSE SECURITY GATE: LOCKED
 FUEL CANISTERS REQUIRED: 9
 ACCESS NODE READY...</pre>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;width:100%;margin:4px 0 10px">
-            <input id="terminal-command-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Enter command, e.g. /chase" aria-label="Terminal command" style="flex:1;min-width:180px;background:#001108;color:#a4ffc6;border:1px solid #32ff8d;padding:12px;font:bold 14px monospace;outline:none">
-            <button id="terminal-command-run" class="terminal-action">RUN COMMAND</button>
-        </div>
-        <div><button id="terminal-unlock-btn" class="terminal-action">AUTHORIZE GATE RELEASE</button><button id="terminal-close-btn" class="terminal-action">CLOSE TERMINAL</button></div>
+        <div class="terminal-actions"><button id="terminal-unlock-btn" class="terminal-action">AUTHORIZE GATE RELEASE</button><button id="terminal-close-btn" class="terminal-action">CLOSE TERMINAL</button></div>
     </div>
     <div id="game-over">
         <h1 id="status-text">YOU WERE CONSUMED</h1>
@@ -2206,13 +2203,45 @@ ACCESS NODE READY...</pre>
             terminalOpen=true; isPaused=true;
             document.getElementById('terminal-unlock-btn').disabled = keysFound < totalKeys;
             document.getElementById('terminal-panel').classList.add('visible');
-            document.getElementById('terminal-output').textContent='COURTYARD OS v2.6.1\\n------------------------------\\nSECURITY GATE: LOCKED\\nFUEL CANISTERS: '+keysFound+' / '+totalKeys+'\\n\\nEnter /chase in the command line to run the developer shortcut, or collect all canisters to authorize the normal release sequence.';
+            document.getElementById('terminal-output').textContent='COURTYARD OS v2.6.1\\n------------------------------\\nSECURITY GATE: LOCKED\\nFUEL CANISTERS: '+keysFound+' / '+totalKeys+'\\n\\nCollect all canisters to authorize the security gate release.';
             document.getElementById('interact-computer-btn').style.display='none';
             const commandInput=document.getElementById('terminal-command-input');
             if(commandInput)commandInput.focus();
         }
-        function startBanisherChase(now){if(banisherChaseActive||isGameOver)return;banisherChaseActive=true;banisherChaseStartedAt=now;banisherActive=false;banisherPhase='chase';if(banisherFace)scene.remove(banisherFace);banisherFace=makeBanisherFace();const p=worldToCell(camera.position.x,camera.position.z),start=nearestWalkableCell(camera.position.x,camera.position.z,p),spawn=cellToWorld(start.c,start.r);const away=new THREE.Vector3(camera.position.x-spawn.x,0,camera.position.z-spawn.z);if(away.lengthSq()<1)away.set(0,0,-1);away.normalize();banisherFace.position.set(camera.position.x-away.x*10,0,camera.position.z-away.z*10);scene.add(banisherFace);banisherLastFrame=now;document.getElementById('status-msg').innerText='THE BANISHER IS CHASING YOU! SPRINT, CROUCH, AND DODGE THE BLUE WARNING ZONES!';chaseHazards.forEach(h=>{h.triggered=false;h.fallAt=0;h.glow.material.opacity=0.55;});}
-        function updateBanisherChase(now){if(!banisherChaseActive||!banisherFace||isGameOver)return;const dt=Math.min(0.05,Math.max(0.008,(now-(banisherLastFrame||now))/1000));banisherLastFrame=now;const playerCell=worldToCell(camera.position.x,camera.position.z),inMaze=banisherFace.position.z<mazeGrid.length*cellSize+1,playerInMaze=camera.position.z<mazeGrid.length*cellSize+1;let target=new THREE.Vector3(camera.position.x,0,camera.position.z);if(inMaze){const from=nearestWalkableCell(banisherFace.position.x,banisherFace.position.z,worldToCell(banisherFace.position.x,banisherFace.position.z));const to=playerInMaze?nearestWalkableCell(camera.position.x,camera.position.z,playerCell):{c:Math.round(camera.position.x/cellSize),r:mazeGrid.length-2};if(from&&to){const path=findAStarPath(from,to);if(path&&path.length>1)target=cellToWorld(path[1].c,path[1].r);else if(!playerInMaze)target.set(camera.position.x,0,mazeGrid.length*cellSize+0.8);}}const dx=target.x-banisherFace.position.x,dz=target.z-banisherFace.position.z,dist=Math.hypot(dx,dz)||0.001;const step=Math.min(dist,(inMaze?0.105:0.145)*60*dt);banisherFace.position.x+=dx/dist*step;banisherFace.position.z+=dz/dist*step;banisherFace.position.y=0.18+Math.sin(now*0.018)*0.12;banisherFace.rotation.y=Math.atan2(dx,dz);if(inMaze){for(let i=lockers.length-1;i>=0;i--){const locker=lockers[i];if(locker&&Math.hypot(locker.position.x-banisherFace.position.x,locker.position.z-banisherFace.position.z)<1.65){scene.remove(locker);lockers.splice(i,1);}}}else{for(const obj of chaseBreakables){if(obj&&obj.parent&&Math.hypot(obj.position.x-banisherFace.position.x,obj.position.z-banisherFace.position.z)<2.1)scene.remove(obj);}for(const h of chaseHazards){if(!h.triggered&&Math.hypot(camera.position.x-h.x,camera.position.z-h.z)<7.2){h.triggered=true;h.fallAt=now+850;h.glow.material.opacity=0.95;}if(h.triggered&&h.fallAt&&now>=h.fallAt){h.objects.forEach((o,i)=>{if(o.parent){o.rotation.z=i===0?Math.PI/2:0;o.position.y=i===0?0.6:0.7;}});h.glow.material.opacity=0.25;h.fallAt=0;}if(h.triggered&&Math.hypot(camera.position.x-h.x,camera.position.z-h.z)<1.45&&!isCrouching){health=Math.max(0,health-0.45);document.getElementById('health-bar').style.width=(health/maxHealth*100)+'%';if(health<=0){health=0;banisherChaseHit=true;}}}}if(Math.hypot(camera.position.x-banisherFace.position.x,camera.position.z-banisherFace.position.z)<1.65){health=0;banisherChaseHit=true;}}
+        let banisherHeadstartUntil=0;
+        let chaseTrailMeshes=[];
+        let chaseTrailLastBuild=0;
+        function clearChaseGuidingTrail(){chaseTrailMeshes.forEach(m=>{scene.remove(m);if(m.geometry)m.geometry.dispose();if(m.material)m.material.dispose();});chaseTrailMeshes=[];}
+        function updateChaseGuidingTrail(now){
+            if(!banisherChaseActive||now<banisherHeadstartUntil||now-chaseTrailLastBuild<650)return;
+            chaseTrailLastBuild=now;clearChaseGuidingTrail();
+            const start=nearestWalkableCell(camera.position.x,camera.position.z,worldToCell(camera.position.x,camera.position.z));
+            let goal=null;
+            if(exitGateLeaves&&exitGateLeaves.length){const g=exitGateLeaves[0].position;goal=nearestWalkableCell(g.x,g.z,worldToCell(g.x,g.z));}
+            if(!start||!goal)goal={c:Math.max(1,Math.min(mazeGrid[0].length-2,Math.round(camera.position.x/cellSize))),r:mazeGrid.length-2};
+            let route=findAStarPath(start,goal)||[];
+            if(!route.length)route=[start];
+            route.forEach((cell,i)=>{const p=cellToWorld(cell.c,cell.r);const mat=new THREE.MeshBasicMaterial({color:0x7dffb2,transparent:true,opacity:.88});const orb=new THREE.Mesh(new THREE.SphereGeometry(i===0?.14:.11,8,6),mat);orb.position.set(p.x,.13+Math.sin(now*.006+i)*.025,p.z);scene.add(orb);chaseTrailMeshes.push(orb);});
+            if(route.length){const end=cellToWorld(route[route.length-1].c,route[route.length-1].r);for(let i=1;i<=8;i++){const mat=new THREE.MeshBasicMaterial({color:0x7dffb2,transparent:true,opacity:.88});const orb=new THREE.Mesh(new THREE.SphereGeometry(.11,8,6),mat);orb.position.set(end.x,.13,end.z+i*.7);scene.add(orb);chaseTrailMeshes.push(orb);}}
+        }
+        function startBanisherChase(now){
+            if(banisherChaseActive||isGameOver)return;
+            banisherChaseActive=true;banisherChaseStartedAt=now;banisherActive=false;banisherPhase='chase';
+            if(banisherFace)scene.remove(banisherFace);
+            banisherFace=makeBanisherFace();
+            const p=worldToCell(camera.position.x,camera.position.z),start=nearestWalkableCell(camera.position.x,camera.position.z,p),spawn=cellToWorld(start.c,start.r);
+            const away=new THREE.Vector3(camera.position.x-spawn.x,0,camera.position.z-spawn.z);if(away.lengthSq()<1)away.set(0,0,-1);away.normalize();
+            banisherFace.position.set(camera.position.x-away.x*10,0,camera.position.z-away.z*10);scene.add(banisherFace);
+            banisherLastFrame=now;banisherHeadstartUntil=now+5000;chaseTrailLastBuild=0;clearChaseGuidingTrail();
+            const cutscene=document.getElementById('chase-cutscene'),countdown=document.getElementById('chase-countdown');
+            if(cutscene)cutscene.classList.add('active');
+            document.getElementById('status-msg').innerText='THE BANISHER IS RELEASED. YOU HAVE 5 SECONDS. FOLLOW THE GLOWING TRAIL!';
+            chaseHazards.forEach(h=>{h.triggered=false;h.fallAt=0;h.glow.material.opacity=0.55;});
+            let lastCount=5;
+            const tick=()=>{if(!banisherChaseActive||isGameOver){if(cutscene)cutscene.classList.remove('active');return;}const remain=Math.max(0,Math.ceil((banisherHeadstartUntil-performance.now())/1000));if(countdown)countdown.textContent=remain>0?'HEAD START: '+remain:'RUN!';if(remain<=0){if(cutscene)cutscene.classList.remove('active');updateChaseGuidingTrail(performance.now());return;}if(remain!==lastCount)lastCount=remain;requestAnimationFrame(tick);};
+            requestAnimationFrame(tick);
+        }
+        function updateBanisherChase(now){if(!banisherChaseActive||!banisherFace||isGameOver)return;updateChaseGuidingTrail(now);if(now<banisherHeadstartUntil){banisherFace.position.y=0.18+Math.sin(now*0.018)*0.12;banisherFace.lookAt(camera.position.x,1.6,camera.position.z);return;}const dt=Math.min(0.05,Math.max(0.008,(now-(banisherLastFrame||now))/1000));banisherLastFrame=now;const playerCell=worldToCell(camera.position.x,camera.position.z),inMaze=banisherFace.position.z<mazeGrid.length*cellSize+1,playerInMaze=camera.position.z<mazeGrid.length*cellSize+1;let target=new THREE.Vector3(camera.position.x,0,camera.position.z);if(inMaze){const from=nearestWalkableCell(banisherFace.position.x,banisherFace.position.z,worldToCell(banisherFace.position.x,banisherFace.position.z));const to=playerInMaze?nearestWalkableCell(camera.position.x,camera.position.z,playerCell):{c:Math.round(camera.position.x/cellSize),r:mazeGrid.length-2};if(from&&to){const path=findAStarPath(from,to);if(path&&path.length>1)target=cellToWorld(path[1].c,path[1].r);else if(!playerInMaze)target.set(camera.position.x,0,mazeGrid.length*cellSize+0.8);}}const dx=target.x-banisherFace.position.x,dz=target.z-banisherFace.position.z,dist=Math.hypot(dx,dz)||0.001;const step=Math.min(dist,(inMaze?0.105:0.145)*60*dt);banisherFace.position.x+=dx/dist*step;banisherFace.position.z+=dz/dist*step;banisherFace.position.y=0.18+Math.sin(now*0.018)*0.12;banisherFace.rotation.y=Math.atan2(dx,dz);if(inMaze){for(let i=lockers.length-1;i>=0;i--){const locker=lockers[i];if(locker&&Math.hypot(locker.position.x-banisherFace.position.x,locker.position.z-banisherFace.position.z)<1.65){scene.remove(locker);lockers.splice(i,1);}}}else{for(const obj of chaseBreakables){if(obj&&obj.parent&&Math.hypot(obj.position.x-banisherFace.position.x,obj.position.z-banisherFace.position.z)<2.1)scene.remove(obj);}for(const h of chaseHazards){if(!h.triggered&&Math.hypot(camera.position.x-h.x,camera.position.z-h.z)<7.2){h.triggered=true;h.fallAt=now+850;h.glow.material.opacity=0.95;}if(h.triggered&&h.fallAt&&now>=h.fallAt){h.objects.forEach((o,i)=>{if(o.parent){o.rotation.z=i===0?Math.PI/2:0;o.position.y=i===0?0.6:0.7;}});h.glow.material.opacity=0.25;h.fallAt=0;}if(h.triggered&&Math.hypot(camera.position.x-h.x,camera.position.z-h.z)<1.45&&!isCrouching){health=Math.max(0,health-0.45);document.getElementById('health-bar').style.width=(health/maxHealth*100)+'%';if(health<=0){health=0;banisherChaseHit=true;}}}}if(Math.hypot(camera.position.x-banisherFace.position.x,camera.position.z-banisherFace.position.z)<1.65){health=0;banisherChaseHit=true;}}
         function authorizeGateRelease() {
             if(!terminalOpen)return;
             if(keysFound < totalKeys) {
@@ -2228,64 +2257,6 @@ ACCESS NODE READY...</pre>
             document.getElementById('status-msg').innerText='GATE UNLOCKED. THE BANISHER IS COMING. RUN TO THE CAR!';startBanisherChase(performance.now());
             if(computerTerminal){const ctx=computerTerminal.screenCtx;ctx.fillStyle='#001108';ctx.fillRect(0,0,512,384);ctx.strokeStyle='#1aff72';ctx.lineWidth=7;ctx.strokeRect(10,10,492,364);ctx.fillStyle='#4cff91';ctx.font='bold 34px monospace';ctx.fillText('ACCESS GRANTED',28,70);ctx.font='24px monospace';ctx.fillText('> GATE: OPEN',28,132);ctx.fillText('> ROUTE: CLEAR',28,176);ctx.fillText('> GET TO THE CAR',28,240);computerTerminal.screenFace.material.map.needsUpdate=true;}
         }
-        function runMazeCommand(command){
-            const normalized=String(command||'').trim().toLowerCase();
-            if(normalized!=='/chase')return false;
-            // Mark every fuel canister as collected and remove any remaining world pickups.
-            keys.forEach(k=>{k.collected=true;if(k.mesh)scene.remove(k.mesh);});
-            keysFound=totalKeys;
-            const tracker=document.getElementById('key-tracker');
-            if(tracker)tracker.innerText='FUEL CANISTERS: '+keysFound+' / '+totalKeys;
-            const status=document.getElementById('status-msg');
-            if(status)status.innerText='DEBUG COMMAND: ALL CANISTERS SECURED. CHASE STARTED!';
-            // Close any terminal UI and place the player safely beside the terminal, clear of its collision boxes.
-            terminalOpen=false;
-            const panel=document.getElementById('terminal-panel');
-            if(panel)panel.classList.remove('visible');
-            isPaused=false;isGameOver=false;health=Math.max(1,health);lastTime=performance.now();
-            if(computerTerminal){
-                camera.position.set(computerTerminal.position.x,1.6,computerTerminal.position.z+3.2);
-                camera.updateMatrixWorld(true);
-            }
-            // Open the exit exactly as the normal authorization flow does.
-            if(!gateUnlocked){
-                gateUnlocked=true;banisherScheduled=false;banisherNextAt=0;
-                if(banisherActive)endBanisherEvent(performance.now());
-                if(exitGateBlocker){wallBoxes=wallBoxes.filter(box=>box!==exitGateBlocker);exitGateBlocker=null;}
-                exitGateLeaves.forEach(gate=>{gate.rotation.y=Math.PI/2;gate.position.x+=cellSize*0.48;});
-                if(computerTerminal&&computerTerminal.screenCtx){
-                    const ctx=computerTerminal.screenCtx;ctx.fillStyle='#001108';ctx.fillRect(0,0,512,384);
-                    ctx.strokeStyle='#1aff72';ctx.lineWidth=7;ctx.strokeRect(10,10,492,364);
-                    ctx.fillStyle='#4cff91';ctx.font='bold 34px monospace';ctx.fillText('ACCESS GRANTED',28,70);
-                    ctx.font='24px monospace';ctx.fillText('> GATE: OPEN',28,132);ctx.fillText('> ROUTE: CLEAR',28,176);ctx.fillText('> GET TO THE CAR',28,240);
-                    if(computerTerminal.screenFace&&computerTerminal.screenFace.material.map)computerTerminal.screenFace.material.map.needsUpdate=true;
-                }
-            }
-            startBanisherChase(performance.now());
-            return true;
-        }
-        // Press / to enter a developer command. Type /chase to skip collection and start the escape sequence.
-        window.addEventListener('keydown',e=>{
-            if(e.key!=='/'||e.repeat||e.ctrlKey||e.metaKey||e.altKey)return;
-            const target=e.target;
-            if(target&&(target.isContentEditable||/INPUT|TEXTAREA|SELECT/.test(target.tagName)))return;
-            e.preventDefault();
-            const command=window.prompt('MAZE OF SHADOWS COMMAND\\nEnter /chase to collect all canisters, teleport to the terminal, open the gate, and start the chase:');
-            if(command===null)return;
-            if(!runMazeCommand(command))window.alert('Unknown command. Try /chase');
-        });
-        const terminalCommandInput=document.getElementById('terminal-command-input');
-        const runTerminalCommand=()=>{
-            const field=document.getElementById('terminal-command-input');
-            const command=field?field.value:'';
-            if(!runMazeCommand(command)){
-                const output=document.getElementById('terminal-output');
-                if(output)output.textContent='UNKNOWN COMMAND: '+String(command).trim()+'\\n\\nAvailable developer command: /chase';
-            }
-            if(field)field.value='';
-        };
-        document.getElementById('terminal-command-run').addEventListener('click',runTerminalCommand);
-        terminalCommandInput.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();runTerminalCommand();}});
         document.getElementById('interact-computer-btn').addEventListener('click',openComputerTerminal);
         document.getElementById('terminal-unlock-btn').addEventListener('click',authorizeGateRelease);
         document.getElementById('terminal-close-btn').addEventListener('click',()=>{terminalOpen=false;isPaused=false;lastTime=performance.now();document.getElementById('terminal-panel').classList.remove('visible');});
