@@ -746,6 +746,40 @@ ACCESS NODE READY...</pre>
                 }
             }
 
+            // Add abundant hiding lockers throughout the hedge maze. The map's old type-2
+            // locker cells are sparse, so place extra lockers along hedge faces in open corridors.
+            // A deterministic pattern keeps them plentiful without cluttering the central plaza,
+            // the hospital entrance, or the final gate approach.
+            for (let r = 1; r < mazeGrid.length - 1; r++) {
+                for (let c = 1; c < mazeGrid[r].length - 1; c++) {
+                    if (mazeGrid[r][c] !== 0) continue;
+                    if (r >= 9 && r <= 11 && c >= 9 && c <= 11) continue;
+                    if (r <= 2 && c >= 8 && c <= 12) continue;
+                    if (r >= 18 && c >= 8 && c <= 12) continue;
+                    // Roughly one locker every other suitable corridor cell.
+                    if ((r * 7 + c * 11) % 3 === 1) continue;
+
+                    const sides = [
+                        { dr: -1, dc: 0, x: 0, z: -(cellSize / 2 - 0.22), rot: 0 },
+                        { dr: 1, dc: 0, x: 0, z: (cellSize / 2 - 0.22), rot: Math.PI },
+                        { dr: 0, dc: -1, x: -(cellSize / 2 - 0.22), z: 0, rot: Math.PI / 2 },
+                        { dr: 0, dc: 1, x: (cellSize / 2 - 0.22), z: 0, rot: -Math.PI / 2 }
+                    ];
+                    const available = sides.filter(s => mazeGrid[r + s.dr][c + s.dc] === 1);
+                    if (!available.length) continue;
+                    const side = available[(r + c) % available.length];
+                    const locker = makeLocker();
+                    locker.rotation.y = side.rot;
+                    locker.position.set(c * cellSize + side.x, 1.36, r * cellSize + side.z);
+                    scene.add(locker);
+                    lockers.push(locker);
+                    locker.updateMatrixWorld(true);
+                    const lockerBox = new THREE.Box3().setFromObject(locker);
+                    lockerBox.expandByScalar(-0.06);
+                    lockerBoxes.push(lockerBox);
+                }
+            }
+
             // Central square control plaza: worn concrete pad, inset warning lights, and a compact CRT workstation.
             const plazaX = 10 * cellSize, plazaZ = 10 * cellSize;
             const plazaMat = new THREE.MeshStandardMaterial({color:0x292f31,roughness:0.92,metalness:0.12});
