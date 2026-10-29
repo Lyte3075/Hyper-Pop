@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent;color:#f4f2ff;font-family:Inter,system-ui,-apple-system,sans-serif}
+#edge{position:fixed;inset:0 auto 0 0;width:36px;background:linear-gradient(90deg,#0b0b16b8,transparent);touch-action:pan-y}
+#scrim{position:fixed;inset:0;background:#0009;opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s}
+#panel{position:fixed;inset:0 auto 0 0;width:min(320px,90vw);height:100%;overflow:auto;padding:calc(22px + env(safe-area-inset-top)) 14px calc(20px + env(safe-area-inset-bottom));background:#0d0d19f7;border-right:1px solid #ffffff1c;backdrop-filter:blur(22px);transform:translateX(-102%);transition:transform .22s ease;box-shadow:16px 0 50px #0007}
+body.open #panel{transform:translateX(0)}body.open #scrim{opacity:1;visibility:visible}
+.brand{font-size:18px;font-weight:800;margin:0 0 4px}.note{font:10px monospace;color:#aaa7c1;letter-spacing:.12em;text-transform:uppercase;margin:0 0 18px}.label{font:10px monospace;color:#4be0e3;letter-spacing:.13em;text-transform:uppercase;margin:18px 8px 7px}
+a{display:flex;align-items:center;gap:11px;min-height:42px;padding:9px 11px;border:1px solid transparent;border-radius:11px;color:#dedbed;text-decoration:none;font-size:13px}a:hover,a:focus-visible{background:#ffffff0b;border-color:#ffffff20;color:#fff;outline:none}.ico{width:22px;flex:0 0 22px;text-align:center;font-size:16px}
+@media(prefers-reduced-motion:reduce){#panel,#scrim{transition:none}}
+</style></head><body>
+<div id="edge" aria-hidden="true"></div><div id="scrim"></div><aside id="panel" aria-label="Hyper-Pop navigation">
+<div class="brand">Hyper-Pop</div><div class="note">tiny internet, big vibes</div>
+<div class="label">Explore</div><a href="index.html" target="_top"><span class="ico">⌂</span>Home</a><a href="index.html#games" target="_top"><span class="ico">✦</span>Games</a><a href="index.html#misc" target="_top"><span class="ico">▦</span>Categories & experiments</a><a href="index.html#search" target="_top"><span class="ico">⌕</span>Search</a><a href="leaderboard.html" target="_top"><span class="ico">🏆</span>Leaderboard</a>
+<div class="label">Social</div><a href="social.html" target="_top"><span class="ico">♟</span>Social hub</a><a href="social.html#friends" target="_top"><span class="ico">♡</span>Friends</a><a href="social.html#parties" target="_top"><span class="ico">◉</span>Parties</a><a href="social.html#chats" target="_top"><span class="ico">✉</span>Chats</a>
+<div class="label">More</div><a href="accounts.html" target="_top"><span class="ico">👤</span>Account / Profile</a></aside>
+<script>
+(function(){const send=s=>parent.postMessage(s,location.origin);function open(){document.body.classList.add('open');send('hp-sidebar-open')}function close(){document.body.classList.remove('open');send('hp-sidebar-close')}
+let start=null,sy=0;function begin(e){const t=e.touches[0];start=t.clientX;sy=t.clientY}function finish(e){if(start===null)return;const t=e.changedTouches[0],dx=t.clientX-start,dy=t.clientY-sy;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.2){if(dx>0)open();else if(document.body.classList.contains('open'))close()}start=null}
+document.getElementById('edge').addEventListener('touchstart',begin,{passive:true});document.getElementById('edge').addEventListener('touchend',finish,{passive:true});document.getElementById('panel').addEventListener('touchstart',begin,{passive:true});document.getElementById('panel').addEventListener('touchend',finish,{passive:true});document.getElementById('scrim').addEventListener('click',close);document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});addEventListener('message',e=>{if(e.origin===location.origin&&e.data==='hp-sidebar-toggle'){document.body.classList.contains('open')?close():open()}})})();
+</script></body></html>
