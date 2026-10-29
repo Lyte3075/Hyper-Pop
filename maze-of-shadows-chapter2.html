@@ -575,8 +575,14 @@
         let outerWorldBounds = null;
         function isOutsidePlayableWorld(position) {
             if (!outerWorldBounds) return false;
-            return position.x < outerWorldBounds.minX || position.x > outerWorldBounds.maxX ||
-                   position.z < outerWorldBounds.minZ || position.z > outerWorldBounds.maxZ;
+            if (position.x < outerWorldBounds.minX || position.x > outerWorldBounds.maxX ||
+                position.z < outerWorldBounds.minZ || position.z > outerWorldBounds.maxZ) return true;
+            // Invisible forcefields keep the player in the narrow hospital approach instead of
+            // allowing a shortcut around either side of the building.
+            const hospitalCenterX = 10 * cellSize;
+            if (position.z < -2.2 && position.x > hospitalCenterX - 5.0 && position.x < hospitalCenterX + 5.0) return false;
+            if (position.z < -2.2 && (position.x <= hospitalCenterX - 5.0 || position.x >= hospitalCenterX + 5.0)) return true;
+            return false;
         }
 
         function buildMaze() {
@@ -745,8 +751,36 @@
                 const step = new THREE.Mesh(new THREE.BoxGeometry(8.4, 0.28, 0.85), stoneMat);
                 step.position.set(centerX, 0.12 + i * 0.02, -5.2 - i * 0.9); scene.add(step);
             }
-            const hospitalFront = new THREE.Mesh(new THREE.BoxGeometry(15, 6.5, 0.85), facadeMat);
-            hospitalFront.position.set(centerX, 3.15, -13.4); scene.add(hospitalFront);
+            // A towering, broad hospital mass rises behind the entrance facade.
+            const hospitalMain = new THREE.Mesh(new THREE.BoxGeometry(25, 22, 12), facadeMat);
+            hospitalMain.position.set(centerX, 11, -19.4);
+            scene.add(hospitalMain);
+            const hospitalFront = new THREE.Mesh(new THREE.BoxGeometry(18, 8.5, 0.5), facadeMat);
+            hospitalFront.position.set(centerX, 4.1, -13.25); scene.add(hospitalFront);
+            // Repeating dark upper-storey window bands make the building read as several floors.
+            for (let floor = 0; floor < 5; floor++) {
+                for (let col = -2; col <= 2; col++) {
+                    if (floor === 0 && Math.abs(col) <= 1) continue;
+                    const upperWindow = new THREE.Mesh(new THREE.BoxGeometry(1.75, 1.25, 0.08), darkWindowMat);
+                    upperWindow.position.set(centerX + col * 4.1, 7.2 + floor * 2.65, -13.18);
+                    scene.add(upperWindow);
+                }
+            }
+            // Dense, near-black fog banks sit immediately along both sides of the hospital approach.
+            const sideFogMat = new THREE.MeshBasicMaterial({
+                color: 0x02050b, transparent: true, opacity: 0.82,
+                side: THREE.DoubleSide, depthWrite: false
+            });
+            for (const side of [-1, 1]) {
+                const fogBank = new THREE.Mesh(new THREE.PlaneGeometry(11, 18), sideFogMat);
+                fogBank.position.set(centerX + side * 9.7, 8.5, -7.0);
+                fogBank.rotation.y = Math.PI / 2;
+                scene.add(fogBank);
+                const fogBase = new THREE.Mesh(new THREE.PlaneGeometry(11, 8), sideFogMat);
+                fogBase.position.set(centerX + side * 9.7, 3.7, -7.0);
+                fogBase.rotation.y = Math.PI / 2;
+                scene.add(fogBase);
+            }
             const entranceCanopy = new THREE.Mesh(new THREE.BoxGeometry(7.2, 0.38, 2.3), concreteMat);
             entranceCanopy.position.set(centerX, 5.5, -12.3); scene.add(entranceCanopy);
             const entranceVoid = new THREE.Mesh(new THREE.BoxGeometry(4.6, 3.5, 0.12), darkWindowMat);
@@ -1511,7 +1545,7 @@
             keys.forEach(k => {
                 if (!k.collected) {
                     k.mesh.rotation.y += 0.03;
-                    if (camera.position.distanceTo(k.mesh.position) < 1.5) {
+                    if (Math.hypot(camera.position.x - k.mesh.position.x, camera.position.z - k.mesh.position.z) < 1.7) {
                         const collectedKeyPosition = k.mesh.position.clone();
                         k.collected = true;
                         scene.remove(k.mesh);
