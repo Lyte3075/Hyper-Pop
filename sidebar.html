@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent;color:#f4f2ff;font-family:Inter,system-ui,-apple-system,sans-serif}
-#edge{position:fixed;inset:0 auto 0 0;width:44px;background:linear-gradient(90deg,#0b0b16b8,transparent);touch-action:none;cursor:ew-resize}
-#scrim{position:fixed;inset:0;background:#0009;opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s}
-#panel{position:fixed;inset:0 auto 0 0;width:min(320px,90vw);height:100%;overflow:auto;padding:calc(22px + env(safe-area-inset-top)) 14px calc(20px + env(safe-area-inset-bottom));background:#0d0d19f7;border-right:1px solid #ffffff1c;backdrop-filter:blur(22px);transform:translateX(-102%);transition:transform .22s ease;box-shadow:16px 0 50px #0007}
-body.open #panel{transform:translateX(0)}body.open #scrim{opacity:1;visibility:visible}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent;color:#f4f2ff;pointer-events:none;font-family:Inter,system-ui,-apple-system,sans-serif}
+#edge{position:fixed;inset:0 auto 0 0;width:44px;background:linear-gradient(90deg,#0b0b16f5 0%,#0b0b16d9 38%,#0b0b1680 72%,transparent 100%);touch-action:none;cursor:ew-resize;pointer-events:auto}
+#scrim{position:fixed;inset:0;background:linear-gradient(90deg,#000b 0%,#0009 45%,#0007 100%);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s,visibility .2s}
+#panel{pointer-events:auto;position:fixed;inset:0 auto 0 0;width:min(320px,90vw);height:100%;overflow:auto;padding:calc(22px + env(safe-area-inset-top)) 14px calc(20px + env(safe-area-inset-bottom));background:#0d0d19f7;border-right:1px solid #ffffff1c;backdrop-filter:blur(22px);transform:translateX(-102%);transition:transform .22s ease;box-shadow:16px 0 50px #0007}
+body.open #panel{transform:translateX(0)}body.open #scrim{opacity:1;visibility:visible;pointer-events:auto}
 .brand{font-size:18px;font-weight:800;margin:0 0 4px}.note{font:10px monospace;color:#aaa7c1;letter-spacing:.12em;text-transform:uppercase;margin:0 0 18px}.label{font:10px monospace;color:#4be0e3;letter-spacing:.13em;text-transform:uppercase;margin:18px 8px 7px}
 a{display:flex;align-items:center;gap:11px;min-height:42px;padding:9px 11px;border:1px solid transparent;border-radius:11px;color:#dedbed;text-decoration:none;font-size:13px}a:hover,a:focus-visible{background:#ffffff0b;border-color:#ffffff20;color:#fff;outline:none}.ico{width:22px;flex:0 0 22px;text-align:center;font-size:16px}
 .setting{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px;border:1px solid #ffffff18;border-radius:12px;background:#ffffff08;color:#dedbed;font-size:13px}
@@ -32,6 +32,6 @@ edge.addEventListener('pointerdown',pointerDown);edge.addEventListener('pointeru
 panel.addEventListener('pointerdown',pointerDown);panel.addEventListener('pointerup',pointerUp);panel.addEventListener('pointercancel',pointerCancel);const scrim=document.getElementById('scrim');
 scrim.addEventListener('click',close);
 let lastEdgeTap=0;
-edge.addEventListener('touchend',e=>{const now=Date.now();if(now-lastEdgeTap<320){open();lastEdgeTap=0}else lastEdgeTap=now},{passive:true});
+edge.addEventListener('touchend',e=>{const now=Date.now();if(now-lastEdgeTap<360){open();lastEdgeTap=0}else lastEdgeTap=now},{passive:true});
 edge.addEventListener('dblclick',open);document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});addEventListener('message',e=>{if(e.origin===location.origin){if(e.data==='hp-sidebar-toggle'){document.body.classList.contains('open')?close():open()}else if(e.data==='hp-sidebar-open')open();else if(e.data==='hp-sidebar-close')close()}})})();
 </script></body></html>
