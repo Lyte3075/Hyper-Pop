@@ -323,7 +323,7 @@ ACCESS NODE READY...</pre>
         const crouchHeight = 0.72;
 
         // Entities & World Arrays
-        let lockers = [], monsters = [], wallBoxes = [], keys = [], items = [], exitGate = null, terminalCollisionBoxes = [];
+        let lockers = [], monsters = [], wallBoxes = [], keys = [], items = [], exitGate = null, terminalCollisionBoxes = [], sanctuaryBounds = null;
         let exitGlowLight = null, exitDoorMesh = null, exitPadlocks = [];
         let computerTerminal = null, terminalNearby = false, terminalOpen = false, gateUnlocked = false, exitGateBlocker = null, exitGateLeaves = [];
         let banisherActive = false, banisherScheduled = false, banisherNextAt = 0, banisherStartedAt = 0, banisherSpawnAt = 0, banisherUntil = 0, banisherLastFrame = 0, banisherPhase = '', banisherFace = null, banisherSaved = null, banisherLockerTarget = null;
@@ -872,21 +872,21 @@ ACCESS NODE READY...</pre>
             const fieldMat = new THREE.MeshBasicMaterial({color:0x58cfff,transparent:true,opacity:0.11,side:THREE.DoubleSide,depthWrite:false});
             const fieldEdgeMat = new THREE.MeshBasicMaterial({color:0x53caff,transparent:true,opacity:0.72});
             const fieldWidth=cellSize*2.98,fieldHalf=fieldWidth/2,fieldY=3.0,fieldZ=plazaZ;
-            const fieldWallX=new THREE.PlaneGeometry(fieldWidth,fieldY);
-            const fieldWallZ=new THREE.PlaneGeometry(fieldWidth,fieldY);
+            sanctuaryBounds={minX:plazaX-fieldHalf,maxX:plazaX+fieldHalf,minZ:fieldZ-fieldHalf,maxZ:fieldZ+fieldHalf};
+            // PlaneGeometry starts in XY: X-edge walls need a quarter-turn; Z-edge walls stay unrotated.
             for(const side of [-1,1]){
-                const wallX=new THREE.Mesh(fieldWallX,fieldMat);wallX.position.set(plazaX+side*fieldHalf,fieldY/2,fieldZ);scene.add(wallX);
-                const wallZ=new THREE.Mesh(fieldWallZ,fieldMat);wallZ.rotation.y=Math.PI/2;wallZ.position.set(plazaX,fieldY/2,fieldZ+side*fieldHalf);scene.add(wallZ);
+                const wallX=new THREE.Mesh(new THREE.PlaneGeometry(fieldWidth,fieldY),fieldMat);wallX.rotation.y=Math.PI/2;wallX.position.set(plazaX+side*fieldHalf,fieldY/2,fieldZ);scene.add(wallX);
+                const wallZ=new THREE.Mesh(new THREE.PlaneGeometry(fieldWidth,fieldY),fieldMat);wallZ.position.set(plazaX,fieldY/2,fieldZ+side*fieldHalf);scene.add(wallZ);
             }
-            // Complete top and corner outlines make the force field read as a box, not a cross.
+            // Only the perimeter is drawn: four corner posts and top/bottom border rails, no interior crossbars.
             for(const xSide of [-1,1]) for(const zSide of [-1,1]){
                 const corner=new THREE.Mesh(new THREE.BoxGeometry(0.055,fieldY,0.055),fieldEdgeMat);corner.position.set(plazaX+xSide*fieldHalf,fieldY/2,fieldZ+zSide*fieldHalf);scene.add(corner);
             }
             for(const y of [0.06,fieldY]){
-                const edgeX=new THREE.Mesh(new THREE.BoxGeometry(fieldWidth,0.045,0.045),fieldEdgeMat);edgeX.position.set(plazaX,y,fieldZ-fieldHalf);scene.add(edgeX);
-                const edgeX2=edgeX.clone();edgeX2.position.z=fieldZ+fieldHalf;scene.add(edgeX2);
-                const edgeZ=new THREE.Mesh(new THREE.BoxGeometry(0.045,0.045,fieldWidth),fieldEdgeMat);edgeZ.position.set(plazaX-fieldHalf,y,fieldZ);scene.add(edgeZ);
-                const edgeZ2=edgeZ.clone();edgeZ2.position.x=plazaX+fieldHalf;scene.add(edgeZ2);
+                const edgeNorthSouth=new THREE.Mesh(new THREE.BoxGeometry(fieldWidth,0.045,0.045),fieldEdgeMat);edgeNorthSouth.position.set(plazaX,y,fieldZ-fieldHalf);scene.add(edgeNorthSouth);
+                const oppositeNS=edgeNorthSouth.clone();oppositeNS.position.z=fieldZ+fieldHalf;scene.add(oppositeNS);
+                const edgeEastWest=new THREE.Mesh(new THREE.BoxGeometry(0.045,0.045,fieldWidth),fieldEdgeMat);edgeEastWest.position.set(plazaX-fieldHalf,y,fieldZ);scene.add(edgeEastWest);
+                const oppositeEW=edgeEastWest.clone();oppositeEW.position.x=plazaX+fieldHalf;scene.add(oppositeEW);
             }
             const terminal = new THREE.Group();
             const terminalBaseMat = new THREE.MeshStandardMaterial({color:0x303633,metalness:0.48,roughness:0.55});
@@ -2064,6 +2064,19 @@ ACCESS NODE READY...</pre>
                             const p=monster.position.clone().add(d.clone().multiplyScalar(step));
                             const cell=worldToCell(p.x,p.z);
                             if(!mazeGrid[cell.r]||mazeGrid[cell.r][cell.c]!==0)continue;
+                            // The force field is a hard monster boundary. If a monster somehow starts inside,
+                            // only allow steps that reduce its distance to the nearest outside edge.
+                            if(sanctuaryBounds && ai.type!=='banisher'){
+                                const b=sanctuaryBounds;
+                                const wasInside=monster.position.x>b.minX&&monster.position.x<b.maxX&&monster.position.z>b.minZ&&monster.position.z<b.maxZ;
+                                const isInside=p.x>b.minX&&p.x<b.maxX&&p.z>b.minZ&&p.z<b.maxZ;
+                                if(isInside&&!wasInside)continue;
+                                if(isInside&&wasInside){
+                                    const oldEdge=Math.min(monster.position.x-b.minX,b.maxX-monster.position.x,monster.position.z-b.minZ,b.maxZ-monster.position.z);
+                                    const newEdge=Math.min(p.x-b.minX,b.maxX-p.x,p.z-b.minZ,b.maxZ-p.z);
+                                    if(newEdge>oldEdge-0.001)continue;
+                                }
+                            }
                             const radius=ai.radius*0.34;
                             const box=new THREE.Box3(new THREE.Vector3(p.x-radius,0.05,p.z-radius),new THREE.Vector3(p.x+radius,ai.height,p.z+radius));
                             if(wallBoxes.some(w=>box.intersectsBox(w)))continue;
