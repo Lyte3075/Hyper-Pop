@@ -75,6 +75,7 @@
         }
         #flashlight-btn { bottom: 25px; right: 15px; }
         #sprint-btn { bottom: 100px; right: 15px; }
+        #crouch-btn { bottom: 25px; right: 90px; background: rgba(30,55,35,0.85); }
         #hide-btn { bottom: 25px; right: 90px; background: rgba(0, 150, 255, 0.6); display: none; }
         #use-item-btn { bottom: 100px; right: 90px; background: rgba(0, 255, 100, 0.6); display: none; }
 
@@ -212,7 +213,15 @@
         #terminal-panel h2 { margin:0 0 16px; font-size:clamp(18px,3vw,28px); letter-spacing:.12em; }
         #terminal-output { white-space:pre-wrap; line-height:1.7; margin:0 0 20px; }
         .terminal-action { align-self:flex-start; background:#03190c; border:1px solid #32ff8d; color:#a4ffc6; padding:12px 16px; font:bold 14px monospace; margin:5px 8px 0 0; cursor:pointer; }
-        #interact-computer-btn { position:fixed; left:50%; bottom:22%; transform:translateX(-50%); z-index:28; display:none; background:#03190cdd; border:1px solid #32ff8d; color:#a4ffc6; padding:12px 18px; font:bold 13px monospace; border-radius:8px; touch-action:manipulation; }
+        #interact-computer-btn { position:fixed; left:50%; bottom:22%; transform:translateX(-50%); z-index:28; display:none; background:#03190cdd; border:1px solid #32ff8d; color:#a4ffc6; padding:12px 18px; font:bold 13px monospace; border-radius:8px; touch-action:none; pointer-events:auto; -webkit-user-select:none; user-select:none; }
+        /* The Static's warning is rendered through the 3D scene fog, not a screen overlay. */
+        #banisher-jumpscare.scare-static { background:#f8f8f8; animation:staticFlash .08s steps(2,end) infinite!important; }
+        #banisher-jumpscare.scare-static .scare-face { width:min(96vw,700px); border-radius:0; background:#050505; box-shadow:0 0 0 12px #fff,0 0 70px #fff; animation:staticLunge .46s steps(3,end) forwards; clip-path:polygon(0 15%,10% 20%,14% 5%,25% 18%,37% 0,45% 17%,57% 3%,68% 20%,82% 7%,89% 23%,100% 12%,94% 48%,100% 83%,84% 78%,76% 100%,61% 83%,49% 100%,37% 82%,22% 98%,16% 80%,0 88%,7% 53%); }
+        #banisher-jumpscare.scare-static .scare-eye { background:#fff; box-shadow:0 0 25px #fff; width:16%; height:20%; top:25%; }
+        #banisher-jumpscare.scare-static .scare-mouth { background:#fff; border:0; top:48%; left:9%; width:82%; height:40%; clip-path:polygon(0 0,13% 15%,27% 10%,39% 22%,51% 5%,64% 18%,79% 7%,100% 0,91% 68%,75% 90%,62% 66%,50% 100%,37% 70%,22% 92%,8% 70%); }
+        #banisher-jumpscare.scare-static .scare-mouth:before,#banisher-jumpscare.scare-static .scare-mouth:after { background:repeating-linear-gradient(90deg,#000 0 5%,#fff 5% 7%); height:45%; }
+        @keyframes staticFlash { 0%,100%{background:#fff} 50%{background:#000} }
+        @keyframes staticLunge { 0%{transform:scale(.08) rotate(-15deg);filter:invert(1)} 50%{transform:scale(1.4) rotate(8deg);filter:contrast(3)} 100%{transform:scale(1.08);filter:contrast(2)} }
         #start-btn {
             padding: 12px 28px; font-size: 16px; background: #330000;
             color: #fff; border: 1px solid #ff0000; margin-top: 25px; cursor: pointer;
@@ -242,6 +251,7 @@
 
     <button id="flashlight-btn" class="game-btn">LIGHT</button>
     <button id="sprint-btn" class="game-btn">RUN</button>
+    <button id="crouch-btn" class="game-btn">CROUCH</button>
     <button id="hide-btn" class="game-btn">HIDE</button>
     <button id="use-item-btn" class="game-btn">USE ITEM</button>
 
@@ -252,7 +262,7 @@
 
     <div id="joystick-base"><div id="joystick-stick"></div></div>
 
-    <div id="banisher-jumpscare" aria-hidden="true">
+     <div id="banisher-jumpscare" aria-hidden="true">
         <div class="scare-face">
             <div class="scare-eye left"></div><div class="scare-eye right"></div>
             <div class="scare-mouth"></div>
@@ -283,16 +293,20 @@ ACCESS NODE READY...</pre>
         let flashlight, ambientLight;
         let fxCanvas, fxCtx;
         let isGameOver = false;
+        let staticLastMovedAt = performance.now(), staticWarning = false, staticHunting = false, staticMonster = null;
+        let staticAudioContext = null, staticShriekOsc = null, staticShriekGain = null, staticNoise = null, staticNoiseGain = null, staticSavedFog = null;
 
         // Player Stats & Inventory
         let maxHealth = 100, health = maxHealth;
-        let maxStamina = 200, stamina = maxStamina;
+        let maxStamina = 280, stamina = maxStamina;
         let battery = 100;
-        let isSprinting = false, isHidden = false, flashlightOn = true;
+        let isSprinting = false, isHidden = false, isCrouching = false, flashlightOn = true;
         let adrenalineTimer = 0;
         let currentLocker = null;
         let hidingLocker = null;
         let lockerBoxes = [];
+        let grassHidingSpots = [];
+        let crouchableCells = new Set();
         let preHideYaw = 0;
         let keysFound = 0;
         const totalKeys = 9;
@@ -305,7 +319,8 @@ ACCESS NODE READY...</pre>
         let rotation = { yaw: Math.PI, pitch: 0 };
         let breathTimer = 0;
         let shakeIntensity = 0;
-        const walkSpeed = 0.07, sprintSpeed = 0.14; // Sprint stamina lasts 25% longer via a lower drain rate.
+        const walkSpeed = 0.09, sprintSpeed = 0.18; // Faster movement with a longer stamina reserve.
+        const crouchHeight = 0.72;
 
         // Entities & World Arrays
         let lockers = [], monsters = [], wallBoxes = [], keys = [], items = [], exitGate = null;
@@ -325,10 +340,13 @@ ACCESS NODE READY...</pre>
         const joystickStick = document.getElementById('joystick-stick');
         const hideBtn = document.getElementById('hide-btn');
         const sprintBtn = document.getElementById('sprint-btn');
+        const crouchBtn = document.getElementById("crouch-btn");
+        crouchBtn.addEventListener("click", () => { if (isHidden || currentLocker) toggleHideInLocker(); else toggleCrouch(); });
         const flashBtn = document.getElementById('flashlight-btn');
         const useItemBtn = document.getElementById('use-item-btn');
 
         const deathHints = {
+            'static': 'Always keep moving.',
             'brute': "HINT: The Brute is easy to avoid early on. Keep your distance and do not make sprinting sounds!",
             'stalker': "HINT: The Stalker becomes enraged if hit with light! Turn your light OFF around it.",
             'crawler': "HINT: The Shadow Crawler freezes under flashlight illumination. Keep your flashlight ON!",
@@ -342,28 +360,28 @@ ACCESS NODE READY...</pre>
             'ghost': "HINT: The Ghost drifts silently through the dark. Watch for its pale blue glow."
         };
 
-        // Huge 21x21 Grid (3 = Exit Wall)
+        // Chapter 2 uses a distinct branching hedge maze with long winding corridors (3 = exit gate).
         const mazeGrid = [
             [1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1],
-            [1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,1],
-            [1,0,1,0,1,1,1,0,1,1,1,1,1,1,1,1,1,0,1,0,1],
-            [1,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
-            [1,0,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,1,1,0,1],
-            [1,0,2,0,1,0,0,0,2,0,1,0,1,0,0,0,0,0,2,0,1],
-            [1,1,1,0,1,1,1,1,1,0,1,0,1,1,1,0,1,1,1,1,1],
-            [1,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1],
-            [1,0,1,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,1,0,1],
-            [1,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1],
-            [1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1],
-            [1,0,0,0,2,0,1,0,0,0,2,0,0,0,1,0,0,0,2,0,1],
-            [1,0,1,1,1,0,1,0,1,1,1,1,1,0,1,1,1,1,1,0,1],
-            [1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1],
-            [1,1,1,0,1,1,1,0,1,1,1,0,1,0,1,1,0,1,1,1,1],
-            [1,0,2,0,1,0,0,0,2,0,1,0,0,2,0,1,0,0,0,2,1],
-            [1,0,1,0,1,1,1,1,1,0,1,1,1,1,0,1,1,1,1,0,1],
-            [1,0,1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,1,0,1],
-            [1,0,1,0,1,0,1,1,1,0,1,0,1,1,1,0,1,0,1,0,1],
-            [1,0,0,0,1,0,0,0,0,0,0,0,0,0,2,0,1,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+            [1,0,1,0,1,0,1,0,1,0,1,1,1,0,1,0,1,0,1,0,1],
+            [1,0,0,0,1,0,1,0,1,0,0,0,0,0,1,0,1,0,0,0,1],
+            [1,0,1,1,1,0,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1],
+            [1,0,0,0,1,0,1,0,0,0,0,0,1,0,0,0,1,0,1,0,1],
+            [1,1,1,0,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,0,1],
+            [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1],
+            [1,0,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1],
+            [1,0,1,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,1],
+            [1,0,1,1,1,0,1,1,1,0,0,0,1,1,1,1,1,0,1,0,1],
+            [1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,1,1,1,1,1,0,1,1,1,0,1,1,1,0,1,0,1],
+            [1,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1],
+            [1,0,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1],
+            [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1],
+            [1,1,1,1,1,0,1,1,1,0,1,1,1,0,1,0,1,0,1,1,1],
+            [1,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,1],
+            [1,0,1,1,1,0,1,1,1,0,1,0,1,1,1,1,1,0,1,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
             [1,1,1,1,1,1,1,1,1,1,3,1,1,1,1,1,1,1,1,1,1]
         ];
         // Expanded world spacing: keep the same 21x21 logical maze while giving each corridor/room cell more physical room.
@@ -474,23 +492,17 @@ ACCESS NODE READY...</pre>
             sprintBtn.addEventListener('mousedown', () => isSprinting = true);
             sprintBtn.addEventListener('mouseup', () => isSprinting = false);
 
-            flashBtn.addEventListener('click', () => {
-                if (battery > 0) {
-                    flashlightOn = !flashlightOn;
-                    flashlight.intensity = flashlightOn ? 3.5 : 0;
-                }
-            });
+            const bindMobileAction = (button, action) => {
+                let lastTouchAt=0;
+                button.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();lastTouchAt=Date.now();action();},{passive:false});
+                button.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();if(Date.now()-lastTouchAt<700)return;action();});
+            };
+            bindMobileAction(flashBtn,()=>{if(battery>0){flashlightOn=!flashlightOn;flashlight.intensity=flashlightOn?3.5:0;}});
 
-            hideBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                toggleHideInLocker();
-            });
+            bindMobileAction(hideBtn,()=>toggleHideInLocker());
 
-            useItemBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                if (nearbyPickup) collectItem(nearbyPickup);
-                /* Interaction never consumes inventory items. */
-            });
+            bindMobileAction(useItemBtn,()=>{if(nearbyPickup)collectItem(nearbyPickup);/* Interaction never consumes inventory items. */});
+            bindMobileAction(crouchBtn,()=>{if(isHidden||currentLocker)toggleHideInLocker();else toggleCrouch();});
 
             animate();
         }
@@ -626,7 +638,35 @@ ACCESS NODE READY...</pre>
             };
 
 
-            const wallGeo = new THREE.BoxGeometry(cellSize, 3.5, cellSize);
+            // Most hedge cells are solid to the ground; selected hedge cells can be crouched beneath.
+            const hedgeHeight = 2.76;
+            crouchableCells = new Set();
+            const protectedCrouchCells = new Set(["10,10","10,9","10,11","9,10","11,10","19,13","13,19","7,17","1,15","17,7","9,11","3,9","11,3","5,3","3,1","15,1","5,17","10,1","10,19"]);
+            const crouchCandidates = [];
+            for(let r=1;r<mazeGrid.length-1;r++) for(let c=1;c<mazeGrid[r].length-1;c++) {
+                if(mazeGrid[r][c]!==1 || protectedCrouchCells.has(`${c},${r}`)) continue;
+                // Keep cells away from the central terminal, entrance, and exit route.
+                if(Math.abs(c-10)<=1 && Math.abs(r-10)<=1) continue;
+                if(r<=2 && c>=8 && c<=12) continue;
+                if(r>=18 && c>=8 && c<=12) continue;
+                let nearProp = false;
+                for (let dr=-1; dr<=1; dr++) for (let dc=-1; dc<=1; dc++) {
+                    if (mazeGrid[r+dr]?.[c+dc] === 2) nearProp = true;
+                }
+                if (nearProp) continue;
+                crouchCandidates.push({c,r});
+            }
+            for(let i=crouchCandidates.length-1;i>0;i--){const j=(i*19+7)%(i+1);[crouchCandidates[i],crouchCandidates[j]]=[crouchCandidates[j],crouchCandidates[i]];}
+            for (const candidate of crouchCandidates) {
+                if (crouchableCells.size >= 50) break;
+                let separated = true;
+                for (const key of crouchableCells) {
+                    const parts = key.split(',').map(Number);
+                    if (Math.max(Math.abs(candidate.c-parts[0]),Math.abs(candidate.r-parts[1])) <= 1) { separated = false; break; }
+                }
+                if (separated) crouchableCells.add(`${candidate.c},${candidate.r}`);
+            }
+            const wallGeo = new THREE.BoxGeometry(cellSize, hedgeHeight, cellSize);
             const lockerBodyMat=new THREE.MeshStandardMaterial({color:0x243b31,metalness:0.55,roughness:0.38}),lockerDoorMat=new THREE.MeshStandardMaterial({color:0x344b40,metalness:0.62,roughness:0.34}),lockerDarkMat=new THREE.MeshStandardMaterial({color:0x080d0b,roughness:0.98}),lockerTrimMat=new THREE.MeshStandardMaterial({color:0x111a16,metalness:0.65,roughness:0.32}),lockerHandleMat=new THREE.MeshStandardMaterial({color:0x9aa39b,metalness:0.82,roughness:0.24});
             function makeLocker(){
                 const g=new THREE.Group();
@@ -667,10 +707,21 @@ ACCESS NODE READY...</pre>
                     const z = r * cellSize;
 
                     if (mazeGrid[r][c] === 1) {
-                        const wall = new THREE.Mesh(wallGeo, wallMat);
-                        wall.position.set(x, 1.75, z);
-                        scene.add(wall);
-                        wallBoxes.push(new THREE.Box3().setFromObject(wall));
+                        const canCrouchUnder = crouchableCells.has(`${c},${r}`);
+                        if (canCrouchUnder) {
+                            // Leave a real 0.98-unit gap below these 50 selected wall cells.
+                            const gapHeight = 0.98;
+                            const upperWallGeo = new THREE.BoxGeometry(cellSize, hedgeHeight-gapHeight, cellSize);
+                            const wall = new THREE.Mesh(upperWallGeo, wallMat);
+                            wall.position.set(x, gapHeight+(hedgeHeight-gapHeight)/2, z);
+                            scene.add(wall);
+                            wallBoxes.push(new THREE.Box3(new THREE.Vector3(x-cellSize/2,gapHeight,z-cellSize/2),new THREE.Vector3(x+cellSize/2,hedgeHeight,z+cellSize/2)));
+                        } else {
+                            const wall = new THREE.Mesh(wallGeo, wallMat);
+                            wall.position.set(x, hedgeHeight/2, z);
+                            scene.add(wall);
+                            wallBoxes.push(new THREE.Box3(new THREE.Vector3(x-cellSize/2,0,z-cellSize/2),new THREE.Vector3(x+cellSize/2,hedgeHeight,z+cellSize/2)));
+                        }
                     } 
                     else if (mazeGrid[r][c] === 2) {
                         const locker=makeLocker();let offsetX=0,offsetZ=-(cellSize / 2 - 0.22);
@@ -746,7 +797,67 @@ ACCESS NODE READY...</pre>
                 }
             }
 
-            // Central square control plaza: worn concrete pad, inset warning lights, and a giant industrial terminal.
+            // Exactly 20 grass-cover cells, all on walkable floor and away from objective spawns.
+            const protectedCells=new Set(["10,10","10,9","10,11","9,10","11,10","19,13","13,19","7,17","1,15","17,7","9,11","3,9","11,3","5,3","3,1","15,1","5,17","10,1","10,19"]);
+            const grassCandidates=[];
+            for(let r=1;r<mazeGrid.length-1;r++)for(let c=1;c<mazeGrid[r].length-1;c++){
+                if(mazeGrid[r][c]!==0||protectedCells.has(`${c},${r}`))continue;
+                if(Math.abs(c-10)<=1&&Math.abs(r-10)<=1)continue;
+                if(r<=2&&c>=8&&c<=12)continue;
+                grassCandidates.push({c,r});
+            }
+            for(let i=grassCandidates.length-1;i>0;i--){const j=(i*17+13)%(i+1);[grassCandidates[i],grassCandidates[j]]=[grassCandidates[j],grassCandidates[i]];}
+            const grassPatchMat=new THREE.MeshStandardMaterial({color:0x263b25,roughness:1});
+            const grassBladeMat=new THREE.MeshStandardMaterial({color:0x354b2c,roughness:1,side:THREE.DoubleSide});
+            grassHidingSpots=[];
+            grassCandidates.slice(0,20).forEach(({c,r})=>{
+                const x=c*cellSize,z=r*cellSize;
+                const patch=new THREE.Mesh(new THREE.PlaneGeometry(cellSize*0.78,cellSize*0.78),grassPatchMat);
+                patch.rotation.x=-Math.PI/2;patch.position.set(x,0.025,z);scene.add(patch);
+                for(let i=0;i<13;i++){const blade=new THREE.Mesh(new THREE.ConeGeometry(0.055,0.22+(i%4)*0.045,3),grassBladeMat);blade.position.set(x+Math.sin(i*2.4)*cellSize*0.31,0.12,z+Math.cos(i*2.4)*cellSize*0.31);scene.add(blade);}
+                grassHidingSpots.push({x,z,radius:cellSize*0.34});
+            });
+
+            // Add abundant hiding lockers throughout the hedge maze. The map's old type-2
+            // locker cells are sparse, so place extra lockers along hedge faces in open corridors.
+            // A deterministic pattern keeps them plentiful without cluttering the central plaza,
+            // the hospital entrance, or the final gate approach.
+            for (let r = 1; r < mazeGrid.length - 1; r++) {
+                for (let c = 1; c < mazeGrid[r].length - 1; c++) {
+                    if (mazeGrid[r][c] !== 0) continue;
+                    let besideCrouchOpening = false;
+                    for (let dr=-1; dr<=1; dr++) for (let dc=-1; dc<=1; dc++) {
+                        if (crouchableCells.has(`${c+dc},${r+dr}`)) besideCrouchOpening = true;
+                    }
+                    if (besideCrouchOpening) continue;
+                    if (r >= 9 && r <= 11 && c >= 9 && c <= 11) continue;
+                    if (r <= 2 && c >= 8 && c <= 12) continue;
+                    if (r >= 18 && c >= 8 && c <= 12) continue;
+                    // Roughly one locker every other suitable corridor cell.
+                    if ((r * 7 + c * 11) % 3 === 1) continue;
+
+                    const sides = [
+                        { dr: -1, dc: 0, x: 0, z: -(cellSize / 2 - 0.22), rot: 0 },
+                        { dr: 1, dc: 0, x: 0, z: (cellSize / 2 - 0.22), rot: Math.PI },
+                        { dr: 0, dc: -1, x: -(cellSize / 2 - 0.22), z: 0, rot: Math.PI / 2 },
+                        { dr: 0, dc: 1, x: (cellSize / 2 - 0.22), z: 0, rot: -Math.PI / 2 }
+                    ];
+                    const available = sides.filter(s => mazeGrid[r + s.dr][c + s.dc] === 1);
+                    if (!available.length) continue;
+                    const side = available[(r + c) % available.length];
+                    const locker = makeLocker();
+                    locker.rotation.y = side.rot;
+                    locker.position.set(c * cellSize + side.x, 1.36, r * cellSize + side.z);
+                    scene.add(locker);
+                    lockers.push(locker);
+                    locker.updateMatrixWorld(true);
+                    const lockerBox = new THREE.Box3().setFromObject(locker);
+                    lockerBox.expandByScalar(-0.06);
+                    lockerBoxes.push(lockerBox);
+                }
+            }
+
+            // Central square control plaza: worn concrete pad, inset warning lights, and a compact CRT workstation.
             const plazaX = 10 * cellSize, plazaZ = 10 * cellSize;
             const plazaMat = new THREE.MeshStandardMaterial({color:0x292f31,roughness:0.92,metalness:0.12});
             const plaza = new THREE.Mesh(new THREE.PlaneGeometry(cellSize*2.92,cellSize*2.92),plazaMat); plaza.rotation.x=-Math.PI/2; plaza.position.set(plazaX,0.012,plazaZ); scene.add(plaza);
@@ -755,24 +866,34 @@ ACCESS NODE READY...</pre>
                 const edgeX = new THREE.Mesh(new THREE.BoxGeometry(0.12,0.06,cellSize*2.9),plazaTrimMat); edgeX.position.set(plazaX+side*cellSize*1.43,0.05,plazaZ); scene.add(edgeX);
                 const edgeZ = new THREE.Mesh(new THREE.BoxGeometry(cellSize*2.9,0.06,0.12),plazaTrimMat); edgeZ.position.set(plazaX,0.05,plazaZ+side*cellSize*1.43); scene.add(edgeZ);
             }
-            // Giant terminal tower, glowing green CRT-style display and chunky physical controls.
+            // Compact retro CRT workstation: squat desk, curved-looking monitor housing, and a separate keyboard.
             const terminal = new THREE.Group();
-            const terminalBaseMat = new THREE.MeshStandardMaterial({color:0x222a2a,metalness:0.75,roughness:0.35});
-            const terminalDarkMat = new THREE.MeshStandardMaterial({color:0x030a07,metalness:0.35,roughness:0.25,emissive:0x001e0b});
-            const terminalGreenMat = new THREE.MeshBasicMaterial({color:0x28ff7c});
-            const terminalBase = new THREE.Mesh(new THREE.BoxGeometry(2.7,0.48,1.8),terminalBaseMat); terminalBase.position.y=0.24; terminal.add(terminalBase);
-            const terminalPedestal = new THREE.Mesh(new THREE.BoxGeometry(1.85,1.55,1.25),terminalBaseMat); terminalPedestal.position.y=1.18; terminal.add(terminalPedestal);
-            const terminalScreen = new THREE.Mesh(new THREE.BoxGeometry(2.5,1.9,0.18),terminalDarkMat); terminalScreen.position.set(0,2.85,-0.05); terminal.add(terminalScreen);
+            const terminalBaseMat = new THREE.MeshStandardMaterial({color:0x303633,metalness:0.48,roughness:0.55});
+            const terminalDarkMat = new THREE.MeshStandardMaterial({color:0x080d0b,metalness:0.22,roughness:0.3,emissive:0x001e0b});
+            const terminalGreenMat = new THREE.MeshStandardMaterial({color:0x28ff7c,emissive:0x0a5a2a,emissiveIntensity:0.45});
+            const deskTop = new THREE.Mesh(new THREE.BoxGeometry(2.35,0.16,1.25),terminalBaseMat); deskTop.position.set(0,1.02,0.05); terminal.add(deskTop);
+            const deskLegMat = new THREE.MeshStandardMaterial({color:0x171d1b,metalness:0.65,roughness:0.5});
+            for(const dx of [-0.95,0.95]) for(const dz of [-0.42,0.42]) { const leg=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.98,0.12),deskLegMat); leg.position.set(dx,0.51,dz+0.05); terminal.add(leg); }
+            const monitorShell = new THREE.Mesh(new THREE.BoxGeometry(1.55,1.22,0.78),terminalBaseMat); monitorShell.position.set(0,1.78,-0.12); terminal.add(monitorShell);
+            const monitorBezel = new THREE.Mesh(new THREE.BoxGeometry(1.34,0.99,0.055),terminalDarkMat); monitorBezel.position.set(0,1.81,0.292); terminal.add(monitorBezel);
             const screenCanvas=document.createElement('canvas'); screenCanvas.width=512; screenCanvas.height=384;
             const screenCtx=screenCanvas.getContext('2d'); screenCtx.fillStyle='#001108'; screenCtx.fillRect(0,0,512,384);
             screenCtx.strokeStyle='#1aff72'; screenCtx.lineWidth=7; screenCtx.strokeRect(10,10,492,364);
             screenCtx.fillStyle='#4cff91'; screenCtx.font='bold 30px monospace'; screenCtx.fillText('COURTYARD OS',28,55);
             screenCtx.font='22px monospace'; screenCtx.fillText('> SECURITY NODE 01',28,108); screenCtx.fillText('> GATE STATUS: LOCKED',28,150); screenCtx.fillText('> FUEL CELLS: 09 REQUIRED',28,192); screenCtx.fillText('> WAITING FOR OPERATOR',28,234); screenCtx.fillText('> PRESS [E] TO CONNECT',28,300);
-            const screenFace=new THREE.Mesh(new THREE.PlaneGeometry(2.28,1.7),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(screenCanvas),emissive:0x00ff55})); screenFace.position.set(0,2.85,0.052); terminal.add(screenFace);
-            for(let i=0;i<5;i++){const keyLight=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.08,0.12),terminalGreenMat);keyLight.position.set(-0.55+i*0.28,2.02,0.59);terminal.add(keyLight);}
-            const terminalGlow=new THREE.PointLight(0x19ff70,1.7,10); terminalGlow.position.set(0,2.8,1.0); terminal.add(terminalGlow);
+            const screenTexture=new THREE.CanvasTexture(screenCanvas); screenTexture.colorSpace=THREE.SRGBColorSpace;
+            const screenFace=new THREE.Mesh(new THREE.PlaneGeometry(1.22,0.86),new THREE.MeshBasicMaterial({map:screenTexture})); screenFace.position.set(0,1.81,0.326); terminal.add(screenFace);
+            const monitorStand=new THREE.Mesh(new THREE.BoxGeometry(0.28,0.2,0.25),deskLegMat); monitorStand.position.set(0,1.13,-0.12); terminal.add(monitorStand);
+            const keyboardBase=new THREE.Mesh(new THREE.BoxGeometry(1.05,0.09,0.38),deskLegMat); keyboardBase.position.set(0,1.16,0.48); keyboardBase.rotation.x=-0.06; terminal.add(keyboardBase);
+            for(let row=0;row<3;row++) for(let col=0;col<11;col++){const keycap=new THREE.Mesh(new THREE.BoxGeometry(0.075,0.025,0.065),col===10&&row===2?terminalGreenMat:terminalBaseMat);keycap.position.set(-0.46+col*0.092,1.22,0.36+row*0.085);terminal.add(keycap);}
+            const powerLed=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.035,0.025),terminalGreenMat);powerLed.position.set(0.56,1.22,0.302);terminal.add(powerLed);
+            const terminalGlow=new THREE.PointLight(0x19ff70,0.9,6); terminalGlow.position.set(0,1.9,0.7); terminal.add(terminalGlow);
+            terminal.scale.setScalar(0.62);
             terminal.position.set(plazaX,0,plazaZ); scene.add(terminal);
             computerTerminal={position:new THREE.Vector3(plazaX,1.5,plazaZ+2.1),screenCanvas,screenCtx,screenFace};
+            // Add a guaranteed locker inside the terminal sanctuary.
+            if(lockers.length){const sanctuaryLocker=lockers[0].clone(true);sanctuaryLocker.position.set(plazaX+2.2,1.36,plazaZ+0.2);sanctuaryLocker.rotation.y=Math.PI/2;scene.add(sanctuaryLocker);lockers.push(sanctuaryLocker);}
+            staticMonster=makeStaticMonster();staticMonster.userData.lastX=camera.position.x;staticMonster.userData.lastZ=camera.position.z;
 
             // Exterior approach: the player begins on the hospital's front steps, enters the hedge maze, then reaches the parking lot and road.
             const centerX = 10 * cellSize;
@@ -1162,8 +1283,8 @@ ACCESS NODE READY...</pre>
 
         function checkCollisions(newPosition, radius = 0.28) {
             const playerBox = new THREE.Box3(
-                new THREE.Vector3(newPosition.x - radius, 0.2, newPosition.z - radius),
-                new THREE.Vector3(newPosition.x + radius, 2.0, newPosition.z + radius)
+                new THREE.Vector3(newPosition.x - radius, 0.08, newPosition.z - radius),
+                new THREE.Vector3(newPosition.x + radius, isCrouching ? crouchHeight : 2.0, newPosition.z + radius)
             );
             for (let i = 0; i < wallBoxes.length; i++) {
                 if (playerBox.intersectsBox(wallBoxes[i])) return true;
@@ -1174,6 +1295,32 @@ ACCESS NODE READY...</pre>
             return false;
         }
 
+        function isUnderCrouchableObject(position = camera.position) {
+            if (!isCrouching || !crouchableCells.size) return false;
+            const c = Math.round(position.x / cellSize);
+            const r = Math.round(position.z / cellSize);
+            return crouchableCells.has(`${c},${r}`);
+        }
+        function isInGrassHidingSpot(position = camera.position) {
+            if (!isCrouching) return false;
+            return isUnderCrouchableObject(position) ||
+                grassHidingSpots.some(spot => Math.hypot(position.x-spot.x, position.z-spot.z) < spot.radius);
+        }
+        function updateCrouchStatus() {
+            const status = document.getElementById("status-msg");
+            if (!isCrouching) {
+                if (status.innerText === "CROUCHING" || status.innerText === "CROUCHING UNDER OBJECT") status.innerText = "";
+                return;
+            }
+            status.innerText = isUnderCrouchableObject() ? "CROUCHING UNDER OBJECT" : "CROUCHING";
+        }
+        function toggleCrouch() {
+            if (isHidden) return;
+            isCrouching = !isCrouching;
+            document.getElementById("crouch-btn").textContent = isCrouching ? "STAND" : "CROUCH";
+            camera.position.y = isCrouching ? 0.72 : 1.6;
+            updateCrouchStatus();
+        }
         function collectItem(item) {
             item.collected = true;
             scene.remove(item.mesh);
@@ -1214,7 +1361,8 @@ ACCESS NODE READY...</pre>
                 rotation.yaw = hidingLocker.rotation.y + Math.PI;
                 rotation.pitch = 0;
                 document.getElementById('status-msg').innerText = "HIDDEN IN LOCKER";
-                hideBtn.innerText = "EXIT";
+                crouchBtn.innerText = "EXIT";
+                crouchBtn.style.background = "rgba(0,150,255,0.85)";
                 monsters.forEach(m => { if (m.userData.type !== 'phantasm') m.userData.state = 'patrol'; });
                 if (phantasm) {
                     phantasm.visible = false;
@@ -1239,7 +1387,8 @@ ACCESS NODE READY...</pre>
                 currentLocker = null;
                 hidingLocker = null;
                 document.getElementById('status-msg').innerText = "";
-                hideBtn.innerText = "HIDE";
+                crouchBtn.innerText = "CROUCH";
+                crouchBtn.style.background = "rgba(30,55,35,0.85)";
                 if (phantasm) {
                     phantasm.visible = true;
                     phantasm.position.set(16, 1.2, 28);
@@ -1247,6 +1396,81 @@ ACCESS NODE READY...</pre>
             }
         }
 
+        function makeStaticMonster() {
+            const g=new THREE.Group(),dark=new THREE.MeshBasicMaterial({color:0x050505}),white=new THREE.MeshBasicMaterial({color:0xfafafa});
+            const face=new THREE.Mesh(new THREE.IcosahedronGeometry(0.82,0),dark);face.scale.set(1.15,0.88,0.24);g.add(face);
+            const eye1=new THREE.Mesh(new THREE.BoxGeometry(0.23,0.2,0.08),white);eye1.position.set(-0.34,0.19,0.23);eye1.rotation.z=0.18;g.add(eye1);
+            const eye2=eye1.clone();eye2.position.set(0.34,-0.02,0.23);eye2.rotation.z=-0.45;g.add(eye2);
+            const smile=new THREE.Mesh(new THREE.BoxGeometry(1.15,0.12,0.1),white);smile.position.set(0,-0.31,0.25);smile.rotation.z=-0.18;g.add(smile);
+            for(let i=0;i<7;i++){const tooth=new THREE.Mesh(new THREE.ConeGeometry(0.075,0.18,3),dark);tooth.position.set(-0.48+i*0.16,-0.32,0.32);tooth.rotation.z=Math.PI;g.add(tooth);}
+            for(let i=0;i<8;i++){const shard=new THREE.Mesh(new THREE.ConeGeometry(0.12,0.32,3),i%2?white:dark);shard.position.set(-0.85+i*0.24,0.65+(i%2)*0.1,0);shard.rotation.z=(i%2?1:-1)*0.5;g.add(shard);}
+            g.userData={type:'static',baseSpeed:0.22};g.visible=false;scene.add(g);return g;
+        }
+        function playStaticSpawn(){
+            try{
+                const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+                staticAudioContext=staticAudioContext||new AC();
+                const ctx=staticAudioContext;
+                if(ctx.state==='suspended')ctx.resume().catch(()=>{});
+                const t=ctx.currentTime;
+                const master=ctx.createGain();master.gain.setValueAtTime(0.0001,t);master.gain.linearRampToValueAtTime(0.48,t+0.025);master.gain.exponentialRampToValueAtTime(0.0001,t+1.25);master.connect(ctx.destination);
+                const osc=ctx.createOscillator(),og=ctx.createGain();osc.type='sawtooth';osc.frequency.setValueAtTime(1900,t);osc.frequency.exponentialRampToValueAtTime(95,t+1.1);og.gain.setValueAtTime(0.0001,t);og.gain.linearRampToValueAtTime(0.42,t+0.025);og.gain.exponentialRampToValueAtTime(0.0001,t+1.15);osc.connect(og);og.connect(master);osc.start(t);osc.stop(t+1.2);
+                const buffer=ctx.createBuffer(1,Math.floor(ctx.sampleRate*0.8),ctx.sampleRate),data=buffer.getChannelData(0);
+                for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*(1-i/data.length);
+                const noise=ctx.createBufferSource();noise.buffer=buffer;const filter=ctx.createBiquadFilter();filter.type='bandpass';filter.frequency.value=2400;filter.Q.value=0.65;
+                const ng=ctx.createGain();ng.gain.setValueAtTime(0.0001,t);ng.gain.linearRampToValueAtTime(0.32,t+0.02);ng.gain.exponentialRampToValueAtTime(0.0001,t+0.75);noise.connect(filter);filter.connect(ng);ng.connect(master);noise.start(t);noise.stop(t+0.8);
+            }catch(e){}
+        }
+        function playStaticScream(){
+            try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;const ctx=new AC();ctx.resume();
+                const duration=1.45,buffer=ctx.createBuffer(1,Math.floor(ctx.sampleRate*duration),ctx.sampleRate),data=buffer.getChannelData(0);
+                for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*(Math.random()<0.08?1:0.7);
+                const src=ctx.createBufferSource();src.buffer=buffer;const gain=ctx.createGain(),filter=ctx.createBiquadFilter();filter.type='bandpass';filter.frequency.value=2600;filter.Q.value=.8;
+                gain.gain.setValueAtTime(.0001,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.85,ctx.currentTime+.06);gain.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+duration);
+                src.connect(filter);filter.connect(gain);gain.connect(ctx.destination);src.start();src.stop(ctx.currentTime+duration);
+                const osc=ctx.createOscillator(),og=ctx.createGain();osc.type='sawtooth';osc.frequency.setValueAtTime(900,ctx.currentTime);osc.frequency.exponentialRampToValueAtTime(3100,ctx.currentTime+.32);
+                og.gain.setValueAtTime(.0001,ctx.currentTime);og.gain.exponentialRampToValueAtTime(.3,ctx.currentTime+.05);og.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+.8);osc.connect(og);og.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+.8);
+                setTimeout(()=>ctx.close(),1800);
+            }catch(e){}
+        }
+        function startStaticWarning(){
+            if(!scene)return;
+            if(staticSavedFog===null)staticSavedFog={color:scene.fog.color.clone(),density:scene.fog.density};
+            scene.fog.color.set(0xffffff);scene.fog.density=0.24;
+            try{
+                const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+                staticAudioContext=staticAudioContext||new AC();staticAudioContext.resume();
+                staticShriekOsc=staticAudioContext.createOscillator();staticShriekGain=staticAudioContext.createGain();
+                staticShriekOsc.type='sawtooth';staticShriekOsc.frequency.setValueAtTime(720,staticAudioContext.currentTime);
+                staticShriekOsc.frequency.linearRampToValueAtTime(2100,staticAudioContext.currentTime+2.8);
+                staticShriekGain.gain.setValueAtTime(0.0001,staticAudioContext.currentTime);staticShriekGain.gain.linearRampToValueAtTime(0.11,staticAudioContext.currentTime+0.12);
+                staticShriekOsc.connect(staticShriekGain);staticShriekGain.connect(staticAudioContext.destination);staticShriekOsc.start();
+                const buffer=staticAudioContext.createBuffer(1,staticAudioContext.sampleRate*2,staticAudioContext.sampleRate),data=buffer.getChannelData(0);
+                for(let i=0;i<data.length;i++)data[i]=Math.random()*2-1;
+                staticNoise=staticAudioContext.createBufferSource();staticNoise.buffer=buffer;staticNoise.loop=true;
+                staticNoiseGain=staticAudioContext.createGain();staticNoiseGain.gain.value=0.065;
+                const filter=staticAudioContext.createBiquadFilter();filter.type='bandpass';filter.frequency.value=2900;filter.Q.value=0.7;
+                staticNoise.connect(filter);filter.connect(staticNoiseGain);staticNoiseGain.connect(staticAudioContext.destination);staticNoise.start();
+            }catch(e){}
+        }
+        function stopStaticWarning(){
+            try{if(staticShriekGain&&staticAudioContext){staticShriekGain.gain.cancelScheduledValues(staticAudioContext.currentTime);staticShriekGain.gain.setTargetAtTime(0.0001,staticAudioContext.currentTime,0.035);}if(staticNoiseGain&&staticAudioContext){staticNoiseGain.gain.setTargetAtTime(0.0001,staticAudioContext.currentTime,0.035);}if(staticShriekOsc){staticShriekOsc.stop(staticAudioContext.currentTime+0.18);staticShriekOsc=null;}if(staticNoise){staticNoise.stop(staticAudioContext.currentTime+0.18);staticNoise=null;}}catch(e){}
+            staticShriekGain=null;staticNoiseGain=null;
+            if(staticSavedFog&&scene&&!staticHunting){scene.fog.color.copy(staticSavedFog.color);scene.fog.density=staticSavedFog.density;staticSavedFog=null;}
+        }
+        function updateStatic(now){
+            if(!staticMonster||isGameOver||isPaused)return;
+            const ud=staticMonster.userData,dx=camera.position.x-(ud.lastX??camera.position.x),dz=camera.position.z-(ud.lastZ??camera.position.z);
+            if(Math.hypot(dx,dz)>.045){staticLastMovedAt=now;ud.lastX=camera.position.x;ud.lastZ=camera.position.z;if(staticWarning){staticWarning=false;stopStaticWarning();}}
+            const idle=now-staticLastMovedAt;
+            if(idle>=25000&&!staticWarning&&!staticHunting){staticWarning=true;startStaticWarning();}
+            if(computerTerminal && Math.hypot(camera.position.x-computerTerminal.position.x,camera.position.z-computerTerminal.position.z)<5.8){staticLastMovedAt=now;staticWarning=false;staticHunting=false;staticMonster.visible=false;stopStaticWarning();return;}
+            if(idle>=30000&&!staticHunting){staticHunting=true;staticMonster.visible=true;staticMonster.position.set(camera.position.x+Math.sin(rotation.yaw)*13,1.6,camera.position.z+Math.cos(rotation.yaw)*13);ud.lastX=camera.position.x;ud.lastZ=camera.position.z;
+                if(staticSavedFog===null)staticSavedFog={color:scene.fog.color.clone(),density:scene.fog.density};
+                scene.fog.color.set(0xffffff);scene.fog.density=0.19;playStaticSpawn();stopStaticWarning();
+                if(isHidden&&hidingLocker){scene.remove(hidingLocker);lockers=lockers.filter(l=>l!==hidingLocker);isHidden=false;currentLocker=null;hidingLocker=null;camera.position.y=1.6;}}
+            if(staticHunting){staticMonster.lookAt(camera.position.x,staticMonster.position.y,camera.position.z);const x=camera.position.x-staticMonster.position.x,z=camera.position.z-staticMonster.position.z,d=Math.hypot(x,z)||1;staticMonster.position.x+=x/d*.72;staticMonster.position.z+=z/d*.72;staticMonster.position.y=1.6+Math.sin(now*.025)*.2;if(d<1.35){scene.fog.color.set(0xffffff);scene.fog.density=0.19;health=0;staticKilledPlayer=true;activeAttacker='static';}}
+        }
         function setupTouchControls() {
             moveZone.addEventListener('touchstart', (e) => {
                 e.preventDefault();
@@ -1334,6 +1558,7 @@ ACCESS NODE READY...</pre>
         function setupKeyboardControls() {
             window.addEventListener('keydown', (e) => {
                 keysPressed[e.code] = true;
+                if (e.code === "KeyC" && !e.repeat) toggleCrouch();
                 if (e.code === 'KeyE') {
                     if (terminalNearby) openComputerTerminal();
                     else if (terminalOpen) authorizeGateRelease();
@@ -1494,8 +1719,10 @@ ACCESS NODE READY...</pre>
             }
             flashlight.intensity=flashlightOn?(Math.random()<0.18?2.4:0.12):0;ambientLight.intensity=0;
             if(!banisherFace){banisherFace=makeBanisherFace();banisherFace.position.set(camera.position.x+12,0,camera.position.z+12);scene.add(banisherFace);}
-            if(isHidden&&hidingLocker)banisherLockerTarget=hidingLocker;
-            const target=banisherLockerTarget?banisherLockerTarget.position:camera.position;
+            const grassHidden = isInGrassHidingSpot();
+            if(grassHidden) banisherLockerTarget = null;
+            else if(isHidden&&hidingLocker)banisherLockerTarget=hidingLocker;
+            const target=banisherLockerTarget?banisherLockerTarget.position:(grassHidden ? banisherFace.position : camera.position);
             const dx=target.x-banisherFace.position.x,dz=target.z-banisherFace.position.z,dist=Math.hypot(dx,dz)||0.001;
             // A very fast rush through the maze, with a slight circling motion to make it feel like it is sweeping the map.
             const speed=0.34;
@@ -1514,7 +1741,10 @@ ACCESS NODE READY...</pre>
                     banisherFace.position.x+=rx/rl*4.5;banisherFace.position.z+=rz/rl*4.5;
                     document.getElementById('status-msg').innerText='BANG! ... IT IS GONE';
                     endBanisherEvent(now);
-                }else{
+                } else if (isInGrassHidingSpot()) {
+                    document.getElementById("status-msg").innerText = "THE BANISHER PASSED YOU IN THE HEDGES";
+                    endBanisherEvent(now);
+                } else{
                     health=0;
                     isGameOver=true;
                     banisherDeathSequence=true;
@@ -1548,6 +1778,8 @@ ACCESS NODE READY...</pre>
 
             const now = performance.now();
             updateBanisher(now);
+            updateCrouchStatus();
+            updateStatic(now);
             guideArrows.forEach(a => {
                 if (a.userData.expiresAt && now < a.userData.expiresAt && a.userData.target) {
                     a.position.set(camera.position.x,2.45,camera.position.z);
@@ -1572,13 +1804,13 @@ ACCESS NODE READY...</pre>
             const hasJoystickMove = Math.abs(moveVector.x) > 0.01 || Math.abs(moveVector.z) > 0.01;
             const isMoving = (hasKeyboardMove || hasJoystickMove);
 
-            if ((isSprinting || keysPressed['ShiftLeft'] || adrenalineTimer > 0) && !isHidden) {
+            if ((isSprinting || keysPressed['ShiftLeft'] || adrenalineTimer > 0) && !isHidden && !isCrouching) {
                 if ((stamina > 0 || adrenalineTimer > 0) && isMoving) {
                     speed = sprintSpeed * (adrenalineTimer > 0 ? 1.25 : 1.0);
                     if (adrenalineTimer <= 0) stamina = Math.max(0, stamina - 0.48);
                 }
             } else {
-                stamina = Math.min(maxStamina, stamina + 0.8);
+                stamina = Math.min(maxStamina, stamina + 1.2);
             }
             document.getElementById('stamina-bar').style.width = `${(stamina / maxStamina) * 100}%`;
 
@@ -1658,6 +1890,18 @@ ACCESS NODE READY...</pre>
                 currentLocker = hidingLocker;
             }
             hideBtn.style.display = (currentLocker || isHidden) ? 'flex' : 'none';
+            crouchBtn.style.display = (currentLocker || isHidden) ? 'none' : 'flex';
+            crouchBtn.style.display = 'flex';
+            if (isHidden) {
+                crouchBtn.innerText = 'EXIT';
+                crouchBtn.style.background = 'rgba(0,150,255,0.85)';
+            } else if (currentLocker) {
+                crouchBtn.innerText = 'HIDE';
+                crouchBtn.style.background = 'rgba(0,150,255,0.85)';
+            } else {
+                crouchBtn.innerText = isCrouching ? 'STAND' : 'CROUCH';
+                crouchBtn.style.background = 'rgba(30,55,35,0.85)';
+            }
 
             // Movement
             if (!isHidden) {
@@ -1686,6 +1930,7 @@ ACCESS NODE READY...</pre>
 
             // Monster AI Logic
             let activeAttacker = null;
+            let staticKilledPlayer = false;
             let closestDistance = 999;
             let closestMonsterType = null;
             const playerCell = nearestWalkableCell(camera.position.x,camera.position.z,worldToCell(camera.position.x,camera.position.z));
@@ -1695,6 +1940,7 @@ ACCESS NODE READY...</pre>
                 if (!monster.visible) continue;
 
                 monster.lookAt(camera.position.x, monster.position.y, camera.position.z);
+                if(computerTerminal && monster.userData.type!=='banisher' && Math.hypot(monster.position.x-computerTerminal.position.x,monster.position.z-computerTerminal.position.z)<7.2) continue;
                 const distToPlayer = monster.position.distanceTo(camera.position);
 
                 if (distToPlayer < closestDistance) {
@@ -1718,6 +1964,8 @@ ACCESS NODE READY...</pre>
                 const ai = monster.userData;
                 ai.repathTimer = (ai.repathTimer || 0) - delta;
                 const targetChanged = !ai.lastTargetCell || ai.lastTargetCell.r !== playerCell.r || ai.lastTargetCell.c !== playerCell.c;
+                const concealedInGrass = isInGrassHidingSpot() && monster.userData.type !== "crawler";
+                if (concealedInGrass) { ai.state = "patrol"; ai.path = []; ai.repathTimer = 0; continue; }
                 if (ai.state === 'chase' && !isHidden && (ai.repathTimer <= 0 || targetChanged)) {
                     const mCell = worldToCell(monster.position.x, monster.position.z);
                     ai.path = findAStarPath(nearestWalkableCell(monster.position.x,monster.position.z,mCell), playerCell) || [];
@@ -1799,7 +2047,7 @@ ACCESS NODE READY...</pre>
                     ai.gaitTime+=delta*(ai.state==='chase'?13:6);if(ai.armPivots)ai.armPivots.forEach((a,i)=>a.rotation.x=Math.sin(ai.gaitTime+i*Math.PI)*(ai.state==='chase'?0.92:0.4));if(ai.legPivots)ai.legPivots.forEach((l,i)=>l.rotation.x=Math.sin(ai.gaitTime+i*Math.PI)*(ai.state==='chase'?0.65:0.25));if(ai.headPivot)ai.headPivot.rotation.x=Math.sin(ai.gaitTime*0.5)*0.06;
                 }
 
-                if (!isHidden && distToPlayer < 2.35 && (ai.state === 'chase' || distToPlayer < 1.4)) {
+                if (health > 0 && !isHidden && distToPlayer < 2.35 && (ai.state === 'chase' || distToPlayer < 1.4)) {
                     health -= monster.userData.dps * 1.5 * delta;
                     activeAttacker = monster.userData.type;
                 }
@@ -1824,15 +2072,19 @@ ACCESS NODE READY...</pre>
                 isGameOver = true;
                 monsterDeathSequence = true;
                 const scare=document.getElementById('banisher-jumpscare');
-                const monsterType=activeAttacker || 'brute';
+                const monsterType=staticKilledPlayer ? 'static' : (activeAttacker || 'brute');
+                staticKilledPlayer=false;
                 scare.className='monster-scare scare-'+monsterType;
+                if(monsterType==='static') scare.className='monster-scare scare-static';
                 scare.querySelector('.scare-label').textContent=monsterType.toUpperCase()+' FOUND YOU';
                 scare.style.display='flex';
                 void scare.offsetWidth;
                 scare.classList.add('active');
-                playBanisherJumpscare();
-                document.getElementById('status-text').innerText=monsterType.toUpperCase()+' GOT YOU';
-                document.getElementById('death-hint').innerText=deathHints[monsterType] || 'Keep moving. Learn its pattern. Do not let it close the distance.';
+                if(monsterType==='static') playStaticScream(); else playBanisherJumpscare();
+                document.getElementById('status-text').innerText=monsterType==='static'?'THE STATIC GOT YOU':monsterType.toUpperCase()+' GOT YOU';
+                const hint=document.getElementById('death-hint');
+                if(monsterType==='static') hint.innerHTML='<span class="banisher-wrath">Always</span> keep moving.';
+                else hint.innerText=deathHints[monsterType] || 'Keep moving. Learn its pattern. Do not let it close the distance.';
                 document.getElementById('game-over').style.display='none';
                 setTimeout(()=>{
                     scare.classList.remove('active');
@@ -1847,13 +2099,23 @@ ACCESS NODE READY...</pre>
 
         function openComputerTerminal() {
             if(!computerTerminal||gateUnlocked)return;
+            if(keysFound < totalKeys) {
+                document.getElementById("status-msg").innerText = `ACCESS DENIED: COLLECT ALL 9 CANISTERS (${keysFound}/9) FIRST`;
+                return;
+            }
             terminalOpen=true; isPaused=true;
+            document.getElementById('terminal-unlock-btn').disabled = keysFound < totalKeys;
             document.getElementById('terminal-panel').classList.add('visible');
             document.getElementById('terminal-output').textContent='COURTYARD OS v2.6.1\\n------------------------------\\nSECURITY GATE: LOCKED\\nFUEL CANISTERS: '+keysFound+' / '+totalKeys+'\\n\\nOperator connection established.\\nAuthorize the release sequence to open the maze exit.';
             document.getElementById('interact-computer-btn').style.display='none';
         }
         function authorizeGateRelease() {
             if(!terminalOpen)return;
+            if(keysFound < totalKeys) {
+                document.getElementById("terminal-output").textContent = "ACCESS DENIED\\nCOLLECT ALL 9 FUEL CANISTERS FIRST\\nFUEL CANISTERS: " + keysFound + " / " + totalKeys;
+                document.getElementById("terminal-unlock-btn").disabled = true;
+                return;
+            }
             gateUnlocked=true; terminalOpen=false; isPaused=false; lastTime=performance.now();
             document.getElementById('terminal-panel').classList.remove('visible');
             document.getElementById('terminal-output').textContent='ACCESS GRANTED\\nSECURITY GATE: OPEN\\nROUTE TO PARKING LOT: UNLOCKED';
@@ -1939,7 +2201,7 @@ const hpSoundLoop=setInterval(()=>{
  function saveChapterOne(slot){const slots=read('mosSaveSlotsV1',[null,null,null]);const campaign=read('mosCampaignV1',{unlocked:1,beaten:[]});const completed=campaign.beaten&&campaign.beaten.includes(1);slots[slot]={chapter:completed?2:1,savedAt:Date.now(),health:Math.round(health),battery:Math.round(battery),inventory:Object.entries(inventory).map(([k,v])=>k+' ×'+v).join(', '),state:{health,battery,stamina,keysFound,inventory,player:{x:camera.position.x,z:camera.position.z,yaw:rotation.yaw,pitch:rotation.pitch},keyStates:keys.map(k=>k.collected),itemStates:items.map(i=>i.collected),sourceChapter:1}};localStorage.setItem('mosSaveSlotsV1',JSON.stringify(slots));alert('Progress saved to slot '+(slot+1)+(completed?' · Next: Chapter 2':''))}
  const saveButton=document.createElement('button');saveButton.textContent='SAVE PROGRESS';saveButton.style.cssText='display:none;margin:8px auto;background:#101010dd;color:#fff;border:1px solid #ffffff66;border-radius:8px;padding:12px 18px;font:bold 12px monospace;touch-action:manipulation';saveButton.onclick=()=>{const n=prompt('Save to slot 1, 2, or 3?');if(['1','2','3'].includes(n))saveChapterOne(Number(n)-1)};const winButtons=document.createElement('div');winButtons.style.cssText='width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;margin-top:8px';const menuButton=document.createElement('button');menuButton.textContent='BACK TO MENU';menuButton.style.cssText=saveButton.style.cssText.replace('display:none;','');menuButton.onclick=()=>{try{parent.document.getElementById('exitChapter').click()}catch{location.href='maze-of-shadows-menu.html'}};const nextButton=document.createElement('button');nextButton.textContent='NEXT CHAPTER';nextButton.style.cssText=menuButton.style.cssText;nextButton.onclick=()=>{try{parent.launchChapter2()}catch{location.href='maze-of-shadows-menu.html'}};winButtons.append(menuButton,nextButton,saveButton);document.getElementById('game-over').appendChild(winButtons);
  const inv=document.createElement('div');inv.id='mos-roblox-inventory';inv.style.cssText='position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:9998;display:flex;gap:5px;max-width:95vw';document.body.appendChild(inv);
- function renderInventory(){inv.innerHTML='';Object.entries(inventory).forEach(([name,count],i)=>{const b=document.createElement('button');b.innerHTML='<small style="display:block;color:#ffe28a">'+(i+1)+'</small>'+name+'<br><b>×'+count+'</b>';b.style.cssText='min-width:65px;min-height:52px;background:#050805dd;color:white;border:1px solid #ffffff88;border-radius:7px;font:11px monospace;touch-action:manipulation';b.onclick=()=>{if(name==='medkit'&&count>0&&health<maxHealth){health=Math.min(maxHealth,health+40);inventory.medkit--}else if(name==='battery'&&count>0&&battery<100){battery=Math.min(100,battery+50);inventory.battery--}else if(name==='adrenaline'&&count>0){adrenalineTimer=8;inventory.adrenaline--}renderInventory()};inv.appendChild(b)})}
+ function renderInventory(){inv.innerHTML='';Object.entries(inventory).forEach(([name,count],i)=>{const b=document.createElement('button');b.innerHTML='<small style="display:block;color:#ffe28a">'+(i+1)+'</small>'+name+'<br><b>×'+count+'</b>';b.style.cssText='min-width:65px;min-height:52px;background:#050805dd;color:white;border:1px solid #ffffff88;border-radius:7px;font:11px monospace;touch-action:manipulation';const useSlot=()=>{if(name==='medkit'&&count>0&&health<maxHealth){health=Math.min(maxHealth,health+40);inventory.medkit--}else if(name==='battery'&&count>0&&battery<100){battery=Math.min(100,battery+50);inventory.battery--}else if(name==='adrenaline'&&count>0){adrenalineTimer=8;inventory.adrenaline--}renderInventory()};let lastInventoryTouch=0;b.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();lastInventoryTouch=Date.now();useSlot()},{passive:false});b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();if(Date.now()-lastInventoryTouch<700)return;useSlot()});inv.appendChild(b)})}
  const _mosRenderOnPickup=collectItem;collectItem=function(item){const result=_mosRenderOnPickup(item);renderInventory();return result};
  renderInventory();
  window.addEventListener('keydown',e=>{if(/^Digit[1-9]$/.test(e.code)){const i=Number(e.code.slice(5))-1;const name=Object.keys(inventory)[i];if(!name)return;const count=inventory[name];if(count<=0)return;if(name==='medkit'&&health<maxHealth){health=Math.min(maxHealth,health+40);inventory[name]--}else if(name==='battery'&&battery<100){battery=Math.min(100,battery+50);inventory[name]--}else if(name==='adrenaline'){adrenalineTimer=8;inventory[name]--}renderInventory()}});

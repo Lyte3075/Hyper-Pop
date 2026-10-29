@@ -452,28 +452,29 @@
             }
             requestAnimationFrame(onWindowResize);
 
-            sprintBtn.addEventListener('touchstart', (e) => { e.preventDefault(); isSprinting = true; });
-            sprintBtn.addEventListener('touchend', (e) => { e.preventDefault(); isSprinting = false; });
+            sprintBtn.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); isSprinting = true; }, {passive:false});
+            sprintBtn.addEventListener('touchend', (e) => { e.preventDefault(); isSprinting = false; }, {passive:false});
+            sprintBtn.addEventListener('touchcancel', () => { isSprinting = false; });
             sprintBtn.addEventListener('mousedown', () => isSprinting = true);
-            sprintBtn.addEventListener('mouseup', () => isSprinting = false);
+            window.addEventListener('mouseup', () => isSprinting = false);
 
-            flashBtn.addEventListener('click', () => {
-                if (battery > 0) {
-                    flashlightOn = !flashlightOn;
-                    flashlight.intensity = flashlightOn ? 3.5 : 0;
-                }
+            const bindMobileAction = (button, action) => {
+                let lastTouchAt = 0;
+                button.addEventListener('touchstart', e => {
+                    e.preventDefault(); e.stopPropagation(); lastTouchAt = Date.now(); action();
+                }, {passive:false});
+                button.addEventListener('click', e => {
+                    e.preventDefault(); e.stopPropagation();
+                    if (Date.now() - lastTouchAt < 700) return;
+                    action();
+                });
+            };
+            bindMobileAction(flashBtn, () => {
+                if (battery > 0) { flashlightOn = !flashlightOn; flashlight.intensity = flashlightOn ? 3.5 : 0; }
             });
-
-            hideBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                toggleHideInLocker();
-            });
-
-            useItemBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                if (nearbyPickup) collectItem(nearbyPickup);
-                /* Interaction never consumes inventory items. */
-            });
+            bindMobileAction(hideBtn, () => toggleHideInLocker());
+            bindMobileAction(useItemBtn, () => { if (nearbyPickup) collectItem(nearbyPickup); /* Interaction never consumes inventory items. */ });
+            if (typeof crouchBtn !== 'undefined' && crouchBtn) bindMobileAction(crouchBtn, () => { if (isHidden || currentLocker) toggleHideInLocker(); else toggleCrouch(); });
 
             animate();
         }
@@ -1907,7 +1908,7 @@ const hpSoundLoop=setInterval(()=>{
  function saveChapterOne(slot){const slots=read('mosSaveSlotsV1',[null,null,null]);const campaign=read('mosCampaignV1',{unlocked:1,beaten:[]});const completed=campaign.beaten&&campaign.beaten.includes(1);slots[slot]={chapter:completed?2:1,savedAt:Date.now(),health:Math.round(health),battery:Math.round(battery),inventory:Object.entries(inventory).map(([k,v])=>k+' ×'+v).join(', '),state:{health,battery,stamina,keysFound,inventory,player:{x:camera.position.x,z:camera.position.z,yaw:rotation.yaw,pitch:rotation.pitch},keyStates:keys.map(k=>k.collected),itemStates:items.map(i=>i.collected),sourceChapter:1}};localStorage.setItem('mosSaveSlotsV1',JSON.stringify(slots));alert('Progress saved to slot '+(slot+1)+(completed?' · Next: Chapter 2':''))}
  const saveButton=document.createElement('button');saveButton.textContent='SAVE PROGRESS';saveButton.style.cssText='display:none;margin:8px auto;background:#101010dd;color:#fff;border:1px solid #ffffff66;border-radius:8px;padding:12px 18px;font:bold 12px monospace;touch-action:manipulation';saveButton.onclick=()=>{const n=prompt('Save to slot 1, 2, or 3?');if(['1','2','3'].includes(n))saveChapterOne(Number(n)-1)};const winButtons=document.createElement('div');winButtons.style.cssText='width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;margin-top:8px';const menuButton=document.createElement('button');menuButton.textContent='BACK TO MENU';menuButton.style.cssText=saveButton.style.cssText.replace('display:none;','');menuButton.onclick=()=>{try{parent.document.getElementById('exitChapter').click()}catch{location.href='maze-of-shadows-menu.html'}};const nextButton=document.createElement('button');nextButton.textContent='NEXT CHAPTER';nextButton.style.cssText=menuButton.style.cssText;nextButton.onclick=()=>{try{parent.launchChapter2()}catch{location.href='maze-of-shadows-menu.html'}};winButtons.append(menuButton,nextButton,saveButton);document.getElementById('game-over').appendChild(winButtons);
  const inv=document.createElement('div');inv.id='mos-roblox-inventory';inv.style.cssText='position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:9998;display:flex;gap:5px;max-width:95vw';document.body.appendChild(inv);
- function renderInventory(){inv.innerHTML='';Object.entries(inventory).forEach(([name,count],i)=>{const b=document.createElement('button');b.innerHTML='<small style="display:block;color:#ffe28a">'+(i+1)+'</small>'+name+'<br><b>×'+count+'</b>';b.style.cssText='min-width:65px;min-height:52px;background:#050805dd;color:white;border:1px solid #ffffff88;border-radius:7px;font:11px monospace;touch-action:manipulation';b.onclick=()=>{if(name==='medkit'&&count>0&&health<maxHealth){health=Math.min(maxHealth,health+40);inventory.medkit--}else if(name==='battery'&&count>0&&battery<100){battery=Math.min(100,battery+50);inventory.battery--}else if(name==='adrenaline'&&count>0){adrenalineTimer=8;inventory.adrenaline--}renderInventory()};inv.appendChild(b)})}
+ function renderInventory(){inv.innerHTML='';Object.entries(inventory).forEach(([name,count],i)=>{const b=document.createElement('button');b.innerHTML='<small style="display:block;color:#ffe28a">'+(i+1)+'</small>'+name+'<br><b>×'+count+'</b>';b.style.cssText='min-width:65px;min-height:52px;background:#050805dd;color:white;border:1px solid #ffffff88;border-radius:7px;font:11px monospace;touch-action:manipulation';const useSlot=()=>{if(name==='medkit'&&count>0&&health<maxHealth){health=Math.min(maxHealth,health+40);inventory.medkit--}else if(name==='battery'&&count>0&&battery<100){battery=Math.min(100,battery+50);inventory.battery--}else if(name==='adrenaline'&&count>0){adrenalineTimer=8;inventory.adrenaline--}renderInventory()};let lastInventoryTouch=0;b.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();lastInventoryTouch=Date.now();useSlot()},{passive:false});b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();if(Date.now()-lastInventoryTouch<700)return;useSlot()});inv.appendChild(b)})}
  const _mosRenderOnPickup=collectItem;collectItem=function(item){const result=_mosRenderOnPickup(item);renderInventory();return result};
  renderInventory();
  window.addEventListener('keydown',e=>{if(/^Digit[1-9]$/.test(e.code)){const i=Number(e.code.slice(5))-1;const name=Object.keys(inventory)[i];if(!name)return;const count=inventory[name];if(count<=0)return;if(name==='medkit'&&health<maxHealth){health=Math.min(maxHealth,health+40);inventory[name]--}else if(name==='battery'&&battery<100){battery=Math.min(100,battery+50);inventory[name]--}else if(name==='adrenaline'){adrenalineTimer=8;inventory[name]--}renderInventory()}});
