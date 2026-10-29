@@ -15,7 +15,7 @@
     fallbackOrb.addEventListener('click', function(){if (!document.getElementById('hp-sound-panel')) console.warn('[Hyper-Pop] Music player script has not initialized yet.');});
     (document.body || document.documentElement).appendChild(fallbackOrb);
   }
-  var files = ['terminal.js?v=cmdfix-10','site-sidebar.js?v=sidebar-2'];
+  var files = ['terminal.js?v=cmdfix-10','site-sidebar.js?v=sidebar-3'];
   if (!/\/accounts\.html$/.test(location.pathname)) files.unshift('account.js?v=profile-2');
   if (!soundtrackDisabled) files.push('soundtrack.js?v=page-mode-6');
   files.forEach(function(file){var node=document.createElement('script');node.src=new URL(file,base).href;node.async=false;node.onerror=function(){console.error('[Hyper-Pop] Failed to load '+node.src)};(document.head||document.documentElement).appendChild(node)});
