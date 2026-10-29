@@ -43,19 +43,28 @@
     }
     var panel=document.getElementById('hp-home-sidebar'),scrim=document.getElementById('hp-home-sidebar-scrim');
     if(!panel||!scrim)return;
-    var zone=document.getElementById('hp-swipe-zone');
-    if(!zone){zone=document.createElement('div');zone.id='hp-swipe-zone';zone.setAttribute('aria-hidden','true');document.body.appendChild(zone);}
+    // Track gestures at document level so the edge gesture survives page navigation
+    // and does not depend on a tiny overlay receiving iOS touch events.
     function setOpen(open){panel.classList.toggle('open',open);scrim.classList.toggle('open',open);panel.setAttribute('aria-hidden',String(!open));}
-    if(!scrim.dataset.hpBound){scrim.dataset.hpBound='1';scrim.addEventListener('click',function(){setOpen(false)});}
-    if(!panel.dataset.hpSwipeBound){
-      panel.dataset.hpSwipeBound='1';
-      panel.addEventListener('touchstart',function(e){var t=e.touches[0];panel._hpTouchX=t.clientX;panel._hpTouchY=t.clientY;},{passive:true});
-      panel.addEventListener('touchend',function(e){if(panel._hpTouchX==null)return;var t=e.changedTouches[0],dx=t.clientX-panel._hpTouchX,dy=t.clientY-panel._hpTouchY;if(dx < -65&&Math.abs(dx)>Math.abs(dy)*1.3)setOpen(false);panel._hpTouchX=null;},{passive:true});
-    }
-    if(!zone.dataset.hpBound){
-      zone.dataset.hpBound='1';
-      zone.addEventListener('touchstart',function(e){var t=e.touches[0];zone._hpTouchX=t.clientX;zone._hpTouchY=t.clientY;},{passive:true});
-      zone.addEventListener('touchend',function(e){if(zone._hpTouchX==null)return;var t=e.changedTouches[0],dx=t.clientX-zone._hpTouchX,dy=t.clientY-zone._hpTouchY;if(dx>55&&Math.abs(dx)>Math.abs(dy)*1.3)setOpen(true);zone._hpTouchX=null;},{passive:true});
+    if(!document.documentElement.dataset.hpEdgeSwipeBound){
+      document.documentElement.dataset.hpEdgeSwipeBound='1';
+      var edgeStart=null;
+      document.addEventListener('touchstart',function(e){
+        if(!e.touches||e.touches.length!==1)return;
+        var t=e.touches[0];
+        edgeStart={x:t.clientX,y:t.clientY,inside:!!e.target.closest('#hp-home-sidebar')};
+      },{passive:true,capture:true});
+      document.addEventListener('touchend',function(e){
+        if(!edgeStart||!e.changedTouches||!e.changedTouches.length)return;
+        var t=e.changedTouches[0],dx=t.clientX-edgeStart.x,dy=t.clientY-edgeStart.y;
+        if(Math.abs(dx)>55&&Math.abs(dx)>Math.abs(dy)*1.25){
+          if(edgeStart.inside&&dx<0)setOpen(false);
+          else if(!edgeStart.inside&&edgeStart.x<=36&&dx>0)setOpen(true);
+        }
+        edgeStart=null;
+      },{passive:true,capture:true});
+      document.addEventListener('touchcancel',function(){edgeStart=null},{passive:true,capture:true});
+      document.addEventListener('keydown',function(e){if(e.key==='Escape')setOpen(false)});
     }
     if(!panel.dataset.hpLinkBound){panel.dataset.hpLinkBound='1';panel.addEventListener('click',function(e){if(e.target.closest('a'))setOpen(false)});}
     document.addEventListener('keydown',function(e){if(e.key==='Escape')setOpen(false)});
@@ -76,7 +85,7 @@
       try{
         const response=await fetch(target.href,{credentials:'same-origin'});if(!response.ok)throw new Error('Page request failed: '+response.status);
         const markup=await response.text(),parsed=new DOMParser().parseFromString(markup,'text/html');if(!parsed.body||!parsed.title)throw new Error('Invalid page response');
-        const persistentNodes=['hp-sound-orb','hp-sound-panel','hp-terminal-launcher','hp-terminal'].map(id=>document.getElementById(id)).filter(Boolean);
+        const persistentNodes=['hp-sound-orb','hp-sound-panel','hp-terminal-launcher','hp-terminal','hp-home-sidebar','hp-home-sidebar-scrim','hp-swipe-zone'].map(id=>document.getElementById(id)).filter(Boolean);
         const bodyAttrs=[...parsed.body.attributes].map(a=>[a.name,a.value]);[...document.body.attributes].forEach(a=>document.body.removeAttribute(a.name));bodyAttrs.forEach(([name,value])=>document.body.setAttribute(name,value));
         document.body.replaceChildren();[...parsed.body.childNodes].forEach(node=>{if(!(node.nodeType===1&&node.tagName==='SCRIPT'))document.body.append(node.cloneNode(true))});persistentNodes.forEach(node=>document.body.append(node));
         document.title=parsed.title;
