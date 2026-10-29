@@ -2226,6 +2226,52 @@ ACCESS NODE READY...</pre>
             document.getElementById('status-msg').innerText='GATE UNLOCKED. THE BANISHER IS COMING. RUN TO THE CAR!';startBanisherChase(performance.now());
             if(computerTerminal){const ctx=computerTerminal.screenCtx;ctx.fillStyle='#001108';ctx.fillRect(0,0,512,384);ctx.strokeStyle='#1aff72';ctx.lineWidth=7;ctx.strokeRect(10,10,492,364);ctx.fillStyle='#4cff91';ctx.font='bold 34px monospace';ctx.fillText('ACCESS GRANTED',28,70);ctx.font='24px monospace';ctx.fillText('> GATE: OPEN',28,132);ctx.fillText('> ROUTE: CLEAR',28,176);ctx.fillText('> GET TO THE CAR',28,240);computerTerminal.screenFace.material.map.needsUpdate=true;}
         }
+        function runMazeCommand(command){
+            const normalized=String(command||'').trim().toLowerCase();
+            if(normalized!=='/chase')return false;
+            // Mark every fuel canister as collected and remove any remaining world pickups.
+            keys.forEach(k=>{k.collected=true;if(k.mesh)scene.remove(k.mesh);});
+            keysFound=totalKeys;
+            const tracker=document.getElementById('key-tracker');
+            if(tracker)tracker.innerText='FUEL CANISTERS: '+keysFound+' / '+totalKeys;
+            const status=document.getElementById('status-msg');
+            if(status)status.innerText='DEBUG COMMAND: ALL CANISTERS SECURED. CHASE STARTED!';
+            // Close any terminal UI and place the player safely beside the terminal, clear of its collision boxes.
+            terminalOpen=false;
+            const panel=document.getElementById('terminal-panel');
+            if(panel)panel.classList.remove('visible');
+            isPaused=false;isGameOver=false;health=Math.max(1,health);lastTime=performance.now();
+            if(computerTerminal){
+                camera.position.set(computerTerminal.position.x,1.6,computerTerminal.position.z+3.2);
+                camera.updateMatrixWorld(true);
+            }
+            // Open the exit exactly as the normal authorization flow does.
+            if(!gateUnlocked){
+                gateUnlocked=true;banisherScheduled=false;banisherNextAt=0;
+                if(banisherActive)endBanisherEvent(performance.now());
+                if(exitGateBlocker){wallBoxes=wallBoxes.filter(box=>box!==exitGateBlocker);exitGateBlocker=null;}
+                exitGateLeaves.forEach(gate=>{gate.rotation.y=Math.PI/2;gate.position.x+=cellSize*0.48;});
+                if(computerTerminal&&computerTerminal.screenCtx){
+                    const ctx=computerTerminal.screenCtx;ctx.fillStyle='#001108';ctx.fillRect(0,0,512,384);
+                    ctx.strokeStyle='#1aff72';ctx.lineWidth=7;ctx.strokeRect(10,10,492,364);
+                    ctx.fillStyle='#4cff91';ctx.font='bold 34px monospace';ctx.fillText('ACCESS GRANTED',28,70);
+                    ctx.font='24px monospace';ctx.fillText('> GATE: OPEN',28,132);ctx.fillText('> ROUTE: CLEAR',28,176);ctx.fillText('> GET TO THE CAR',28,240);
+                    if(computerTerminal.screenFace&&computerTerminal.screenFace.material.map)computerTerminal.screenFace.material.map.needsUpdate=true;
+                }
+            }
+            startBanisherChase(performance.now());
+            return true;
+        }
+        // Press / to enter a developer command. Type /chase to skip collection and start the escape sequence.
+        window.addEventListener('keydown',e=>{
+            if(e.key!=='/'||e.repeat||e.ctrlKey||e.metaKey||e.altKey)return;
+            const target=e.target;
+            if(target&&(target.isContentEditable||/INPUT|TEXTAREA|SELECT/.test(target.tagName)))return;
+            e.preventDefault();
+            const command=window.prompt('MAZE OF SHADOWS COMMAND\\nEnter /chase to collect all canisters, teleport to the terminal, open the gate, and start the chase:');
+            if(command===null)return;
+            if(!runMazeCommand(command))window.alert('Unknown command. Try /chase');
+        });
         document.getElementById('interact-computer-btn').addEventListener('click',openComputerTerminal);
         document.getElementById('terminal-unlock-btn').addEventListener('click',authorizeGateRelease);
         document.getElementById('terminal-close-btn').addEventListener('click',()=>{terminalOpen=false;isPaused=false;lastTime=performance.now();document.getElementById('terminal-panel').classList.remove('visible');});
