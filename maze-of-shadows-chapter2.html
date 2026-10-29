@@ -648,10 +648,23 @@ ACCESS NODE READY...</pre>
                 if(Math.abs(c-10)<=1 && Math.abs(r-10)<=1) continue;
                 if(r<=2 && c>=8 && c<=12) continue;
                 if(r>=18 && c>=8 && c<=12) continue;
+                let nearProp = false;
+                for (let dr=-1; dr<=1; dr++) for (let dc=-1; dc<=1; dc++) {
+                    if (mazeGrid[r+dr]?.[c+dc] === 2) nearProp = true;
+                }
+                if (nearProp) continue;
                 crouchCandidates.push({c,r});
             }
             for(let i=crouchCandidates.length-1;i>0;i--){const j=(i*19+7)%(i+1);[crouchCandidates[i],crouchCandidates[j]]=[crouchCandidates[j],crouchCandidates[i]];}
-            crouchCandidates.slice(0,50).forEach(({c,r})=>crouchableCells.add(`${c},${r}`));
+            for (const candidate of crouchCandidates) {
+                if (crouchableCells.size >= 50) break;
+                let separated = true;
+                for (const key of crouchableCells) {
+                    const parts = key.split(',').map(Number);
+                    if (Math.max(Math.abs(candidate.c-parts[0]),Math.abs(candidate.r-parts[1])) <= 1) { separated = false; break; }
+                }
+                if (separated) crouchableCells.add(`${candidate.c},${candidate.r}`);
+            }
             const wallGeo = new THREE.BoxGeometry(cellSize, hedgeHeight, cellSize);
             const lockerBodyMat=new THREE.MeshStandardMaterial({color:0x243b31,metalness:0.55,roughness:0.38}),lockerDoorMat=new THREE.MeshStandardMaterial({color:0x344b40,metalness:0.62,roughness:0.34}),lockerDarkMat=new THREE.MeshStandardMaterial({color:0x080d0b,roughness:0.98}),lockerTrimMat=new THREE.MeshStandardMaterial({color:0x111a16,metalness:0.65,roughness:0.32}),lockerHandleMat=new THREE.MeshStandardMaterial({color:0x9aa39b,metalness:0.82,roughness:0.24});
             function makeLocker(){
@@ -811,6 +824,11 @@ ACCESS NODE READY...</pre>
             for (let r = 1; r < mazeGrid.length - 1; r++) {
                 for (let c = 1; c < mazeGrid[r].length - 1; c++) {
                     if (mazeGrid[r][c] !== 0) continue;
+                    let besideCrouchOpening = false;
+                    for (let dr=-1; dr<=1; dr++) for (let dc=-1; dc<=1; dc++) {
+                        if (crouchableCells.has(`${c+dc},${r+dr}`)) besideCrouchOpening = true;
+                    }
+                    if (besideCrouchOpening) continue;
                     if (r >= 9 && r <= 11 && c >= 9 && c <= 11) continue;
                     if (r <= 2 && c >= 8 && c <= 12) continue;
                     if (r >= 18 && c >= 8 && c <= 12) continue;
