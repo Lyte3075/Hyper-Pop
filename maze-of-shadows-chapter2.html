@@ -71,12 +71,15 @@
             background: rgba(0, 0, 0, 0.6); border: 2px solid #fff; color: #fff;
             font-size: 11px; font-weight: bold; z-index: 25;
             display: flex; align-items: center; justify-content: center;
-            touch-action: manipulation;
+            touch-action: none; pointer-events: auto;
+            -webkit-user-select: none; user-select: none;
         }
+        #touch-overlay { z-index: 10; }
+        button { -webkit-tap-highlight-color: transparent; }
         #flashlight-btn { bottom: 25px; right: 15px; }
         #sprint-btn { bottom: 100px; right: 15px; }
         #crouch-btn { bottom: 175px; right: 15px; background: rgba(30,55,35,0.85); }
-        #hide-btn { bottom: 25px; right: 90px; background: rgba(0, 150, 255, 0.6); display: none; }
+        #hide-btn { display: none !important; }
         #use-item-btn { bottom: 100px; right: 90px; background: rgba(0, 255, 100, 0.6); display: none; }
 
         #banisher-jumpscare.monster-scare .scare-face { background: radial-gradient(circle at 40% 32%,#fff 0%,#f1f1f1 48%,#888 100%); box-shadow:0 0 70px #fff,0 0 140px #aaa; }
@@ -213,7 +216,7 @@
         #terminal-panel h2 { margin:0 0 16px; font-size:clamp(18px,3vw,28px); letter-spacing:.12em; }
         #terminal-output { white-space:pre-wrap; line-height:1.7; margin:0 0 20px; }
         .terminal-action { align-self:flex-start; background:#03190c; border:1px solid #32ff8d; color:#a4ffc6; padding:12px 16px; font:bold 14px monospace; margin:5px 8px 0 0; cursor:pointer; }
-        #interact-computer-btn { position:fixed; left:50%; bottom:22%; transform:translateX(-50%); z-index:28; display:none; background:#03190cdd; border:1px solid #32ff8d; color:#a4ffc6; padding:12px 18px; font:bold 13px monospace; border-radius:8px; touch-action:manipulation; }
+        #interact-computer-btn { position:fixed; left:50%; bottom:22%; transform:translateX(-50%); z-index:28; display:none; background:#03190cdd; border:1px solid #32ff8d; color:#a4ffc6; padding:12px 18px; font:bold 13px monospace; border-radius:8px; touch-action:none; pointer-events:auto; -webkit-user-select:none; user-select:none; }
         #start-btn {
             padding: 12px 28px; font-size: 16px; background: #330000;
             color: #fff; border: 1px solid #ff0000; margin-top: 25px; cursor: pointer;
@@ -244,7 +247,7 @@
     <button id="flashlight-btn" class="game-btn">LIGHT</button>
     <button id="sprint-btn" class="game-btn">RUN</button>
     <button id="crouch-btn" class="game-btn">CROUCH</button>
-    <button id="hide-btn" class="game-btn">HIDE</button>
+    <button id="hide-btn" class="game-btn" aria-hidden="true" tabindex="-1">HIDE</button>
     <button id="use-item-btn" class="game-btn">USE ITEM</button>
 
     <div id="touch-overlay">
@@ -329,7 +332,8 @@ ACCESS NODE READY...</pre>
         const joystickStick = document.getElementById('joystick-stick');
         const hideBtn = document.getElementById('hide-btn');
         const sprintBtn = document.getElementById('sprint-btn');
-        document.getElementById("crouch-btn").addEventListener("click", toggleCrouch);
+        const crouchBtn = document.getElementById("crouch-btn");
+        crouchBtn.addEventListener("click", () => { if (isHidden || currentLocker) toggleHideInLocker(); else toggleCrouch(); });
         const flashBtn = document.getElementById('flashlight-btn');
         const useItemBtn = document.getElementById('use-item-btn');
 
@@ -1273,7 +1277,8 @@ ACCESS NODE READY...</pre>
                 rotation.yaw = hidingLocker.rotation.y + Math.PI;
                 rotation.pitch = 0;
                 document.getElementById('status-msg').innerText = "HIDDEN IN LOCKER";
-                hideBtn.innerText = "EXIT";
+                crouchBtn.innerText = "EXIT";
+                crouchBtn.style.background = "rgba(0,150,255,0.85)";
                 monsters.forEach(m => { if (m.userData.type !== 'phantasm') m.userData.state = 'patrol'; });
                 if (phantasm) {
                     phantasm.visible = false;
@@ -1298,7 +1303,8 @@ ACCESS NODE READY...</pre>
                 currentLocker = null;
                 hidingLocker = null;
                 document.getElementById('status-msg').innerText = "";
-                hideBtn.innerText = "HIDE";
+                crouchBtn.innerText = "CROUCH";
+                crouchBtn.style.background = "rgba(30,55,35,0.85)";
                 if (phantasm) {
                     phantasm.visible = true;
                     phantasm.position.set(16, 1.2, 28);
@@ -1722,7 +1728,18 @@ ACCESS NODE READY...</pre>
                 // Preserve the active locker reference for the entire hiding period.
                 currentLocker = hidingLocker;
             }
-            hideBtn.style.display = (currentLocker || isHidden) ? 'flex' : 'none';
+            hideBtn.style.display = 'none';
+            crouchBtn.style.display = 'flex';
+            if (isHidden) {
+                crouchBtn.innerText = 'EXIT';
+                crouchBtn.style.background = 'rgba(0,150,255,0.85)';
+            } else if (currentLocker) {
+                crouchBtn.innerText = 'HIDE';
+                crouchBtn.style.background = 'rgba(0,150,255,0.85)';
+            } else {
+                crouchBtn.innerText = isCrouching ? 'STAND' : 'CROUCH';
+                crouchBtn.style.background = 'rgba(30,55,35,0.85)';
+            }
 
             // Movement
             if (!isHidden) {
