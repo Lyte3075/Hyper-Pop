@@ -3,6 +3,38 @@
 <style>
 html{scroll-behavior:smooth;scroll-padding-top:18px}.social-wrap{width:100%;max-width:1120px;margin-inline:auto;padding:clamp(16px,3vw,32px) clamp(12px,2.5vw,24px) 72px;min-width:0}.social-wrap nav{width:100%;min-width:0}.social-wrap nav .logo{min-width:0;overflow-wrap:anywhere}.social-wrap #account-slot{min-width:0;max-width:55%}.social-wrap .accountbar{justify-content:flex-end;max-width:100%}.social-wrap .accountbar a{max-width:100%;overflow-wrap:anywhere}
 .social-wrap{max-width:1120px;margin:0 auto;padding:clamp(16px,3vw,32px) clamp(12px,2.5vw,24px) 72px;min-width:0}.social-hero{padding:30px 0 24px}.social-hero h1{font-size:clamp(42px,8vw,72px);line-height:.98;letter-spacing:-.06em;margin:12px 0;background:linear-gradient(100deg,#fff 8%,var(--pink) 40%,var(--yellow) 62%,var(--cyan) 92%);-webkit-background-clip:text;background-clip:text;color:transparent}.social-hero p{color:var(--muted)}.social-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.social-tabs a{padding:10px 14px;border:1px solid var(--line);border-radius:999px;color:var(--muted);background:#ffffff05}.social-tabs a.active{color:#fff;border-color:#9b7bff88;background:#9b7bff18}.social-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:16px}.social-card{padding:20px;background:linear-gradient(145deg,#19192b,#10101e);border:1px solid var(--line);border-radius:20px;min-width:0}.social-card h2{margin:0 0 14px;font-size:20px}.social-card p{color:var(--muted);line-height:1.5}.social-input{width:100%;padding:12px 13px;border:1px solid var(--line);border-radius:12px;background:#ffffff08;color:#fff;font:inherit;margin:5px 0}.social-btn{padding:10px 13px;border:1px solid var(--line);border-radius:12px;background:#ffffff0d;color:#fff;font:inherit;cursor:pointer}.social-btn.primary{background:#f7f4ff;color:#11111f;border:0;font-weight:700}.social-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.social-list{display:grid;gap:8px}.social-item{padding:12px;border:1px solid #ffffff12;border-radius:13px;background:#ffffff05;display:flex;gap:10px;align-items:center;justify-content:space-between}.social-muted{font-size:12px;color:var(--muted)}.social-status{color:var(--cyan);font-size:12px;min-height:20px}.social-full{grid-column:1/-1}.social-empty{padding:18px;border:1px dashed #ffffff20;border-radius:14px;color:var(--muted);text-align:center}.social-stat{font:11px 'DM Mono',monospace;color:var(--cyan);text-transform:uppercase;letter-spacing:.08em}.social-chatbox{min-height:180px;max-height:360px;overflow:auto;display:grid;align-content:start;gap:8px}.social-bubble{padding:10px 12px;border-radius:13px;background:#ffffff0b;max-width:90%;overflow-wrap:anywhere}.social-bubble.mine{justify-self:end;background:#9b7bff22}.social-bubble small{display:block;color:var(--muted);font-size:10px;margin-bottom:4px}
+
+.social-card{box-shadow:0 18px 55px #0004;backdrop-filter:blur(14px)}
+.social-card h3{font-size:15px;margin:22px 0 10px;letter-spacing:-.02em}
+.social-hero{position:relative}.social-hero p{max-width:620px;line-height:1.6}
+.social-tabs{position:sticky;top:8px;z-index:20;padding:7px;background:#0b0b16d9;border:1px solid #ffffff12;border-radius:16px;backdrop-filter:blur(16px);width:max-content;max-width:100%}
+.social-tabs a{font-size:13px;transition:background .15s,border-color .15s}
+.social-tabs a:hover{background:#ffffff10;border-color:#ffffff28;color:#fff}
+.social-user-result{display:flex;align-items:center;gap:11px;padding:11px;border:1px solid #ffffff16;border-radius:14px;background:linear-gradient(120deg,#ffffff09,#ffffff03);min-width:0}
+.social-avatar{width:42px;height:42px;flex:0 0 42px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,var(--pink),var(--purple),var(--cyan));color:#fff;font-weight:700;font-size:17px;overflow:hidden}
+.social-avatar img{width:100%;height:100%;object-fit:cover}
+.social-user-info{flex:1;min-width:0;overflow-wrap:anywhere}
+.social-user-info strong{display:block;font-size:14px}
+.social-user-bio{font-size:12px;color:var(--muted);margin-top:3px;overflow-wrap:anywhere}
+.social-user-result .social-btn{white-space:nowrap;font-size:12px;padding:9px 10px}
+.social-user-result .social-btn:disabled{opacity:.55;cursor:default}
+.social-result-count{padding:2px 3px 5px;font:10px 'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase}
+#friend-results{margin-top:10px}
+#friend-search{min-width:0}
+.social-status{padding:9px 12px;border:1px solid #ffffff12;border-radius:12px;background:#ffffff05}
+.social-empty{font-size:13px;line-height:1.5}
+.social-item{transition:border-color .15s,background .15s}
+.social-item:hover{border-color:#ffffff28;background:#ffffff09}
+#chat-messages{padding:10px;background:#09091466;border:1px solid #ffffff10;border-radius:14px}
+#chat-form{margin-top:10px}
+@media(max-width:520px){
+ .social-tabs{width:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+ .social-tabs a{text-align:center;padding:9px 4px;font-size:12px}
+ .social-user-result{gap:8px;padding:9px}
+ .social-avatar{width:36px;height:36px;flex-basis:36px}
+ .social-user-result .social-btn{padding:8px;font-size:11px}
+ .social-hero{padding-top:22px}
+}
 @media(max-width:760px){.social-grid{grid-template-columns:minmax(0,1fr)}.social-full{grid-column:auto}.social-card{padding:clamp(14px,4vw,20px)}.social-hero h1{font-size:clamp(38px,10vw,64px);overflow-wrap:anywhere}.social-wrap nav{height:auto!important;min-height:64px;padding:10px 0;align-items:center}.social-wrap nav .logo{font-size:clamp(14px,4vw,19px)}.social-wrap #account-slot{max-width:52%}.social-wrap .accountbar{gap:5px}.social-wrap .accountbar a{white-space:normal;text-align:center}.social-row{min-width:0}.social-input{min-width:0;flex:1}.social-row button{flex-shrink:0}}@media(max-width:420px){.social-tabs a{padding:9px 11px;font-size:13px}.social-item{align-items:flex-start}.social-item>.social-row{justify-content:flex-end}.social-chatbox{max-height:300px}}
 </style></head><body><div class="social-wrap"><nav><a class="logo" href="index.html">✦ Hyper-Pop</a><div id="account-slot"></div></nav>
 <header class="social-hero"><div class="eyebrow">THE SOCIAL LAYER</div><h1>Better with friends.</h1><p>Find your people, make a party of up to six, and keep the chat going between games.</p></header>
