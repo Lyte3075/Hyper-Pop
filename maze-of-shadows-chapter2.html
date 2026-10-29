@@ -214,9 +214,7 @@
         #terminal-output { white-space:pre-wrap; line-height:1.7; margin:0 0 20px; }
         .terminal-action { align-self:flex-start; background:#03190c; border:1px solid #32ff8d; color:#a4ffc6; padding:12px 16px; font:bold 14px monospace; margin:5px 8px 0 0; cursor:pointer; }
         #interact-computer-btn { position:fixed; left:50%; bottom:22%; transform:translateX(-50%); z-index:28; display:none; background:#03190cdd; border:1px solid #32ff8d; color:#a4ffc6; padding:12px 18px; font:bold 13px monospace; border-radius:8px; touch-action:none; pointer-events:auto; -webkit-user-select:none; user-select:none; }
-        #static-fog { position:fixed; inset:-8%; z-index:9000; pointer-events:none; opacity:0; background:radial-gradient(ellipse at center,rgba(255,255,255,.99) 0%,rgba(255,255,255,.97) 35%,rgba(255,255,255,.86) 65%,rgba(255,255,255,.72) 100%); filter:blur(5px); transition:opacity .18s; }
-        #static-fog.active { opacity:1; animation:staticFogFlicker .12s steps(2,end) infinite; }
-        @keyframes staticFogFlicker { 0%,100%{filter:blur(4px) contrast(1.15)} 50%{filter:blur(8px) contrast(1.6)} }
+        /* The Static's warning is rendered through the 3D scene fog, not a screen overlay. */
         #banisher-jumpscare.scare-static { background:#f8f8f8; animation:staticFlash .08s steps(2,end) infinite!important; }
         #banisher-jumpscare.scare-static .scare-face { width:min(96vw,700px); border-radius:0; background:#050505; box-shadow:0 0 0 12px #fff,0 0 70px #fff; animation:staticLunge .46s steps(3,end) forwards; clip-path:polygon(0 15%,10% 20%,14% 5%,25% 18%,37% 0,45% 17%,57% 3%,68% 20%,82% 7%,89% 23%,100% 12%,94% 48%,100% 83%,84% 78%,76% 100%,61% 83%,49% 100%,37% 82%,22% 98%,16% 80%,0 88%,7% 53%); }
         #banisher-jumpscare.scare-static .scare-eye { background:#fff; box-shadow:0 0 25px #fff; width:16%; height:20%; top:25%; }
@@ -264,8 +262,7 @@
 
     <div id="joystick-base"><div id="joystick-stick"></div></div>
 
-    <div id="static-fog" aria-hidden="true"></div>
-    <div id="banisher-jumpscare" aria-hidden="true">
+     <div id="banisher-jumpscare" aria-hidden="true">
         <div class="scare-face">
             <div class="scare-eye left"></div><div class="scare-eye right"></div>
             <div class="scare-mouth"></div>
@@ -297,7 +294,7 @@ ACCESS NODE READY...</pre>
         let fxCanvas, fxCtx;
         let isGameOver = false;
         let staticLastMovedAt = performance.now(), staticWarning = false, staticHunting = false, staticMonster = null;
-        let staticAudioContext = null;
+        let staticAudioContext = null, staticShriekOsc = null, staticShriekGain = null, staticNoise = null, staticNoiseGain = null, staticSavedFog = null;
 
         // Player Stats & Inventory
         let maxHealth = 100, health = maxHealth;
@@ -697,12 +694,20 @@ ACCESS NODE READY...</pre>
 
                     if (mazeGrid[r][c] === 1) {
                         const canCrouchUnder = crouchableCells.has(`${c},${r}`);
-                        const wall = new THREE.Mesh(wallGeo, wallMat);
-                        wall.position.set(x, canCrouchUnder ? 1.38 : hedgeHeight / 2, z);
-                        scene.add(wall);
-                        wallBoxes.push(canCrouchUnder
-                            ? new THREE.Box3(new THREE.Vector3(x-cellSize/2,0.82,z-cellSize/2),new THREE.Vector3(x+cellSize/2,1.91,z+cellSize/2))
-                            : new THREE.Box3(new THREE.Vector3(x-cellSize/2,0,z-cellSize/2),new THREE.Vector3(x+cellSize/2,hedgeHeight,z+cellSize/2)));
+                        if (canCrouchUnder) {
+                            // Leave a real 0.98-unit gap below these 50 selected wall cells.
+                            const gapHeight = 0.98;
+                            const upperWallGeo = new THREE.BoxGeometry(cellSize, hedgeHeight-gapHeight, cellSize);
+                            const wall = new THREE.Mesh(upperWallGeo, wallMat);
+                            wall.position.set(x, gapHeight+(hedgeHeight-gapHeight)/2, z);
+                            scene.add(wall);
+                            wallBoxes.push(new THREE.Box3(new THREE.Vector3(x-cellSize/2,gapHeight,z-cellSize/2),new THREE.Vector3(x+cellSize/2,hedgeHeight,z+cellSize/2)));
+                        } else {
+                            const wall = new THREE.Mesh(wallGeo, wallMat);
+                            wall.position.set(x, hedgeHeight/2, z);
+                            scene.add(wall);
+                            wallBoxes.push(new THREE.Box3(new THREE.Vector3(x-cellSize/2,0,z-cellSize/2),new THREE.Vector3(x+cellSize/2,hedgeHeight,z+cellSize/2)));
+                        }
                     } 
                     else if (mazeGrid[r][c] === 2) {
                         const locker=makeLocker();let offsetX=0,offsetZ=-(cellSize / 2 - 0.22);
@@ -1378,17 +1383,43 @@ ACCESS NODE READY...</pre>
                 setTimeout(()=>ctx.close(),1800);
             }catch(e){}
         }
+        function startStaticWarning(){
+            if(!scene)return;
+            if(staticSavedFog===null)staticSavedFog={color:scene.fog.color.clone(),density:scene.fog.density};
+            scene.fog.color.set(0xffffff);scene.fog.density=0.24;
+            try{
+                const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+                staticAudioContext=staticAudioContext||new AC();staticAudioContext.resume();
+                staticShriekOsc=staticAudioContext.createOscillator();staticShriekGain=staticAudioContext.createGain();
+                staticShriekOsc.type='sawtooth';staticShriekOsc.frequency.setValueAtTime(720,staticAudioContext.currentTime);
+                staticShriekOsc.frequency.linearRampToValueAtTime(2100,staticAudioContext.currentTime+2.8);
+                staticShriekGain.gain.setValueAtTime(0.0001,staticAudioContext.currentTime);staticShriekGain.gain.linearRampToValueAtTime(0.11,staticAudioContext.currentTime+0.12);
+                staticShriekOsc.connect(staticShriekGain);staticShriekGain.connect(staticAudioContext.destination);staticShriekOsc.start();
+                const buffer=staticAudioContext.createBuffer(1,staticAudioContext.sampleRate*2,staticAudioContext.sampleRate),data=buffer.getChannelData(0);
+                for(let i=0;i<data.length;i++)data[i]=Math.random()*2-1;
+                staticNoise=staticAudioContext.createBufferSource();staticNoise.buffer=buffer;staticNoise.loop=true;
+                staticNoiseGain=staticAudioContext.createGain();staticNoiseGain.gain.value=0.065;
+                const filter=staticAudioContext.createBiquadFilter();filter.type='bandpass';filter.frequency.value=2900;filter.Q.value=0.7;
+                staticNoise.connect(filter);filter.connect(staticNoiseGain);staticNoiseGain.connect(staticAudioContext.destination);staticNoise.start();
+            }catch(e){}
+        }
+        function stopStaticWarning(){
+            try{if(staticShriekGain&&staticAudioContext){staticShriekGain.gain.cancelScheduledValues(staticAudioContext.currentTime);staticShriekGain.gain.setTargetAtTime(0.0001,staticAudioContext.currentTime,0.035);}if(staticNoiseGain&&staticAudioContext){staticNoiseGain.gain.setTargetAtTime(0.0001,staticAudioContext.currentTime,0.035);}if(staticShriekOsc){staticShriekOsc.stop(staticAudioContext.currentTime+0.18);staticShriekOsc=null;}if(staticNoise){staticNoise.stop(staticAudioContext.currentTime+0.18);staticNoise=null;}}catch(e){}
+            staticShriekGain=null;staticNoiseGain=null;
+            if(staticSavedFog&&scene&&!staticHunting){scene.fog.color.copy(staticSavedFog.color);scene.fog.density=staticSavedFog.density;staticSavedFog=null;}
+        }
         function updateStatic(now){
             if(!staticMonster||isGameOver||isPaused)return;
             const ud=staticMonster.userData,dx=camera.position.x-(ud.lastX??camera.position.x),dz=camera.position.z-(ud.lastZ??camera.position.z);
-            if(Math.hypot(dx,dz)>.045){staticLastMovedAt=now;ud.lastX=camera.position.x;ud.lastZ=camera.position.z;if(staticWarning){staticWarning=false;document.getElementById('static-fog').classList.remove('active');}}
+            if(Math.hypot(dx,dz)>.045){staticLastMovedAt=now;ud.lastX=camera.position.x;ud.lastZ=camera.position.z;if(staticWarning){staticWarning=false;stopStaticWarning();}}
             const idle=now-staticLastMovedAt;
-            if(idle>=27000&&!staticWarning&&!staticHunting){staticWarning=true;document.getElementById('static-fog').classList.add('active');}
-            if(computerTerminal && Math.hypot(camera.position.x-computerTerminal.position.x,camera.position.z-computerTerminal.position.z)<5.8){staticLastMovedAt=now;staticWarning=false;staticHunting=false;staticMonster.visible=false;document.getElementById('static-fog').classList.remove('active');return;}
+            if(idle>=25000&&!staticWarning&&!staticHunting){staticWarning=true;startStaticWarning();}
+            if(computerTerminal && Math.hypot(camera.position.x-computerTerminal.position.x,camera.position.z-computerTerminal.position.z)<5.8){staticLastMovedAt=now;staticWarning=false;staticHunting=false;staticMonster.visible=false;stopStaticWarning();return;}
             if(idle>=30000&&!staticHunting){staticHunting=true;staticMonster.visible=true;staticMonster.position.set(camera.position.x+Math.sin(rotation.yaw)*13,1.6,camera.position.z+Math.cos(rotation.yaw)*13);ud.lastX=camera.position.x;ud.lastZ=camera.position.z;
-                document.getElementById('static-fog').classList.add('active');
+                if(staticSavedFog===null)staticSavedFog={color:scene.fog.color.clone(),density:scene.fog.density};
+                scene.fog.color.set(0xffffff);scene.fog.density=0.19;stopStaticWarning();
                 if(isHidden&&hidingLocker){scene.remove(hidingLocker);lockers=lockers.filter(l=>l!==hidingLocker);isHidden=false;currentLocker=null;hidingLocker=null;camera.position.y=1.6;}}
-            if(staticHunting){staticMonster.lookAt(camera.position.x,staticMonster.position.y,camera.position.z);const x=camera.position.x-staticMonster.position.x,z=camera.position.z-staticMonster.position.z,d=Math.hypot(x,z)||1;staticMonster.position.x+=x/d*.72;staticMonster.position.z+=z/d*.72;staticMonster.position.y=1.6+Math.sin(now*.025)*.2;if(d<1.35){document.getElementById('static-fog').classList.add('active');health=0;activeAttacker='static';}}
+            if(staticHunting){staticMonster.lookAt(camera.position.x,staticMonster.position.y,camera.position.z);const x=camera.position.x-staticMonster.position.x,z=camera.position.z-staticMonster.position.z,d=Math.hypot(x,z)||1;staticMonster.position.x+=x/d*.72;staticMonster.position.z+=z/d*.72;staticMonster.position.y=1.6+Math.sin(now*.025)*.2;if(d<1.35){scene.fog.color.set(0xffffff);scene.fog.density=0.19;health=0;activeAttacker='static';}}
         }
         function setupTouchControls() {
             moveZone.addEventListener('touchstart', (e) => {
