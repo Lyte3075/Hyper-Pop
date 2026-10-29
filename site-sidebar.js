@@ -1,5 +1,6 @@
 /* Hyper-Pop global navigation sidebar */
 (function(){
+ function initSidebar(){
  if(document.getElementById('hp-site-sidebar')) return;
  const css=document.createElement('style');css.textContent=`
  #hp-side-toggle{position:fixed;z-index:2147483000;left:14px;top:14px;width:44px;height:44px;border:1px solid #ffffff24;border-radius:14px;background:#11111feF;color:#fff;font-size:20px;cursor:pointer;backdrop-filter:blur(14px);box-shadow:0 8px 28px #0005}
@@ -26,4 +27,6 @@
  toggle.addEventListener('click',()=>setOpen(!aside.classList.contains('open')));scrim.addEventListener('click',()=>setOpen(false));document.addEventListener('keydown',e=>{if(e.key==='Escape')setOpen(false)});
  document.body.append(scrim,aside,toggle);
  aside.addEventListener('click',e=>{if(e.target.closest('a'))setOpen(false)});
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initSidebar,{once:true});else initSidebar();
 })();
