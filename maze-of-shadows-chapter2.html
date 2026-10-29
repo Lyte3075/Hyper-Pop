@@ -755,8 +755,12 @@
             const hospitalMain = new THREE.Mesh(new THREE.BoxGeometry(25, 22, 12), facadeMat);
             hospitalMain.position.set(centerX, 11, -19.4);
             scene.add(hospitalMain);
+            // Register the building as solid geometry so movement collision stops the player at its walls.
+            wallBoxes.push(new THREE.Box3().setFromObject(hospitalMain));
             const hospitalFront = new THREE.Mesh(new THREE.BoxGeometry(18, 8.5, 0.5), facadeMat);
-            hospitalFront.position.set(centerX, 4.1, -13.25); scene.add(hospitalFront);
+            hospitalFront.position.set(centerX, 4.1, -13.25);
+            scene.add(hospitalFront);
+            wallBoxes.push(new THREE.Box3().setFromObject(hospitalFront));
             // Repeating dark upper-storey window bands make the building read as several floors.
             for (let floor = 0; floor < 5; floor++) {
                 for (let col = -2; col <= 2; col++) {
@@ -766,20 +770,26 @@
                     scene.add(upperWindow);
                 }
             }
-            // Dense, near-black fog banks sit immediately along both sides of the hospital approach.
+            // Side fog uses the exact night-sky color and fades at the edges, so it blends into the horizon.
+            const fogCanvas = document.createElement('canvas');
+            fogCanvas.width = 16; fogCanvas.height = 256;
+            const fogCtx = fogCanvas.getContext('2d');
+            const fogGradient = fogCtx.createLinearGradient(0, 0, 16, 0);
+            fogGradient.addColorStop(0, 'rgba(2,11,43,0)');
+            fogGradient.addColorStop(0.2, 'rgba(2,11,43,0.72)');
+            fogGradient.addColorStop(0.5, 'rgba(2,11,43,0.96)');
+            fogGradient.addColorStop(0.8, 'rgba(2,11,43,0.72)');
+            fogGradient.addColorStop(1, 'rgba(2,11,43,0)');
+            fogCtx.fillStyle = fogGradient; fogCtx.fillRect(0, 0, 16, 256);
             const sideFogMat = new THREE.MeshBasicMaterial({
-                color: 0x02050b, transparent: true, opacity: 0.82,
+                map: new THREE.CanvasTexture(fogCanvas), transparent: true,
                 side: THREE.DoubleSide, depthWrite: false
             });
             for (const side of [-1, 1]) {
-                const fogBank = new THREE.Mesh(new THREE.PlaneGeometry(11, 18), sideFogMat);
-                fogBank.position.set(centerX + side * 9.7, 8.5, -7.0);
+                const fogBank = new THREE.Mesh(new THREE.PlaneGeometry(11, 22), sideFogMat);
+                fogBank.position.set(centerX + side * 9.7, 10.5, -7.0);
                 fogBank.rotation.y = Math.PI / 2;
                 scene.add(fogBank);
-                const fogBase = new THREE.Mesh(new THREE.PlaneGeometry(11, 8), sideFogMat);
-                fogBase.position.set(centerX + side * 9.7, 3.7, -7.0);
-                fogBase.rotation.y = Math.PI / 2;
-                scene.add(fogBase);
             }
             const entranceCanopy = new THREE.Mesh(new THREE.BoxGeometry(7.2, 0.38, 2.3), concreteMat);
             entranceCanopy.position.set(centerX, 5.5, -12.3); scene.add(entranceCanopy);
