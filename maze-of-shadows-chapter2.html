@@ -71,10 +71,8 @@
             background: rgba(0, 0, 0, 0.6); border: 2px solid #fff; color: #fff;
             font-size: 11px; font-weight: bold; z-index: 25;
             display: flex; align-items: center; justify-content: center;
-            touch-action: manipulation; pointer-events: auto;
-            -webkit-user-select: none; user-select: none;
+            touch-action: manipulation;
         }
-        button { -webkit-tap-highlight-color: transparent; }
         #flashlight-btn { bottom: 25px; right: 15px; }
         #sprint-btn { bottom: 100px; right: 15px; }
         #crouch-btn { bottom: 175px; right: 15px; background: rgba(30,55,35,0.85); }
@@ -628,8 +626,21 @@ ACCESS NODE READY...</pre>
             };
 
 
-            // Hedge cells are solid to the ground. Grass cover is added to 20 walkable floor cells.
+            // Most hedge cells are solid to the ground; selected hedge cells can be crouched beneath.
             const hedgeHeight = 2.76;
+            const crouchableCells = new Set();
+            const protectedCrouchCells = new Set(["10,10","10,9","10,11","9,10","11,10","19,13","13,19","7,17","1,15","17,7","9,11","3,9","11,3","5,3","3,1","15,1","5,17","10,1","10,19"]);
+            const crouchCandidates = [];
+            for(let r=1;r<mazeGrid.length-1;r++) for(let c=1;c<mazeGrid[r].length-1;c++) {
+                if(mazeGrid[r][c]!==1 || protectedCrouchCells.has(`${c},${r}`)) continue;
+                // Keep cells away from the central terminal, entrance, and exit route.
+                if(Math.abs(c-10)<=1 && Math.abs(r-10)<=1) continue;
+                if(r<=2 && c>=8 && c<=12) continue;
+                if(r>=18 && c>=8 && c<=12) continue;
+                crouchCandidates.push({c,r});
+            }
+            for(let i=crouchCandidates.length-1;i>0;i--){const j=(i*19+7)%(i+1);[crouchCandidates[i],crouchCandidates[j]]=[crouchCandidates[j],crouchCandidates[i]];}
+            crouchCandidates.slice(0,50).forEach(({c,r})=>crouchableCells.add(`${c},${r}`));
             const wallGeo = new THREE.BoxGeometry(cellSize, hedgeHeight, cellSize);
             const lockerBodyMat=new THREE.MeshStandardMaterial({color:0x243b31,metalness:0.55,roughness:0.38}),lockerDoorMat=new THREE.MeshStandardMaterial({color:0x344b40,metalness:0.62,roughness:0.34}),lockerDarkMat=new THREE.MeshStandardMaterial({color:0x080d0b,roughness:0.98}),lockerTrimMat=new THREE.MeshStandardMaterial({color:0x111a16,metalness:0.65,roughness:0.32}),lockerHandleMat=new THREE.MeshStandardMaterial({color:0x9aa39b,metalness:0.82,roughness:0.24});
             function makeLocker(){
@@ -671,10 +682,13 @@ ACCESS NODE READY...</pre>
                     const z = r * cellSize;
 
                     if (mazeGrid[r][c] === 1) {
+                        const canCrouchUnder = crouchableCells.has(`${c},${r}`);
                         const wall = new THREE.Mesh(wallGeo, wallMat);
-                        wall.position.set(x, 1.38, z);
+                        wall.position.set(x, canCrouchUnder ? 1.38 : hedgeHeight / 2, z);
                         scene.add(wall);
-                        wallBoxes.push(new THREE.Box3(new THREE.Vector3(x-cellSize/2,0,z-cellSize/2),new THREE.Vector3(x+cellSize/2,hedgeHeight,z+cellSize/2)));
+                        wallBoxes.push(canCrouchUnder
+                            ? new THREE.Box3(new THREE.Vector3(x-cellSize/2,0.82,z-cellSize/2),new THREE.Vector3(x+cellSize/2,1.91,z+cellSize/2))
+                            : new THREE.Box3(new THREE.Vector3(x-cellSize/2,0,z-cellSize/2),new THREE.Vector3(x+cellSize/2,hedgeHeight,z+cellSize/2)));
                     } 
                     else if (mazeGrid[r][c] === 2) {
                         const locker=makeLocker();let offsetX=0,offsetZ=-(cellSize / 2 - 0.22);
