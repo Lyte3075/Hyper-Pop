@@ -2240,6 +2240,30 @@ ACCESS NODE READY...</pre>
             route.forEach((cell,i)=>{const p=cellToWorld(cell.c,cell.r);const mat=new THREE.MeshBasicMaterial({color:0x7dffb2,transparent:true,opacity:.88});const orb=new THREE.Mesh(new THREE.SphereGeometry(i===0?.14:.11,8,6),mat);orb.position.set(p.x,.13+Math.sin(now*.006+i)*.025,p.z);scene.add(orb);chaseTrailMeshes.push(orb);});
             if(route.length){const end=cellToWorld(route[route.length-1].c,route[route.length-1].r);for(let i=1;i<=8;i++){const mat=new THREE.MeshBasicMaterial({color:0x7dffb2,transparent:true,opacity:.88});const orb=new THREE.Mesh(new THREE.SphereGeometry(.11,8,6),mat);orb.position.set(end.x,.13,end.z+i*.7);scene.add(orb);chaseTrailMeshes.push(orb);}}
         }
+        function spawnChaseMazeBlockoffs(){
+            // Reusable chase-only hedge slabs close selected corridors while preserving a route to the exit.
+            const start=nearestWalkableCell(camera.position.x,camera.position.z,worldToCell(camera.position.x,camera.position.z));
+            const goal=nearestWalkableCell(10*cellSize,(mazeGrid.length-2)*cellSize, {c:10,r:mazeGrid.length-2});
+            if(!start||!goal)return;
+            const original=findAStarPath(start,goal)||[];
+            if(original.length<9)return;
+            const hedgeMat=new THREE.MeshStandardMaterial({color:0x18281c,roughness:1,emissive:0x061008,emissiveIntensity:.18});
+            let placed=0;
+            // Try several cells along the direct route. Keep a block only when the exit remains reachable
+            // and the new shortest route is meaningfully longer than before.
+            for(let i=4;i<original.length-3&&placed<4;i+=3){
+                const cell=original[i],r=cell.r,c=cell.c;
+                if(r<2||r>mazeGrid.length-3||c<1||c>mazeGrid[0].length-2||mazeGrid[r][c]!==0)continue;
+                mazeGrid[r][c]=1;
+                const detour=findAStarPath(start,goal);
+                if(!detour||detour.length<original.length+3){mazeGrid[r][c]=0;continue;}
+                const center=cellToWorld(c,r),hedgeHeight=2.76;
+                const slab=new THREE.Mesh(new THREE.BoxGeometry(cellSize*.94,hedgeHeight,cellSize*.94),hedgeMat.clone());
+                slab.position.set(center.x,hedgeHeight/2,center.z);scene.add(slab);
+                wallBoxes.push(new THREE.Box3(new THREE.Vector3(center.x-cellSize*.47,0,center.z-cellSize*.47),new THREE.Vector3(center.x+cellSize*.47,hedgeHeight,center.z+cellSize*.47)));
+                chaseBreakables.push(slab);placed++;
+            }
+        }
         function startBanisherChase(now){
             if(banisherChaseActive||isGameOver)return;
             banisherChaseActive=true;banisherChaseStartedAt=now;banisherActive=false;banisherPhase='chase';
@@ -2248,7 +2272,7 @@ ACCESS NODE READY...</pre>
             const p=worldToCell(camera.position.x,camera.position.z),start=nearestWalkableCell(camera.position.x,camera.position.z,p),spawn=cellToWorld(start.c,start.r);
             const away=new THREE.Vector3(camera.position.x-spawn.x,0,camera.position.z-spawn.z);if(away.lengthSq()<1)away.set(0,0,-1);away.normalize();
             banisherFace.position.set(camera.position.x-away.x*10,0,camera.position.z-away.z*10);scene.add(banisherFace);
-            banisherLastFrame=now;banisherHeadstartUntil=now+5000;chaseTrailLastBuild=0;clearChaseGuidingTrail();updateChaseGuidingTrail(now);
+            banisherLastFrame=now;banisherHeadstartUntil=now+5000;spawnChaseMazeBlockoffs();chaseTrailLastBuild=0;clearChaseGuidingTrail();updateChaseGuidingTrail(now);
             const cutscene=document.getElementById('chase-cutscene'),countdown=document.getElementById('chase-countdown');
             if(cutscene)cutscene.classList.add('active');
             document.getElementById('status-msg').innerText='THE BANISHER IS RELEASED. YOU HAVE 5 SECONDS. FOLLOW THE GLOWING TRAIL!';
