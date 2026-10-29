@@ -1406,6 +1406,21 @@ ACCESS NODE READY...</pre>
             for(let i=0;i<8;i++){const shard=new THREE.Mesh(new THREE.ConeGeometry(0.12,0.32,3),i%2?white:dark);shard.position.set(-0.85+i*0.24,0.65+(i%2)*0.1,0);shard.rotation.z=(i%2?1:-1)*0.5;g.add(shard);}
             g.userData={type:'static',baseSpeed:0.22};g.visible=false;scene.add(g);return g;
         }
+        function playStaticSpawn(){
+            try{
+                const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+                staticAudioContext=staticAudioContext||new AC();
+                const ctx=staticAudioContext;
+                if(ctx.state==='suspended')ctx.resume().catch(()=>{});
+                const t=ctx.currentTime;
+                const master=ctx.createGain();master.gain.setValueAtTime(0.0001,t);master.gain.linearRampToValueAtTime(0.48,t+0.025);master.gain.exponentialRampToValueAtTime(0.0001,t+1.25);master.connect(ctx.destination);
+                const osc=ctx.createOscillator(),og=ctx.createGain();osc.type='sawtooth';osc.frequency.setValueAtTime(1900,t);osc.frequency.exponentialRampToValueAtTime(95,t+1.1);og.gain.setValueAtTime(0.0001,t);og.gain.linearRampToValueAtTime(0.42,t+0.025);og.gain.exponentialRampToValueAtTime(0.0001,t+1.15);osc.connect(og);og.connect(master);osc.start(t);osc.stop(t+1.2);
+                const buffer=ctx.createBuffer(1,Math.floor(ctx.sampleRate*0.8),ctx.sampleRate),data=buffer.getChannelData(0);
+                for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*(1-i/data.length);
+                const noise=ctx.createBufferSource();noise.buffer=buffer;const filter=ctx.createBiquadFilter();filter.type='bandpass';filter.frequency.value=2400;filter.Q.value=0.65;
+                const ng=ctx.createGain();ng.gain.setValueAtTime(0.0001,t);ng.gain.linearRampToValueAtTime(0.32,t+0.02);ng.gain.exponentialRampToValueAtTime(0.0001,t+0.75);noise.connect(filter);filter.connect(ng);ng.connect(master);noise.start(t);noise.stop(t+0.8);
+            }catch(e){}
+        }
         function playStaticScream(){
             try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;const ctx=new AC();ctx.resume();
                 const duration=1.45,buffer=ctx.createBuffer(1,Math.floor(ctx.sampleRate*duration),ctx.sampleRate),data=buffer.getChannelData(0);
@@ -1452,7 +1467,7 @@ ACCESS NODE READY...</pre>
             if(computerTerminal && Math.hypot(camera.position.x-computerTerminal.position.x,camera.position.z-computerTerminal.position.z)<5.8){staticLastMovedAt=now;staticWarning=false;staticHunting=false;staticMonster.visible=false;stopStaticWarning();return;}
             if(idle>=30000&&!staticHunting){staticHunting=true;staticMonster.visible=true;staticMonster.position.set(camera.position.x+Math.sin(rotation.yaw)*13,1.6,camera.position.z+Math.cos(rotation.yaw)*13);ud.lastX=camera.position.x;ud.lastZ=camera.position.z;
                 if(staticSavedFog===null)staticSavedFog={color:scene.fog.color.clone(),density:scene.fog.density};
-                scene.fog.color.set(0xffffff);scene.fog.density=0.19;stopStaticWarning();
+                scene.fog.color.set(0xffffff);scene.fog.density=0.19;playStaticSpawn();stopStaticWarning();
                 if(isHidden&&hidingLocker){scene.remove(hidingLocker);lockers=lockers.filter(l=>l!==hidingLocker);isHidden=false;currentLocker=null;hidingLocker=null;camera.position.y=1.6;}}
             if(staticHunting){staticMonster.lookAt(camera.position.x,staticMonster.position.y,camera.position.z);const x=camera.position.x-staticMonster.position.x,z=camera.position.z-staticMonster.position.z,d=Math.hypot(x,z)||1;staticMonster.position.x+=x/d*.72;staticMonster.position.z+=z/d*.72;staticMonster.position.y=1.6+Math.sin(now*.025)*.2;if(d<1.35){scene.fog.color.set(0xffffff);scene.fog.density=0.19;health=0;activeAttacker='static';}}
         }
@@ -2031,7 +2046,7 @@ ACCESS NODE READY...</pre>
                     ai.gaitTime+=delta*(ai.state==='chase'?13:6);if(ai.armPivots)ai.armPivots.forEach((a,i)=>a.rotation.x=Math.sin(ai.gaitTime+i*Math.PI)*(ai.state==='chase'?0.92:0.4));if(ai.legPivots)ai.legPivots.forEach((l,i)=>l.rotation.x=Math.sin(ai.gaitTime+i*Math.PI)*(ai.state==='chase'?0.65:0.25));if(ai.headPivot)ai.headPivot.rotation.x=Math.sin(ai.gaitTime*0.5)*0.06;
                 }
 
-                if (!isHidden && distToPlayer < 2.35 && (ai.state === 'chase' || distToPlayer < 1.4)) {
+                if (health > 0 && !isHidden && distToPlayer < 2.35 && (ai.state === 'chase' || distToPlayer < 1.4)) {
                     health -= monster.userData.dps * 1.5 * delta;
                     activeAttacker = monster.userData.type;
                 }
