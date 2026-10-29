@@ -306,6 +306,7 @@ ACCESS NODE READY...</pre>
         let hidingLocker = null;
         let lockerBoxes = [];
         let grassHidingSpots = [];
+        let crouchableCells = new Set();
         let preHideYaw = 0;
         let keysFound = 0;
         const totalKeys = 9;
@@ -639,7 +640,7 @@ ACCESS NODE READY...</pre>
 
             // Most hedge cells are solid to the ground; selected hedge cells can be crouched beneath.
             const hedgeHeight = 2.76;
-            const crouchableCells = new Set();
+            crouchableCells = new Set();
             const protectedCrouchCells = new Set(["10,10","10,9","10,11","9,10","11,10","19,13","13,19","7,17","1,15","17,7","9,11","3,9","11,3","5,3","3,1","15,1","5,17","10,1","10,19"]);
             const crouchCandidates = [];
             for(let r=1;r<mazeGrid.length-1;r++) for(let c=1;c<mazeGrid[r].length-1;c++) {
@@ -1294,15 +1295,31 @@ ACCESS NODE READY...</pre>
             return false;
         }
 
+        function isUnderCrouchableObject(position = camera.position) {
+            if (!isCrouching || !crouchableCells.size) return false;
+            const c = Math.round(position.x / cellSize);
+            const r = Math.round(position.z / cellSize);
+            return crouchableCells.has(`${c},${r}`);
+        }
         function isInGrassHidingSpot(position = camera.position) {
-            return isCrouching && grassHidingSpots.some(spot => Math.hypot(position.x-spot.x, position.z-spot.z) < spot.radius);
+            if (!isCrouching) return false;
+            return isUnderCrouchableObject(position) ||
+                grassHidingSpots.some(spot => Math.hypot(position.x-spot.x, position.z-spot.z) < spot.radius);
+        }
+        function updateCrouchStatus() {
+            const status = document.getElementById("status-msg");
+            if (!isCrouching) {
+                if (status.innerText === "CROUCHING" || status.innerText === "CROUCHING UNDER OBJECT") status.innerText = "";
+                return;
+            }
+            status.innerText = isUnderCrouchableObject() ? "CROUCHING UNDER OBJECT" : "CROUCHING";
         }
         function toggleCrouch() {
             if (isHidden) return;
             isCrouching = !isCrouching;
             document.getElementById("crouch-btn").textContent = isCrouching ? "STAND" : "CROUCH";
             camera.position.y = isCrouching ? 0.72 : 1.6;
-            document.getElementById("status-msg").innerText = isCrouching ? "CROUCHED: HEDGE COVER" : "";
+            updateCrouchStatus();
         }
         function collectItem(item) {
             item.collected = true;
@@ -1746,6 +1763,7 @@ ACCESS NODE READY...</pre>
 
             const now = performance.now();
             updateBanisher(now);
+            updateCrouchStatus();
             updateStatic(now);
             guideArrows.forEach(a => {
                 if (a.userData.expiresAt && now < a.userData.expiresAt && a.userData.target) {
