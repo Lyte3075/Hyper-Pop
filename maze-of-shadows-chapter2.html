@@ -2205,15 +2205,14 @@ ACCESS NODE READY...</pre>
             document.getElementById('terminal-panel').classList.add('visible');
             document.getElementById('terminal-output').textContent='COURTYARD OS v2.6.1\\n------------------------------\\nSECURITY GATE: LOCKED\\nFUEL CANISTERS: '+keysFound+' / '+totalKeys+'\\n\\nCollect all canisters to authorize the security gate release.';
             document.getElementById('interact-computer-btn').style.display='none';
-            const commandInput=document.getElementById('terminal-command-input');
-            if(commandInput)commandInput.focus();
+            
         }
         let banisherHeadstartUntil=0;
         let chaseTrailMeshes=[];
         let chaseTrailLastBuild=0;
         function clearChaseGuidingTrail(){chaseTrailMeshes.forEach(m=>{scene.remove(m);if(m.geometry)m.geometry.dispose();if(m.material)m.material.dispose();});chaseTrailMeshes=[];}
         function updateChaseGuidingTrail(now){
-            if(!banisherChaseActive||now<banisherHeadstartUntil||now-chaseTrailLastBuild<650)return;
+            if(!banisherChaseActive||now-chaseTrailLastBuild<650)return;
             chaseTrailLastBuild=now;clearChaseGuidingTrail();
             const start=nearestWalkableCell(camera.position.x,camera.position.z,worldToCell(camera.position.x,camera.position.z));
             let goal=null;
@@ -2232,13 +2231,13 @@ ACCESS NODE READY...</pre>
             const p=worldToCell(camera.position.x,camera.position.z),start=nearestWalkableCell(camera.position.x,camera.position.z,p),spawn=cellToWorld(start.c,start.r);
             const away=new THREE.Vector3(camera.position.x-spawn.x,0,camera.position.z-spawn.z);if(away.lengthSq()<1)away.set(0,0,-1);away.normalize();
             banisherFace.position.set(camera.position.x-away.x*10,0,camera.position.z-away.z*10);scene.add(banisherFace);
-            banisherLastFrame=now;banisherHeadstartUntil=now+5000;chaseTrailLastBuild=0;clearChaseGuidingTrail();
+            banisherLastFrame=now;banisherHeadstartUntil=now+5000;chaseTrailLastBuild=0;clearChaseGuidingTrail();updateChaseGuidingTrail(now);
             const cutscene=document.getElementById('chase-cutscene'),countdown=document.getElementById('chase-countdown');
             if(cutscene)cutscene.classList.add('active');
             document.getElementById('status-msg').innerText='THE BANISHER IS RELEASED. YOU HAVE 5 SECONDS. FOLLOW THE GLOWING TRAIL!';
             chaseHazards.forEach(h=>{h.triggered=false;h.fallAt=0;h.glow.material.opacity=0.55;});
-            let lastCount=5;
-            const tick=()=>{if(!banisherChaseActive||isGameOver){if(cutscene)cutscene.classList.remove('active');return;}const remain=Math.max(0,Math.ceil((banisherHeadstartUntil-performance.now())/1000));if(countdown)countdown.textContent=remain>0?'HEAD START: '+remain:'RUN!';if(remain<=0){if(cutscene)cutscene.classList.remove('active');updateChaseGuidingTrail(performance.now());return;}if(remain!==lastCount)lastCount=remain;requestAnimationFrame(tick);};
+            let lastCount=5;const cutsceneEndsAt=now+1700;
+            const tick=()=>{if(!banisherChaseActive||isGameOver){if(cutscene)cutscene.classList.remove('active');return;}const current=performance.now();const remain=Math.max(0,Math.ceil((banisherHeadstartUntil-current)/1000));if(countdown)countdown.textContent=remain>0?'HEAD START: '+remain:'RUN!';if(cutscene&&current>=cutsceneEndsAt)cutscene.classList.remove('active');if(remain<=0){if(cutscene)cutscene.classList.remove('active');updateChaseGuidingTrail(current);return;}if(remain!==lastCount)lastCount=remain;requestAnimationFrame(tick);};
             requestAnimationFrame(tick);
         }
         function updateBanisherChase(now){if(!banisherChaseActive||!banisherFace||isGameOver)return;updateChaseGuidingTrail(now);if(now<banisherHeadstartUntil){banisherFace.position.y=0.18+Math.sin(now*0.018)*0.12;banisherFace.lookAt(camera.position.x,1.6,camera.position.z);return;}const dt=Math.min(0.05,Math.max(0.008,(now-(banisherLastFrame||now))/1000));banisherLastFrame=now;const playerCell=worldToCell(camera.position.x,camera.position.z),inMaze=banisherFace.position.z<mazeGrid.length*cellSize+1,playerInMaze=camera.position.z<mazeGrid.length*cellSize+1;let target=new THREE.Vector3(camera.position.x,0,camera.position.z);if(inMaze){const from=nearestWalkableCell(banisherFace.position.x,banisherFace.position.z,worldToCell(banisherFace.position.x,banisherFace.position.z));const to=playerInMaze?nearestWalkableCell(camera.position.x,camera.position.z,playerCell):{c:Math.round(camera.position.x/cellSize),r:mazeGrid.length-2};if(from&&to){const path=findAStarPath(from,to);if(path&&path.length>1)target=cellToWorld(path[1].c,path[1].r);else if(!playerInMaze)target.set(camera.position.x,0,mazeGrid.length*cellSize+0.8);}}const dx=target.x-banisherFace.position.x,dz=target.z-banisherFace.position.z,dist=Math.hypot(dx,dz)||0.001;const step=Math.min(dist,(inMaze?0.105:0.145)*60*dt);banisherFace.position.x+=dx/dist*step;banisherFace.position.z+=dz/dist*step;banisherFace.position.y=0.18+Math.sin(now*0.018)*0.12;banisherFace.rotation.y=Math.atan2(dx,dz);if(inMaze){for(let i=lockers.length-1;i>=0;i--){const locker=lockers[i];if(locker&&Math.hypot(locker.position.x-banisherFace.position.x,locker.position.z-banisherFace.position.z)<1.65){scene.remove(locker);lockers.splice(i,1);}}}else{for(const obj of chaseBreakables){if(obj&&obj.parent&&Math.hypot(obj.position.x-banisherFace.position.x,obj.position.z-banisherFace.position.z)<2.1)scene.remove(obj);}for(const h of chaseHazards){if(!h.triggered&&Math.hypot(camera.position.x-h.x,camera.position.z-h.z)<7.2){h.triggered=true;h.fallAt=now+850;h.glow.material.opacity=0.95;}if(h.triggered&&h.fallAt&&now>=h.fallAt){h.objects.forEach((o,i)=>{if(o.parent){o.rotation.z=i===0?Math.PI/2:0;o.position.y=i===0?0.6:0.7;}});h.glow.material.opacity=0.25;h.fallAt=0;}if(h.triggered&&Math.hypot(camera.position.x-h.x,camera.position.z-h.z)<1.45&&!isCrouching){health=Math.max(0,health-0.45);document.getElementById('health-bar').style.width=(health/maxHealth*100)+'%';if(health<=0){health=0;banisherChaseHit=true;}}}}if(Math.hypot(camera.position.x-banisherFace.position.x,camera.position.z-banisherFace.position.z)<1.65){health=0;banisherChaseHit=true;}}
