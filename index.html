@@ -121,13 +121,19 @@
   }
   
   .hp-header-menu {
-    padding:8px 11px;
+    padding:6px 9px;
     border:1px solid var(--line);
     border-radius:999px;
     background:#ffffff08;
     color:var(--ink);
     cursor:pointer;
+    font-size:13px;
+    font-weight:600;
+    letter-spacing:-.35px;
+    gap:7px;
+    line-height:1;
   }
+  .hp-header-menu .brand-icon { width:27px;height:27px;flex-basis:27px; }
   .hp-header-menu:hover { border-color:#ffffff38; }
   .brand-icon {
     display: block;
@@ -1673,6 +1679,73 @@
   </main>
   <script src="app.js?v=radio-12">
   </script>
+
+  <style>
+    #hp-home-sidebar{position:fixed;z-index:2147483000;top:0;bottom:0;left:0;width:min(300px,86vw);padding:calc(22px + env(safe-area-inset-top)) 14px calc(20px + env(safe-area-inset-bottom));overflow-y:auto;background:#0d0d19f7;border-right:1px solid #ffffff1c;backdrop-filter:blur(20px);transform:translateX(-105%);transition:transform .22s ease;box-shadow:16px 0 50px #0007}
+    #hp-home-sidebar.open{transform:translateX(0)}
+    #hp-home-sidebar-scrim{position:fixed;z-index:2147482999;inset:0;background:#0009;opacity:0;visibility:hidden;transition:opacity .22s,visibility .22s}
+    #hp-home-sidebar-scrim.open{opacity:1;visibility:visible}
+    #hp-home-sidebar .side-title{font-size:17px;font-weight:700;margin:0 0 4px}
+    #hp-home-sidebar .side-note{font:10px 'DM Mono',monospace;color:#aaa7c1;letter-spacing:.12em;text-transform:uppercase;margin:0 0 18px}
+    #hp-home-sidebar .side-label{font:10px 'DM Mono',monospace;color:#4be0e3;letter-spacing:.12em;text-transform:uppercase;margin:17px 8px 7px}
+    #hp-home-sidebar a{display:flex;align-items:center;gap:10px;min-height:40px;padding:9px 11px;border:1px solid transparent;border-radius:11px;color:#d8d5e8;text-decoration:none;font-size:13px;line-height:1.25}
+    #hp-home-sidebar a:hover{background:#ffffff0b;border-color:#ffffff18;color:#fff}
+    #hp-home-sidebar .side-icon{width:21px;flex:0 0 21px;text-align:center;font-size:15px}
+    @media(prefers-reduced-motion:reduce){#hp-home-sidebar,#hp-home-sidebar-scrim{transition:none}}
+  </style>
+  <div id="hp-home-sidebar-scrim" aria-hidden="true"></div>
+  <aside id="hp-home-sidebar" aria-label="Hyper-Pop navigation" aria-hidden="true">
+    <div class="side-title">Hyper-Pop</div><div class="side-note">tiny internet, big vibes</div>
+    <div class="side-label">Explore</div>
+    <a href="index.html"><span class="side-icon">⌂</span>Home</a>
+    <a href="#games"><span class="side-icon">✦</span>Games</a>
+    <a href="#misc"><span class="side-icon">▦</span>Categories</a>
+    <a href="#search"><span class="side-icon">⌕</span>Search</a>
+    <div class="side-label">Social</div>
+    <a href="social.html"><span class="side-icon">♟</span>Social hub</a>
+    <a href="social.html#friends"><span class="side-icon">♡</span>Friends</a>
+    <a href="social.html#parties"><span class="side-icon">◉</span>Parties</a>
+    <a href="social.html#chats"><span class="side-icon">✉</span>Chats</a>
+    <div class="side-label">Discover</div>
+    <a href="#top-games"><span class="side-icon">▤</span>Top games</a>
+    <a href="#tools"><span class="side-icon">⚙</span>Tools</a>
+    <a href="#misc"><span class="side-icon">◈</span>Experiments</a>
+    <div class="side-label">More</div>
+    <a href="accounts.html"><span class="side-icon">👤</span>Account / Profile</a>
+  </aside>
+  <script>
+  (function(){
+    const button=document.getElementById('hp-side-toggle');
+    const panel=document.getElementById('hp-home-sidebar');
+    const scrim=document.getElementById('hp-home-sidebar-scrim');
+    if(!button||!panel||!scrim)return;
+    function setOpen(open){
+      panel.classList.toggle('open',open);
+      scrim.classList.toggle('open',open);
+      panel.setAttribute('aria-hidden',String(!open));
+      scrim.setAttribute('aria-hidden',String(!open));
+      button.setAttribute('aria-expanded',String(open));
+      button.setAttribute('aria-label',open?'Close Hyper-Pop menu':'Open Hyper-Pop menu');
+    }
+    button.addEventListener('click',function(event){
+      event.preventDefault();
+      event.stopPropagation();
+      setOpen(!panel.classList.contains('open'));
+    });
+    scrim.addEventListener('click',function(){setOpen(false)});
+    panel.addEventListener('click',function(event){
+      const link=event.target.closest('a');
+      if(!link)return;
+      setOpen(false);
+      if(link.getAttribute('href').startsWith('#')){
+        const target=document.querySelector(link.getAttribute('href'));
+        if(target){event.preventDefault();target.scrollIntoView({behavior:'smooth'});}
+      }
+    });
+    document.addEventListener('keydown',function(event){if(event.key==='Escape')setOpen(false)});
+  })();
+  </script>
+
   <script>
     // Search all homepage cards by their names, descriptions, and data-search keywords.
     const searchInput = document.getElementById('search');
