@@ -212,7 +212,7 @@
         #terminal-panel.visible { display:flex; }
         #terminal-panel h2 { margin:0 0 4px; font-size:clamp(15px,2.4vw,22px); letter-spacing:.08em; }
         #terminal-output { white-space:pre-wrap; line-height:1.35; margin:0 0 4px; font-size:clamp(10px,1.35vw,13px); }
-        .terminal-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; width:100%; } .terminal-action { width:100%; min-width:0; box-sizing:border-box; align-self:stretch; background:#03190c; border:1px solid #32ff8d; color:#a4ffc6; padding:10px 8px; font:bold clamp(10px,1.4vw,13px) monospace; margin:0; cursor:pointer; white-space:normal; overflow-wrap:anywhere; } #chase-cutscene { position:fixed; inset:0; z-index:9000; display:none; align-items:center; justify-content:center; flex-direction:column; gap:16px; padding:24px; box-sizing:border-box; text-align:center; color:#b7ffd0; background:radial-gradient(ellipse at center,#071b11 0%,#010403 68%,#000 100%); font: bold clamp(16px,3vw,28px) monospace; letter-spacing:.12em; } #chase-cutscene.active { display:flex; animation:cutsceneFade .45s ease-out both; } #chase-cutscene .cutscene-small { font-size:clamp(11px,1.6vw,15px); letter-spacing:.08em; line-height:1.6; color:#74ffad; } #chase-cutscene .cutscene-warning { color:#ff4545; text-shadow:0 0 18px #ff0000; animation:warningPulse .6s steps(2,end) infinite; } @keyframes cutsceneFade { from{opacity:0} to{opacity:1} } @keyframes warningPulse { 50%{opacity:.45} }
+        .terminal-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; width:100%; } .terminal-command-row { display:flex; gap:8px; align-items:stretch; width:100%; min-width:0; margin:2px 0 4px; } #terminal-command-input { flex:1 1 auto; width:0; min-width:0; box-sizing:border-box; background:#001108; color:#a4ffc6; border:1px solid #32ff8d; padding:10px; font:bold 13px monospace; outline:none; border-radius:0; } #terminal-command-input:focus { box-shadow:0 0 10px #32ff8d66; } .terminal-run-button { flex:0 0 72px; } .terminal-action { width:100%; min-width:0; box-sizing:border-box; align-self:stretch; background:#03190c; border:1px solid #32ff8d; color:#a4ffc6; padding:10px 8px; font:bold clamp(10px,1.4vw,13px) monospace; margin:0; cursor:pointer; white-space:normal; overflow-wrap:anywhere; } #chase-cutscene { position:fixed; inset:0; z-index:9000; display:none; align-items:center; justify-content:center; flex-direction:column; gap:16px; padding:24px; box-sizing:border-box; text-align:center; color:#b7ffd0; background:radial-gradient(ellipse at center,#071b11 0%,#010403 68%,#000 100%); font: bold clamp(16px,3vw,28px) monospace; letter-spacing:.12em; } #chase-cutscene.active { display:flex; animation:cutsceneFade .45s ease-out both; } #chase-cutscene .cutscene-small { font-size:clamp(11px,1.6vw,15px); letter-spacing:.08em; line-height:1.6; color:#74ffad; } #chase-cutscene .cutscene-warning { color:#ff4545; text-shadow:0 0 18px #ff0000; animation:warningPulse .6s steps(2,end) infinite; } @keyframes cutsceneFade { from{opacity:0} to{opacity:1} } @keyframes warningPulse { 50%{opacity:.45} }
         #interact-computer-btn { position:fixed; left:50%; bottom:22%; transform:translateX(-50%); z-index:28; display:none; background:#03190cdd; border:1px solid #32ff8d; color:#a4ffc6; padding:12px 18px; font:bold 13px monospace; border-radius:8px; touch-action:none; pointer-events:auto; -webkit-user-select:none; user-select:none; }
         /* The Static's warning is rendered through the 3D scene fog, not a screen overlay. */
         #banisher-jumpscare.scare-static { background:#f8f8f8; animation:staticFlash .08s steps(2,end) infinite!important; }
@@ -277,6 +277,10 @@
 GREENHOUSE SECURITY GATE: LOCKED
 FUEL CANISTERS REQUIRED: 9
 ACCESS NODE READY...</pre>
+        <form id="terminal-command-form" class="terminal-command-row" autocomplete="off">
+            <input id="terminal-command-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Terminal command" placeholder="Type here..." />
+            <button type="submit" class="terminal-action terminal-run-button">ENTER</button>
+        </form>
         <div class="terminal-actions"><button id="terminal-unlock-btn" class="terminal-action">AUTHORIZE GATE RELEASE</button><button id="terminal-close-btn" class="terminal-action">CLOSE TERMINAL</button></div>
     </div>
     <div id="game-over">
@@ -2256,6 +2260,30 @@ ACCESS NODE READY...</pre>
             document.getElementById('status-msg').innerText='GATE UNLOCKED. THE BANISHER IS COMING. RUN TO THE CAR!';startBanisherChase(performance.now());
             if(computerTerminal){const ctx=computerTerminal.screenCtx;ctx.fillStyle='#001108';ctx.fillRect(0,0,512,384);ctx.strokeStyle='#1aff72';ctx.lineWidth=7;ctx.strokeRect(10,10,492,364);ctx.fillStyle='#4cff91';ctx.font='bold 34px monospace';ctx.fillText('ACCESS GRANTED',28,70);ctx.font='24px monospace';ctx.fillText('> GATE: OPEN',28,132);ctx.fillText('> ROUTE: CLEAR',28,176);ctx.fillText('> GET TO THE CAR',28,240);computerTerminal.screenFace.material.map.needsUpdate=true;}
         }
+        document.getElementById('terminal-command-form').addEventListener('submit',e=>{
+            e.preventDefault();
+            const input=document.getElementById('terminal-command-input');
+            const command=(input.value||'').trim().toLowerCase();
+            input.value='';
+            if(!command)return;
+            if(command==='/chase'){
+                if(banisherChaseActive){document.getElementById('terminal-output').textContent='CHASE SEQUENCE ALREADY ACTIVE.';return;}
+                keys.forEach(k=>{if(!k.collected){k.collected=true;if(k.mesh)scene.remove(k.mesh);}});
+                keysFound=totalKeys;
+                document.getElementById('key-tracker').innerText='FUEL CANISTERS: '+keysFound+' / '+totalKeys;
+                document.getElementById('terminal-unlock-btn').disabled=false;
+                gateUnlocked=true;banisherScheduled=false;banisherNextAt=0;
+                terminalOpen=false;isPaused=false;lastTime=performance.now();
+                document.getElementById('terminal-panel').classList.remove('visible');
+                if(exitGateBlocker){wallBoxes=wallBoxes.filter(box=>box!==exitGateBlocker);exitGateBlocker=null;}
+                exitGateLeaves.forEach(gate=>{gate.rotation.y=Math.PI/2;gate.position.x+=cellSize*0.48;});
+                document.getElementById('status-msg').innerText='THE BANISHER IS COMING. FOLLOW THE GLOWING TRAIL!';
+                startBanisherChase(performance.now());
+                if(computerTerminal){const ctx=computerTerminal.screenCtx;ctx.fillStyle='#001108';ctx.fillRect(0,0,512,384);ctx.strokeStyle='#1aff72';ctx.lineWidth=7;ctx.strokeRect(10,10,492,364);ctx.fillStyle='#4cff91';ctx.font='bold 34px monospace';ctx.fillText('ACCESS GRANTED',28,70);ctx.font='24px monospace';ctx.fillText('> GATE: OPEN',28,132);ctx.fillText('> ROUTE: CLEAR',28,176);ctx.fillText('> GET TO THE CAR',28,240);computerTerminal.screenFace.material.map.needsUpdate=true;}
+                return;
+            }
+            document.getElementById('terminal-output').textContent='COMMAND NOT RECOGNIZED.\n\nSYSTEM ONLINE\nSECURITY GATE: '+(gateUnlocked?'OPEN':'LOCKED')+'\nFUEL CANISTERS: '+keysFound+' / '+totalKeys;
+        });
         document.getElementById('interact-computer-btn').addEventListener('click',openComputerTerminal);
         document.getElementById('terminal-unlock-btn').addEventListener('click',authorizeGateRelease);
         document.getElementById('terminal-close-btn').addEventListener('click',()=>{terminalOpen=false;isPaused=false;lastTime=performance.now();document.getElementById('terminal-panel').classList.remove('visible');});
