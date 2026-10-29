@@ -867,6 +867,8 @@ ACCESS NODE READY...</pre>
             terminal.scale.setScalar(0.62);
             terminal.position.set(plazaX,0,plazaZ); scene.add(terminal);
             computerTerminal={position:new THREE.Vector3(plazaX,1.5,plazaZ+2.1),screenCanvas,screenCtx,screenFace};
+            // Add a guaranteed locker inside the terminal sanctuary.
+            if(lockers.length){const sanctuaryLocker=lockers[0].clone(true);sanctuaryLocker.position.set(plazaX+2.2,1.36,plazaZ+0.2);sanctuaryLocker.rotation.y=Math.PI/2;scene.add(sanctuaryLocker);lockers.push(sanctuaryLocker);}
             staticMonster=makeStaticMonster();staticMonster.userData.lastX=camera.position.x;staticMonster.userData.lastZ=camera.position.z;
 
             // Exterior approach: the player begins on the hospital's front steps, enters the hedge maze, then reaches the parking lot and road.
@@ -1382,6 +1384,7 @@ ACCESS NODE READY...</pre>
             if(Math.hypot(dx,dz)>.045){staticLastMovedAt=now;ud.lastX=camera.position.x;ud.lastZ=camera.position.z;if(staticWarning){staticWarning=false;document.getElementById('static-fog').classList.remove('active');}}
             const idle=now-staticLastMovedAt;
             if(idle>=27000&&!staticWarning&&!staticHunting){staticWarning=true;document.getElementById('static-fog').classList.add('active');}
+            if(computerTerminal && Math.hypot(camera.position.x-computerTerminal.position.x,camera.position.z-computerTerminal.position.z)<5.8){staticLastMovedAt=now;staticWarning=false;staticHunting=false;staticMonster.visible=false;document.getElementById('static-fog').classList.remove('active');return;}
             if(idle>=30000&&!staticHunting){staticHunting=true;staticMonster.visible=true;staticMonster.position.set(camera.position.x+Math.sin(rotation.yaw)*13,1.6,camera.position.z+Math.cos(rotation.yaw)*13);ud.lastX=camera.position.x;ud.lastZ=camera.position.z;
                 document.getElementById('static-fog').classList.add('active');
                 if(isHidden&&hidingLocker){scene.remove(hidingLocker);lockers=lockers.filter(l=>l!==hidingLocker);isHidden=false;currentLocker=null;hidingLocker=null;camera.position.y=1.6;}}
@@ -1804,7 +1807,8 @@ ACCESS NODE READY...</pre>
                 // Preserve the active locker reference for the entire hiding period.
                 currentLocker = hidingLocker;
             }
-            hideBtn.style.display = 'none';
+            hideBtn.style.display = (currentLocker || isHidden) ? 'flex' : 'none';
+            crouchBtn.style.display = (currentLocker || isHidden) ? 'none' : 'flex';
             crouchBtn.style.display = 'flex';
             if (isHidden) {
                 crouchBtn.innerText = 'EXIT';
