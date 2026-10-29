@@ -287,7 +287,7 @@
 
         // Controls & Camera
         let moveVector = { x: 0, z: 0 };
-        let rotation = { yaw: 0, pitch: 0 };
+        let rotation = { yaw: Math.PI, pitch: 0 };
         let breathTimer = 0;
         let shakeIntensity = 0;
         const walkSpeed = 0.07, sprintSpeed = 0.14; // Sprint stamina lasts 25% longer via a lower drain rate.
@@ -328,26 +328,27 @@
 
         // Huge 21x21 Grid (3 = Exit Wall)
         const mazeGrid = [
-            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-            [1,0,0,0,1,0,2,0,0,0,1,0,0,0,0,0,1,0,0,0,1],
-            [1,0,1,0,1,0,1,1,1,0,1,0,1,1,1,0,1,0,1,0,1],
-            [1,0,1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,1,0,1],
-            [1,0,1,1,1,1,0,1,1,1,1,0,1,1,1,1,1,0,1,0,1],
-            [1,2,0,0,0,1,0,2,0,0,1,0,2,0,0,0,1,0,2,0,1],            [1,1,1,1,0,1,1,0,1,0,1,1,1,0,1,1,1,0,1,1,1],
+            [1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1],
+            [3,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,1],
+            [1,0,1,0,1,1,1,0,1,1,1,1,1,1,1,1,1,0,1,0,1],
+            [1,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+            [1,0,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,1,1,0,1],
+            [1,0,2,0,1,0,0,0,2,0,1,0,1,0,0,0,0,0,2,0,1],
+            [1,1,1,0,1,1,1,1,1,0,1,0,1,1,1,0,1,1,1,1,1],
             [1,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1],
-            [1,0,1,1,1,1,1,0,1,1,1,1,1,0,1,0,1,1,1,0,1],
-            [1,0,2,0,0,0,1,0,0,0,2,0,0,0,1,0,2,0,0,0,1],
-            [1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1],
-            [1,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1],
             [1,0,1,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,1,0,1],
+            [1,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1],
+            [1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1],
+            [1,0,0,0,2,0,1,0,0,0,2,0,0,0,1,0,0,0,2,0,1],
+            [1,0,1,1,1,0,1,0,1,1,1,1,1,0,1,1,1,1,1,0,1],
             [1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1],
-            [1,1,1,1,1,0,1,1,1,0,1,0,1,1,1,1,1,0,1,1,1],
-            [1,0,2,0,0,0,0,0,1,0,1,0,2,0,0,0,1,0,2,0,1],
-            [1,0,1,1,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,0,1],
-            [1,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1],
-            [1,0,1,0,1,1,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1],
-            [1,0,0,0,1,0,0,0,0,0,2,0,0,0,1,0,0,0,0,0,3],
-            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+            [1,1,1,0,1,1,1,0,1,1,1,0,1,0,1,1,0,1,1,1,1],
+            [1,0,2,0,1,0,0,0,2,0,1,0,0,2,0,1,0,0,0,2,1],
+            [1,0,1,0,1,1,1,1,1,0,1,1,1,1,0,1,1,1,1,0,1],
+            [1,0,1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,1,0,1],
+            [1,0,1,0,1,0,1,1,1,0,1,0,1,1,1,0,1,0,1,0,1],
+            [1,0,0,0,1,0,0,0,0,0,0,0,0,0,2,0,1,0,0,0,1],
+            [1,1,1,1,1,1,1,1,1,1,3,1,1,1,1,1,1,1,1,1,1]
         ];
         // Expanded world spacing: keep the same 21x21 logical maze while giving each corridor/room cell more physical room.
         const cellSize = 3.8;
@@ -410,7 +411,7 @@
             scene.fog = new THREE.FogExp2(0x020b2b, 0.018);
 
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(4, 1.6, 4);
+            camera.position.set(10 * cellSize, 1.6, -7.2);
 
             const embeddedGame = window.self !== window.top;
             renderer = new THREE.WebGLRenderer({ antialias: !embeddedGame, powerPreference: 'high-performance' });
@@ -699,21 +700,61 @@
                             lockGroup.add(lock);
                         }
                         exitGroup.add(lockGroup);
-                        exitGroup.position.set(x - 2.02, 0, z);
-                        exitGroup.rotation.y = -Math.PI / 2;
+                        exitGroup.position.set(x, 0, z + 21.5);
+                        exitGroup.rotation.y = 0;
                         scene.add(exitGroup);
                         const redGlow = new THREE.PointLight(0xff1010, 2.4, 9);
-                        redGlow.position.set(x - 2.4, 3.0, z);
+                        redGlow.position.set(x, 3.0, z + 19.4);
                         scene.add(redGlow);
                         exitGlowLight = new THREE.PointLight(0xb80b0b, 1.4, 8);
-                        exitGlowLight.position.set(x - 1.7, 1.6, z);
+                        exitGlowLight.position.set(x, 1.6, z + 20);
                         scene.add(exitGlowLight);
                         exitPadlocks = [];
                         lockGroup.children.forEach(lock => exitPadlocks.push(lock));
                         // Interaction trigger target
-                        exitGate = { position: new THREE.Vector3(x - 1.5, 1.6, z) };
+                        exitGate = { position: new THREE.Vector3(x, 1.6, z + 21.5) };
                     }
                 }
+            }
+
+            // Exterior approach: the player begins on the hospital's front steps, enters the hedge maze, then reaches the parking lot and road.
+            const centerX = 10 * cellSize;
+            const stoneMat = new THREE.MeshStandardMaterial({ color: 0x45474b, roughness: 0.94 });
+            const concreteMat = new THREE.MeshStandardMaterial({ color: 0x292d35, roughness: 0.96 });
+            const facadeMat = new THREE.MeshStandardMaterial({ color: 0x343943, roughness: 0.92 });
+            const darkWindowMat = new THREE.MeshStandardMaterial({ color: 0x08111d, metalness: 0.2, roughness: 0.3, emissive: 0x020611 });
+            const entryFloor = new THREE.Mesh(new THREE.PlaneGeometry(mazeWidth * 0.7, 17), concreteMat);
+            entryFloor.rotation.x = -Math.PI / 2; entryFloor.position.set(centerX, -0.025, -8.5); scene.add(entryFloor);
+            for (let i = 0; i < 4; i++) {
+                const step = new THREE.Mesh(new THREE.BoxGeometry(8.4, 0.28, 0.85), stoneMat);
+                step.position.set(centerX, 0.12 + i * 0.02, -5.2 - i * 0.9); scene.add(step);
+            }
+            const hospitalFront = new THREE.Mesh(new THREE.BoxGeometry(15, 6.5, 0.85), facadeMat);
+            hospitalFront.position.set(centerX, 3.15, -13.4); scene.add(hospitalFront);
+            const entranceCanopy = new THREE.Mesh(new THREE.BoxGeometry(7.2, 0.38, 2.3), concreteMat);
+            entranceCanopy.position.set(centerX, 5.5, -12.3); scene.add(entranceCanopy);
+            const entranceVoid = new THREE.Mesh(new THREE.BoxGeometry(4.6, 3.5, 0.12), darkWindowMat);
+            entranceVoid.position.set(centerX, 1.8, -12.92); scene.add(entranceVoid);
+            for (const side of [-1, 1]) {
+                const windowMesh = new THREE.Mesh(new THREE.BoxGeometry(2.6, 2.2, 0.1), darkWindowMat);
+                windowMesh.position.set(centerX + side * 5.1, 3.0, -12.92); scene.add(windowMesh);
+            }
+            const signCanvas = document.createElement('canvas'); signCanvas.width = 512; signCanvas.height = 128;
+            const signCtx = signCanvas.getContext('2d'); signCtx.fillStyle = '#11151b'; signCtx.fillRect(0,0,512,128);
+            signCtx.strokeStyle = '#8b969e'; signCtx.lineWidth = 5; signCtx.strokeRect(4,4,504,120);
+            signCtx.fillStyle = '#c6d0d9'; signCtx.font = 'bold 48px monospace'; signCtx.textAlign = 'center'; signCtx.textBaseline = 'middle'; signCtx.fillText('ABANDONED HOSPITAL',256,64);
+            const sign = new THREE.Mesh(new THREE.PlaneGeometry(7.4,1.85), new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(signCanvas)}));
+            sign.position.set(centerX, 6.0, -12.92); scene.add(sign);
+
+            // Parking lot and road are beyond the south maze exit, not inside the hedge corridors.
+            const parking = new THREE.Mesh(new THREE.PlaneGeometry(mazeWidth * 0.72, 15), concreteMat);
+            parking.rotation.x = -Math.PI / 2; parking.position.set(centerX, -0.02, mazeGrid.length * cellSize + 7.5); scene.add(parking);
+            const road = new THREE.Mesh(new THREE.PlaneGeometry(mazeWidth * 0.72, 13), new THREE.MeshStandardMaterial({color:0x111419, roughness:1}));
+            road.rotation.x = -Math.PI / 2; road.position.set(centerX, -0.015, mazeGrid.length * cellSize + 21.5); scene.add(road);
+            const roadLineMat = new THREE.MeshBasicMaterial({color:0xb6b5a8});
+            for (let lane = -2; lane <= 2; lane++) {
+                const line = new THREE.Mesh(new THREE.BoxGeometry(0.12,0.025,2.4), roadLineMat);
+                line.position.set(centerX + lane * 2.1, 0.01, mazeGrid.length * cellSize + 21.5); scene.add(line);
             }
 
             // Chapter 2 courtyard atmosphere: moonlit haze, scattered weeds, and low ground mist.
@@ -762,24 +803,41 @@
         }
 
         function spawnKeys() {
-            const keyMat = new THREE.MeshStandardMaterial({ color: 0xffd24a, metalness: 0.78, roughness: 0.24, emissive: 0x664000 });
-
+            // Chapter 2 uses nine fuel canisters, placed in distinct reachable corridors of its rotated hedge maze.
+            const canisterBody = new THREE.MeshStandardMaterial({ color: 0xb33a24, metalness: 0.35, roughness: 0.62, emissive: 0x351008 });
+            const canisterCap = new THREE.MeshStandardMaterial({ color: 0xc7b99a, metalness: 0.72, roughness: 0.28 });
             const validSpawns = [
-                {c: 1, r: 7}, {c: 7, r: 1}, {c: 13, r: 3},
-                {c: 19, r: 5}, {c: 3, r: 13}, {c: 11, r: 9},
-                {c: 17, r: 11}, {c: 9, r: 17}, {c: 15, r: 17}
+                {c:19,r:13},{c:13,r:19},{c:7,r:17},
+                {c:1,r:15},{c:17,r:7},{c:9,r:11},
+                {c:3,r:9},{c:11,r:3},{c:5,r:3}
             ];
-
-            validSpawns.forEach((loc) => {
-                const keyMesh = new THREE.Group();
-                const bow = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.045, 10, 20), keyMat); bow.position.x = -0.18; keyMesh.add(bow);
-                const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.43, 12), keyMat); shaft.rotation.z = Math.PI/2; shaft.position.x = 0.13; keyMesh.add(shaft);
-                const bit = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.11, 0.075), keyMat); bit.position.set(0.285,-0.085,0); keyMesh.add(bit);
-                const bit2 = new THREE.Mesh(new THREE.BoxGeometry(0.085,0.095,0.075), keyMat); bit2.position.set(0.235,-0.075,0); keyMesh.add(bit2);
-                keyMesh.position.set(loc.c * cellSize, 1.2, loc.r * cellSize); scene.add(keyMesh);
-                keys.push({ mesh: keyMesh, collected: false, cell: loc });
+            validSpawns.forEach((loc, index) => {
+                if (!mazeGrid[loc.r] || mazeGrid[loc.r][loc.c] !== 0) {
+                    // Fallback to a reachable open cell if a future maze revision occupies a planned pickup cell.
+                    let found = null;
+                    for (let r = 1; r < mazeGrid.length - 1 && !found; r++) {
+                        for (let c = 1; c < mazeGrid[r].length - 1; c++) {
+                            if (mazeGrid[r][c] === 0 && !validSpawns.some((p, j) => j < index && p.c === c && p.r === r)) { found = {c,r}; break; }
+                        }
+                    }
+                    if (found) { loc.c = found.c; loc.r = found.r; }
+                }
+                const can = new THREE.Group();
+                const body = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.82, 0.28), canisterBody);
+                body.position.y = 0.48; can.add(body);
+                const shoulder = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.14, 0.28), canisterBody);
+                shoulder.position.set(0, 0.93, 0); can.add(shoulder);
+                const handle = new THREE.Mesh(new THREE.BoxGeometry(0.23, 0.12, 0.12), canisterCap);
+                handle.position.set(0, 1.04, 0); can.add(handle);
+                const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.085, 0.12, 10), canisterCap);
+                neck.position.set(0.16, 0.94, 0); can.add(neck);
+                const label = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.2, 0.018), new THREE.MeshStandardMaterial({color:0xe5d8b5, roughness:0.8}));
+                label.position.set(0, 0.5, 0.151); can.add(label);
+                can.position.set(loc.c * cellSize, 0, loc.r * cellSize);
+                can.rotation.y = (index % 4) * Math.PI / 2;
+                scene.add(can);
+                keys.push({ mesh: can, collected: false, cell: loc });
             });
-
         }
 
         function spawnItems() {
@@ -1376,7 +1434,7 @@
                 document.getElementById('battery-bar').style.width = `${battery}%`;
             }
 
-            // Key Collection
+            // Fuel Canister Collection
             keys.forEach(k => {
                 if (!k.collected) {
                     k.mesh.rotation.y += 0.03;
@@ -1424,12 +1482,12 @@
             if (exitGate && camera.position.distanceTo(exitGate.position) < 2.5) {
                 if (keysFound >= totalKeys) {
                     isGameOver = true;
-                    document.getElementById('status-text').innerText = "YOU ESCAPED THE MAZE!";
+                    document.getElementById('status-text').innerText = "YOU ESCAPED IN THE CAR!";
                     document.getElementById('status-text').style.color = "#ffffff";
-                    document.getElementById('death-hint').innerText = "You unlocked the white exit wall and survived the nightmare!";
+                    document.getElementById('death-hint').innerText = "You filled the tank, reached the road, and escaped the courtyard.";
                     document.getElementById('game-over').style.display = 'flex';
                 } else {
-                    document.getElementById('status-msg').innerText = `EXIT LOCKED: NEED ${totalKeys - keysFound} MORE KEYS!`;
+                    document.getElementById('status-msg').innerText = `CAR NEEDS ${totalKeys - keysFound} MORE FUEL CANISTERS!`;
                 }
             }
 
