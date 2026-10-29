@@ -57,7 +57,7 @@
     document.addEventListener('touchend',function(e){
       if(closeStart===null||!e.changedTouches||!e.changedTouches.length)return;
       var t=e.changedTouches[0],dx=t.clientX-closeStart,dy=t.clientY-closeY;
-      if(dx< -55&&Math.abs(dx)>Math.abs(dy)*1.25)frame.contentWindow?.postMessage('hp-sidebar-close',location.origin);
+      if(dx>55&&Math.abs(dx)>Math.abs(dy)*1.25)frame.contentWindow?.postMessage('hp-sidebar-close',location.origin);
       closeStart=null;
     },{passive:true,capture:true});
     document.addEventListener('touchcancel',function(){closeStart=null},{passive:true,capture:true});
