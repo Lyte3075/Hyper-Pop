@@ -2090,8 +2090,9 @@ ACCESS NODE READY...</pre>
                             const p=monster.position.clone().add(d.clone().multiplyScalar(step));
                             const cell=worldToCell(p.x,p.z);
                             if(!mazeGrid[cell.r]||mazeGrid[cell.r][cell.c]!==0)continue;
-                            // The force field is a hard monster boundary. If a monster somehow starts inside,
-                            // only allow steps that reduce its distance to the nearest outside edge.
+                            // Hard forcefield exclusion plus a repulsion buffer. A* may route through
+                            // the plaza, so validate every individual movement step, not just the destination.
+                            let forcefieldRepelGain=0;
                             if(sanctuaryBounds && ai.type!=='banisher'){
                                 const b=sanctuaryBounds;
                                 const wasInside=monster.position.x>b.minX&&monster.position.x<b.maxX&&monster.position.z>b.minZ&&monster.position.z<b.maxZ;
@@ -2100,7 +2101,18 @@ ACCESS NODE READY...</pre>
                                 if(isInside&&wasInside){
                                     const oldEdge=Math.min(monster.position.x-b.minX,b.maxX-monster.position.x,monster.position.z-b.minZ,b.maxZ-monster.position.z);
                                     const newEdge=Math.min(p.x-b.minX,b.maxX-p.x,p.z-b.minZ,b.maxZ-p.z);
-                                    if(newEdge>oldEdge-0.001)continue;
+                                    // If an enemy ever gets inside, only let it move directly toward an exit.
+                                    if(newEdge>=oldEdge-0.001)continue;
+                                    forcefieldRepelGain=oldEdge-newEdge;
+                                }else if(!wasInside){
+                                    const rectDistance=(x,z)=>Math.hypot(Math.max(b.minX-x,0,x-b.maxX),Math.max(b.minZ-z,0,z-b.maxZ));
+                                    const oldDistance=rectDistance(monster.position.x,monster.position.z);
+                                    const newDistance=rectDistance(p.x,p.z);
+                                    const repelRange=cellSize*1.65;
+                                    // Outside the perimeter, never accept a step that moves closer while inside
+                                    // the buffer. Tangential movement is allowed, inward movement is not.
+                                    if(oldDistance<repelRange && newDistance<oldDistance-0.005)continue;
+                                    if(oldDistance<repelRange)forcefieldRepelGain=newDistance-oldDistance;
                                 }
                             }
                             const radius=ai.radius*0.34;
@@ -2108,7 +2120,7 @@ ACCESS NODE READY...</pre>
                             if(wallBoxes.some(w=>box.intersectsBox(w)))continue;
                             const remain=Math.hypot(target.x-p.x,target.z-p.z);
                             const progress=Math.hypot(target.x-monster.position.x,target.z-monster.position.z)-remain;
-                            const score=progress*3-remain*0.012-Math.abs(a)*0.001;
+                            const score=progress*3-remain*0.012-Math.abs(a)*0.001+forcefieldRepelGain*18;
                             if(score>best){best=score;chosen=d;}
                         }
                         if(chosen){
