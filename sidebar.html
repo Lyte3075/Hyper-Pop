@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent;color:#f4f2ff;font-family:Inter,system-ui,-apple-system,sans-serif}
-#edge{position:fixed;inset:0 auto 0 0;width:36px;background:linear-gradient(90deg,#0b0b16b8,transparent);touch-action:pan-y}
+#edge{position:fixed;inset:0 auto 0 0;width:44px;background:linear-gradient(90deg,#0b0b16b8,transparent);touch-action:none;cursor:ew-resize}
 #scrim{position:fixed;inset:0;background:#0009;opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s}
 #panel{position:fixed;inset:0 auto 0 0;width:min(320px,90vw);height:100%;overflow:auto;padding:calc(22px + env(safe-area-inset-top)) 14px calc(20px + env(safe-area-inset-bottom));background:#0d0d19f7;border-right:1px solid #ffffff1c;backdrop-filter:blur(22px);transform:translateX(-102%);transition:transform .22s ease;box-shadow:16px 0 50px #0007}
 body.open #panel{transform:translateX(0)}body.open #scrim{opacity:1;visibility:visible}
@@ -16,6 +16,11 @@ a{display:flex;align-items:center;gap:11px;min-height:42px;padding:9px 11px;bord
 <div class="label">More</div><a href="accounts.html" target="_top"><span class="ico">👤</span>Account / Profile</a></aside>
 <script>
 (function(){const send=s=>parent.postMessage(s,location.origin);function open(){document.body.classList.add('open');send('hp-sidebar-open')}function close(){document.body.classList.remove('open');send('hp-sidebar-close')}
-let start=null,sy=0;function begin(e){const t=e.touches[0];start=t.clientX;sy=t.clientY}function finish(e){if(start===null)return;const t=e.changedTouches[0],dx=t.clientX-start,dy=t.clientY-sy;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.2){if(dx>0)open();else if(document.body.classList.contains('open'))close()}start=null}
-document.getElementById('edge').addEventListener('touchstart',begin,{passive:true});document.getElementById('edge').addEventListener('touchend',finish,{passive:true});document.getElementById('panel').addEventListener('touchstart',begin,{passive:true});document.getElementById('panel').addEventListener('touchend',finish,{passive:true});document.getElementById('scrim').addEventListener('click',close);document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});addEventListener('message',e=>{if(e.origin===location.origin&&e.data==='hp-sidebar-toggle'){document.body.classList.contains('open')?close():open()}})})();
+let startX=null,startY=0,pointerId=null;
+function pointerDown(e){if(e.pointerType==='mouse')return;startX=e.clientX;startY=e.clientY;pointerId=e.pointerId;try{e.currentTarget.setPointerCapture(e.pointerId)}catch(_){}}
+function pointerUp(e){if(startX===null||e.pointerId!==pointerId)return;const dx=e.clientX-startX,dy=e.clientY-startY;if(Math.abs(dx)>48&&Math.abs(dx)>Math.abs(dy)*1.2){if(dx>0&&!document.body.classList.contains('open'))open();else if(dx<0&&document.body.classList.contains('open'))close()}startX=null;pointerId=null}
+function pointerCancel(){startX=null;pointerId=null}
+const edge=document.getElementById('edge'),panel=document.getElementById('panel');
+edge.addEventListener('pointerdown',pointerDown);edge.addEventListener('pointerup',pointerUp);edge.addEventListener('pointercancel',pointerCancel);
+panel.addEventListener('pointerdown',pointerDown);panel.addEventListener('pointerup',pointerUp);panel.addEventListener('pointercancel',pointerCancel);document.getElementById('scrim').addEventListener('click',close);document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});addEventListener('message',e=>{if(e.origin===location.origin&&e.data==='hp-sidebar-toggle'){document.body.classList.contains('open')?close():open()}})})();
 </script></body></html>
