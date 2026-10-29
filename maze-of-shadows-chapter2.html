@@ -1469,7 +1469,7 @@ ACCESS NODE READY...</pre>
                 if(staticSavedFog===null)staticSavedFog={color:scene.fog.color.clone(),density:scene.fog.density};
                 scene.fog.color.set(0xffffff);scene.fog.density=0.19;playStaticSpawn();stopStaticWarning();
                 if(isHidden&&hidingLocker){scene.remove(hidingLocker);lockers=lockers.filter(l=>l!==hidingLocker);isHidden=false;currentLocker=null;hidingLocker=null;camera.position.y=1.6;}}
-            if(staticHunting){staticMonster.lookAt(camera.position.x,staticMonster.position.y,camera.position.z);const x=camera.position.x-staticMonster.position.x,z=camera.position.z-staticMonster.position.z,d=Math.hypot(x,z)||1;staticMonster.position.x+=x/d*.72;staticMonster.position.z+=z/d*.72;staticMonster.position.y=1.6+Math.sin(now*.025)*.2;if(d<1.35){scene.fog.color.set(0xffffff);scene.fog.density=0.19;health=0;activeAttacker='static';}}
+            if(staticHunting){staticMonster.lookAt(camera.position.x,staticMonster.position.y,camera.position.z);const x=camera.position.x-staticMonster.position.x,z=camera.position.z-staticMonster.position.z,d=Math.hypot(x,z)||1;staticMonster.position.x+=x/d*.72;staticMonster.position.z+=z/d*.72;staticMonster.position.y=1.6+Math.sin(now*.025)*.2;if(d<1.35){scene.fog.color.set(0xffffff);scene.fog.density=0.19;health=0;staticKilledPlayer=true;activeAttacker='static';}}
         }
         function setupTouchControls() {
             moveZone.addEventListener('touchstart', (e) => {
@@ -1930,6 +1930,7 @@ ACCESS NODE READY...</pre>
 
             // Monster AI Logic
             let activeAttacker = null;
+            let staticKilledPlayer = false;
             let closestDistance = 999;
             let closestMonsterType = null;
             const playerCell = nearestWalkableCell(camera.position.x,camera.position.z,worldToCell(camera.position.x,camera.position.z));
@@ -2071,7 +2072,8 @@ ACCESS NODE READY...</pre>
                 isGameOver = true;
                 monsterDeathSequence = true;
                 const scare=document.getElementById('banisher-jumpscare');
-                const monsterType=activeAttacker || 'brute';
+                const monsterType=staticKilledPlayer ? 'static' : (activeAttacker || 'brute');
+                staticKilledPlayer=false;
                 scare.className='monster-scare scare-'+monsterType;
                 if(monsterType==='static') scare.className='monster-scare scare-static';
                 scare.querySelector('.scare-label').textContent=monsterType.toUpperCase()+' FOUND YOU';
