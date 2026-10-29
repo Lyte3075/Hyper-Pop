@@ -1849,7 +1849,7 @@ ACCESS NODE READY...</pre>
             if (banisherChaseActive) stamina = maxStamina;
             if ((isSprinting || keysPressed['ShiftLeft'] || adrenalineTimer > 0) && !isHidden && !isCrouching) {
                 if ((banisherChaseActive || stamina > 0 || adrenalineTimer > 0) && isMoving) {
-                    speed = sprintSpeed * (adrenalineTimer > 0 ? 1.25 : 1.0);
+                    speed = sprintSpeed * (banisherChaseActive ? 1.55 : 1.0) * (adrenalineTimer > 0 ? 1.25 : 1.0);
                     if (adrenalineTimer <= 0 && !banisherChaseActive) stamina = Math.max(0, stamina - 0.48);
                 }
             } else {
