@@ -993,11 +993,23 @@ ACCESS NODE READY...</pre>
 
             // Parking lot and road are beyond the south maze exit, not inside the hedge corridors.
             const lotStartZ = mazeGrid.length * cellSize - 1.0;
-            const lotLength = 74;
+            const lotLength = 170;
             const parking = new THREE.Mesh(new THREE.PlaneGeometry(mazeWidth * 0.72, lotLength), concreteMat);
             parking.rotation.x = -Math.PI / 2; parking.position.set(centerX, -0.02, lotStartZ + lotLength / 2); scene.add(parking);
             const road = new THREE.Mesh(new THREE.PlaneGeometry(mazeWidth * 0.72, 18), new THREE.MeshStandardMaterial({color:0x111419, roughness:1}));
             road.rotation.x = -Math.PI / 2; road.position.set(centerX, -0.015, lotStartZ + lotLength + 9); scene.add(road);
+            // The chase route is deliberately extended into a long parking-lot escape lane.
+            // Staggered concrete dividers block shortcuts and force a winding route toward the car.
+            const chaseBarrierMat = new THREE.MeshStandardMaterial({color:0x343a43, roughness:0.96});
+            for(let i=0;i<7;i++){
+                const z=lotStartZ+17+i*20;
+                const side=i%2===0?-1:1;
+                const barrier=new THREE.Mesh(new THREE.BoxGeometry(mazeWidth*0.42,2.35,1.15),chaseBarrierMat);
+                barrier.position.set(centerX+side*mazeWidth*0.14,1.175,z);
+                scene.add(barrier);
+                wallBoxes.push(new THREE.Box3().setFromObject(barrier));
+                chaseBreakables.push(barrier);
+            }
             const roadLineMat = new THREE.MeshBasicMaterial({color:0xb6b5a8});
             for (let lane = -2; lane <= 2; lane++) { const line = new THREE.Mesh(new THREE.BoxGeometry(0.12,0.025,3.2), roadLineMat); line.position.set(centerX + lane * 2.1, 0.01, lotStartZ + lotLength + 9); scene.add(line); }
             chaseEndZ = lotStartZ + lotLength + 9; outerWorldBounds.maxZ = chaseEndZ + 8;
@@ -1834,13 +1846,14 @@ ACCESS NODE READY...</pre>
             const hasJoystickMove = Math.abs(moveVector.x) > 0.01 || Math.abs(moveVector.z) > 0.01;
             const isMoving = (hasKeyboardMove || hasJoystickMove);
 
+            if (banisherChaseActive) stamina = maxStamina;
             if ((isSprinting || keysPressed['ShiftLeft'] || adrenalineTimer > 0) && !isHidden && !isCrouching) {
-                if ((stamina > 0 || adrenalineTimer > 0) && isMoving) {
+                if ((banisherChaseActive || stamina > 0 || adrenalineTimer > 0) && isMoving) {
                     speed = sprintSpeed * (adrenalineTimer > 0 ? 1.25 : 1.0);
-                    if (adrenalineTimer <= 0) stamina = Math.max(0, stamina - 0.48);
+                    if (adrenalineTimer <= 0 && !banisherChaseActive) stamina = Math.max(0, stamina - 0.48);
                 }
             } else {
-                stamina = Math.min(maxStamina, stamina + 1.2);
+                stamina = banisherChaseActive ? maxStamina : Math.min(maxStamina, stamina + 1.2);
             }
             document.getElementById('stamina-bar').style.width = `${(stamina / maxStamina) * 100}%`;
 
