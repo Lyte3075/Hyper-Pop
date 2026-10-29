@@ -7,13 +7,16 @@
 body.open #panel{transform:translateX(0)}body.open #scrim{opacity:1;visibility:visible}
 .brand{font-size:18px;font-weight:800;margin:0 0 4px}.note{font:10px monospace;color:#aaa7c1;letter-spacing:.12em;text-transform:uppercase;margin:0 0 18px}.label{font:10px monospace;color:#4be0e3;letter-spacing:.13em;text-transform:uppercase;margin:18px 8px 7px}
 a{display:flex;align-items:center;gap:11px;min-height:42px;padding:9px 11px;border:1px solid transparent;border-radius:11px;color:#dedbed;text-decoration:none;font-size:13px}a:hover,a:focus-visible{background:#ffffff0b;border-color:#ffffff20;color:#fff;outline:none}.ico{width:22px;flex:0 0 22px;text-align:center;font-size:16px}
+.setting{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px;border:1px solid #ffffff18;border-radius:12px;background:#ffffff08;color:#dedbed;font-size:13px}
+.setting input{width:18px;height:18px;accent-color:#9b7bff;flex:0 0 auto}
+.setting small{display:block;color:#aaa7c1;font-size:10px;margin-top:3px}
 @media(prefers-reduced-motion:reduce){#panel,#scrim{transition:none}}
 </style></head><body>
 <div id="edge" aria-hidden="true"></div><div id="scrim"></div><aside id="panel" aria-label="Hyper-Pop navigation">
 <div class="brand">Hyper-Pop</div><div class="note">tiny internet, big vibes</div>
 <div class="label">Explore</div><a href="index.html" target="_top"><span class="ico">⌂</span>Home</a><a href="index.html#games" target="_top"><span class="ico">✦</span>Games</a><a href="index.html#misc" target="_top"><span class="ico">▦</span>Categories & experiments</a><a href="index.html#search" target="_top"><span class="ico">⌕</span>Search</a><a href="leaderboard.html" target="_top"><span class="ico">🏆</span>Leaderboard</a>
 <div class="label">Social</div><a href="social.html" target="_top"><span class="ico">♟</span>Social hub</a><a href="social.html#friends" target="_top"><span class="ico">♡</span>Friends</a><a href="social.html#parties" target="_top"><span class="ico">◉</span>Parties</a><a href="social.html#chats" target="_top"><span class="ico">✉</span>Chats</a>
-<div class="label">More</div><a href="accounts.html" target="_top"><span class="ico">👤</span>Account / Profile</a></aside>
+<div class="label">Settings</div><label class="setting"><span>Show floating chat button<small>Display the chat shortcut on pages</small></span><input id="chat-button-toggle" type="checkbox" checked></label>\n<div class="label">More</div><a href="accounts.html" target="_top"><span class="ico">👤</span>Account / Profile</a></aside>
 <script>
 (function(){const send=s=>parent.postMessage(s,location.origin);function open(){document.body.classList.add('open');send('hp-sidebar-open')}function close(){document.body.classList.remove('open');send('hp-sidebar-close')}
 let startX=null,startY=0,pointerId=null;
@@ -21,6 +24,9 @@ function pointerDown(e){if(e.pointerType==='mouse')return;startX=e.clientX;start
 function pointerUp(e){if(startX===null||e.pointerId!==pointerId)return;const dx=e.clientX-startX,dy=e.clientY-startY;if(Math.abs(dx)>48&&Math.abs(dx)>Math.abs(dy)*1.2){if(dx>0&&!document.body.classList.contains('open'))open();else if(dx<0&&document.body.classList.contains('open'))close()}startX=null;pointerId=null}
 function pointerCancel(){startX=null;pointerId=null}
 const edge=document.getElementById('edge'),panel=document.getElementById('panel');
+const chatToggle=document.getElementById('chat-button-toggle');
+try{chatToggle.checked=localStorage.getItem('hp_chat_button_visible')!=='false'}catch(_){}
+chatToggle.addEventListener('change',()=>{const visible=chatToggle.checked;try{localStorage.setItem('hp_chat_button_visible',String(visible))}catch(_){}send('hp-chat-visibility:'+String(visible))});
 edge.addEventListener('pointerdown',pointerDown);edge.addEventListener('pointerup',pointerUp);edge.addEventListener('pointercancel',pointerCancel);
 panel.addEventListener('pointerdown',pointerDown);panel.addEventListener('pointerup',pointerUp);panel.addEventListener('pointercancel',pointerCancel);document.getElementById('scrim').addEventListener('click',close);document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});addEventListener('message',e=>{if(e.origin===location.origin&&e.data==='hp-sidebar-toggle'){document.body.classList.contains('open')?close():open()}})})();
 </script></body></html>
