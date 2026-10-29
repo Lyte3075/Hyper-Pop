@@ -1576,7 +1576,7 @@ ACCESS NODE READY...</pre>
                     banisherFace.position.x+=rx/rl*4.5;banisherFace.position.z+=rz/rl*4.5;
                     document.getElementById('status-msg').innerText='BANG! ... IT IS GONE';
                     endBanisherEvent(now);
-                } else if (isInGrassHidingSpot() && !monsters.some(m => m.userData.type === "crawler" && m.position.distanceTo(camera.position) < 3.5)) {
+                } else if (isInGrassHidingSpot()) {
                     document.getElementById("status-msg").innerText = "THE BANISHER PASSED YOU IN THE HEDGES";
                     endBanisherEvent(now);
                 } else{
