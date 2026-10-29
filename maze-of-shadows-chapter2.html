@@ -286,7 +286,7 @@ ACCESS NODE READY...</pre>
 
         // Player Stats & Inventory
         let maxHealth = 100, health = maxHealth;
-        let maxStamina = 200, stamina = maxStamina;
+        let maxStamina = 280, stamina = maxStamina;
         let battery = 100;
         let isSprinting = false, isHidden = false, flashlightOn = true;
         let adrenalineTimer = 0;
@@ -305,7 +305,7 @@ ACCESS NODE READY...</pre>
         let rotation = { yaw: Math.PI, pitch: 0 };
         let breathTimer = 0;
         let shakeIntensity = 0;
-        const walkSpeed = 0.07, sprintSpeed = 0.14; // Sprint stamina lasts 25% longer via a lower drain rate.
+        const walkSpeed = 0.09, sprintSpeed = 0.18; // Faster movement with a longer stamina reserve.
 
         // Entities & World Arrays
         let lockers = [], monsters = [], wallBoxes = [], keys = [], items = [], exitGate = null;
@@ -746,7 +746,7 @@ ACCESS NODE READY...</pre>
                 }
             }
 
-            // Central square control plaza: worn concrete pad, inset warning lights, and a giant industrial terminal.
+            // Central square control plaza: worn concrete pad, inset warning lights, and a compact CRT workstation.
             const plazaX = 10 * cellSize, plazaZ = 10 * cellSize;
             const plazaMat = new THREE.MeshStandardMaterial({color:0x292f31,roughness:0.92,metalness:0.12});
             const plaza = new THREE.Mesh(new THREE.PlaneGeometry(cellSize*2.92,cellSize*2.92),plazaMat); plaza.rotation.x=-Math.PI/2; plaza.position.set(plazaX,0.012,plazaZ); scene.add(plaza);
@@ -755,22 +755,28 @@ ACCESS NODE READY...</pre>
                 const edgeX = new THREE.Mesh(new THREE.BoxGeometry(0.12,0.06,cellSize*2.9),plazaTrimMat); edgeX.position.set(plazaX+side*cellSize*1.43,0.05,plazaZ); scene.add(edgeX);
                 const edgeZ = new THREE.Mesh(new THREE.BoxGeometry(cellSize*2.9,0.06,0.12),plazaTrimMat); edgeZ.position.set(plazaX,0.05,plazaZ+side*cellSize*1.43); scene.add(edgeZ);
             }
-            // Giant terminal tower, glowing green CRT-style display and chunky physical controls.
+            // Compact retro CRT workstation: squat desk, curved-looking monitor housing, and a separate keyboard.
             const terminal = new THREE.Group();
-            const terminalBaseMat = new THREE.MeshStandardMaterial({color:0x222a2a,metalness:0.75,roughness:0.35});
-            const terminalDarkMat = new THREE.MeshStandardMaterial({color:0x030a07,metalness:0.35,roughness:0.25,emissive:0x001e0b});
-            const terminalGreenMat = new THREE.MeshBasicMaterial({color:0x28ff7c});
-            const terminalBase = new THREE.Mesh(new THREE.BoxGeometry(2.7,0.48,1.8),terminalBaseMat); terminalBase.position.y=0.24; terminal.add(terminalBase);
-            const terminalPedestal = new THREE.Mesh(new THREE.BoxGeometry(1.85,1.55,1.25),terminalBaseMat); terminalPedestal.position.y=1.18; terminal.add(terminalPedestal);
-            const terminalScreen = new THREE.Mesh(new THREE.BoxGeometry(2.5,1.9,0.18),terminalDarkMat); terminalScreen.position.set(0,2.85,-0.05); terminal.add(terminalScreen);
+            const terminalBaseMat = new THREE.MeshStandardMaterial({color:0x303633,metalness:0.48,roughness:0.55});
+            const terminalDarkMat = new THREE.MeshStandardMaterial({color:0x080d0b,metalness:0.22,roughness:0.3,emissive:0x001e0b});
+            const terminalGreenMat = new THREE.MeshStandardMaterial({color:0x28ff7c,emissive:0x0a5a2a,emissiveIntensity:0.45});
+            const deskTop = new THREE.Mesh(new THREE.BoxGeometry(2.35,0.16,1.25),terminalBaseMat); deskTop.position.set(0,1.02,0.05); terminal.add(deskTop);
+            const deskLegMat = new THREE.MeshStandardMaterial({color:0x171d1b,metalness:0.65,roughness:0.5});
+            for(const dx of [-0.95,0.95]) for(const dz of [-0.42,0.42]) { const leg=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.98,0.12),deskLegMat); leg.position.set(dx,0.51,dz+0.05); terminal.add(leg); }
+            const monitorShell = new THREE.Mesh(new THREE.BoxGeometry(1.55,1.22,0.78),terminalBaseMat); monitorShell.position.set(0,1.78,-0.12); terminal.add(monitorShell);
+            const monitorBezel = new THREE.Mesh(new THREE.BoxGeometry(1.34,0.99,0.055),terminalDarkMat); monitorBezel.position.set(0,1.81,0.292); terminal.add(monitorBezel);
             const screenCanvas=document.createElement('canvas'); screenCanvas.width=512; screenCanvas.height=384;
             const screenCtx=screenCanvas.getContext('2d'); screenCtx.fillStyle='#001108'; screenCtx.fillRect(0,0,512,384);
             screenCtx.strokeStyle='#1aff72'; screenCtx.lineWidth=7; screenCtx.strokeRect(10,10,492,364);
             screenCtx.fillStyle='#4cff91'; screenCtx.font='bold 30px monospace'; screenCtx.fillText('COURTYARD OS',28,55);
             screenCtx.font='22px monospace'; screenCtx.fillText('> SECURITY NODE 01',28,108); screenCtx.fillText('> GATE STATUS: LOCKED',28,150); screenCtx.fillText('> FUEL CELLS: 09 REQUIRED',28,192); screenCtx.fillText('> WAITING FOR OPERATOR',28,234); screenCtx.fillText('> PRESS [E] TO CONNECT',28,300);
-            const screenFace=new THREE.Mesh(new THREE.PlaneGeometry(2.28,1.7),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(screenCanvas),emissive:0x00ff55})); screenFace.position.set(0,2.85,0.052); terminal.add(screenFace);
-            for(let i=0;i<5;i++){const keyLight=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.08,0.12),terminalGreenMat);keyLight.position.set(-0.55+i*0.28,2.02,0.59);terminal.add(keyLight);}
-            const terminalGlow=new THREE.PointLight(0x19ff70,1.7,10); terminalGlow.position.set(0,2.8,1.0); terminal.add(terminalGlow);
+            const screenTexture=new THREE.CanvasTexture(screenCanvas); screenTexture.colorSpace=THREE.SRGBColorSpace;
+            const screenFace=new THREE.Mesh(new THREE.PlaneGeometry(1.22,0.86),new THREE.MeshBasicMaterial({map:screenTexture})); screenFace.position.set(0,1.81,0.326); terminal.add(screenFace);
+            const monitorStand=new THREE.Mesh(new THREE.BoxGeometry(0.28,0.2,0.25),deskLegMat); monitorStand.position.set(0,1.13,-0.12); terminal.add(monitorStand);
+            const keyboardBase=new THREE.Mesh(new THREE.BoxGeometry(1.05,0.09,0.38),deskLegMat); keyboardBase.position.set(0,1.16,0.48); keyboardBase.rotation.x=-0.06; terminal.add(keyboardBase);
+            for(let row=0;row<3;row++) for(let col=0;col<11;col++){const keycap=new THREE.Mesh(new THREE.BoxGeometry(0.075,0.025,0.065),col===10&&row===2?terminalGreenMat:terminalBaseMat);keycap.position.set(-0.46+col*0.092,1.22,0.36+row*0.085);terminal.add(keycap);}
+            const powerLed=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.035,0.025),terminalGreenMat);powerLed.position.set(0.56,1.22,0.302);terminal.add(powerLed);
+            const terminalGlow=new THREE.PointLight(0x19ff70,0.9,6); terminalGlow.position.set(0,1.9,0.7); terminal.add(terminalGlow);
             terminal.position.set(plazaX,0,plazaZ); scene.add(terminal);
             computerTerminal={position:new THREE.Vector3(plazaX,1.5,plazaZ+2.1),screenCanvas,screenCtx,screenFace};
 
@@ -1578,7 +1584,7 @@ ACCESS NODE READY...</pre>
                     if (adrenalineTimer <= 0) stamina = Math.max(0, stamina - 0.48);
                 }
             } else {
-                stamina = Math.min(maxStamina, stamina + 0.8);
+                stamina = Math.min(maxStamina, stamina + 1.2);
             }
             document.getElementById('stamina-bar').style.width = `${(stamina / maxStamina) * 100}%`;
 
