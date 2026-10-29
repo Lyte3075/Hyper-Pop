@@ -327,6 +327,7 @@ ACCESS NODE READY...</pre>
         let exitGlowLight = null, exitDoorMesh = null, exitPadlocks = [];
         let computerTerminal = null, terminalNearby = false, terminalOpen = false, gateUnlocked = false, exitGateBlocker = null, exitGateLeaves = [];
         let banisherActive = false, banisherScheduled = false, banisherNextAt = 0, banisherStartedAt = 0, banisherSpawnAt = 0, banisherUntil = 0, banisherLastFrame = 0, banisherPhase = '', banisherFace = null, banisherSaved = null, banisherLockerTarget = null;
+        let banisherChaseActive = false, banisherChaseStartedAt = 0, chaseHazards = [], chaseBreakables = [], chaseEndZ = 0;
         let guideArrows = [], trailPoints = [];
 
         // Input Tracking
@@ -634,7 +635,7 @@ ACCESS NODE READY...</pre>
                 minX: -mazeWidth * 0.32,
                 maxX: mazeWidth + mazeWidth * 0.32,
                 minZ: -22,
-                maxZ: mazeHeight + 31
+                maxZ: mazeHeight + 95
             };
 
 
@@ -782,17 +783,17 @@ ACCESS NODE READY...</pre>
                         rearWindow.position.set(0, 1.42, 1.14);
                         rearWindow.rotation.y = Math.PI;
                         exitGroup.add(rearWindow);
-                        exitGroup.position.set(x, 0, z + 21.5);
+                        exitGroup.position.set(x, 0, z + 74);
                         exitGroup.rotation.y = 0;
                         scene.add(exitGroup);
                         const redGlow = new THREE.PointLight(0xff1010, 2.4, 9);
-                        redGlow.position.set(x, 3.0, z + 19.4);
+                        redGlow.position.set(x, 3.0, z + 71.9);
                         scene.add(redGlow);
                         exitGlowLight = new THREE.PointLight(0xb80b0b, 1.4, 8);
-                        exitGlowLight.position.set(x, 1.6, z + 20);
+                        exitGlowLight.position.set(x, 1.6, z + 72);
                         scene.add(exitGlowLight);
                         // Interaction trigger target
-                        exitGate = { position: new THREE.Vector3(x, 1.6, z + 21.5) };
+                        exitGate = { position: new THREE.Vector3(x, 1.6, z + 74) };
                     }
                 }
             }
@@ -867,6 +868,7 @@ ACCESS NODE READY...</pre>
                 const edgeZ = new THREE.Mesh(new THREE.BoxGeometry(cellSize*2.9,0.06,0.12),plazaTrimMat); edgeZ.position.set(plazaX,0.05,plazaZ+side*cellSize*1.43); scene.add(edgeZ);
             }
             // Compact retro CRT workstation: squat desk, curved-looking monitor housing, and a separate keyboard.
+            const fieldMat = new THREE.MeshBasicMaterial({color:0x58cfff,transparent:true,opacity:0.13,side:THREE.DoubleSide,depthWrite:false});const fieldEdgeMat = new THREE.MeshBasicMaterial({color:0x53caff,transparent:true,opacity:0.58});const fieldHalf=cellSize*1.49,fieldY=3.0;for(const side of [-1,1]){const fx=new THREE.Mesh(new THREE.PlaneGeometry(cellSize*2.98,fieldY),fieldMat);fx.position.set(plazaX+side*fieldHalf,fieldY/2,plazaZ);scene.add(fx);const fz=new THREE.Mesh(new THREE.PlaneGeometry(cellSize*2.98,fieldY),fieldMat);fz.rotation.y=Math.PI/2;fz.position.set(plazaX,fieldY/2,plazaZ+side*fieldHalf);scene.add(fz);const edgeX=new THREE.Mesh(new THREE.BoxGeometry(0.045,fieldY,0.045),fieldEdgeMat);edgeX.position.set(plazaX+side*fieldHalf,fieldY/2,plazaZ+fieldHalf);scene.add(edgeX);const edgeZ=new THREE.Mesh(new THREE.BoxGeometry(0.045,fieldY,0.045),fieldEdgeMat);edgeZ.position.set(plazaX-fieldHalf,fieldY/2,plazaZ+side*fieldHalf);scene.add(edgeZ);}
             const terminal = new THREE.Group();
             const terminalBaseMat = new THREE.MeshStandardMaterial({color:0x303633,metalness:0.48,roughness:0.55});
             const terminalDarkMat = new THREE.MeshStandardMaterial({color:0x080d0b,metalness:0.22,roughness:0.3,emissive:0x001e0b});
@@ -963,15 +965,17 @@ ACCESS NODE READY...</pre>
             sign.position.set(centerX, 6.0, -12.92); scene.add(sign);
 
             // Parking lot and road are beyond the south maze exit, not inside the hedge corridors.
-            const parking = new THREE.Mesh(new THREE.PlaneGeometry(mazeWidth * 0.72, 15), concreteMat);
-            parking.rotation.x = -Math.PI / 2; parking.position.set(centerX, -0.02, mazeGrid.length * cellSize + 7.5); scene.add(parking);
-            const road = new THREE.Mesh(new THREE.PlaneGeometry(mazeWidth * 0.72, 13), new THREE.MeshStandardMaterial({color:0x111419, roughness:1}));
-            road.rotation.x = -Math.PI / 2; road.position.set(centerX, -0.015, mazeGrid.length * cellSize + 21.5); scene.add(road);
+            const lotStartZ = mazeGrid.length * cellSize - 1.0;
+            const lotLength = 74;
+            const parking = new THREE.Mesh(new THREE.PlaneGeometry(mazeWidth * 0.72, lotLength), concreteMat);
+            parking.rotation.x = -Math.PI / 2; parking.position.set(centerX, -0.02, lotStartZ + lotLength / 2); scene.add(parking);
+            const road = new THREE.Mesh(new THREE.PlaneGeometry(mazeWidth * 0.72, 18), new THREE.MeshStandardMaterial({color:0x111419, roughness:1}));
+            road.rotation.x = -Math.PI / 2; road.position.set(centerX, -0.015, lotStartZ + lotLength + 9); scene.add(road);
             const roadLineMat = new THREE.MeshBasicMaterial({color:0xb6b5a8});
-            for (let lane = -2; lane <= 2; lane++) {
-                const line = new THREE.Mesh(new THREE.BoxGeometry(0.12,0.025,2.4), roadLineMat);
-                line.position.set(centerX + lane * 2.1, 0.01, mazeGrid.length * cellSize + 21.5); scene.add(line);
-            }
+            for (let lane = -2; lane <= 2; lane++) { const line = new THREE.Mesh(new THREE.BoxGeometry(0.12,0.025,3.2), roadLineMat); line.position.set(centerX + lane * 2.1, 0.01, lotStartZ + lotLength + 9); scene.add(line); }
+            chaseEndZ = lotStartZ + lotLength + 9; outerWorldBounds.maxZ = chaseEndZ + 8;
+            const warningMat = new THREE.MeshBasicMaterial({color:0x28bfff, transparent:true, opacity:0.55, side:THREE.DoubleSide}); const lampMatFall = new THREE.MeshStandardMaterial({color:0x343d49, metalness:0.65, roughness:0.45});
+            for(let i=0;i<8;i++){const z=lotStartZ+7+i*8.1,side=i%2===0?-1:1,x=centerX+side*(3.2+(i%3)*1.1);const glow=new THREE.Mesh(new THREE.CircleGeometry(1.2,24),warningMat);glow.rotation.x=-Math.PI/2;glow.position.set(x,0.035,z);scene.add(glow);const lamp=new THREE.Group();const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.14,5.2,8),lampMatFall);pole.position.y=2.6;lamp.add(pole);const head=new THREE.Mesh(new THREE.BoxGeometry(1.05,0.28,0.48),lampMatFall);head.position.set(0,5.15,0);lamp.add(head);lamp.position.set(x,0,z-1.2);scene.add(lamp);const locker=makeLocker();locker.scale.set(1.08,1.08,1.08);locker.position.set(centerX-side*1.8,1.36,z+2);scene.add(locker);chaseHazards.push({x,z,glow,objects:[lamp,locker],triggered:false,fallAt:0});chaseBreakables.push(lamp,locker);}
 
             // Outerlands: unsettling scenery beyond the playable route, kept inside the invisible world boundary.
             const outerlandSoilMat = new THREE.MeshStandardMaterial({ color: 0x171a1a, roughness: 1 });
@@ -1697,10 +1701,9 @@ ACCESS NODE READY...</pre>
             banisherNextAt=performance.now()+35000+Math.random()*25000;
         }
         function updateBanisher(now){
-            if(!banisherActive){
-                if(banisherScheduled&&banisherNextAt>0&&now>=banisherNextAt)startBanisherEvent(now);
-                return;
-            }
+            if(banisherChaseActive){ updateBanisherChase(now); return; }
+            if(gateUnlocked){ if(banisherActive)endBanisherEvent(now); return; }
+            if(!banisherActive){if(banisherScheduled&&banisherNextAt>0&&now>=banisherNextAt)startBanisherEvent(now);return;}
             // Keep the scene itself dark. Flicker only the flashlight during the 5-second warning.
             scene.fog.color.set(0x050506);scene.fog.density=0.045;scene.background.set(0x050506);
             if(banisherPhase==='warning'){
@@ -1831,6 +1834,7 @@ ACCESS NODE READY...</pre>
                         keysFound++;
                         if(keysFound===1&&!banisherScheduled){banisherScheduled=true;banisherNextAt=performance.now()+35000+Math.random()*25000;}
                         document.getElementById('key-tracker').innerText = `FUEL CANISTERS: ${keysFound} / ${totalKeys}`;
+                        if(keysFound>=totalKeys)document.getElementById('status-msg').innerText='ALL 9 CANISTERS COLLECTED. GO TO THE COMPUTER!';
                         checkProgressiveDifficulty();
                         updateGuideIndicators(collectedKeyPosition);
                     }
@@ -1862,9 +1866,9 @@ ACCESS NODE READY...</pre>
             if(terminalButton) terminalButton.style.display=terminalNearby&&!terminalOpen?'block':'none';
 
             // Exit Wall Door Trigger
-            if (exitGate && camera.position.distanceTo(exitGate.position) < 2.5) {
-                if (keysFound >= totalKeys && gateUnlocked) {
-                    isGameOver = true;
+            if (exitGate && camera.position.distanceTo(exitGate.position) < 3.4) {
+                if (keysFound >= totalKeys && gateUnlocked && banisherChaseActive) {
+                    banisherChaseActive=false;if(banisherFace){scene.remove(banisherFace);banisherFace=null;}document.getElementById('status-msg').innerText='';isGameOver = true;
                     document.getElementById('status-text').innerText = "YOU ESCAPED IN THE CAR!";
                     document.getElementById('status-text').style.color = "#ffffff";
                     document.getElementById('death-hint').innerText = "You filled the tank, reached the road, and escaped the courtyard.";
@@ -1940,7 +1944,7 @@ ACCESS NODE READY...</pre>
                 if (!monster.visible) continue;
 
                 monster.lookAt(camera.position.x, monster.position.y, camera.position.z);
-                if(computerTerminal && monster.userData.type!=='banisher' && Math.hypot(monster.position.x-computerTerminal.position.x,monster.position.z-computerTerminal.position.z)<7.2) continue;
+                if(computerTerminal && monster.userData.type!=='banisher' && Math.hypot(monster.position.x-computerTerminal.position.x,monster.position.z-computerTerminal.position.z)<5.8){const away=new THREE.Vector3(monster.position.x-computerTerminal.position.x,0,monster.position.z-computerTerminal.position.z);if(away.lengthSq()<0.01)away.set(1,0,0);away.normalize();monster.position.addScaledVector(away,0.11);monster.userData.state='chase';monster.userData.path=[];monster.userData.repathTimer=0;continue;}
                 const distToPlayer = monster.position.distanceTo(camera.position);
 
                 if (distToPlayer < closestDistance) {
@@ -2109,6 +2113,8 @@ ACCESS NODE READY...</pre>
             document.getElementById('terminal-output').textContent='COURTYARD OS v2.6.1\\n------------------------------\\nSECURITY GATE: LOCKED\\nFUEL CANISTERS: '+keysFound+' / '+totalKeys+'\\n\\nOperator connection established.\\nAuthorize the release sequence to open the maze exit.';
             document.getElementById('interact-computer-btn').style.display='none';
         }
+        function startBanisherChase(now){if(banisherChaseActive||isGameOver)return;banisherChaseActive=true;banisherChaseStartedAt=now;banisherActive=false;banisherPhase='chase';if(banisherFace)scene.remove(banisherFace);banisherFace=makeBanisherFace();const p=worldToCell(camera.position.x,camera.position.z),start=nearestWalkableCell(camera.position.x,camera.position.z,p),spawn=cellToWorld(start.c,start.r);const away=new THREE.Vector3(camera.position.x-spawn.x,0,camera.position.z-spawn.z);if(away.lengthSq()<1)away.set(0,0,-1);away.normalize();banisherFace.position.set(camera.position.x-away.x*10,0,camera.position.z-away.z*10);scene.add(banisherFace);banisherLastFrame=now;document.getElementById('status-msg').innerText='THE BANISHER IS CHASING YOU! SPRINT, CROUCH, AND DODGE THE BLUE WARNING ZONES!';chaseHazards.forEach(h=>{h.triggered=false;h.fallAt=0;h.glow.material.opacity=0.55;});}
+        function updateBanisherChase(now){if(!banisherChaseActive||!banisherFace||isGameOver)return;const dt=Math.min(0.05,Math.max(0.008,(now-(banisherLastFrame||now))/1000));banisherLastFrame=now;const playerCell=worldToCell(camera.position.x,camera.position.z),inMaze=banisherFace.position.z<mazeGrid.length*cellSize+1,playerInMaze=camera.position.z<mazeGrid.length*cellSize+1;let target=new THREE.Vector3(camera.position.x,0,camera.position.z);if(inMaze){const from=nearestWalkableCell(banisherFace.position.x,banisherFace.position.z,worldToCell(banisherFace.position.x,banisherFace.position.z));const to=playerInMaze?nearestWalkableCell(camera.position.x,camera.position.z,playerCell):{c:Math.round(camera.position.x/cellSize),r:mazeGrid.length-2};if(from&&to){const path=findAStarPath(from,to);if(path&&path.length>1)target=cellToWorld(path[1].c,path[1].r);else if(!playerInMaze)target.set(camera.position.x,0,mazeGrid.length*cellSize+0.8);}}const dx=target.x-banisherFace.position.x,dz=target.z-banisherFace.position.z,dist=Math.hypot(dx,dz)||0.001;const step=Math.min(dist,(inMaze?0.105:0.145)*60*dt);banisherFace.position.x+=dx/dist*step;banisherFace.position.z+=dz/dist*step;banisherFace.position.y=0.18+Math.sin(now*0.018)*0.12;banisherFace.rotation.y=Math.atan2(dx,dz);if(inMaze){for(let i=lockers.length-1;i>=0;i--){const locker=lockers[i];if(locker&&Math.hypot(locker.position.x-banisherFace.position.x,locker.position.z-banisherFace.position.z)<1.65){scene.remove(locker);lockers.splice(i,1);}}}else{for(const obj of chaseBreakables){if(obj&&obj.parent&&Math.hypot(obj.position.x-banisherFace.position.x,obj.position.z-banisherFace.position.z)<2.1)scene.remove(obj);}for(const h of chaseHazards){if(!h.triggered&&Math.hypot(camera.position.x-h.x,camera.position.z-h.z)<7.2){h.triggered=true;h.fallAt=now+850;h.glow.material.opacity=0.95;}if(h.triggered&&h.fallAt&&now>=h.fallAt){h.objects.forEach((o,i)=>{if(o.parent){o.rotation.z=i===0?Math.PI/2:0;o.position.y=i===0?0.6:0.7;}});h.glow.material.opacity=0.25;h.fallAt=0;}if(h.triggered&&Math.hypot(camera.position.x-h.x,camera.position.z-h.z)<1.45&&!isCrouching){health=Math.max(0,health-0.45);document.getElementById('health-bar').style.width=(health/maxHealth*100)+'%';if(health<=0)triggerMonsterDeath('banisher');}}}if(Math.hypot(camera.position.x-banisherFace.position.x,camera.position.z-banisherFace.position.z)<1.65)triggerMonsterDeath('banisher');}
         function authorizeGateRelease() {
             if(!terminalOpen)return;
             if(keysFound < totalKeys) {
@@ -2116,12 +2122,12 @@ ACCESS NODE READY...</pre>
                 document.getElementById("terminal-unlock-btn").disabled = true;
                 return;
             }
-            gateUnlocked=true; terminalOpen=false; isPaused=false; lastTime=performance.now();
+            gateUnlocked=true;banisherScheduled=false;banisherNextAt=0;if(banisherActive)endBanisherEvent(performance.now());terminalOpen=false;isPaused=false;lastTime=performance.now();
             document.getElementById('terminal-panel').classList.remove('visible');
             document.getElementById('terminal-output').textContent='ACCESS GRANTED\\nSECURITY GATE: OPEN\\nROUTE TO PARKING LOT: UNLOCKED';
             if(exitGateBlocker){wallBoxes=wallBoxes.filter(box=>box!==exitGateBlocker);exitGateBlocker=null;}
             exitGateLeaves.forEach(gate=>{gate.rotation.y=Math.PI/2;gate.position.x+=cellSize*0.48;});
-            document.getElementById('status-msg').innerText='GATE UNLOCKED. REACH THE PARKING LOT!';
+            document.getElementById('status-msg').innerText='GATE UNLOCKED. THE BANISHER IS COMING. RUN TO THE CAR!';startBanisherChase(performance.now());
             if(computerTerminal){const ctx=computerTerminal.screenCtx;ctx.fillStyle='#001108';ctx.fillRect(0,0,512,384);ctx.strokeStyle='#1aff72';ctx.lineWidth=7;ctx.strokeRect(10,10,492,364);ctx.fillStyle='#4cff91';ctx.font='bold 34px monospace';ctx.fillText('ACCESS GRANTED',28,70);ctx.font='24px monospace';ctx.fillText('> GATE: OPEN',28,132);ctx.fillText('> ROUTE: CLEAR',28,176);ctx.fillText('> GET TO THE CAR',28,240);computerTerminal.screenFace.material.map.needsUpdate=true;}
         }
         document.getElementById('interact-computer-btn').addEventListener('click',openComputerTerminal);
@@ -2198,15 +2204,15 @@ const hpSoundLoop=setInterval(()=>{
 (function(){
  const read=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch{return d}};
  function campaignWin(){const c=read('mosCampaignV1',{unlocked:1,beaten:[]});if(!c.beaten.includes(1))c.beaten.push(1);c.unlocked=Math.max(c.unlocked||1,2);c.lastChapter=1;localStorage.setItem('mosCampaignV1',JSON.stringify(c));saveButton.style.display='block';}
- function saveChapterOne(slot){const slots=read('mosSaveSlotsV1',[null,null,null]);const campaign=read('mosCampaignV1',{unlocked:1,beaten:[]});const completed=campaign.beaten&&campaign.beaten.includes(1);slots[slot]={chapter:completed?2:1,savedAt:Date.now(),health:Math.round(health),battery:Math.round(battery),inventory:Object.entries(inventory).map(([k,v])=>k+' ×'+v).join(', '),state:{health,battery,stamina,keysFound,inventory,player:{x:camera.position.x,z:camera.position.z,yaw:rotation.yaw,pitch:rotation.pitch},keyStates:keys.map(k=>k.collected),itemStates:items.map(i=>i.collected),sourceChapter:1}};localStorage.setItem('mosSaveSlotsV1',JSON.stringify(slots));alert('Progress saved to slot '+(slot+1)+(completed?' · Next: Chapter 2':''))}
+ function saveChapterOne(slot){const slots=read('mosSaveSlotsV1',[null,null,null]);slots[slot]={chapter:2,savedAt:Date.now(),health:Math.round(health),battery:Math.round(battery),inventory:Object.entries(inventory).map(([k,v])=>k+' ×'+v).join(', '),state:{health,battery,stamina,keysFound,inventory:{...inventory},player:{x:camera.position.x,z:camera.position.z,yaw:rotation.yaw,pitch:rotation.pitch},keyStates:keys.map(k=>k.collected),itemStates:items.map(i=>i.collected),sourceChapter:2,gateUnlocked,banisherChaseActive}};localStorage.setItem('mosSaveSlotsV1',JSON.stringify(slots));alert('Progress saved to slot '+(slot+1)+' · Courtyard state saved')}
  const saveButton=document.createElement('button');saveButton.textContent='SAVE PROGRESS';saveButton.style.cssText='display:none;margin:8px auto;background:#101010dd;color:#fff;border:1px solid #ffffff66;border-radius:8px;padding:12px 18px;font:bold 12px monospace;touch-action:manipulation';saveButton.onclick=()=>{const n=prompt('Save to slot 1, 2, or 3?');if(['1','2','3'].includes(n))saveChapterOne(Number(n)-1)};const winButtons=document.createElement('div');winButtons.style.cssText='width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;margin-top:8px';const menuButton=document.createElement('button');menuButton.textContent='BACK TO MENU';menuButton.style.cssText=saveButton.style.cssText.replace('display:none;','');menuButton.onclick=()=>{try{parent.document.getElementById('exitChapter').click()}catch{location.href='maze-of-shadows-menu.html'}};const nextButton=document.createElement('button');nextButton.textContent='NEXT CHAPTER';nextButton.style.cssText=menuButton.style.cssText;nextButton.onclick=()=>{try{parent.launchChapter2()}catch{location.href='maze-of-shadows-menu.html'}};winButtons.append(menuButton,nextButton,saveButton);document.getElementById('game-over').appendChild(winButtons);
  const inv=document.createElement('div');inv.id='mos-roblox-inventory';inv.style.cssText='position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:9998;display:flex;gap:5px;max-width:95vw';document.body.appendChild(inv);
  function renderInventory(){inv.innerHTML='';Object.entries(inventory).forEach(([name,count],i)=>{const b=document.createElement('button');b.innerHTML='<small style="display:block;color:#ffe28a">'+(i+1)+'</small>'+name+'<br><b>×'+count+'</b>';b.style.cssText='min-width:65px;min-height:52px;background:#050805dd;color:white;border:1px solid #ffffff88;border-radius:7px;font:11px monospace;touch-action:manipulation';const useSlot=()=>{if(name==='medkit'&&count>0&&health<maxHealth){health=Math.min(maxHealth,health+40);inventory.medkit--}else if(name==='battery'&&count>0&&battery<100){battery=Math.min(100,battery+50);inventory.battery--}else if(name==='adrenaline'&&count>0){adrenalineTimer=8;inventory.adrenaline--}renderInventory()};let lastInventoryTouch=0;b.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();lastInventoryTouch=Date.now();useSlot()},{passive:false});b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();if(Date.now()-lastInventoryTouch<700)return;useSlot()});inv.appendChild(b)})}
  const _mosRenderOnPickup=collectItem;collectItem=function(item){const result=_mosRenderOnPickup(item);renderInventory();return result};
  renderInventory();
  window.addEventListener('keydown',e=>{if(/^Digit[1-9]$/.test(e.code)){const i=Number(e.code.slice(5))-1;const name=Object.keys(inventory)[i];if(!name)return;const count=inventory[name];if(count<=0)return;if(name==='medkit'&&health<maxHealth){health=Math.min(maxHealth,health+40);inventory[name]--}else if(name==='battery'&&battery<100){battery=Math.min(100,battery+50);inventory[name]--}else if(name==='adrenaline'){adrenalineTimer=8;inventory[name]--}renderInventory()}});
- const loadSlot=new URLSearchParams(location.search).get('loadSlot');if(loadSlot){window.addEventListener('load',()=>setTimeout(()=>{const s=read('mosSaveSlotsV1',[])[Number(loadSlot)-1];if(s&&s.chapter===1&&s.state){const d=s.state;health=d.health;battery=d.battery;stamina=d.stamina;keysFound=d.keysFound;inventory=d.inventory;camera.position.set(d.player.x,1.6,d.player.z);rotation.yaw=d.player.yaw;rotation.pitch=d.player.pitch;d.keyStates.forEach((v,i)=>{if(keys[i]){keys[i].collected=v;if(v)scene.remove(keys[i].mesh)}});d.itemStates.forEach((v,i)=>{if(items[i]){items[i].collected=v;if(v)scene.remove(items[i].mesh)}});document.getElementById('key-tracker').innerText='FUEL CANISTERS: '+keysFound+' / 9';renderInventory()}},100))}
- window.addEventListener('message',event=>{const msg=event.data;if(!msg||msg.type!=='MOS_LOAD_SLOT')return;const s=read('mosSaveSlotsV1',[])[Number(msg.slot)-1];if(!s||s.chapter!==1||!s.state)return;const d=s.state;health=d.health??health;battery=d.battery??battery;stamina=d.stamina??stamina;keysFound=d.keysFound??keysFound;if(d.inventory)Object.assign(inventory,d.inventory);if(d.player){camera.position.set(d.player.x,1.6,d.player.z);rotation.yaw=d.player.yaw;rotation.pitch=d.player.pitch}if(d.keyStates)d.keyStates.forEach((v,i)=>{if(keys[i]){keys[i].collected=v;if(v)scene.remove(keys[i].mesh)}});if(d.itemStates)d.itemStates.forEach((v,i)=>{if(items[i]){items[i].collected=v;if(v)scene.remove(items[i].mesh)}});document.getElementById('key-tracker').innerText='FUEL CANISTERS: '+keysFound+' / 9';renderInventory()});
+ const loadSlot=new URLSearchParams(location.search).get('loadSlot');if(loadSlot){window.addEventListener('load',()=>setTimeout(()=>{const s=read('mosSaveSlotsV1',[])[Number(loadSlot)-1];if(s&&s.chapter===2&&s.state){const d=s.state;health=d.health??health;battery=d.battery??battery;stamina=d.stamina??stamina;keysFound=d.keysFound??keysFound;if(d.inventory&&typeof d.inventory==='object')Object.assign(inventory,d.inventory);if(d.player){camera.position.set(d.player.x,1.6,d.player.z);rotation.yaw=d.player.yaw;rotation.pitch=d.player.pitch}if(d.keyStates)d.keyStates.forEach((v,i)=>{if(keys[i]){keys[i].collected=!!v;if(v)scene.remove(keys[i].mesh)}});if(d.itemStates)d.itemStates.forEach((v,i)=>{if(items[i]){items[i].collected=!!v;if(v)scene.remove(items[i].mesh)}});gateUnlocked=!!d.gateUnlocked;document.getElementById('key-tracker').innerText='FUEL CANISTERS: '+keysFound+' / 9';if(keysFound>=totalKeys)document.getElementById('status-msg').innerText='ALL 9 CANISTERS COLLECTED. GO TO THE COMPUTER!';renderInventory()}},100))}
+ window.addEventListener('message',event=>{const msg=event.data;if(!msg||msg.type!=='MOS_LOAD_SLOT')return;const s=read('mosSaveSlotsV1',[])[Number(msg.slot)-1];if(!s||s.chapter!==2||!s.state)return;const d=s.state;health=d.health??health;battery=d.battery??battery;stamina=d.stamina??stamina;keysFound=d.keysFound??keysFound;if(d.inventory&&typeof d.inventory==='object')Object.assign(inventory,d.inventory);if(d.player){camera.position.set(d.player.x,1.6,d.player.z);rotation.yaw=d.player.yaw;rotation.pitch=d.player.pitch}if(d.keyStates)d.keyStates.forEach((v,i)=>{if(keys[i]){keys[i].collected=!!v;if(v)scene.remove(keys[i].mesh)}});if(d.itemStates)d.itemStates.forEach((v,i)=>{if(items[i]){items[i].collected=!!v;if(v)scene.remove(items[i].mesh)}});gateUnlocked=!!d.gateUnlocked;document.getElementById('key-tracker').innerText='FUEL CANISTERS: '+keysFound+' / 9';renderInventory()});
  const observer=setInterval(()=>{const panel=document.getElementById('game-over'),title=document.getElementById('status-text'),inv=document.getElementById('mos-roblox-inventory');if(panel&&panel.style.display==='flex'){if(inv)inv.style.display='none';if(title&&/ESCAPED/i.test(title.textContent))campaignWin()}else if(inv)inv.style.display='flex'},250);
  window.addEventListener('beforeunload',()=>clearInterval(observer));
 })();
