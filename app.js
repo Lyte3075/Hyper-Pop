@@ -15,59 +15,33 @@
     fallbackOrb.addEventListener('click', function(){if (!document.getElementById('hp-sound-panel')) console.warn('[Hyper-Pop] Music player script has not initialized yet.');});
     (document.body || document.documentElement).appendChild(fallbackOrb);
   }
-  // Site-wide swipe navigation. The homepage supplies its own richer sidebar;
-  // other pages receive the same compact navigation panel here.
+  // The navigation lives in a standalone same-origin iframe. The iframe owns
+  // its gestures and UI, so page swaps cannot detach its event listeners.
   (function(){
-    if (!document.getElementById('hp-home-sidebar')) {
-      var style=document.createElement('style');
-      style.id='hp-global-sidebar-style';
-      style.textContent=`
-        #hp-home-sidebar{position:fixed;z-index:2147483000;top:0;bottom:0;left:0;width:min(300px,86vw);padding:calc(22px + env(safe-area-inset-top)) 14px calc(20px + env(safe-area-inset-bottom));overflow-y:auto;background:#0d0d19f7;border-right:1px solid #ffffff1c;backdrop-filter:blur(20px);transform:translateX(-105%);transition:transform .22s ease;box-shadow:16px 0 50px #0007}
-        #hp-home-sidebar.open{transform:translateX(0)}
-        #hp-home-sidebar-scrim{position:fixed;z-index:2147482999;inset:0;background:#0009;opacity:0;visibility:hidden;transition:opacity .22s,visibility .22s}
-        #hp-home-sidebar-scrim.open{opacity:1;visibility:visible}
-        #hp-home-sidebar .side-title{font-size:17px;font-weight:700;color:#fff;margin:0 0 4px}
-        #hp-home-sidebar .side-note{font:10px 'DM Mono',monospace;color:#aaa7c1;letter-spacing:.12em;text-transform:uppercase;margin:0 0 18px}
-        #hp-home-sidebar .side-label{font:10px 'DM Mono',monospace;color:#4be0e3;letter-spacing:.12em;text-transform:uppercase;margin:17px 8px 7px}
-        #hp-home-sidebar a{display:flex;align-items:center;gap:10px;min-height:40px;padding:9px 11px;border:1px solid transparent;border-radius:11px;color:#d8d5e8;text-decoration:none;font-size:13px;line-height:1.25}
-        #hp-home-sidebar a:hover{background:#ffffff0b;border-color:#ffffff18;color:#fff}
-        #hp-home-sidebar .side-icon{width:21px;flex:0 0 21px;text-align:center;font-size:15px}
-        #hp-swipe-zone{position:fixed;z-index:2147482998;left:0;top:12%;bottom:12%;width:28px;touch-action:pan-y;background:transparent}
-        @media(prefers-reduced-motion:reduce){#hp-home-sidebar,#hp-home-sidebar-scrim{transition:none}}
-      `;
-      document.head.appendChild(style);
-      var scrim=document.createElement('div');scrim.id='hp-home-sidebar-scrim';scrim.setAttribute('aria-hidden','true');
-      var panel=document.createElement('aside');panel.id='hp-home-sidebar';panel.setAttribute('aria-label','Hyper-Pop navigation');panel.setAttribute('aria-hidden','true');
-      panel.innerHTML='<div class="side-title">Hyper-Pop</div><div class="side-note">tiny internet, big vibes</div><div class="side-label">Explore</div><a href="index.html"><span class="side-icon">⌂</span>Home</a><a href="social.html"><span class="side-icon">♟</span>Social hub</a><a href="social.html#friends"><span class="side-icon">♡</span>Friends</a><a href="social.html#parties"><span class="side-icon">◉</span>Parties</a><a href="social.html#chats"><span class="side-icon">✉</span>Chats</a><div class="side-label">More</div><a href="accounts.html"><span class="side-icon">👤</span>Account / Profile</a>';
-      document.body.append(scrim,panel);
+    document.getElementById('hp-home-sidebar')?.remove();
+    document.getElementById('hp-home-sidebar-scrim')?.remove();
+    document.getElementById('hp-global-sidebar-style')?.remove();
+    var oldToggle=document.getElementById('hp-side-toggle');
+    var frame=document.getElementById('hp-sidebar-frame');
+    if(!frame){
+      frame=document.createElement('iframe');
+      frame.id='hp-sidebar-frame';
+      frame.title='Hyper-Pop navigation';
+      frame.src=new URL('sidebar.html',base).href;
+      frame.setAttribute('allowtransparency','true');
+      frame.style.cssText='position:fixed;z-index:2147483000;top:0;left:0;width:36px;height:100%;height:100dvh;border:0;background:transparent;overflow:hidden;transition:width .22s ease;pointer-events:auto;';
+      (document.body||document.documentElement).appendChild(frame);
     }
-    var panel=document.getElementById('hp-home-sidebar'),scrim=document.getElementById('hp-home-sidebar-scrim');
-    if(!panel||!scrim)return;
-    // Track gestures at document level so the edge gesture survives page navigation
-    // and does not depend on a tiny overlay receiving iOS touch events.
-    function setOpen(open){panel.classList.toggle('open',open);scrim.classList.toggle('open',open);panel.setAttribute('aria-hidden',String(!open));}
-    if(!document.documentElement.dataset.hpEdgeSwipeBound){
-      document.documentElement.dataset.hpEdgeSwipeBound='1';
-      var edgeStart=null;
-      document.addEventListener('touchstart',function(e){
-        if(!e.touches||e.touches.length!==1)return;
-        var t=e.touches[0];
-        edgeStart={x:t.clientX,y:t.clientY,inside:!!e.target.closest('#hp-home-sidebar')};
-      },{passive:true,capture:true});
-      document.addEventListener('touchend',function(e){
-        if(!edgeStart||!e.changedTouches||!e.changedTouches.length)return;
-        var t=e.changedTouches[0],dx=t.clientX-edgeStart.x,dy=t.clientY-edgeStart.y;
-        if(Math.abs(dx)>55&&Math.abs(dx)>Math.abs(dy)*1.25){
-          if(edgeStart.inside&&dx<0)setOpen(false);
-          else if(!edgeStart.inside&&edgeStart.x<=36&&dx>0)setOpen(true);
-        }
-        edgeStart=null;
-      },{passive:true,capture:true});
-      document.addEventListener('touchcancel',function(){edgeStart=null},{passive:true,capture:true});
-      document.addEventListener('keydown',function(e){if(e.key==='Escape')setOpen(false)});
+    function setFrameOpen(open){frame.style.width=open?'min(320px,90vw)':'36px';}
+    window.addEventListener('message',function(e){
+      if(e.origin!==location.origin||e.source!==frame.contentWindow)return;
+      if(e.data==='hp-sidebar-open')setFrameOpen(true);
+      if(e.data==='hp-sidebar-close')setFrameOpen(false);
+    });
+    if(oldToggle&&!oldToggle.dataset.hpSidebarBound){
+      oldToggle.dataset.hpSidebarBound='1';
+      oldToggle.addEventListener('click',function(e){e.preventDefault();frame.contentWindow?.postMessage('hp-sidebar-toggle',location.origin);});
     }
-    if(!panel.dataset.hpLinkBound){panel.dataset.hpLinkBound='1';panel.addEventListener('click',function(e){if(e.target.closest('a'))setOpen(false)});}
-    document.addEventListener('keydown',function(e){if(e.key==='Escape')setOpen(false)});
   })();
   var files = ['terminal.js?v=cmdfix-10'];
   if (!/\/accounts\.html$/.test(location.pathname)) files.unshift('account.js?v=profile-2');
@@ -85,7 +59,7 @@
       try{
         const response=await fetch(target.href,{credentials:'same-origin'});if(!response.ok)throw new Error('Page request failed: '+response.status);
         const markup=await response.text(),parsed=new DOMParser().parseFromString(markup,'text/html');if(!parsed.body||!parsed.title)throw new Error('Invalid page response');
-        const persistentNodes=['hp-sound-orb','hp-sound-panel','hp-terminal-launcher','hp-terminal','hp-home-sidebar','hp-home-sidebar-scrim','hp-swipe-zone'].map(id=>document.getElementById(id)).filter(Boolean);
+        const persistentNodes=['hp-sound-orb','hp-sound-panel','hp-terminal-launcher','hp-terminal','hp-sidebar-frame'].map(id=>document.getElementById(id)).filter(Boolean);
         const bodyAttrs=[...parsed.body.attributes].map(a=>[a.name,a.value]);[...document.body.attributes].forEach(a=>document.body.removeAttribute(a.name));bodyAttrs.forEach(([name,value])=>document.body.setAttribute(name,value));
         document.body.replaceChildren();[...parsed.body.childNodes].forEach(node=>{if(!(node.nodeType===1&&node.tagName==='SCRIPT'))document.body.append(node.cloneNode(true))});persistentNodes.forEach(node=>document.body.append(node));
         document.title=parsed.title;
