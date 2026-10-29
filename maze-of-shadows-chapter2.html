@@ -2032,7 +2032,7 @@ ACCESS NODE READY...</pre>
 
                 let mSpeed = monster.userData.baseSpeed;
 
-                if (!ai.forcefieldAvoiding && !isHidden && (distToPlayer <= noiseRadius || (isInFOV && distToPlayer < 12))) {
+                if (!monster.userData.forcefieldAvoiding && !isHidden && (distToPlayer <= noiseRadius || (isInFOV && distToPlayer < 12))) {
                     monster.userData.state = 'chase';
                 }
 
