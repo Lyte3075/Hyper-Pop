@@ -15,7 +15,7 @@
     fallbackOrb.addEventListener('click', function(){if (!document.getElementById('hp-sound-panel')) console.warn('[Hyper-Pop] Music player script has not initialized yet.');});
     (document.body || document.documentElement).appendChild(fallbackOrb);
   }
-  var files = ['terminal.js?v=cmdfix-10','site-sidebar.js?v=sidebar-3'];
+  var files = ['terminal.js?v=cmdfix-10'];
   if (!/\/accounts\.html$/.test(location.pathname)) files.unshift('account.js?v=profile-2');
   if (!soundtrackDisabled) files.push('soundtrack.js?v=page-mode-6');
   files.forEach(function(file){var node=document.createElement('script');node.src=new URL(file,base).href;node.async=false;node.onerror=function(){console.error('[Hyper-Pop] Failed to load '+node.src)};(document.head||document.documentElement).appendChild(node)});
@@ -31,7 +31,7 @@
       try{
         const response=await fetch(target.href,{credentials:'same-origin'});if(!response.ok)throw new Error('Page request failed: '+response.status);
         const markup=await response.text(),parsed=new DOMParser().parseFromString(markup,'text/html');if(!parsed.body||!parsed.title)throw new Error('Invalid page response');
-        const persistentNodes=['hp-sound-orb','hp-sound-panel','hp-terminal-launcher','hp-terminal','hp-side-toggle','hp-site-sidebar','hp-side-scrim'].map(id=>document.getElementById(id)).filter(Boolean);
+        const persistentNodes=['hp-sound-orb','hp-sound-panel','hp-terminal-launcher','hp-terminal'].map(id=>document.getElementById(id)).filter(Boolean);
         const bodyAttrs=[...parsed.body.attributes].map(a=>[a.name,a.value]);[...document.body.attributes].forEach(a=>document.body.removeAttribute(a.name));bodyAttrs.forEach(([name,value])=>document.body.setAttribute(name,value));
         document.body.replaceChildren();[...parsed.body.childNodes].forEach(node=>{if(!(node.nodeType===1&&node.tagName==='SCRIPT'))document.body.append(node.cloneNode(true))});persistentNodes.forEach(node=>document.body.append(node));
         document.title=parsed.title;
@@ -39,8 +39,8 @@
         document.head.querySelectorAll('style[data-hp-page-style],link[data-hp-page-style]').forEach(n=>n.remove());
         parsed.head.querySelectorAll('style,link[rel="stylesheet"]').forEach(n=>{const copy=n.cloneNode(true);copy.setAttribute('data-hp-page-style','');document.head.append(copy)});
         if(addHistory)history.pushState({hyperPop:true},'',target.pathname+target.search+target.hash);currentUrl=target.href;
-        for(const oldScript of parsed.head.querySelectorAll('script[src]')){const src=oldScript.getAttribute('src')||'';if(/(^|\/)app\.js(?:\?|$)|soundtrack\.js|account\.js|terminal\.js|site-sidebar\.js/.test(src))continue;await new Promise((resolve,reject)=>{const node=document.createElement('script');node.src=new URL(src,target.href).href;node.onload=resolve;node.onerror=reject;document.body.append(node)})}
-        for(const oldScript of parsed.body.querySelectorAll('script')){const src=oldScript.getAttribute('src')||'';if(src&&/(^|\/)app\.js(?:\?|$)|soundtrack\.js|account\.js|terminal\.js|site-sidebar\.js/.test(src))continue;if(src)await new Promise((resolve,reject)=>{const node=document.createElement('script');node.src=new URL(src,target.href).href;node.onload=resolve;node.onerror=reject;document.body.append(node)});else if(oldScript.textContent.trim()){try{(new Function(oldScript.textContent)).call(window)}catch(error){console.error('[Hyper-Pop] Page script error:',error)}}}
+        for(const oldScript of parsed.head.querySelectorAll('script[src]')){const src=oldScript.getAttribute('src')||'';if(/(^|\/)app\.js(?:\?|$)|soundtrack\.js|account\.js|terminal\.js/.test(src))continue;await new Promise((resolve,reject)=>{const node=document.createElement('script');node.src=new URL(src,target.href).href;node.onload=resolve;node.onerror=reject;document.body.append(node)})}
+        for(const oldScript of parsed.body.querySelectorAll('script')){const src=oldScript.getAttribute('src')||'';if(src&&/(^|\/)app\.js(?:\?|$)|soundtrack\.js|account\.js|terminal\.js/.test(src))continue;if(src)await new Promise((resolve,reject)=>{const node=document.createElement('script');node.src=new URL(src,target.href).href;node.onload=resolve;node.onerror=reject;document.body.append(node)});else if(oldScript.textContent.trim()){try{(new Function(oldScript.textContent)).call(window)}catch(error){console.error('[Hyper-Pop] Page script error:',error)}}}
         window.scrollTo(0,0);window.dispatchEvent(new CustomEvent('hyperpop:navigate',{detail:{url:target.href,path:target.pathname}}));window.HyperPopCommandPrompt?.sync?.();window.HyperPopSoundtrack?.onPageChange?.(target.pathname);
       }catch(error){console.warn('[Hyper-Pop] Soft navigation fell back to a full page load:',error);location.href=target.href}
     }
