@@ -2111,8 +2111,8 @@ ACCESS NODE READY...</pre>
                                     const repelRange=cellSize*1.65;
                                     // Outside the perimeter, never accept a step that moves closer while inside
                                     // the buffer. Tangential movement is allowed, inward movement is not.
-                                    if(oldDistance<repelRange && newDistance<oldDistance-0.005)continue;
-                                    if(oldDistance<repelRange)forcefieldRepelGain=newDistance-oldDistance;
+                                    if(newDistance<repelRange && newDistance<oldDistance-0.005)continue;
+                                    if(oldDistance<repelRange || newDistance<repelRange)forcefieldRepelGain=newDistance-oldDistance;
                                 }
                             }
                             const radius=ai.radius*0.34;
