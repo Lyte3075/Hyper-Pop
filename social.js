@@ -2,7 +2,7 @@
 (function(){
  const $=id=>document.getElementById(id), token=()=>localStorage.getItem('hyperpop_token');
  let selectedConversation=null, me=null;
- async function rpc(action,data={}){const t=token();if(!t)return {ok:false,error:'Please sign in first.'};try{const r=await fetch('https://iapnejlttsqqefkpmelp.supabase.co/rest/v1/rpc/hyperpop_social',{method:'POST',headers:{apikey:'sb_publishable_TB7oC4nDlUJq-Gcb2yoTjQ_Dvbh6NlM','Content-Type':'application/json'},body:JSON.stringify({p_token:t,p_action:action,p_data:data})});const d=await r.json();return r.ok?d:{ok:false,error:d.message||d.error||'Social request failed.'}}catch(e){return {ok:false,error:'Could not reach the social server.'}}}
+ async function rpc(action,data={}){const t=token();if(!t)return {ok:false,error:'Please sign in first.'};try{const r=await fetch('https://iapnejlttsqqefkpmelp.supabase.co/rest/v1/rpc/hyperpop_social',{method:'POST',headers:{apikey:'sb_publishable_TB7oC4nDlUJq-Gcb2yoTjQ_Dvbh6NlM','Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({p_token:t,p_action:action,p_data:data})});const raw=await r.text();let d;try{d=raw?JSON.parse(raw):{}}catch(_){d={message:raw}}if(!r.ok){const detail=Array.isArray(d)?d[0]:d;return {ok:false,error:detail.message||detail.error||detail.details||('Social request failed ('+r.status+').')}}return d}catch(e){console.error('[Hyper-Pop social]',action,e);return {ok:false,error:'Could not reach the social server.'}}}
  function status(s){$('social-status').textContent=s}
  function empty(text){const d=document.createElement('div');d.className='social-empty';d.textContent=text;return d}
  function item(name,detail,buttons=[]){const d=document.createElement('div');d.className='social-item';const left=document.createElement('div');const b=document.createElement('strong');b.textContent=name;const small=document.createElement('div');small.className='social-muted';small.textContent=detail||'';left.append(b,small);d.append(left);const right=document.createElement('div');right.className='social-row';buttons.forEach(([label,fn])=>{const x=document.createElement('button');x.className='social-btn';x.textContent=label;x.addEventListener('click',fn);right.append(x)});d.append(right);return d}
@@ -17,9 +17,9 @@
    const handle=document.createElement('div');handle.className='social-muted';handle.textContent='@'+u.username+(u.online?' · Online':'');
    info.append(name,handle);
    if(u.bio){const bio=document.createElement('div');bio.className='social-user-bio';bio.textContent=u.bio;info.append(bio)}
-   const action=document.createElement('button');action.className='social-btn';action.textContent=u.is_friend?'Friends':u.request_sent?'Requested':'＋ Add';
+   const action=document.createElement('button');action.className='social-btn';action.textContent=u.is_friend?'Friends':u.request_sent?'Requested':u.request_received?'Accept':'＋ Add';
    action.disabled=!!(u.is_friend||u.request_sent);
-   action.addEventListener('click',async()=>{action.disabled=true;action.textContent='Sending…';const x=await rpc('friend_request',{username:u.username});status(x.error||(x.ok?'Friend request sent.':'Could not send request.'));if(x.ok){action.textContent='Requested'}else{action.disabled=false;action.textContent='＋ Add'}});
+   action.addEventListener('click',async()=>{action.disabled=true;action.textContent=u.request_received?'Accepting…':'Sending…';const x=u.request_received?await rpc('friend_accept',{friendship_id:u.friendship_id}):await rpc('friend_request',{username:u.username});status(x.error||(x.ok?(u.request_received?'Friend request accepted.':'Friend request sent.'):'Could not complete request.'));if(x.ok){action.textContent=u.request_received?'Friends':'Requested';if(u.request_received){loadFriends();loadChats()}}else{action.disabled=false;action.textContent=u.request_received?'Accept':'＋ Add'}});
    d.append(avatar,info,action);return d;
  }
  async function search(){
