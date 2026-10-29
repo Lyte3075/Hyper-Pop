@@ -26,7 +26,7 @@
  const win=document.createElement('section');win.id='hp-chat-window';win.setAttribute('aria-label','Hyper-Pop chat');
  win.innerHTML='<div id="hp-chat-head"><span>✦ Hyper-Pop Chat</span><button type="button" id="hp-chat-close" aria-label="Close chat">✕</button></div><div id="hp-chat-pickers"><select id="hp-chat-conversations" aria-label="Choose a conversation"><option value="">Conversations…</option></select><select id="hp-chat-friends" aria-label="Message a friend"><option value="">＋ New message…</option></select></div><div id="hp-chat-feed"><div style="color:#aaa7c1;text-align:center;padding:28px 8px">Choose a conversation or a friend to start chatting.</div></div><div><div id="hp-chat-note" role="status"></div><form id="hp-chat-compose"><input id="hp-chat-input" maxlength="2000" placeholder="Write a message…" autocomplete="off"><button>Send</button></form></div>';
  document.body.append(launch,win);
- const chatVisible=()=>{let visible=true;try{visible=localStorage.getItem('hp_chat_button_visible')!=='false'}catch(_){}launch.style.display=visible?'block':'none';return visible};
+ const chatVisible=()=>{let visible=true;try{visible=localStorage.getItem('hp_chat_button_visible')==='true'}catch(_){}launch.style.display=visible?'block':'none';return visible};
  chatVisible();
  window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.source)return;if(typeof e.data==='string'&&e.data.startsWith('hp-chat-visibility:')){const visible=e.data.endsWith('true');try{localStorage.setItem('hp_chat_button_visible',String(visible))}catch(_){}launch.style.display=visible?'block':'none'}});
 
