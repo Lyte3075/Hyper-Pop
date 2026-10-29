@@ -12,9 +12,9 @@
  @media(min-width:1200px){body.hp-sidebar-open{padding-left:0}}@media(prefers-reduced-motion:reduce){#hp-site-sidebar{transition:none}}`;
  document.head.append(css);
  const links=[
- ['⌂','Home','index.html'],['✦','Games','index.html#games'],['▦','Categories','index.html#categories'],['⌕','Search','index.html#site-search'],
+ ['⌂','Home','index.html'],['✦','Games','index.html#games'],['▦','Categories','index.html#categories'],['⌕','Search','index.html#search'],
  ['♟','Social hub','social.html'],['♡','Friends','social.html#friends'],['◉','Parties','social.html#parties'],['✉','Chats','social.html#chats'],
- ['▤','Leaderboards','leaderboards.html'],['⚙','Tools','index.html#tools'],['◈','Experiments','index.html#experiments'],['ⓘ','About Hyper-Pop','about.html'],['👤','Account / Profile','accounts.html']
+ ['▤','Top games','index.html#top-games'],['⚙','Tools','index.html#tools'],['◈','Experiments','index.html#experiments'],['ⓘ','About Hyper-Pop','index.html'],['👤','Account / Profile','accounts.html']
  ];
  const scrim=document.createElement('div');scrim.id='hp-side-scrim';
  const aside=document.createElement('aside');aside.id='hp-site-sidebar';aside.setAttribute('aria-label','Hyper-Pop navigation');
