@@ -15,6 +15,51 @@
     fallbackOrb.addEventListener('click', function(){if (!document.getElementById('hp-sound-panel')) console.warn('[Hyper-Pop] Music player script has not initialized yet.');});
     (document.body || document.documentElement).appendChild(fallbackOrb);
   }
+  // Site-wide swipe navigation. The homepage supplies its own richer sidebar;
+  // other pages receive the same compact navigation panel here.
+  (function(){
+    if (!document.getElementById('hp-home-sidebar')) {
+      var style=document.createElement('style');
+      style.id='hp-global-sidebar-style';
+      style.textContent=`
+        #hp-home-sidebar{position:fixed;z-index:2147483000;top:0;bottom:0;left:0;width:min(300px,86vw);padding:calc(22px + env(safe-area-inset-top)) 14px calc(20px + env(safe-area-inset-bottom));overflow-y:auto;background:#0d0d19f7;border-right:1px solid #ffffff1c;backdrop-filter:blur(20px);transform:translateX(-105%);transition:transform .22s ease;box-shadow:16px 0 50px #0007}
+        #hp-home-sidebar.open{transform:translateX(0)}
+        #hp-home-sidebar-scrim{position:fixed;z-index:2147482999;inset:0;background:#0009;opacity:0;visibility:hidden;transition:opacity .22s,visibility .22s}
+        #hp-home-sidebar-scrim.open{opacity:1;visibility:visible}
+        #hp-home-sidebar .side-title{font-size:17px;font-weight:700;color:#fff;margin:0 0 4px}
+        #hp-home-sidebar .side-note{font:10px 'DM Mono',monospace;color:#aaa7c1;letter-spacing:.12em;text-transform:uppercase;margin:0 0 18px}
+        #hp-home-sidebar .side-label{font:10px 'DM Mono',monospace;color:#4be0e3;letter-spacing:.12em;text-transform:uppercase;margin:17px 8px 7px}
+        #hp-home-sidebar a{display:flex;align-items:center;gap:10px;min-height:40px;padding:9px 11px;border:1px solid transparent;border-radius:11px;color:#d8d5e8;text-decoration:none;font-size:13px;line-height:1.25}
+        #hp-home-sidebar a:hover{background:#ffffff0b;border-color:#ffffff18;color:#fff}
+        #hp-home-sidebar .side-icon{width:21px;flex:0 0 21px;text-align:center;font-size:15px}
+        #hp-swipe-zone{position:fixed;z-index:2147482998;left:0;top:12%;bottom:12%;width:28px;touch-action:pan-y;background:transparent}
+        @media(prefers-reduced-motion:reduce){#hp-home-sidebar,#hp-home-sidebar-scrim{transition:none}}
+      `;
+      document.head.appendChild(style);
+      var scrim=document.createElement('div');scrim.id='hp-home-sidebar-scrim';scrim.setAttribute('aria-hidden','true');
+      var panel=document.createElement('aside');panel.id='hp-home-sidebar';panel.setAttribute('aria-label','Hyper-Pop navigation');panel.setAttribute('aria-hidden','true');
+      panel.innerHTML='<div class="side-title">Hyper-Pop</div><div class="side-note">tiny internet, big vibes</div><div class="side-label">Explore</div><a href="index.html"><span class="side-icon">⌂</span>Home</a><a href="social.html"><span class="side-icon">♟</span>Social hub</a><a href="social.html#friends"><span class="side-icon">♡</span>Friends</a><a href="social.html#parties"><span class="side-icon">◉</span>Parties</a><a href="social.html#chats"><span class="side-icon">✉</span>Chats</a><div class="side-label">More</div><a href="accounts.html"><span class="side-icon">👤</span>Account / Profile</a>';
+      document.body.append(scrim,panel);
+    }
+    var panel=document.getElementById('hp-home-sidebar'),scrim=document.getElementById('hp-home-sidebar-scrim');
+    if(!panel||!scrim)return;
+    var zone=document.getElementById('hp-swipe-zone');
+    if(!zone){zone=document.createElement('div');zone.id='hp-swipe-zone';zone.setAttribute('aria-hidden','true');document.body.appendChild(zone);}
+    function setOpen(open){panel.classList.toggle('open',open);scrim.classList.toggle('open',open);panel.setAttribute('aria-hidden',String(!open));}
+    if(!scrim.dataset.hpBound){scrim.dataset.hpBound='1';scrim.addEventListener('click',function(){setOpen(false)});}
+    if(!panel.dataset.hpSwipeBound){
+      panel.dataset.hpSwipeBound='1';
+      panel.addEventListener('touchstart',function(e){var t=e.touches[0];panel._hpTouchX=t.clientX;panel._hpTouchY=t.clientY;},{passive:true});
+      panel.addEventListener('touchend',function(e){if(panel._hpTouchX==null)return;var t=e.changedTouches[0],dx=t.clientX-panel._hpTouchX,dy=t.clientY-panel._hpTouchY;if(dx < -65&&Math.abs(dx)>Math.abs(dy)*1.3)setOpen(false);panel._hpTouchX=null;},{passive:true});
+    }
+    if(!zone.dataset.hpBound){
+      zone.dataset.hpBound='1';
+      zone.addEventListener('touchstart',function(e){var t=e.touches[0];zone._hpTouchX=t.clientX;zone._hpTouchY=t.clientY;},{passive:true});
+      zone.addEventListener('touchend',function(e){if(zone._hpTouchX==null)return;var t=e.changedTouches[0],dx=t.clientX-zone._hpTouchX,dy=t.clientY-zone._hpTouchY;if(dx>55&&Math.abs(dx)>Math.abs(dy)*1.3)setOpen(true);zone._hpTouchX=null;},{passive:true});
+    }
+    if(!panel.dataset.hpLinkBound){panel.dataset.hpLinkBound='1';panel.addEventListener('click',function(e){if(e.target.closest('a'))setOpen(false)});}
+    document.addEventListener('keydown',function(e){if(e.key==='Escape')setOpen(false)});
+  })();
   var files = ['terminal.js?v=cmdfix-10'];
   if (!/\/accounts\.html$/.test(location.pathname)) files.unshift('account.js?v=profile-2');
   if (!soundtrackDisabled) files.push('soundtrack.js?v=page-mode-6');
