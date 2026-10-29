@@ -868,7 +868,26 @@ ACCESS NODE READY...</pre>
                 const edgeZ = new THREE.Mesh(new THREE.BoxGeometry(cellSize*2.9,0.06,0.12),plazaTrimMat); edgeZ.position.set(plazaX,0.05,plazaZ+side*cellSize*1.43); scene.add(edgeZ);
             }
             // Compact retro CRT workstation: squat desk, curved-looking monitor housing, and a separate keyboard.
-            const fieldMat = new THREE.MeshBasicMaterial({color:0x58cfff,transparent:true,opacity:0.13,side:THREE.DoubleSide,depthWrite:false});const fieldEdgeMat = new THREE.MeshBasicMaterial({color:0x53caff,transparent:true,opacity:0.58});const fieldHalf=cellSize*1.49,fieldY=3.0;for(const side of [-1,1]){const fx=new THREE.Mesh(new THREE.PlaneGeometry(cellSize*2.98,fieldY),fieldMat);fx.position.set(plazaX+side*fieldHalf,fieldY/2,plazaZ);scene.add(fx);const fz=new THREE.Mesh(new THREE.PlaneGeometry(cellSize*2.98,fieldY),fieldMat);fz.rotation.y=Math.PI/2;fz.position.set(plazaX,fieldY/2,plazaZ+side*fieldHalf);scene.add(fz);const edgeX=new THREE.Mesh(new THREE.BoxGeometry(0.045,fieldY,0.045),fieldEdgeMat);edgeX.position.set(plazaX+side*fieldHalf,fieldY/2,plazaZ+fieldHalf);scene.add(edgeX);const edgeZ=new THREE.Mesh(new THREE.BoxGeometry(0.045,fieldY,0.045),fieldEdgeMat);edgeZ.position.set(plazaX-fieldHalf,fieldY/2,plazaZ+side*fieldHalf);scene.add(edgeZ);}
+            // Four correctly oriented translucent walls form a clean rectangular box around the entire terminal platform.
+            const fieldMat = new THREE.MeshBasicMaterial({color:0x58cfff,transparent:true,opacity:0.11,side:THREE.DoubleSide,depthWrite:false});
+            const fieldEdgeMat = new THREE.MeshBasicMaterial({color:0x53caff,transparent:true,opacity:0.72});
+            const fieldWidth=cellSize*2.98,fieldHalf=fieldWidth/2,fieldY=3.0,fieldZ=plazaZ;
+            const fieldWallX=new THREE.PlaneGeometry(fieldWidth,fieldY);
+            const fieldWallZ=new THREE.PlaneGeometry(fieldWidth,fieldY);
+            for(const side of [-1,1]){
+                const wallX=new THREE.Mesh(fieldWallX,fieldMat);wallX.position.set(plazaX+side*fieldHalf,fieldY/2,fieldZ);scene.add(wallX);
+                const wallZ=new THREE.Mesh(fieldWallZ,fieldMat);wallZ.rotation.y=Math.PI/2;wallZ.position.set(plazaX,fieldY/2,fieldZ+side*fieldHalf);scene.add(wallZ);
+            }
+            // Complete top and corner outlines make the force field read as a box, not a cross.
+            for(const xSide of [-1,1]) for(const zSide of [-1,1]){
+                const corner=new THREE.Mesh(new THREE.BoxGeometry(0.055,fieldY,0.055),fieldEdgeMat);corner.position.set(plazaX+xSide*fieldHalf,fieldY/2,fieldZ+zSide*fieldHalf);scene.add(corner);
+            }
+            for(const y of [0.06,fieldY]){
+                const edgeX=new THREE.Mesh(new THREE.BoxGeometry(fieldWidth,0.045,0.045),fieldEdgeMat);edgeX.position.set(plazaX,y,fieldZ-fieldHalf);scene.add(edgeX);
+                const edgeX2=edgeX.clone();edgeX2.position.z=fieldZ+fieldHalf;scene.add(edgeX2);
+                const edgeZ=new THREE.Mesh(new THREE.BoxGeometry(0.045,0.045,fieldWidth),fieldEdgeMat);edgeZ.position.set(plazaX-fieldHalf,y,fieldZ);scene.add(edgeZ);
+                const edgeZ2=edgeZ.clone();edgeZ2.position.x=plazaX+fieldHalf;scene.add(edgeZ2);
+            }
             const terminal = new THREE.Group();
             const terminalBaseMat = new THREE.MeshStandardMaterial({color:0x303633,metalness:0.48,roughness:0.55});
             const terminalDarkMat = new THREE.MeshStandardMaterial({color:0x080d0b,metalness:0.22,roughness:0.3,emissive:0x001e0b});
@@ -1947,7 +1966,30 @@ ACCESS NODE READY...</pre>
                 if (!monster.visible) continue;
 
                 monster.lookAt(camera.position.x, monster.position.y, camera.position.z);
-                if(computerTerminal && monster.userData.type!=='banisher' && Math.hypot(monster.position.x-computerTerminal.position.x,monster.position.z-computerTerminal.position.z)<5.8){const away=new THREE.Vector3(monster.position.x-computerTerminal.position.x,0,monster.position.z-computerTerminal.position.z);if(away.lengthSq()<0.01)away.set(1,0,0);away.normalize();monster.position.addScaledVector(away,0.11);monster.userData.state='chase';monster.userData.path=[];monster.userData.repathTimer=0;continue;}
+                if(computerTerminal && monster.userData.type!=='banisher'){
+                    const terminalDist=Math.hypot(monster.position.x-computerTerminal.position.x,monster.position.z-computerTerminal.position.z);
+                    const ai=monster.userData;
+                    if(terminalDist>8.5) ai.sanctuaryFleeing=false;
+                    if(terminalDist<7.2 && !ai.sanctuaryFleeing){
+                        // Like locker concealment, the sanctuary breaks pursuit: monsters choose a distant walkable cell and patrol away.
+                        const candidates=[];
+                        for(let attempt=0;attempt<48;attempt++){
+                            const c=Math.floor(Math.random()*(mazeGrid[0].length-2))+1;
+                            const r=Math.floor(Math.random()*(mazeGrid.length-2))+1;
+                            if(mazeGrid[r]!==undefined&&mazeGrid[r][c]===0){
+                                const target=cellToWorld(c,r);
+                                if(Math.hypot(target.x-computerTerminal.position.x,target.z-computerTerminal.position.z)>Math.max(10,cellSize*3))candidates.push({r,c});
+                            }
+                        }
+                        if(candidates.length){
+                            const start=worldToCell(monster.position.x,monster.position.z);
+                            const target=candidates[Math.floor(Math.random()*candidates.length)];
+                            ai.path=findAStarPath(nearestWalkableCell(monster.position.x,monster.position.z,start),target)||[];
+                        } else ai.path=[];
+                        ai.state='patrol';ai.sanctuaryFleeing=true;ai.lastTargetCell=null;ai.repathTimer=2.8;ai.stuckTimer=0;
+                        continue;
+                    }
+                }
                 const distToPlayer = monster.position.distanceTo(camera.position);
 
                 if (distToPlayer < closestDistance) {
