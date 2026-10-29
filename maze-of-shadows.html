@@ -452,28 +452,29 @@
             }
             requestAnimationFrame(onWindowResize);
 
-            sprintBtn.addEventListener('touchstart', (e) => { e.preventDefault(); isSprinting = true; });
-            sprintBtn.addEventListener('touchend', (e) => { e.preventDefault(); isSprinting = false; });
+            sprintBtn.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); isSprinting = true; }, {passive:false});
+            sprintBtn.addEventListener('touchend', (e) => { e.preventDefault(); isSprinting = false; }, {passive:false});
+            sprintBtn.addEventListener('touchcancel', () => { isSprinting = false; });
             sprintBtn.addEventListener('mousedown', () => isSprinting = true);
-            sprintBtn.addEventListener('mouseup', () => isSprinting = false);
+            window.addEventListener('mouseup', () => isSprinting = false);
 
-            flashBtn.addEventListener('click', () => {
-                if (battery > 0) {
-                    flashlightOn = !flashlightOn;
-                    flashlight.intensity = flashlightOn ? 3.5 : 0;
-                }
+            const bindMobileAction = (button, action) => {
+                let lastTouchAt = 0;
+                button.addEventListener('touchstart', e => {
+                    e.preventDefault(); e.stopPropagation(); lastTouchAt = Date.now(); action();
+                }, {passive:false});
+                button.addEventListener('click', e => {
+                    e.preventDefault(); e.stopPropagation();
+                    if (Date.now() - lastTouchAt < 700) return;
+                    action();
+                });
+            };
+            bindMobileAction(flashBtn, () => {
+                if (battery > 0) { flashlightOn = !flashlightOn; flashlight.intensity = flashlightOn ? 3.5 : 0; }
             });
-
-            hideBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                toggleHideInLocker();
-            });
-
-            useItemBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                if (nearbyPickup) collectItem(nearbyPickup);
-                /* Interaction never consumes inventory items. */
-            });
+            bindMobileAction(hideBtn, () => toggleHideInLocker());
+            bindMobileAction(useItemBtn, () => { if (nearbyPickup) collectItem(nearbyPickup); /* Interaction never consumes inventory items. */ });
+            if (typeof crouchBtn !== 'undefined' && crouchBtn) bindMobileAction(crouchBtn, () => { if (isHidden || currentLocker) toggleHideInLocker(); else toggleCrouch(); });
 
             animate();
         }
