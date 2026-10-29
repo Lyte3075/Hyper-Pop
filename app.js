@@ -27,12 +27,12 @@
       frame=document.createElement('iframe');
       frame.id='hp-sidebar-frame';
       frame.title='Hyper-Pop navigation';
-      frame.src=new URL('sidebar.html',base).href;
+      frame.src=new URL('sidebar.html?v=seamless-2',base).href;
       frame.setAttribute('allowtransparency','true');
-      frame.style.cssText='position:fixed;z-index:2147483000;top:0;left:0;width:36px;height:100%;height:100dvh;border:0;background:transparent;overflow:hidden;transition:width .22s ease;pointer-events:auto;';
+      frame.style.cssText='position:fixed;z-index:2147483000;top:0;left:0;width:100vw;height:100%;height:100dvh;border:0;background:transparent;overflow:hidden;pointer-events:auto;';
       (document.body||document.documentElement).appendChild(frame);
     }
-    function setFrameOpen(open){frame.style.width=open?'min(320px,90vw)':'44px';}
+    function setFrameOpen(open){frame.contentWindow?.postMessage(open?'hp-sidebar-open':'hp-sidebar-close',location.origin);}
     // Capture the gesture in the parent document. Touch events that begin on
     // an iframe do not reliably bubble into its parent document on iOS.
     var edgeStart=null,edgeY=0;
@@ -52,7 +52,7 @@
     document.addEventListener('touchstart',function(e){
       if(!e.touches||!e.touches.length)return;
       var t=e.touches[0];
-      closeStart=frame.style.width!=='44px'&&t.clientX<320?t.clientX:null;closeY=t.clientY;
+      closeStart=t.clientX<320?t.clientX:null;closeY=t.clientY;
     },{passive:true,capture:true});
     document.addEventListener('touchend',function(e){
       if(closeStart===null||!e.changedTouches||!e.changedTouches.length)return;
