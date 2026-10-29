@@ -75,7 +75,7 @@
         }
         #flashlight-btn { bottom: 25px; right: 15px; }
         #sprint-btn { bottom: 100px; right: 15px; }
-        #crouch-btn { bottom: 175px; right: 15px; background: rgba(30,55,35,0.85); }
+        #crouch-btn { bottom: 25px; right: 90px; background: rgba(30,55,35,0.85); }
         #hide-btn { bottom: 25px; right: 90px; background: rgba(0, 150, 255, 0.6); display: none; }
         #use-item-btn { bottom: 100px; right: 90px; background: rgba(0, 255, 100, 0.6); display: none; }
 
@@ -214,6 +214,16 @@
         #terminal-output { white-space:pre-wrap; line-height:1.7; margin:0 0 20px; }
         .terminal-action { align-self:flex-start; background:#03190c; border:1px solid #32ff8d; color:#a4ffc6; padding:12px 16px; font:bold 14px monospace; margin:5px 8px 0 0; cursor:pointer; }
         #interact-computer-btn { position:fixed; left:50%; bottom:22%; transform:translateX(-50%); z-index:28; display:none; background:#03190cdd; border:1px solid #32ff8d; color:#a4ffc6; padding:12px 18px; font:bold 13px monospace; border-radius:8px; touch-action:none; pointer-events:auto; -webkit-user-select:none; user-select:none; }
+        #static-fog { position:fixed; inset:-8%; z-index:9000; pointer-events:none; opacity:0; background:radial-gradient(ellipse at center,rgba(255,255,255,.99) 0%,rgba(255,255,255,.97) 35%,rgba(255,255,255,.86) 65%,rgba(255,255,255,.72) 100%); filter:blur(5px); transition:opacity .18s; }
+        #static-fog.active { opacity:1; animation:staticFogFlicker .12s steps(2,end) infinite; }
+        @keyframes staticFogFlicker { 0%,100%{filter:blur(4px) contrast(1.15)} 50%{filter:blur(8px) contrast(1.6)} }
+        #banisher-jumpscare.scare-static { background:#f8f8f8; animation:staticFlash .08s steps(2,end) infinite!important; }
+        #banisher-jumpscare.scare-static .scare-face { width:min(96vw,700px); border-radius:0; background:#050505; box-shadow:0 0 0 12px #fff,0 0 70px #fff; animation:staticLunge .46s steps(3,end) forwards; clip-path:polygon(0 15%,10% 20%,14% 5%,25% 18%,37% 0,45% 17%,57% 3%,68% 20%,82% 7%,89% 23%,100% 12%,94% 48%,100% 83%,84% 78%,76% 100%,61% 83%,49% 100%,37% 82%,22% 98%,16% 80%,0 88%,7% 53%); }
+        #banisher-jumpscare.scare-static .scare-eye { background:#fff; box-shadow:0 0 25px #fff; width:16%; height:20%; top:25%; }
+        #banisher-jumpscare.scare-static .scare-mouth { background:#fff; border:0; top:48%; left:9%; width:82%; height:40%; clip-path:polygon(0 0,13% 15%,27% 10%,39% 22%,51% 5%,64% 18%,79% 7%,100% 0,91% 68%,75% 90%,62% 66%,50% 100%,37% 70%,22% 92%,8% 70%); }
+        #banisher-jumpscare.scare-static .scare-mouth:before,#banisher-jumpscare.scare-static .scare-mouth:after { background:repeating-linear-gradient(90deg,#000 0 5%,#fff 5% 7%); height:45%; }
+        @keyframes staticFlash { 0%,100%{background:#fff} 50%{background:#000} }
+        @keyframes staticLunge { 0%{transform:scale(.08) rotate(-15deg);filter:invert(1)} 50%{transform:scale(1.4) rotate(8deg);filter:contrast(3)} 100%{transform:scale(1.08);filter:contrast(2)} }
         #start-btn {
             padding: 12px 28px; font-size: 16px; background: #330000;
             color: #fff; border: 1px solid #ff0000; margin-top: 25px; cursor: pointer;
@@ -254,6 +264,7 @@
 
     <div id="joystick-base"><div id="joystick-stick"></div></div>
 
+    <div id="static-fog" aria-hidden="true"></div>
     <div id="banisher-jumpscare" aria-hidden="true">
         <div class="scare-face">
             <div class="scare-eye left"></div><div class="scare-eye right"></div>
@@ -285,6 +296,8 @@ ACCESS NODE READY...</pre>
         let flashlight, ambientLight;
         let fxCanvas, fxCtx;
         let isGameOver = false;
+        let staticLastMovedAt = performance.now(), staticWarning = false, staticHunting = false, staticMonster = null;
+        let staticAudioContext = null;
 
         // Player Stats & Inventory
         let maxHealth = 100, health = maxHealth;
@@ -335,6 +348,7 @@ ACCESS NODE READY...</pre>
         const useItemBtn = document.getElementById('use-item-btn');
 
         const deathHints = {
+            'static': 'Always keep moving.',
             'brute': "HINT: The Brute is easy to avoid early on. Keep your distance and do not make sprinting sounds!",
             'stalker': "HINT: The Stalker becomes enraged if hit with light! Turn your light OFF around it.",
             'crawler': "HINT: The Shadow Crawler freezes under flashlight illumination. Keep your flashlight ON!",
@@ -853,6 +867,7 @@ ACCESS NODE READY...</pre>
             terminal.scale.setScalar(0.62);
             terminal.position.set(plazaX,0,plazaZ); scene.add(terminal);
             computerTerminal={position:new THREE.Vector3(plazaX,1.5,plazaZ+2.1),screenCanvas,screenCtx,screenFace};
+            staticMonster=makeStaticMonster();staticMonster.userData.lastX=camera.position.x;staticMonster.userData.lastZ=camera.position.z;
 
             // Exterior approach: the player begins on the hospital's front steps, enters the hedge maze, then reaches the parking lot and road.
             const centerX = 10 * cellSize;
@@ -1339,6 +1354,39 @@ ACCESS NODE READY...</pre>
             }
         }
 
+        function makeStaticMonster() {
+            const g=new THREE.Group(),dark=new THREE.MeshBasicMaterial({color:0x050505}),white=new THREE.MeshBasicMaterial({color:0xfafafa});
+            const face=new THREE.Mesh(new THREE.IcosahedronGeometry(0.82,0),dark);face.scale.set(1.15,0.88,0.24);g.add(face);
+            const eye1=new THREE.Mesh(new THREE.BoxGeometry(0.23,0.2,0.08),white);eye1.position.set(-0.34,0.19,0.23);eye1.rotation.z=0.18;g.add(eye1);
+            const eye2=eye1.clone();eye2.position.set(0.34,-0.02,0.23);eye2.rotation.z=-0.45;g.add(eye2);
+            const smile=new THREE.Mesh(new THREE.BoxGeometry(1.15,0.12,0.1),white);smile.position.set(0,-0.31,0.25);smile.rotation.z=-0.18;g.add(smile);
+            for(let i=0;i<7;i++){const tooth=new THREE.Mesh(new THREE.ConeGeometry(0.075,0.18,3),dark);tooth.position.set(-0.48+i*0.16,-0.32,0.32);tooth.rotation.z=Math.PI;g.add(tooth);}
+            for(let i=0;i<8;i++){const shard=new THREE.Mesh(new THREE.ConeGeometry(0.12,0.32,3),i%2?white:dark);shard.position.set(-0.85+i*0.24,0.65+(i%2)*0.1,0);shard.rotation.z=(i%2?1:-1)*0.5;g.add(shard);}
+            g.userData={type:'static',baseSpeed:0.22};g.visible=false;scene.add(g);return g;
+        }
+        function playStaticScream(){
+            try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;const ctx=new AC();ctx.resume();
+                const duration=1.45,buffer=ctx.createBuffer(1,Math.floor(ctx.sampleRate*duration),ctx.sampleRate),data=buffer.getChannelData(0);
+                for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*(Math.random()<0.08?1:0.7);
+                const src=ctx.createBufferSource();src.buffer=buffer;const gain=ctx.createGain(),filter=ctx.createBiquadFilter();filter.type='bandpass';filter.frequency.value=2600;filter.Q.value=.8;
+                gain.gain.setValueAtTime(.0001,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.85,ctx.currentTime+.06);gain.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+duration);
+                src.connect(filter);filter.connect(gain);gain.connect(ctx.destination);src.start();src.stop(ctx.currentTime+duration);
+                const osc=ctx.createOscillator(),og=ctx.createGain();osc.type='sawtooth';osc.frequency.setValueAtTime(900,ctx.currentTime);osc.frequency.exponentialRampToValueAtTime(3100,ctx.currentTime+.32);
+                og.gain.setValueAtTime(.0001,ctx.currentTime);og.gain.exponentialRampToValueAtTime(.3,ctx.currentTime+.05);og.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+.8);osc.connect(og);og.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+.8);
+                setTimeout(()=>ctx.close(),1800);
+            }catch(e){}
+        }
+        function updateStatic(now){
+            if(!staticMonster||isGameOver||isPaused)return;
+            const ud=staticMonster.userData,dx=camera.position.x-(ud.lastX??camera.position.x),dz=camera.position.z-(ud.lastZ??camera.position.z);
+            if(Math.hypot(dx,dz)>.045){staticLastMovedAt=now;ud.lastX=camera.position.x;ud.lastZ=camera.position.z;if(staticWarning){staticWarning=false;document.getElementById('static-fog').classList.remove('active');}}
+            const idle=now-staticLastMovedAt;
+            if(idle>=27000&&!staticWarning&&!staticHunting){staticWarning=true;document.getElementById('static-fog').classList.add('active');}
+            if(idle>=30000&&!staticHunting){staticHunting=true;staticMonster.visible=true;staticMonster.position.set(camera.position.x+Math.sin(rotation.yaw)*13,1.6,camera.position.z+Math.cos(rotation.yaw)*13);ud.lastX=camera.position.x;ud.lastZ=camera.position.z;
+                document.getElementById('static-fog').classList.add('active');
+                if(isHidden&&hidingLocker){scene.remove(hidingLocker);lockers=lockers.filter(l=>l!==hidingLocker);isHidden=false;currentLocker=null;hidingLocker=null;camera.position.y=1.6;}}
+            if(staticHunting){staticMonster.lookAt(camera.position.x,staticMonster.position.y,camera.position.z);const x=camera.position.x-staticMonster.position.x,z=camera.position.z-staticMonster.position.z,d=Math.hypot(x,z)||1;staticMonster.position.x+=x/d*.72;staticMonster.position.z+=z/d*.72;staticMonster.position.y=1.6+Math.sin(now*.025)*.2;if(d<1.35){document.getElementById('static-fog').classList.add('active');health=0;activeAttacker='static';}}
+        }
         function setupTouchControls() {
             moveZone.addEventListener('touchstart', (e) => {
                 e.preventDefault();
@@ -1646,6 +1694,7 @@ ACCESS NODE READY...</pre>
 
             const now = performance.now();
             updateBanisher(now);
+            updateStatic(now);
             guideArrows.forEach(a => {
                 if (a.userData.expiresAt && now < a.userData.expiresAt && a.userData.target) {
                     a.position.set(camera.position.x,2.45,camera.position.z);
@@ -1804,6 +1853,7 @@ ACCESS NODE READY...</pre>
                 if (!monster.visible) continue;
 
                 monster.lookAt(camera.position.x, monster.position.y, camera.position.z);
+                if(computerTerminal && monster.userData.type!=='banisher' && Math.hypot(monster.position.x-computerTerminal.position.x,monster.position.z-computerTerminal.position.z)<7.2) continue;
                 const distToPlayer = monster.position.distanceTo(camera.position);
 
                 if (distToPlayer < closestDistance) {
@@ -1937,13 +1987,16 @@ ACCESS NODE READY...</pre>
                 const scare=document.getElementById('banisher-jumpscare');
                 const monsterType=activeAttacker || 'brute';
                 scare.className='monster-scare scare-'+monsterType;
+                if(monsterType==='static') scare.className='monster-scare scare-static';
                 scare.querySelector('.scare-label').textContent=monsterType.toUpperCase()+' FOUND YOU';
                 scare.style.display='flex';
                 void scare.offsetWidth;
                 scare.classList.add('active');
-                playBanisherJumpscare();
-                document.getElementById('status-text').innerText=monsterType.toUpperCase()+' GOT YOU';
-                document.getElementById('death-hint').innerText=deathHints[monsterType] || 'Keep moving. Learn its pattern. Do not let it close the distance.';
+                if(monsterType==='static') playStaticScream(); else playBanisherJumpscare();
+                document.getElementById('status-text').innerText=monsterType==='static'?'THE STATIC GOT YOU':monsterType.toUpperCase()+' GOT YOU';
+                const hint=document.getElementById('death-hint');
+                if(monsterType==='static') hint.innerHTML='<span class="banisher-wrath">Always</span> keep moving.';
+                else hint.innerText=deathHints[monsterType] || 'Keep moving. Learn its pattern. Do not let it close the distance.';
                 document.getElementById('game-over').style.display='none';
                 setTimeout(()=>{
                     scare.classList.remove('active');
