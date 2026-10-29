@@ -323,7 +323,7 @@ ACCESS NODE READY...</pre>
         const crouchHeight = 0.72;
 
         // Entities & World Arrays
-        let lockers = [], monsters = [], wallBoxes = [], keys = [], items = [], exitGate = null;
+        let lockers = [], monsters = [], wallBoxes = [], keys = [], items = [], exitGate = null, terminalCollisionBoxes = [];
         let exitGlowLight = null, exitDoorMesh = null, exitPadlocks = [];
         let computerTerminal = null, terminalNearby = false, terminalOpen = false, gateUnlocked = false, exitGateBlocker = null, exitGateLeaves = [];
         let banisherActive = false, banisherScheduled = false, banisherNextAt = 0, banisherStartedAt = 0, banisherSpawnAt = 0, banisherUntil = 0, banisherLastFrame = 0, banisherPhase = '', banisherFace = null, banisherSaved = null, banisherLockerTarget = null;
@@ -892,9 +892,12 @@ ACCESS NODE READY...</pre>
             const terminalGlow=new THREE.PointLight(0x19ff70,0.9,6); terminalGlow.position.set(0,1.9,0.7); terminal.add(terminalGlow);
             terminal.scale.setScalar(0.62);
             terminal.position.set(plazaX,0,plazaZ); scene.add(terminal);
+            // Solid collision volumes for the desk/tabletop and monitor; the force field itself remains walk-through for the player.
+            terminalCollisionBoxes.push(new THREE.Box3(new THREE.Vector3(plazaX-0.79,0.05,plazaZ-0.22),new THREE.Vector3(plazaX+0.79,1.0,plazaZ+0.70)));
+            terminalCollisionBoxes.push(new THREE.Box3(new THREE.Vector3(plazaX-0.54,1.0,plazaZ-0.52),new THREE.Vector3(plazaX+0.54,2.0,plazaZ+0.15)));
             computerTerminal={position:new THREE.Vector3(plazaX,1.5,plazaZ+2.1),screenCanvas,screenCtx,screenFace};
             // Add a guaranteed locker inside the terminal sanctuary.
-            if(lockers.length){const sanctuaryLocker=lockers[0].clone(true);sanctuaryLocker.position.set(plazaX+2.2,1.36,plazaZ+0.2);sanctuaryLocker.rotation.y=Math.PI/2;scene.add(sanctuaryLocker);lockers.push(sanctuaryLocker);}
+            if(lockers.length){const sanctuaryLocker=lockers[0].clone(true);sanctuaryLocker.position.set(plazaX+2.2,1.36,plazaZ-0.78);sanctuaryLocker.rotation.y=0;scene.add(sanctuaryLocker);lockers.push(sanctuaryLocker);}
             staticMonster=makeStaticMonster();staticMonster.userData.lastX=camera.position.x;staticMonster.userData.lastZ=camera.position.z;
 
             // Exterior approach: the player begins on the hospital's front steps, enters the hedge maze, then reaches the parking lot and road.
@@ -1294,6 +1297,7 @@ ACCESS NODE READY...</pre>
                 if (playerBox.intersectsBox(wallBoxes[i])) return true;
             }
             for (const lockerBox of lockerBoxes) { if (playerBox.intersectsBox(lockerBox)) return true; }
+            for (const terminalBox of terminalCollisionBoxes) { if(playerBox.intersectsBox(terminalBox)) return true; }
             for (const obstacle of chaseBreakables) { if(obstacle&&obstacle.parent&&Math.abs(newPosition.x-obstacle.position.x)<1.0+radius&&Math.abs(newPosition.z-obstacle.position.z)<1.0+radius)return true; }
             return false;
         }
