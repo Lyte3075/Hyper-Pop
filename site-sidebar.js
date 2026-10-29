@@ -29,7 +29,7 @@
   aside.innerHTML='<div class="hp-side-brand"><img src="icon.svg" alt="">Hyper-Pop</div><div class="hp-side-note">tiny internet, big vibes</div>';
   links.forEach((x,i)=>{if(i===0||i===4||i===9||i===11){const h=document.createElement('div');h.className='hp-side-label';h.textContent=i===0?'Explore':i===4?'Social':i===9?'Discover':'More';aside.append(h)}
    const a=document.createElement('a');a.className='hp-side-link';a.href=new URL(x[2],location.href).href;a.innerHTML='<span class="hp-side-ico">'+x[0]+'</span><span>'+x[1]+'</span>';if(i===0)a.classList.add('active');aside.append(a)});
-  const toggle=document.createElement('button');toggle.id='hp-side-toggle';toggle.type='button';toggle.setAttribute('aria-label','Open Hyper-Pop menu');toggle.setAttribute('aria-expanded','false');toggle.innerHTML='<img src="icon.svg" alt="">';
+  const toggle=document.createElement('button');toggle.id='hp-side-toggle';toggle.type='button';toggle.setAttribute('aria-label','Open Hyper-Pop menu');toggle.setAttribute('aria-expanded','false');toggle.innerHTML='<img src="icon.svg" alt="">';toggle.addEventListener('click',e=>e.preventDefault());
   function setOpen(v){aside.classList.toggle('open',v);scrim.classList.toggle('open',v);aside.setAttribute('aria-hidden',String(!v));toggle.setAttribute('aria-expanded',String(v));toggle.setAttribute('aria-label',v?'Close Hyper-Pop menu':'Open Hyper-Pop menu')}
   toggle.addEventListener('click',()=>setOpen(!aside.classList.contains('open')));scrim.addEventListener('click',()=>setOpen(false));document.addEventListener('keydown',e=>{if(e.key==='Escape')setOpen(false)});
   document.body.append(scrim,aside,toggle);aside.addEventListener('click',e=>{if(e.target.closest('a'))setOpen(false)});
