@@ -39,7 +39,7 @@
     document.addEventListener('touchstart',function(e){
       if(!e.touches||!e.touches.length)return;
       var t=e.touches[0];
-      edgeStart=t.clientX<=44?t.clientX:null;edgeY=t.clientY;
+      edgeStart=t.clientX<=18?t.clientX:null;edgeY=t.clientY;
     },{passive:true,capture:true});
     document.addEventListener('touchend',function(e){
       if(edgeStart===null||!e.changedTouches||!e.changedTouches.length)return;
