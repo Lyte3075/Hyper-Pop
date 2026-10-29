@@ -573,10 +573,8 @@
         function buildMaze() {
             const wallTex = createHospitalTexture('wall');
             const floorTex = createHospitalTexture('floor');
-            const roofTex = createHospitalTexture('roof');
-            const wallMat = new THREE.MeshStandardMaterial({ map: wallTex, color: 0xd0d4d6, roughness: 0.96 });
-            const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, color: 0xc4c9cc, roughness: 0.98 });
-            const roofMat = new THREE.MeshStandardMaterial({ map: roofTex, color: 0xb7bdc1, roughness: 0.98 });
+            const wallMat = new THREE.MeshStandardMaterial({ map: wallTex, color: 0x52613b, roughness: 1.0 });
+            const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, color: 0x302b25, roughness: 1.0 });
             const lockerMat = new THREE.MeshStandardMaterial({ color: 0x1c3b2b, metalness: 0.6, roughness: 0.4 });
 
             const mazeWidth = mazeGrid[0].length * cellSize;
@@ -586,11 +584,6 @@
             floor.rotation.x = -Math.PI / 2;
             floor.position.set(mazeWidth/2 - cellSize/2, 0, mazeHeight/2 - cellSize/2);
             scene.add(floor);
-
-            const roof = new THREE.Mesh(new THREE.PlaneGeometry(mazeWidth, mazeHeight), roofMat);
-            roof.rotation.x = Math.PI / 2;
-            roof.position.set(mazeWidth/2 - cellSize/2, 3.5, mazeHeight/2 - cellSize/2);
-            scene.add(roof);
 
             const wallGeo = new THREE.BoxGeometry(cellSize, 3.5, cellSize);
             const lockerBodyMat=new THREE.MeshStandardMaterial({color:0x243b31,metalness:0.55,roughness:0.38}),lockerDoorMat=new THREE.MeshStandardMaterial({color:0x344b40,metalness:0.62,roughness:0.34}),lockerDarkMat=new THREE.MeshStandardMaterial({color:0x080d0b,roughness:0.98}),lockerTrimMat=new THREE.MeshStandardMaterial({color:0x111a16,metalness:0.65,roughness:0.32}),lockerHandleMat=new THREE.MeshStandardMaterial({color:0x9aa39b,metalness:0.82,roughness:0.24});
@@ -625,67 +618,7 @@
                 return g;
             }
 
-            // Hospital room doors, faded wayfinding plaques, and wall-mounted fixtures.
-            // These are visual set dressing and do not alter maze collision or pathfinding.
-            const doorFrameMat = new THREE.MeshStandardMaterial({ color: 0x242a2e, roughness: 0.9 });
-            const doorMat = new THREE.MeshStandardMaterial({ color: 0x626b70, roughness: 0.86, metalness: 0.12 });
-            const signMat = new THREE.MeshStandardMaterial({ color: 0xc2c8c9, roughness: 0.8 });
-            const signInkMat = new THREE.MeshStandardMaterial({ color: 0x244c56, emissive: 0x10252a, roughness: 0.8 });
-            const handleMat = new THREE.MeshStandardMaterial({ color: 0x9da5a7, metalness: 0.8, roughness: 0.28 });
-            const fixtureMat = new THREE.MeshStandardMaterial({ color: 0xb9c4c5, emissive: 0x8babb4, emissiveIntensity: 0.35 });
-            const doorLabels = [
-                'PATIENT 04','WARD B','EXAM 02','SUPPLY','PATIENT 11','NURSES',
-                'RECORDS','ISOLATION','TRIAGE','WARD A','STAFF ONLY','IMAGING',
-                'PHARMACY','OBSERVATION','CLEAN ROOM','MORGUE','RECOVERY','ICU',
-                'LABORATORY','PEDIATRICS','RADIOLOGY','SURGERY','WARD C','LINEN',
-                'STAFF ROOM','QUARANTINE','EXAM 07','PATIENT 16','ARCHIVES','STORAGE',
-                'NURSE STATION','EMERGENCY','ROOM 09','ROOM 12'
-            ];
-            function addHospitalDoor(x, z, side, label) {
-                const group = new THREE.Group();
-                const trim = new THREE.Mesh(new THREE.BoxGeometry(1.75, 2.85, 0.13), doorFrameMat);
-                trim.position.y = 1.42;
-                group.add(trim);
-                const panel = new THREE.Mesh(new THREE.BoxGeometry(1.48, 2.62, 0.09), doorMat);
-                panel.position.set(0, 1.42, 0.075);
-                group.add(panel);
-                const inset = new THREE.Mesh(new THREE.BoxGeometry(1.12, 1.72, 0.025), new THREE.MeshStandardMaterial({ color: 0x515a5f, roughness: 0.95 }));
-                inset.position.set(0, 1.48, 0.135);
-                group.add(inset);
-                const handle = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 6), handleMat);
-                handle.position.set(0.48, 1.25, 0.17);
-                group.add(handle);
-                const plaque = new THREE.Mesh(new THREE.BoxGeometry(1.12, 0.32, 0.07), signMat);
-                plaque.position.set(0, 2.95, 0.04);
-                group.add(plaque);
-                const narrowWindow = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.42, 0.34, 0.035),
-                    new THREE.MeshStandardMaterial({ color: 0x172328, roughness: 0.25, metalness: 0.25 })
-                );
-                narrowWindow.position.set(-0.28, 2.12, 0.145);
-                group.add(narrowWindow);
-                const windowGlint = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.035, 0.3, 0.012),
-                    new THREE.MeshStandardMaterial({ color: 0x65777c, metalness: 0.35, roughness: 0.25 })
-                );
-                windowGlint.position.set(-0.28, 2.12, 0.17);
-                group.add(windowGlint);
-                const labelCanvas = document.createElement('canvas');
-                labelCanvas.width = 256; labelCanvas.height = 64;
-                const labelCtx = labelCanvas.getContext('2d');
-                labelCtx.fillStyle = '#c2c8c9'; labelCtx.fillRect(0, 0, 256, 64);
-                labelCtx.fillStyle = '#244c56'; labelCtx.font = 'bold 25px monospace';
-                labelCtx.textAlign = 'center'; labelCtx.textBaseline = 'middle';
-                labelCtx.fillText(label, 128, 32);
-                const labelMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.05, 0.25), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(labelCanvas) }));
-                labelMesh.position.set(0, 2.95, 0.085);
-                group.add(labelMesh);
-                if (side === 'north') group.rotation.y = Math.PI;
-                if (side === 'east') group.rotation.y = Math.PI / 2;
-                if (side === 'west') group.rotation.y = -Math.PI / 2;
-                group.position.set(x, 0, z);
-                scene.add(group);
-            }
+            // Courtyard maze walls are dense hedges, not hospital doors or room fixtures.
 
             for (let r = 0; r < mazeGrid.length; r++) {
                 for (let c = 0; c < mazeGrid[r].length; c++) {
@@ -716,39 +649,39 @@
                         scene.add(outerWall);
                         wallBoxes.push(new THREE.Box3().setFromObject(outerWall));
 
-                        // Heavy double emergency doors, red EXIT sign, and nine individual padlocks.
+                        // Chapter 2 exit: a battered car waiting beyond the hedge maze.
                         const exitGroup = new THREE.Group();
-                        const exitFrameMat = new THREE.MeshStandardMaterial({ color: 0x171b1e, roughness: 0.92, metalness: 0.2 });
-                        const exitDoorMat = new THREE.MeshStandardMaterial({ color: 0x4c555a, roughness: 0.72, metalness: 0.35 });
-                        const exitInsetMat = new THREE.MeshStandardMaterial({ color: 0x293034, roughness: 0.88, metalness: 0.12 });
-                        const lockMetal = new THREE.MeshStandardMaterial({ color: 0x9b7a36, metalness: 0.82, roughness: 0.25 });
-                        const frame = new THREE.Mesh(new THREE.BoxGeometry(2.55, 3.15, 0.18), exitFrameMat);
-                        frame.position.y = 1.55;
-                        exitGroup.add(frame);
-                        for (let leaf = 0; leaf < 2; leaf++) {
-                            const cx = leaf === 0 ? -0.59 : 0.59;
-                            const panel = new THREE.Mesh(new THREE.BoxGeometry(1.12, 2.78, 0.12), exitDoorMat);
-                            panel.position.set(cx, 1.48, 0.13);
-                            exitGroup.add(panel);
-                            const inset = new THREE.Mesh(new THREE.BoxGeometry(0.82, 1.9, 0.035), exitInsetMat);
-                            inset.position.set(cx, 1.55, 0.21);
-                            exitGroup.add(inset);
-                            const kickPlate = new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.28, 0.045), exitFrameMat);
-                            kickPlate.position.set(cx, 0.28, 0.235);
-                            exitGroup.add(kickPlate);
-                            const handle = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.42, 0.08), lockMetal);
-                            handle.position.set(leaf === 0 ? -0.12 : 0.12, 1.25, 0.26);
-                            exitGroup.add(handle);
-                            for (let seam = 0; seam < 3; seam++) {
-                                const rib = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.025, 0.025), exitFrameMat);
-                                rib.position.set(cx, 2.45 - seam * 0.12, 0.235);
-                                exitGroup.add(rib);
+                        const carBodyMat = new THREE.MeshStandardMaterial({ color: 0x252d35, metalness: 0.42, roughness: 0.62 });
+                        const glassMat = new THREE.MeshStandardMaterial({ color: 0x101b29, metalness: 0.35, roughness: 0.22 });
+                        const rubberMat = new THREE.MeshStandardMaterial({ color: 0x090a0b, roughness: 0.95 });
+                        const lampMat = new THREE.MeshStandardMaterial({ color: 0xffc36b, emissive: 0x9b4d12, emissiveIntensity: 0.75 });
+                        const body = new THREE.Mesh(new THREE.BoxGeometry(2.25, 0.72, 3.8), carBodyMat);
+                        body.position.set(0, 0.72, 0);
+                        exitGroup.add(body);
+                        const hood = new THREE.Mesh(new THREE.BoxGeometry(2.12, 0.22, 1.0), carBodyMat);
+                        hood.position.set(0, 1.12, -1.22);
+                        exitGroup.add(hood);
+                        const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.72, 1.7), glassMat);
+                        cabin.position.set(0, 1.38, 0.28);
+                        exitGroup.add(cabin);
+                        for (const side of [-1, 1]) {
+                            for (const zWheel of [-1.25, 1.25]) {
+                                const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.2, 12), rubberMat);
+                                wheel.rotation.z = Math.PI / 2;
+                                wheel.position.set(side * 1.12, 0.42, zWheel);
+                                exitGroup.add(wheel);
                             }
+                            const headlight = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.16, 0.07), lampMat);
+                            headlight.position.set(side * 0.72, 0.88, -1.94);
+                            exitGroup.add(headlight);
                         }
-                        const centerSeam = new THREE.Mesh(new THREE.BoxGeometry(0.07, 2.85, 0.12), exitFrameMat);
-                        centerSeam.position.set(0, 1.48, 0.25);
-                        exitGroup.add(centerSeam);
-
+                        const windshield = new THREE.Mesh(new THREE.PlaneGeometry(1.55, 0.52), glassMat);
+                        windshield.position.set(0, 1.42, -0.59);
+                        exitGroup.add(windshield);
+                        const rearWindow = new THREE.Mesh(new THREE.PlaneGeometry(1.45, 0.48), glassMat);
+                        rearWindow.position.set(0, 1.42, 1.14);
+                        rearWindow.rotation.y = Math.PI;
+                        exitGroup.add(rearWindow);
                         // Nine separate padlocks: three columns by three rows. They disappear one by one as keys are found.
                         const lockGroup = new THREE.Group();
                         const lockBodyMat = new THREE.MeshStandardMaterial({ color: 0xb08b42, metalness: 0.82, roughness: 0.22 });
@@ -766,23 +699,6 @@
                             lockGroup.add(lock);
                         }
                         exitGroup.add(lockGroup);
-                        const exitSignCanvas = document.createElement('canvas');
-                        exitSignCanvas.width = 512; exitSignCanvas.height = 160;
-                        const exitSignCtx = exitSignCanvas.getContext('2d');
-                        exitSignCtx.fillStyle = '#180000'; exitSignCtx.fillRect(0, 0, 512, 160);
-                        exitSignCtx.strokeStyle = '#ff2525'; exitSignCtx.lineWidth = 12; exitSignCtx.strokeRect(8, 8, 496, 144);
-                        exitSignCtx.fillStyle = '#ff2929'; exitSignCtx.font = 'bold 112px monospace';
-                        exitSignCtx.textAlign = 'center'; exitSignCtx.textBaseline = 'middle';
-                        exitSignCtx.shadowColor = '#ff0000'; exitSignCtx.shadowBlur = 22;
-                        exitSignCtx.fillText('EXIT', 256, 82);
-                        const signTex = new THREE.CanvasTexture(exitSignCanvas);
-                        const exitSignMat = new THREE.MeshBasicMaterial({ map: signTex, side: THREE.DoubleSide });
-                        const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.58), exitSignMat);
-                        sign.position.set(0, 3.28, 0.25);
-                        exitGroup.add(sign);
-                        exitDoorMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.01, 0.01), new THREE.MeshBasicMaterial({ color: 0xff2020 }));
-                        exitDoorMesh.visible = false;
-                        exitGroup.add(exitDoorMesh);
                         exitGroup.position.set(x - 2.02, 0, z);
                         exitGroup.rotation.y = -Math.PI / 2;
                         scene.add(exitGroup);
@@ -800,110 +716,49 @@
                 }
             }
 
-            // Place many doors only on real wall cells with a walkable corridor on the chosen side.
-            // Door geometry is kept just off the wall surface, avoiding doors buried inside blocks.
-            const doorFaces = [
-                { dr: 0, dc: -1, side: 'west', dx: -cellSize / 2 - 0.09, dz: 0 },
-                { dr: 0, dc: 1, side: 'east', dx: cellSize / 2 + 0.09, dz: 0 },
-                { dr: -1, dc: 0, side: 'north', dx: 0, dz: -cellSize / 2 - 0.09 },
-                { dr: 1, dc: 0, side: 'south', dx: 0, dz: cellSize / 2 + 0.09 }
-            ];
-            let doorIndex = 0;
-            const doorCandidates = [];
-            for (let r = 1; r < mazeGrid.length - 1; r++) {
-                for (let c = 1; c < mazeGrid[r].length - 1; c++) {
-                    if (mazeGrid[r][c] !== 1) continue;
-                    for (const face of doorFaces) {
-                        const nr = r + face.dr, nc = c + face.dc;
-                        if (mazeGrid[nr] && mazeGrid[nr][nc] === 0) {
-                            doorCandidates.push({ r, c, face });
-                            break;
-                        }
-                    }
+            // Chapter 2 courtyard atmosphere: moonlit haze, scattered weeds, and low ground mist.
+            const weedMat = new THREE.MeshStandardMaterial({ color: 0x34472a, roughness: 1 });
+            const dryWeedMat = new THREE.MeshStandardMaterial({ color: 0x746b43, roughness: 1 });
+            const pebbleMat = new THREE.MeshStandardMaterial({ color: 0x49443a, roughness: 1 });
+            for (let i = 0; i < 230; i++) {
+                const x = (Math.random() * (mazeGrid[0].length - 2) + 0.5) * cellSize;
+                const z = (Math.random() * (mazeGrid.length - 2) + 0.5) * cellSize;
+                const cell = worldToCell(x, z);
+                if (!mazeGrid[cell.r] || mazeGrid[cell.r][cell.c] !== 0) continue;
+                const clump = new THREE.Group();
+                const count = 2 + Math.floor(Math.random() * 4);
+                for (let j = 0; j < count; j++) {
+                    const blade = new THREE.Mesh(
+                        new THREE.ConeGeometry(0.025 + Math.random() * 0.035, 0.18 + Math.random() * 0.28, 4),
+                        Math.random() > 0.82 ? dryWeedMat : weedMat
+                    );
+                    blade.position.set((Math.random() - 0.5) * 0.22, 0.08 + Math.random() * 0.1, (Math.random() - 0.5) * 0.22);
+                    blade.rotation.z = (Math.random() - 0.5) * 0.55;
+                    clump.add(blade);
                 }
-            }
-            // Deterministic spacing across the full maze, rather than a clump of doors in one area.
-            const desiredDoorCount = Math.min(34, doorCandidates.length);
-            for (let i = 0; i < desiredDoorCount; i++) {
-                const candidateIndex = Math.floor(i * (doorCandidates.length - 1) / Math.max(1, desiredDoorCount - 1));
-                const d = doorCandidates[candidateIndex];
-                const x = d.c * cellSize + d.face.dx;
-                const z = d.r * cellSize + d.face.dz;
-                addHospitalDoor(x, z, d.face.side, doorLabels[doorIndex % doorLabels.length]);
-                doorIndex++;
+                clump.position.set(x, 0.02, z);
+                scene.add(clump);
             }
 
-            // Small, worn wall lights add recognizable hospital architecture.
-            const lightCells = [{r:3,c:2},{r:5,c:8},{r:7,c:12},{r:11,c:4},{r:13,c:15},{r:17,c:9},{r:3,c:17},{r:8,c:5},{r:12,c:18},{r:15,c:4},{r:18,c:10}];
-            for (const p of lightCells) {
-                const x = p.c * cellSize, z = p.r * cellSize;
-                const fixture = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.16, 0.12), fixtureMat);
-                fixture.position.set(x, 2.95, z - 1.88);
-                scene.add(fixture);
-                const glow = new THREE.PointLight(0x9dbbc5, 0.22, 5);
-                glow.position.set(x, 2.75, z - 1.4);
-                scene.add(glow);
+            for (let i = 0; i < 90; i++) {
+                const x = (Math.random() * (mazeGrid[0].length - 2) + 0.5) * cellSize;
+                const z = (Math.random() * (mazeGrid.length - 2) + 0.5) * cellSize;
+                const cell = worldToCell(x, z);
+                if (!mazeGrid[cell.r] || mazeGrid[cell.r][cell.c] !== 0) continue;
+                const pebble = new THREE.Mesh(new THREE.DodecahedronGeometry(0.045 + Math.random() * 0.07, 0), pebbleMat);
+                pebble.position.set(x, 0.045, z);
+                pebble.scale.set(1.4, 0.55, 1);
+                scene.add(pebble);
             }
 
-            // Rare, large dried blood splats on selected corridor walls only.
-            // These are separate decals so blood does not repeat across every wall tile.
-            const bloodMat = new THREE.MeshBasicMaterial({ color: 0x4b080d, transparent: true, opacity: 0.88, side: THREE.DoubleSide, depthWrite: false });
-            const bloodDripMat = new THREE.MeshBasicMaterial({ color: 0x310509, transparent: true, opacity: 0.82, side: THREE.DoubleSide, depthWrite: false });
-            const wallBloodSpots = [
-                {r:3,c:2,side:'east',scale:1.0},
-                {r:8,c:14,side:'west',scale:1.25},
-                {r:13,c:6,side:'south',scale:0.9},
-                {r:17,c:14,side:'north',scale:1.15}
-            ];
-            for (const spot of wallBloodSpots) {
-                const stain = new THREE.Group();
-                const main = new THREE.Mesh(new THREE.CircleGeometry(0.36 * spot.scale, 11), bloodMat);
-                main.scale.set(1.25, 0.72, 1);
-                stain.add(main);
-                for (let d = 0; d < 3; d++) {
-                    const drip = new THREE.Mesh(new THREE.PlaneGeometry(0.045 * spot.scale, (0.24 + d * 0.12) * spot.scale), bloodDripMat);
-                    drip.position.set((d - 1) * 0.17 * spot.scale, -0.22 - d * 0.04, 0.008);
-                    stain.add(drip);
-                }
-                const x = spot.c * cellSize, z = spot.r * cellSize;
-                if (spot.side === 'east') { stain.position.set(x + cellSize / 2 + 0.012, 1.9, z); stain.rotation.y = Math.PI / 2; }
-                if (spot.side === 'west') { stain.position.set(x - cellSize / 2 - 0.012, 1.9, z); stain.rotation.y = -Math.PI / 2; }
-                if (spot.side === 'north') { stain.position.set(x, 1.9, z - cellSize / 2 - 0.012); stain.rotation.y = Math.PI; }
-                if (spot.side === 'south') { stain.position.set(x, 1.9, z + cellSize / 2 + 0.012); }
-                scene.add(stain);
-            }
+            // Cool moonlight and faint green bounce make the open courtyard feel exposed and uneasy.
+            const moonFill = new THREE.DirectionalLight(0x9db8e8, 0.42);
+            moonFill.position.set(-18, 28, -12);
+            scene.add(moonFill);
+            const groundGlow = new THREE.PointLight(0x243d24, 0.5, 34);
+            groundGlow.position.set(mazeWidth * 0.52, 2.1, mazeHeight * 0.5);
+            scene.add(groundGlow);
 
-            // Worn clinical wayfinding plates and emergency markers scattered through corridors.
-            const plaqueMat = new THREE.MeshStandardMaterial({ color: 0x9ca9ac, roughness: 0.9, metalness: 0.08 });
-            const markerMat = new THREE.MeshStandardMaterial({ color: 0x244c45, emissive: 0x071a13, roughness: 0.85 });
-            const wallMarkers = [
-                {r:1,c:9,text:'WARD C'},
-                {r:5,c:14,text:'QUIET ZONE'},
-                {r:9,c:12,text:'RADIOLOGY'},
-                {r:13,c:3,text:'NURSE STATION'},
-                {r:17,c:12,text:'NO ENTRY'}
-            ];
-            for (const p of wallMarkers) {
-                const plate = new THREE.Group();
-                const backing = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.48, 0.09), plaqueMat);
-                backing.position.y = 2.45;
-                plate.add(backing);
-                const face = new THREE.Mesh(new THREE.BoxGeometry(1.17, 0.3, 0.025), markerMat);
-                face.position.set(0, 2.45, 0.06);
-                plate.add(face);
-                const canvas = document.createElement('canvas');
-                canvas.width = 256; canvas.height = 64;
-                const c2 = canvas.getContext('2d');
-                c2.fillStyle = '#244c45'; c2.fillRect(0,0,256,64);
-                c2.fillStyle = '#c4d0cd'; c2.font = 'bold 23px monospace';
-                c2.textAlign = 'center'; c2.textBaseline = 'middle';
-                c2.fillText(p.text,128,32);
-                const textMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.1,0.26),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(canvas)}));
-                textMesh.position.set(0,2.45,0.078);
-                plate.add(textMesh);
-                plate.position.set(p.c * cellSize, 0, p.r * cellSize - 1.88);
-                scene.add(plate);
-            }
         }
 
         function spawnKeys() {
