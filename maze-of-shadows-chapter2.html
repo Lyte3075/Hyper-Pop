@@ -731,23 +731,6 @@ ACCESS NODE READY...</pre>
                         rearWindow.position.set(0, 1.42, 1.14);
                         rearWindow.rotation.y = Math.PI;
                         exitGroup.add(rearWindow);
-                        // Nine separate padlocks: three columns by three rows. They disappear one by one as keys are found.
-                        const lockGroup = new THREE.Group();
-                        const lockBodyMat = new THREE.MeshStandardMaterial({ color: 0xb08b42, metalness: 0.82, roughness: 0.22 });
-                        const lockShackleMat = new THREE.MeshStandardMaterial({ color: 0xc7cdd0, metalness: 0.9, roughness: 0.18 });
-                        for (let i = 0; i < totalKeys; i++) {
-                            const lock = new THREE.Group();
-                            const body = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.22, 0.09), lockBodyMat);
-                            body.position.y = -0.055;
-                            lock.add(body);
-                            const shackle = new THREE.Mesh(new THREE.TorusGeometry(0.065, 0.025, 6, 12, Math.PI), lockShackleMat);
-                            shackle.rotation.z = Math.PI;
-                            shackle.position.set(0, 0.065, 0);
-                            lock.add(shackle);
-                            lock.position.set(-0.26 + (i % 3) * 0.26, 1.92 - Math.floor(i / 3) * 0.34, 0.34);
-                            lockGroup.add(lock);
-                        }
-                        exitGroup.add(lockGroup);
                         exitGroup.position.set(x, 0, z + 21.5);
                         exitGroup.rotation.y = 0;
                         scene.add(exitGroup);
@@ -757,8 +740,6 @@ ACCESS NODE READY...</pre>
                         exitGlowLight = new THREE.PointLight(0xb80b0b, 1.4, 8);
                         exitGlowLight.position.set(x, 1.6, z + 20);
                         scene.add(exitGlowLight);
-                        exitPadlocks = [];
-                        lockGroup.children.forEach(lock => exitPadlocks.push(lock));
                         // Interaction trigger target
                         exitGate = { position: new THREE.Vector3(x, 1.6, z + 21.5) };
                     }
@@ -1617,20 +1598,12 @@ ACCESS NODE READY...</pre>
                         scene.remove(k.mesh);
                         keysFound++;
                         if(keysFound===1&&!banisherScheduled){banisherScheduled=true;banisherNextAt=performance.now()+35000+Math.random()*25000;}
-                        if (exitPadlocks[keysFound - 1]) {
-                            const padlock = exitPadlocks[keysFound - 1];
-                            padlock.visible = false;
-                            padlock.traverse(part => { if (part.material) part.material = part.material.clone(); });
-                        }
                         document.getElementById('key-tracker').innerText = `FUEL CANISTERS: ${keysFound} / ${totalKeys}`;
                         checkProgressiveDifficulty();
                         updateGuideIndicators(collectedKeyPosition);
                     }
                 }
             });
-
-            // Keep exit padlocks synchronized with collected keys, including restored save slots.
-            exitPadlocks.forEach((lock, index) => { lock.visible = index >= keysFound; });
 
             // Pickup Item Detection
             nearbyPickup = null;
@@ -1658,14 +1631,16 @@ ACCESS NODE READY...</pre>
 
             // Exit Wall Door Trigger
             if (exitGate && camera.position.distanceTo(exitGate.position) < 2.5) {
-                if (keysFound >= totalKeys) {
+                if (keysFound >= totalKeys && gateUnlocked) {
                     isGameOver = true;
                     document.getElementById('status-text').innerText = "YOU ESCAPED IN THE CAR!";
                     document.getElementById('status-text').style.color = "#ffffff";
                     document.getElementById('death-hint').innerText = "You filled the tank, reached the road, and escaped the courtyard.";
                     document.getElementById('game-over').style.display = 'flex';
-                } else {
+                } else if (keysFound < totalKeys) {
                     document.getElementById('status-msg').innerText = `CAR NEEDS ${totalKeys - keysFound} MORE FUEL CANISTERS!`;
+                } else {
+                    document.getElementById('status-msg').innerText = 'UNLOCK THE SECURITY GATE AT THE CENTRAL COMPUTER FIRST!';
                 }
             }
 
