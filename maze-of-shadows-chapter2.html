@@ -790,7 +790,7 @@ ACCESS NODE READY...</pre>
             const screenFace=new THREE.Mesh(new THREE.PlaneGeometry(2.28,1.7),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(screenCanvas),emissive:0x00ff55})); screenFace.position.set(0,2.85,0.052); terminal.add(screenFace);
             for(let i=0;i<5;i++){const keyLight=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.08,0.12),terminalGreenMat);keyLight.position.set(-0.55+i*0.28,2.02,0.59);terminal.add(keyLight);}
             const terminalGlow=new THREE.PointLight(0x19ff70,1.7,10); terminalGlow.position.set(0,2.8,1.0); terminal.add(terminalGlow);
-            terminal.position.set(plazaX,0,plazaZ); terminal.rotation.y=Math.PI; scene.add(terminal);
+            terminal.position.set(plazaX,0,plazaZ); scene.add(terminal);
             computerTerminal={position:new THREE.Vector3(plazaX,1.5,plazaZ+2.1),screenCanvas,screenCtx,screenFace};
 
             // Exterior approach: the player begins on the hospital's front steps, enters the hedge maze, then reaches the parking lot and road.
