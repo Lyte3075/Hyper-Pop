@@ -71,15 +71,14 @@
             background: rgba(0, 0, 0, 0.6); border: 2px solid #fff; color: #fff;
             font-size: 11px; font-weight: bold; z-index: 25;
             display: flex; align-items: center; justify-content: center;
-            touch-action: none; pointer-events: auto;
+            touch-action: manipulation; pointer-events: auto;
             -webkit-user-select: none; user-select: none;
         }
-        #touch-overlay { z-index: 10; }
         button { -webkit-tap-highlight-color: transparent; }
         #flashlight-btn { bottom: 25px; right: 15px; }
         #sprint-btn { bottom: 100px; right: 15px; }
         #crouch-btn { bottom: 175px; right: 15px; background: rgba(30,55,35,0.85); }
-        #hide-btn { display: none !important; }
+        #hide-btn { bottom: 25px; right: 90px; background: rgba(0, 150, 255, 0.6); display: none; }
         #use-item-btn { bottom: 100px; right: 90px; background: rgba(0, 255, 100, 0.6); display: none; }
 
         #banisher-jumpscare.monster-scare .scare-face { background: radial-gradient(circle at 40% 32%,#fff 0%,#f1f1f1 48%,#888 100%); box-shadow:0 0 70px #fff,0 0 140px #aaa; }
@@ -247,7 +246,7 @@
     <button id="flashlight-btn" class="game-btn">LIGHT</button>
     <button id="sprint-btn" class="game-btn">RUN</button>
     <button id="crouch-btn" class="game-btn">CROUCH</button>
-    <button id="hide-btn" class="game-btn" aria-hidden="true" tabindex="-1">HIDE</button>
+    <button id="hide-btn" class="game-btn">HIDE</button>
     <button id="use-item-btn" class="game-btn">USE ITEM</button>
 
     <div id="touch-overlay">
@@ -483,23 +482,17 @@ ACCESS NODE READY...</pre>
             sprintBtn.addEventListener('mousedown', () => isSprinting = true);
             sprintBtn.addEventListener('mouseup', () => isSprinting = false);
 
-            flashBtn.addEventListener('click', () => {
-                if (battery > 0) {
-                    flashlightOn = !flashlightOn;
-                    flashlight.intensity = flashlightOn ? 3.5 : 0;
-                }
-            });
+            const bindMobileAction = (button, action) => {
+                let lastTouchAt=0;
+                button.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();lastTouchAt=Date.now();action();},{passive:false});
+                button.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();if(Date.now()-lastTouchAt<700)return;action();});
+            };
+            bindMobileAction(flashBtn,()=>{if(battery>0){flashlightOn=!flashlightOn;flashlight.intensity=flashlightOn?3.5:0;}});
 
-            hideBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                toggleHideInLocker();
-            });
+            bindMobileAction(hideBtn,()=>toggleHideInLocker());
 
-            useItemBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                if (nearbyPickup) collectItem(nearbyPickup);
-                /* Interaction never consumes inventory items. */
-            });
+            bindMobileAction(useItemBtn,()=>{if(nearbyPickup)collectItem(nearbyPickup);/* Interaction never consumes inventory items. */});
+            bindMobileAction(crouchBtn,()=>{if(isHidden||currentLocker)toggleHideInLocker();else toggleCrouch();});
 
             animate();
         }
@@ -635,8 +628,8 @@ ACCESS NODE READY...</pre>
             };
 
 
-            // Raised low hedges leave a gap that only a crouching player can pass beneath.
-            const hedgeHeight = 1.05;
+            // Hedge cells are solid to the ground. Grass cover is added to 20 walkable floor cells.
+            const hedgeHeight = 2.76;
             const wallGeo = new THREE.BoxGeometry(cellSize, hedgeHeight, cellSize);
             const lockerBodyMat=new THREE.MeshStandardMaterial({color:0x243b31,metalness:0.55,roughness:0.38}),lockerDoorMat=new THREE.MeshStandardMaterial({color:0x344b40,metalness:0.62,roughness:0.34}),lockerDarkMat=new THREE.MeshStandardMaterial({color:0x080d0b,roughness:0.98}),lockerTrimMat=new THREE.MeshStandardMaterial({color:0x111a16,metalness:0.65,roughness:0.32}),lockerHandleMat=new THREE.MeshStandardMaterial({color:0x9aa39b,metalness:0.82,roughness:0.24});
             function makeLocker(){
@@ -681,8 +674,7 @@ ACCESS NODE READY...</pre>
                         const wall = new THREE.Mesh(wallGeo, wallMat);
                         wall.position.set(x, 1.38, z);
                         scene.add(wall);
-                        wallBoxes.push(new THREE.Box3(new THREE.Vector3(x-cellSize/2,0.82,z-cellSize/2),new THREE.Vector3(x+cellSize/2,1.91,z+cellSize/2)));
-                        grassHidingSpots.push({x,z,radius:cellSize*0.72});
+                        wallBoxes.push(new THREE.Box3(new THREE.Vector3(x-cellSize/2,0,z-cellSize/2),new THREE.Vector3(x+cellSize/2,hedgeHeight,z+cellSize/2)));
                     } 
                     else if (mazeGrid[r][c] === 2) {
                         const locker=makeLocker();let offsetX=0,offsetZ=-(cellSize / 2 - 0.22);
@@ -757,6 +749,27 @@ ACCESS NODE READY...</pre>
                     }
                 }
             }
+
+            // Exactly 20 grass-cover cells, all on walkable floor and away from objective spawns.
+            const protectedCells=new Set(["10,10","10,9","10,11","9,10","11,10","19,13","13,19","7,17","1,15","17,7","9,11","3,9","11,3","5,3","3,1","15,1","5,17","10,1","10,19"]);
+            const grassCandidates=[];
+            for(let r=1;r<mazeGrid.length-1;r++)for(let c=1;c<mazeGrid[r].length-1;c++){
+                if(mazeGrid[r][c]!==0||protectedCells.has(`${c},${r}`))continue;
+                if(Math.abs(c-10)<=1&&Math.abs(r-10)<=1)continue;
+                if(r<=2&&c>=8&&c<=12)continue;
+                grassCandidates.push({c,r});
+            }
+            for(let i=grassCandidates.length-1;i>0;i--){const j=(i*17+13)%(i+1);[grassCandidates[i],grassCandidates[j]]=[grassCandidates[j],grassCandidates[i]];}
+            const grassPatchMat=new THREE.MeshStandardMaterial({color:0x263b25,roughness:1});
+            const grassBladeMat=new THREE.MeshStandardMaterial({color:0x354b2c,roughness:1,side:THREE.DoubleSide});
+            grassHidingSpots=[];
+            grassCandidates.slice(0,20).forEach(({c,r})=>{
+                const x=c*cellSize,z=r*cellSize;
+                const patch=new THREE.Mesh(new THREE.PlaneGeometry(cellSize*0.78,cellSize*0.78),grassPatchMat);
+                patch.rotation.x=-Math.PI/2;patch.position.set(x,0.025,z);scene.add(patch);
+                for(let i=0;i<13;i++){const blade=new THREE.Mesh(new THREE.ConeGeometry(0.055,0.22+(i%4)*0.045,3),grassBladeMat);blade.position.set(x+Math.sin(i*2.4)*cellSize*0.31,0.12,z+Math.cos(i*2.4)*cellSize*0.31);scene.add(blade);}
+                grassHidingSpots.push({x,z,radius:cellSize*0.34});
+            });
 
             // Add abundant hiding lockers throughout the hedge maze. The map's old type-2
             // locker cells are sparse, so place extra lockers along hedge faces in open corridors.
