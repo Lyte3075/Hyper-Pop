@@ -1962,32 +1962,40 @@ ACCESS NODE READY...</pre>
             const playerCell = nearestWalkableCell(camera.position.x,camera.position.z,worldToCell(camera.position.x,camera.position.z));
             const noiseRadius = isHidden ? 0 : (speed === sprintSpeed ? 18 : (isMoving ? 8 : 2));
 
+            const playerInsideSanctuary=!!(sanctuaryBounds && camera.position.x>sanctuaryBounds.minX && camera.position.x<sanctuaryBounds.maxX && camera.position.z>sanctuaryBounds.minZ && camera.position.z<sanctuaryBounds.maxZ);
             for (let monster of monsters) {
                 if (!monster.visible) continue;
 
                 monster.lookAt(camera.position.x, monster.position.y, camera.position.z);
-                if(computerTerminal && monster.userData.type!=='banisher'){
-                    const terminalDist=Math.hypot(monster.position.x-computerTerminal.position.x,monster.position.z-computerTerminal.position.z);
+                if(monster.userData.type!=='banisher'){
                     const ai=monster.userData;
-                    if(terminalDist>8.5) ai.sanctuaryFleeing=false;
-                    if(terminalDist<7.2 && !ai.sanctuaryFleeing){
-                        // Like locker concealment, the sanctuary breaks pursuit: monsters choose a distant walkable cell and patrol away.
+                    // Entering the force-field box triggers a retreat for every regular monster, even if it was far away.
+                    if(!playerInsideSanctuary) ai.sanctuaryFleeing=false;
+                    if(playerInsideSanctuary && !ai.sanctuaryFleeing){
                         const candidates=[];
-                        for(let attempt=0;attempt<48;attempt++){
+                        for(let attempt=0;attempt<72;attempt++){
                             const c=Math.floor(Math.random()*(mazeGrid[0].length-2))+1;
                             const r=Math.floor(Math.random()*(mazeGrid.length-2))+1;
                             if(mazeGrid[r]!==undefined&&mazeGrid[r][c]===0){
                                 const target=cellToWorld(c,r);
-                                if(Math.hypot(target.x-computerTerminal.position.x,target.z-computerTerminal.position.z)>Math.max(10,cellSize*3))candidates.push({r,c});
+                                if(Math.hypot(target.x-camera.position.x,target.z-camera.position.z)>Math.max(10,cellSize*3)) candidates.push({r,c});
                             }
                         }
                         if(candidates.length){
                             const start=worldToCell(monster.position.x,monster.position.z);
                             const target=candidates[Math.floor(Math.random()*candidates.length)];
                             ai.path=findAStarPath(nearestWalkableCell(monster.position.x,monster.position.z,start),target)||[];
-                        } else ai.path=[];
+                        }else ai.path=[];
                         ai.state='patrol';ai.sanctuaryFleeing=true;ai.lastTargetCell=null;ai.repathTimer=2.8;ai.stuckTimer=0;
                         continue;
+                    }
+                    // While the player remains inside, don't let AI reacquire them or repath back toward the sanctuary.
+                    if(playerInsideSanctuary && ai.sanctuaryFleeing){
+                        ai.state='patrol';
+                        if(ai.path && ai.path.length>1) {
+                            const fleeTarget=cellToWorld(ai.path[ai.path.length-1].c,ai.path[ai.path.length-1].r);
+                            if(Math.hypot(fleeTarget.x-camera.position.x,fleeTarget.z-camera.position.z)<Math.max(8,cellSize*2)) ai.path=[];
+                        }
                     }
                 }
                 const distToPlayer = monster.position.distanceTo(camera.position);
