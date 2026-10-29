@@ -788,17 +788,18 @@ ACCESS NODE READY...</pre>
                         rearWindow.position.set(0, 1.42, 1.14);
                         rearWindow.rotation.y = Math.PI;
                         exitGroup.add(rearWindow);
-                        exitGroup.position.set(x, 0, z + 74);
+                        const roadCarZ = mazeGrid.length * cellSize - 1.0 + 170 + 9;
+                        exitGroup.position.set(x, 0, roadCarZ);
                         exitGroup.rotation.y = 0;
                         scene.add(exitGroup);
                         const redGlow = new THREE.PointLight(0xff1010, 2.4, 9);
-                        redGlow.position.set(x, 3.0, z + 71.9);
+                        redGlow.position.set(x, 3.0, roadCarZ - 2.1);
                         scene.add(redGlow);
                         exitGlowLight = new THREE.PointLight(0xb80b0b, 1.4, 8);
-                        exitGlowLight.position.set(x, 1.6, z + 72);
+                        exitGlowLight.position.set(x, 1.6, roadCarZ - 2);
                         scene.add(exitGlowLight);
                         // Interaction trigger target
-                        exitGate = { position: new THREE.Vector3(x, 1.6, z + 74) };
+                        exitGate = { position: new THREE.Vector3(x, 1.6, roadCarZ) };
                     }
                 }
             }
