@@ -46,7 +46,7 @@
  $('friend-search-btn').addEventListener('click',search);$('friend-search').addEventListener('input',scheduleSearch);$('friend-search').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();clearTimeout(searchTimer);search()}});
  $('party-create').addEventListener('click',async()=>{const d=await rpc('party_create');status(d.error||'Party created.');loadParty()});
  $('party-leave').addEventListener('click',async()=>{const d=await rpc('party_leave');status(d.error||'You left the party.');loadParty()});
- $('chat-form').addEventListener('submit',async e=>{e.preventDefault();const body=$('chat-message').value.trim();if(!body||!selectedConversation)return;const d=await rpc('chat_send',{conversation_id:selectedConversation,body});if(!d.ok){status(d.error);return}$('chat-message').value='';openConversation(selectedConversation)});
+ $('chat-form').addEventListener('submit',async e=>{e.preventDefault();const body=$('chat-message').value.trim();if(!body||!selectedConversation)return;const d=await rpc('chat_send',{conversation_id:selectedConversation,body});if(!d.ok){status(d.error);return}$('chat-message').value='';renderConversation(selectedConversation)});
  async function init(){const t=token();if(!t){status('Sign in at Account / Profile to use friends, parties, and chats.');return}const d=await rpc('me');if(!d.ok){status(d.error||'Sign in to continue.');return}me=d.me||null;$('social-profile').textContent=me?'Signed in as @'+me.username+'. Your profile and avatar are managed in Account Settings.':'Account connected.';status('Connected. Loading your social hub…');await Promise.all([loadFriends(),loadParty(),loadChats(),loadInvites()]);}
  init();
 })();
