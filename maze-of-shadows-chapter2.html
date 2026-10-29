@@ -571,6 +571,14 @@
         }
 
         
+        // Invisible outer-world collision bounds. They are collision-only and never rendered.
+        let outerWorldBounds = null;
+        function isOutsidePlayableWorld(position) {
+            if (!outerWorldBounds) return false;
+            return position.x < outerWorldBounds.minX || position.x > outerWorldBounds.maxX ||
+                   position.z < outerWorldBounds.minZ || position.z > outerWorldBounds.maxZ;
+        }
+
         function buildMaze() {
             const wallTex = createHospitalTexture('wall');
             const floorTex = createHospitalTexture('floor');
@@ -585,6 +593,14 @@
             floor.rotation.x = -Math.PI / 2;
             floor.position.set(mazeWidth/2 - cellSize/2, 0, mazeHeight/2 - cellSize/2);
             scene.add(floor);
+            // The hard play-space limits include the front steps and the full road escape area.
+            outerWorldBounds = {
+                minX: -mazeWidth * 0.32,
+                maxX: mazeWidth + mazeWidth * 0.32,
+                minZ: -22,
+                maxZ: mazeHeight + 31
+            };
+
 
             const wallGeo = new THREE.BoxGeometry(cellSize, 3.5, cellSize);
             const lockerBodyMat=new THREE.MeshStandardMaterial({color:0x243b31,metalness:0.55,roughness:0.38}),lockerDoorMat=new THREE.MeshStandardMaterial({color:0x344b40,metalness:0.62,roughness:0.34}),lockerDarkMat=new THREE.MeshStandardMaterial({color:0x080d0b,roughness:0.98}),lockerTrimMat=new THREE.MeshStandardMaterial({color:0x111a16,metalness:0.65,roughness:0.32}),lockerHandleMat=new THREE.MeshStandardMaterial({color:0x9aa39b,metalness:0.82,roughness:0.24});
@@ -755,6 +771,63 @@
             for (let lane = -2; lane <= 2; lane++) {
                 const line = new THREE.Mesh(new THREE.BoxGeometry(0.12,0.025,2.4), roadLineMat);
                 line.position.set(centerX + lane * 2.1, 0.01, mazeGrid.length * cellSize + 21.5); scene.add(line);
+            }
+
+            // Outerlands: unsettling scenery beyond the playable route, kept inside the invisible world boundary.
+            const outerlandSoilMat = new THREE.MeshStandardMaterial({ color: 0x171a1a, roughness: 1 });
+            const outerlandGrassMat = new THREE.MeshStandardMaterial({ color: 0x202b22, roughness: 1 });
+            const deadWoodMat = new THREE.MeshStandardMaterial({ color: 0x211d1a, roughness: 1 });
+            const rustMat = new THREE.MeshStandardMaterial({ color: 0x392b25, metalness: 0.18, roughness: 0.96 });
+            const farlandGround = new THREE.Mesh(new THREE.PlaneGeometry(mazeWidth + 110, mazeHeight + 125), outerlandSoilMat);
+            farlandGround.rotation.x = -Math.PI / 2;
+            farlandGround.position.set(mazeWidth / 2 - cellSize / 2, -0.09, mazeHeight / 2 - cellSize / 2 + 7);
+            scene.add(farlandGround);
+
+            // Jagged dead trees, clustered weeds and rocks create a distant abandoned woodland silhouette.
+            for (let i = 0; i < 82; i++) {
+                const side = i % 2 === 0 ? -1 : 1;
+                const x = side < 0 ? -7 - Math.random() * 48 : mazeWidth + 7 + Math.random() * 48;
+                const z = -15 + Math.random() * (mazeHeight + 50);
+                const trunkHeight = 2.8 + Math.random() * 4.5;
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.28, trunkHeight, 5), deadWoodMat);
+                trunk.position.set(x, trunkHeight / 2 - 0.05, z);
+                trunk.rotation.z = (Math.random() - 0.5) * 0.22;
+                scene.add(trunk);
+                for (let b = 0; b < 3; b++) {
+                    const branch = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.11, 1.3 + Math.random() * 1.5, 4), deadWoodMat);
+                    branch.position.set(x + (Math.random() - 0.5) * 1.7, trunkHeight * (0.48 + Math.random() * 0.35), z + (Math.random() - 0.5) * 1.5);
+                    branch.rotation.z = (Math.random() - 0.5) * 1.6;
+                    branch.rotation.x = (Math.random() - 0.5) * 1.1;
+                    scene.add(branch);
+                }
+            }
+            for (let i = 0; i < 135; i++) {
+                const side = i % 2 === 0 ? -1 : 1;
+                const x = side < 0 ? -3 - Math.random() * 45 : mazeWidth + 3 + Math.random() * 45;
+                const z = -12 + Math.random() * (mazeHeight + 50);
+                const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.18 + Math.random() * 0.8, 0), outerlandSoilMat);
+                rock.position.set(x, 0.1, z);
+                rock.rotation.set(Math.random(), Math.random() * 3, Math.random());
+                scene.add(rock);
+                if (i % 3 === 0) {
+                    const scrub = new THREE.Mesh(new THREE.ConeGeometry(0.3 + Math.random() * 0.45, 0.5 + Math.random() * 1.1, 5), outerlandGrassMat);
+                    scrub.position.set(x + 0.7, 0.45, z + 0.4);
+                    scene.add(scrub);
+                }
+            }
+            // Broken fence fragments and rusted posts along the distant perimeter.
+            for (const side of [-1, 1]) {
+                const fenceX = side < 0 ? -5.5 : mazeWidth + 5.5;
+                for (let z = -8; z < mazeHeight + 35; z += 8) {
+                    const post = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.25, 0.14), rustMat);
+                    post.position.set(fenceX, 0.62, z);
+                    scene.add(post);
+                    if (Math.floor(z / 8) % 2 === 0) {
+                        const rail = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 7.8), rustMat);
+                        rail.position.set(fenceX, 0.92, z + 3.9);
+                        scene.add(rail);
+                    }
+                }
             }
 
             // Chapter 2 courtyard atmosphere: moonlit haze, scattered weeds, and low ground mist.
@@ -1524,10 +1597,10 @@
                     const totalVelocity = forwardDir.multiplyScalar(-moveZ).add(sideDir.multiplyScalar(moveX)).normalize().multiplyScalar(speed);
 
                     let testPosX = camera.position.clone(); testPosX.x += totalVelocity.x;
-                    if (!checkCollisions(testPosX)) camera.position.x = testPosX.x;
+                    if (!isOutsidePlayableWorld(testPosX) && !checkCollisions(testPosX)) camera.position.x = testPosX.x;
 
                     let testPosZ = camera.position.clone(); testPosZ.z += totalVelocity.z;
-                    if (!checkCollisions(testPosZ)) camera.position.z = testPosZ.z;
+                    if (!isOutsidePlayableWorld(testPosZ) && !checkCollisions(testPosZ)) camera.position.z = testPosZ.z;
                 }
             }
 
