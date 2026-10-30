@@ -38,15 +38,23 @@
  }
  async function mediaAndPeer(){
   if(!navigator.mediaDevices?.getUserMedia)throw new Error('Microphone access is unavailable in this browser. Open Hyper-Pop over HTTPS in Safari or a supported browser.');
-  status('Securing relay connection…');
-  const relay=await request('ice_servers');
-  if(!Array.isArray(relay.iceServers)||!relay.iceServers.some(s=>(Array.isArray(s.urls)?s.urls:[s.urls]).some(u=>typeof u==='string'&&u.startsWith('turn'))))throw new Error('TURN relay credentials were not returned. Voice calling is not ready yet.');
+  status('Preparing a direct connection…');
+  // Direct ICE (host + server-reflexive/STUN candidates) is the normal path.
+  // Metered TURN is optional: it is added as a fallback candidate, never a prerequisite.
+  const iceServers=[{urls:'stun:stun.l.google.com:19302'}];
+  try{
+   const relay=await request('ice_servers');
+   if(Array.isArray(relay.iceServers))relay.iceServers.forEach(server=>{
+    const urls=Array.isArray(server.urls)?server.urls:[server.urls];
+    if(urls.some(url=>typeof url==='string'&&url.startsWith('turn')))iceServers.push(server);
+   });
+  }catch(error){console.info('[Hyper-Pop voice] TURN unavailable; trying direct ICE:',error.message)}
   stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});
-  pc=new RTCPeerConnection({iceServers:relay.iceServers,iceTransportPolicy:'all'});
+  pc=new RTCPeerConnection({iceServers,iceTransportPolicy:'all'});
   stream.getTracks().forEach(t=>pc.addTrack(t,stream));
   pc.ontrack=e=>{const audio=$('hp-voice-audio');audio.srcObject=e.streams[0];audio.play().catch(()=>status('Tap the page once to enable call audio.'))};
   pc.onicecandidate=e=>{if(e.candidate&&call)request('ice',{call_id:call.id,candidate:e.candidate.toJSON()}).catch(err=>status(err.message))};
-  pc.onconnectionstatechange=()=>{if(!pc)return;const s=pc.connectionState;if(s==='connected')status('Connected · microphone live');else if(s==='connecting')status('Connecting audio…');else if(s==='failed')status('Connection failed. This network may require a TURN relay.');else if(s==='disconnected')status('Connection interrupted…')};
+  pc.onconnectionstatechange=()=>{if(!pc)return;const s=pc.connectionState;if(s==='connected')status('Connected · microphone live');else if(s==='connecting')status('Connecting audio…');else if(s==='failed')status('Direct connection failed. Trying TURN relay…');else if(s==='disconnected')status('Connection interrupted…')};
  }
  async function startCall(friendId,friendName){
   if(call)return;try{
