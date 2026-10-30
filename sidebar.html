@@ -33,5 +33,5 @@ panel.addEventListener('pointerdown',pointerDown);panel.addEventListener('pointe
 scrim.addEventListener('click',close);
 let lastEdgeTap=0;
 edge.addEventListener('touchend',e=>{const now=Date.now();if(now-lastEdgeTap<360){open();lastEdgeTap=0}else lastEdgeTap=now},{passive:true});
-edge.addEventListener('dblclick',open);document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});addEventListener('message',e=>{if(e.origin===location.origin){if(e.data==='hp-sidebar-toggle'){document.body.classList.contains('open')?close():open()}else if(e.data==='hp-sidebar-open')open();else if(e.data==='hp-sidebar-close')close()}})})();
+edge.addEventListener('dblclick',open);document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});addEventListener('message',e=>{if(e.origin===location.origin){if(e.data==='hp-sidebar-command-toggle'){document.body.classList.contains('open')?close():open()}else if(e.data==='hp-sidebar-command-open')open();else if(e.data==='hp-sidebar-command-close')close()}})})();
 </script></body></html>
