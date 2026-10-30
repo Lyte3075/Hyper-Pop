@@ -30,7 +30,7 @@ a{display:flex;align-items:center;gap:11px;min-height:42px;padding:9px 11px;bord
 <div class="label">Your status</div><div class="presence-wrap"><div class="presence-select-row"><span id="hp-presence-dot" class="presence-dot online"></span><select id="hp-presence-select" aria-label="Set your status"><option value="online">● Online</option><option value="idle">◷ Idle</option><option value="dnd">⛔ Do not disturb</option><option value="invisible">◌ Invisible</option></select></div><div id="hp-presence-note" role="status">Loading your status…</div></div>
 <div class="push-card"><div style="font-weight:750;font-size:12px;margin:0 0 8px">Push notifications</div><button id="hp-push-button" type="button">Enable push notifications</button><div id="hp-push-note" role="status">Get alerts for messages and incoming calls.</div></div>
 <div class="label">Settings</div><label class="setting"><span>Show floating chat button<small>Display the chat shortcut on pages</small></span><input id="chat-button-toggle" type="checkbox"></label>
-<div class="label">More</div><a href="accounts.html" target="_top"><span class="ico">👤</span>Account / Profile</a></aside>
+<div class="label">More</div><a href="stats.html" target="_top"><span class="ico">📊</span>Live site stats</a><a href="accounts.html" target="_top"><span class="ico">👤</span>Account / Profile</a></aside>
 <script>
 (function(){const send=s=>parent.postMessage(s,location.origin);function open(){document.body.classList.add('open');send('hp-sidebar-open');send({type:'hp-status-request'})}function close(){document.body.classList.remove('open');send('hp-sidebar-close')}
 let startX=null,startY=0;
