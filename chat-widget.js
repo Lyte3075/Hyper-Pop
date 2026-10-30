@@ -30,7 +30,7 @@
  chatVisible();
  window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.source)return;if(typeof e.data==='string'&&e.data.startsWith('hp-chat-visibility:')){const visible=e.data.endsWith('true');try{localStorage.setItem('hp_chat_button_visible',String(visible))}catch(_){}launch.style.display=visible?'block':'none'}});
 
- const $=id=>document.getElementById(id);let me=null,selected=null,busy=false;
+ const $=id=>document.getElementById(id);let me=null,selected=null,selectedFriend=null,busy=false,lastListRefresh=0;
  async function rpc(action,data={}){const token=localStorage.getItem('hyperpop_token');if(!token)return{ok:false,error:'Sign in to use chat.'};try{const r=await fetch(API,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({p_token:token,p_action:action,p_data:data})});const raw=await r.text();let d;try{d=raw?JSON.parse(raw):{}}catch(_){d={message:raw}}if(!r.ok){const x=Array.isArray(d)?d[0]:d;return{ok:false,error:x.message||x.details||'Chat request failed.'}}return d}catch(_){return{ok:false,error:'Could not reach chat.'}}}
  function note(s){$('hp-chat-note').textContent=s||''}
  function open(){win.classList.add('open');launch.style.display='none';refreshLists()}
@@ -39,27 +39,30 @@
  async function refreshLists(){
   if(busy)return;busy=true;
   const [chats,friends]=await Promise.all([rpc('chat_list'),rpc('friends_list')]);busy=false;
-  const cs=$('hp-chat-conversations'),fs=$('hp-chat-friends');const old=selected;
+  const cs=$('hp-chat-conversations'),fs=$('hp-chat-friends');const old=selected,oldFriend=selectedFriend?.id||fs.value;
   cs.replaceChildren(new Option('Choose a conversation…',''));
   if(chats.ok)(chats.conversations||[]).forEach(c=>{const label=(c.title||c.label||'Conversation')+(c.unread?' · unread':'');cs.add(new Option(label,String(c.id)))});
   fs.replaceChildren(new Option('＋ Message a friend…',''));
   if(friends.ok)(friends.friends||[]).forEach(f=>fs.add(new Option('@'+f.username+(f.online?' · online':''),String(f.id))));
   if(old&&[...cs.options].some(o=>o.value===old)){cs.value=old}
+  if(oldFriend&&[...fs.options].some(o=>o.value===String(oldFriend))){fs.value=String(oldFriend);selectedFriend={id:String(oldFriend),name:fs.selectedOptions[0]?.textContent?.replace(/ · online$/,'')||'Friend'}}
+  lastListRefresh=Date.now();
   if(!chats.ok)note(chats.error);else if(!localStorage.getItem('hyperpop_token'))note('Sign in to use chat.');
  }
- async function showConversation(id){
-  if(!id)return;selected=id;$('hp-chat-conversations').value=id;$('hp-chat-friends').value='';
-  const feed=$('hp-chat-feed');feed.replaceChildren();const d=await rpc('chat_messages',{conversation_id:id});
-  if(!d.ok){feed.textContent=d.error;return}
+ async function showConversation(id,quiet=false){
+  if(!id)return;selected=id;$('hp-chat-conversations').value=id;
+  const feed=$('hp-chat-feed'),wasNearBottom=feed.scrollHeight-feed.scrollTop-feed.clientHeight<70,oldHeight=feed.scrollHeight,oldTop=feed.scrollTop;if(!quiet)feed.replaceChildren();const d=await rpc('chat_messages',{conversation_id:id});
+  if(!d.ok){if(!quiet)feed.textContent=d.error;return}
   const messages=(d.messages||[]).slice().reverse();
-  if(!messages.length){feed.textContent='Say hello!'}
-  messages.forEach(m=>{const b=document.createElement('div');b.className='hp-chat-bubble'+(me&&m.sender_id===me.id?' mine':'');const s=document.createElement('small');s.textContent='@'+(m.username||'user');const t=document.createElement('div');t.textContent=m.body;b.append(s,t);feed.append(b)});
-  feed.scrollTop=feed.scrollHeight;note('');
+  const fragment=document.createDocumentFragment();if(!messages.length){const empty=document.createElement('div');empty.style.cssText='color:#aaa7c1;text-align:center;padding:28px 8px';empty.textContent='Say hello!';fragment.append(empty)}
+  messages.forEach(m=>{const b=document.createElement('div');b.className='hp-chat-bubble'+(me&&m.sender_id===me.id?' mine':'');const s=document.createElement('small');s.textContent='@'+(m.username||'user');const t=document.createElement('div');t.textContent=m.body;b.append(s,t);fragment.append(b)});feed.replaceChildren(fragment);
+  feed.scrollTop=wasNearBottom||!quiet?feed.scrollHeight:oldTop+(feed.scrollHeight-oldHeight);if(!quiet)note('');
  }
- $('hp-chat-conversations').addEventListener('change',e=>showConversation(e.target.value));
- $('hp-chat-friends').addEventListener('change',async e=>{const id=e.target.value;if(!id)return;note('Opening chat…');const d=await rpc('chat_open_friend',{friend_id:id});if(!d.ok){note(d.error);return}await refreshLists();await showConversation(String(d.conversation_id))});
+ $('hp-chat-conversations').addEventListener('change',e=>{selectedFriend=null;$('hp-chat-friends').value='';showConversation(e.target.value)});
+ $('hp-chat-friends').addEventListener('change',async e=>{const id=e.target.value;if(!id){selectedFriend=null;return}const option=e.target.selectedOptions[0];selectedFriend={id,name:option.textContent.replace(/ · online$/,'')};note('Opening chat…');const d=await rpc('chat_open_friend',{friend_id:id});if(!d.ok){note(d.error);return}await refreshLists();$('hp-chat-friends').value=id;await showConversation(String(d.conversation_id))});
  $('hp-chat-compose').addEventListener('submit',async e=>{e.preventDefault();const body=$('hp-chat-input').value.trim();if(!body||!selected)return;const d=await rpc('chat_send',{conversation_id:selected,body});if(!d.ok){note(d.error);return}$('hp-chat-input').value='';await showConversation(selected);});
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&win.classList.contains('open'))close()});
  window.addEventListener('storage',e=>{if(e.key==='hyperpop_token'&&win.classList.contains('open'))refreshLists()});
+ setInterval(()=>{if(!win.classList.contains('open')||document.hidden)return;if(selected)showConversation(selected,true);if(Date.now()-lastListRefresh>15000)refreshLists()},2500);
  rpc('me').then(d=>{if(d.ok)me=d.me||null});
 })();
