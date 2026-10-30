@@ -153,7 +153,7 @@
  });
 
  if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(e=>console.warn('[Hyper-Pop] Push service worker unavailable:',e));
- window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='hp-push-open')return;const u=new URL(e.data.url,location.origin);const id=u.searchParams.get('hp-chat');if(id)open(id)});
+ const handlePushOpen=e=>{if(!e.data||e.data.type!=='hp-push-open')return;const u=new URL(e.data.url||'/',location.origin);const id=u.searchParams.get('hp-chat');if(id)open(id)};window.addEventListener('message',handlePushOpen);if('serviceWorker'in navigator)navigator.serviceWorker.addEventListener('message',handlePushOpen);
  const pushChatId=new URLSearchParams(location.search).get('hp-chat');if(pushChatId)setTimeout(()=>open(pushChatId),1200);
  pollNotifications();setInterval(pollNotifications,9000);
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)pollNotifications()});
