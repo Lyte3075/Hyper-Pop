@@ -471,7 +471,12 @@ function loop(t){
     stylePoints = Math.max(0, stylePoints - dt * 150);
     if(player.hp<=0) {
         gameState='OVER'; const dr = ((currentRankIdx + 1 + score/3000 + maxAirCombo/5)).toFixed(1);
-        document.getElementById('final-grade').innerText = dr; document.getElementById('game-over-screen').style.display='flex'; 
+        document.getElementById('final-grade').innerText = dr;
+        if (!window.__hpFrameshotScoreSubmitted) {
+            window.__hpFrameshotScoreSubmitted = true;
+            if (typeof hpSubmit === 'function') hpSubmit('frameshot', Math.max(0, Math.floor(score)));
+        }
+        document.getElementById('game-over-screen').style.display='flex'; 
     }
     updateUI(); draw(); requestAnimationFrame(loop);
 }
@@ -546,5 +551,5 @@ function draw(){
 }
 canvas.width=1280; canvas.height=720;
 </script>
-<script src="app.js?v=radio-13"></script></body>
+<script src="app.js?v=radio-14"></script></body>
 </html>
