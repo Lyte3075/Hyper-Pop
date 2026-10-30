@@ -6,7 +6,7 @@
  const $=id=>document.getElementById(id);
  let call=null,pc=null,stream=null,muted=false,pollTimer=null,inboxTimer=null,remoteCallerIce=0,remoteCalleeIce=0,remoteDescriptionReady=false,ending=false;
  const css=`
- #hp-chat-call{border:1px solid #7df9ff55;background:#123039;color:#9ffaff;border-radius:9px;padding:6px 10px;font-weight:800;cursor:pointer}
+ #hp-chat-head{gap:9px;justify-content:flex-start}\n #hp-chat-head>span{flex:1;min-width:0}\n #hp-chat-head>#hp-chat-call,#hp-chat-head>#hp-chat-close{flex:0 0 auto;min-height:32px;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap}\n #hp-chat-call{border:1px solid #7df9ff55!important;background:#123039!important;color:#9ffaff!important;border-radius:9px;padding:6px 12px!important;font-weight:800;cursor:pointer;font-size:12px}
  #hp-voice-panel{display:none;padding:10px 12px;border-bottom:1px solid #ffffff18;background:linear-gradient(100deg,#10232a,#171729);color:#f7f4ff}
  #hp-voice-panel.open{display:block}
  #hp-voice-title{font-size:13px;font-weight:850;margin-bottom:3px}
@@ -63,14 +63,14 @@
    await mediaAndPeer();await request('accept',{call_id:call.id});
    show('Voice call','Joining call…',[['Mute','hp-voice-mute',toggleMute],['Hang up','hp-voice-hang',hangup]]);
    beginPolling();
-  }catch(e){await request('decline',{call_id:c.id}).catch(()=>{});cleanup();show('Could not answer',e.message,[['Close','hp-voice-close',hide]])}
+  }catch(e){await request('hangup',{call_id:c.id}).catch(()=>{});cleanup();show('Could not answer',e.message,[['Close','hp-voice-close',hide]])}
  }
  async function decline(){if(call)await request('decline',{call_id:call.id}).catch(()=>{});cleanup();hide()}
  async function hangup(){if(call)await request('hangup',{call_id:call.id}).catch(()=>{});cleanup();hide()}
  function toggleMute(){if(!stream)return;muted=!muted;stream.getAudioTracks().forEach(t=>t.enabled=!muted);const b=$('hp-voice-mute');if(b)b.textContent=muted?'Unmute':'Mute'}
  async function processCall(c){
   if(!call||!pc)return;
-  if(['declined','ended','missed'].includes(c.status)){const msg=c.status==='declined'?'Call declined.':c.status==='missed'?'Call timed out.':'Call ended.';cleanup();show('Voice call',msg,[['Close','hp-voice-close',hide]]);return}
+  if(['declined','ended','missed'].includes(c.status)){const msg=c.status==='declined'?'The other person declined the call.':c.status==='missed'?'No answer. The call timed out.':'The other person ended the call.';cleanup();show('Voice call',msg,[['Close','hp-voice-close',hide]]);return}
   if(!call.caller_id&&c.offer&&!pc.remoteDescription){await pc.setRemoteDescription(c.offer);remoteDescriptionReady=true;const answer=await pc.createAnswer();await pc.setLocalDescription(answer);await request('answer',{call_id:call.id,description:pc.localDescription.toJSON()})}
   if(c.answer&&!pc.remoteDescription&&call.caller_id){await pc.setRemoteDescription(c.answer);remoteDescriptionReady=true}
   if(remoteDescriptionReady){
