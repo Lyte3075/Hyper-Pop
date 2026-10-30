@@ -32,7 +32,7 @@
       frame.style.cssText='position:fixed;z-index:2147483000;top:0;left:0;width:100vw;height:100%;height:100dvh;border:0;background:transparent;overflow:hidden;pointer-events:none;';
       (document.body||document.documentElement).appendChild(frame);
     }
-    function setFrameOpen(open){frame.contentWindow?.postMessage(open?'hp-sidebar-open':'hp-sidebar-close',location.origin);}
+    function commandFrame(action){frame.contentWindow?.postMessage('hp-sidebar-command-'+action,location.origin);}
     // Capture the gesture in the parent document. Touch events that begin on
     // an iframe do not reliably bubble into its parent document on iOS.
     var edgeStart=null,edgeY=0;
@@ -44,7 +44,7 @@
     document.addEventListener('touchend',function(e){
       if(edgeStart===null||!e.changedTouches||!e.changedTouches.length)return;
       var t=e.changedTouches[0],dx=t.clientX-edgeStart,dy=t.clientY-edgeY;
-      if(dx>55&&Math.abs(dx)>Math.abs(dy)*1.25)frame.contentWindow?.postMessage('hp-sidebar-open',location.origin);
+      if(dx>55&&Math.abs(dx)>Math.abs(dy)*1.25)commandFrame('open');
       edgeStart=null;
     },{passive:true,capture:true});
     document.addEventListener('touchcancel',function(){edgeStart=null},{passive:true,capture:true});
@@ -57,18 +57,18 @@
     document.addEventListener('touchend',function(e){
       if(closeStart===null||!e.changedTouches||!e.changedTouches.length)return;
       var t=e.changedTouches[0],dx=t.clientX-closeStart,dy=t.clientY-closeY;
-      if(dx< -55&&Math.abs(dx)>Math.abs(dy)*1.25)frame.contentWindow?.postMessage('hp-sidebar-close',location.origin);
+      if(dx< -55&&Math.abs(dx)>Math.abs(dy)*1.25)commandFrame('close');
       closeStart=null;
     },{passive:true,capture:true});
     document.addEventListener('touchcancel',function(){closeStart=null},{passive:true,capture:true});
     window.addEventListener('message',function(e){
       if(e.origin!==location.origin||e.source!==frame.contentWindow)return;
-      if(e.data==='hp-sidebar-open'){frame.style.pointerEvents='auto';setFrameOpen(true)}
-      if(e.data==='hp-sidebar-close'){setFrameOpen(false);frame.style.pointerEvents='none'}
+      if(e.data==='hp-sidebar-open'){frame.style.pointerEvents='auto'}
+      if(e.data==='hp-sidebar-close'){frame.style.pointerEvents='none'}
     });
     if(oldToggle&&!oldToggle.dataset.hpSidebarBound){
       oldToggle.dataset.hpSidebarBound='1';
-      oldToggle.addEventListener('click',function(e){e.preventDefault();frame.contentWindow?.postMessage('hp-sidebar-toggle',location.origin);});
+      oldToggle.addEventListener('click',function(e){e.preventDefault();commandFrame('toggle');});
     }
   })();
   var files = ['terminal.js?v=cmdfix-10','chat-widget.js?v=popout-2'];
