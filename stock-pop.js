@@ -6,7 +6,7 @@
     const names=["NovaByte","PixelForge","CloudNine","QuantumFox","RocketRoot","NeonGrid","MoonMint","TurboCore","DreamWare","SparkLabs","OrbitWorks","HyperMesh","BlueNova","PrismAI","EchoTech","VelvetCloud","Firefly","AstroLink","CopperPeak","SilverFox","Sunrise","NightOwl","Rainbyte","StarWorks","Vortex","Luma","ByteBloom","Skyline","Voltix","GreenPeak","CrystalCore","Pulse","BrightBox","IronLeaf","GoldNest","Cinder","AeroArc","DeepWave","FrostByte","WildRoot","Comet","Solaris","LunarLoop","TitanForge","CloudMint","PixelPeak","RapidRay","Zenith","CoreCraft","DataDash","GlowWorks","MagnetIQ","BlueOrbit","Redwood","EverPeak","TinyTitan","MegaMinds","FutureFuel","CircuitTree","DreamDock","AstroMint","CyberSprout","HyperHouse","PrismWorks","EchoPeak","NovaNest","RocketLabs","MoonForge","SkyMint","SparkPeak","QuantumNest","PixelPulse","CloudWorks","OrbitMint","VividCore","NeonPeak","TurboLeaf","LumaLabs","StarMint","BytePeak","SolarByte","NightGrid","RainWorks","VoltNest","CrystalLabs","PulseForge","BrightPeak","IronWorks","GoldByte","CinderLabs","AeroMint","DeepCore","FrostWorks","WildLabs","CometCore","LunarLabs","TitanByte","FutureForge","DataMint","InfinityWorks"];
     const sectors=["Tech","Energy","Robotics","Space","Games","Cloud","AI","Green","Media","Hardware"];
     const stocks=names.map((name,i)=>({name,ticker:"H"+String(i+1).padStart(2,"0"),sector:sectors[i%10],base:Math.round((5+(i%20)*4+(i%7)*7)*100)/100,risk:[0.65,0.9,1.15,1.45,1.8][(i*7+i%3)%5],quality:((i*13+7)%21-10)/100}));
-    const FEE_RATE=0.005;
+    const FEE_RATE=0.01;
     function fresh(){return{cash:1000,holdings:{},prices:stocks.map(x=>x.base),day:1,selected:0,gameOver:false,sectorMood:sectors.map(()=>0),marketMood:0}}
     function load(){try{const x=JSON.parse(localStorage.getItem(KEY));if(x&&typeof x.cash==="number"&&x.holdings&&Array.isArray(x.prices)&&x.prices.length===100){if(!Array.isArray(x.sectorMood)||x.sectorMood.length!==sectors.length)x.sectorMood=sectors.map(()=>0);if(typeof x.marketMood!=="number")x.marketMood=0;if(typeof x.day!=="number")x.day=1;if(typeof x.selected!=="number"||!stocks[x.selected])x.selected=0;if(typeof x.gameOver!=="boolean")x.gameOver=false;return x}}catch(e){}return fresh()}
     let s=load();
@@ -64,17 +64,17 @@
     function advance(){
      if(s.gameOver){uiSound("error");return}
      let delta=0,eventText="";
-     s.marketMood=Math.max(-0.025,Math.min(0.025,s.marketMood*0.72+(Math.random()-.5)*0.008));
+     s.marketMood=Math.max(-0.045,Math.min(0.045,s.marketMood*0.68+(Math.random()-.5)*0.018));
      let event=null;const roll=Math.random();
-     if(roll<0.035){event={kind:"recession",label:"Market scare",impact:-0.055};s.marketMood-=0.012}
-     else if(roll<0.07){event={kind:"rally",label:"Market rally",impact:0.045};s.marketMood+=0.01}
-     else if(roll<0.17){const si=Math.floor(Math.random()*sectors.length),impact=(Math.random()<0.5?-1:1)*(0.025+Math.random()*0.035);s.sectorMood[si]=Math.max(-0.07,Math.min(0.07,s.sectorMood[si]+impact));event={kind:"sector",label:sectors[si]+" sector "+(impact>0?"surge":"slump"),sector:si,impact}}
+     if(roll<0.055){event={kind:"recession",label:"Market crash",impact:-0.105};s.marketMood-=0.025}
+     else if(roll<0.085){event={kind:"rally",label:"Market rally",impact:0.075};s.marketMood+=0.018}
+     else if(roll<0.25){const si=Math.floor(Math.random()*sectors.length),impact=(Math.random()<0.5?-1:1)*(0.045+Math.random()*0.065);s.sectorMood[si]=Math.max(-0.14,Math.min(0.14,s.sectorMood[si]+impact));event={kind:"sector",label:sectors[si]+" sector "+(impact>0?"surge":"slump"),sector:si,impact}}
      s.sectorMood=s.sectorMood.map(v=>v*0.88);
      stocks.forEach((x,i)=>{
        const old=value(i),sectorIndex=i%sectors.length;
-       const companyNoise=(Math.random()*2-1)*0.035*x.risk;
-       const rareNews=Math.random()<0.025?(Math.random()*2-1)*0.10*x.risk:0;
-       const drift=x.quality*0.18+s.marketMood+s.sectorMood[sectorIndex]*0.22;
+       const companyNoise=(Math.random()*2-1)*0.065*x.risk;
+       const rareNews=Math.random()<0.055?(Math.random()*2-1)*0.20*x.risk:0;
+       const drift=x.quality*0.18+s.marketMood+s.sectorMood[sectorIndex]*0.38;
        const pct=Math.max(-0.32,Math.min(0.32,drift+companyNoise+rareNews+(event&&event.kind==="recession"?event.impact*0.65:0)+(event&&event.kind==="rally"?event.impact*0.55:0)+(event&&event.kind==="sector"&&event.sector===sectorIndex?event.impact:0)));
        s.prices[i]=Math.max(0.01,old*(1+pct));if(shares(i))delta+=shares(i)*(s.prices[i]-old)
      });
