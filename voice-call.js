@@ -38,8 +38,11 @@
  }
  async function mediaAndPeer(){
   if(!navigator.mediaDevices?.getUserMedia)throw new Error('Microphone access is unavailable in this browser. Open Hyper-Pop over HTTPS in Safari or a supported browser.');
+  status('Securing relay connection…');
+  const relay=await request('ice_servers');
+  if(!Array.isArray(relay.iceServers)||!relay.iceServers.some(s=>(Array.isArray(s.urls)?s.urls:[s.urls]).some(u=>typeof u==='string'&&u.startsWith('turn'))))throw new Error('TURN relay credentials were not returned. Voice calling is not ready yet.');
   stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});
-  pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+  pc=new RTCPeerConnection({iceServers:relay.iceServers,iceTransportPolicy:'all'});
   stream.getTracks().forEach(t=>pc.addTrack(t,stream));
   pc.ontrack=e=>{const audio=$('hp-voice-audio');audio.srcObject=e.streams[0];audio.play().catch(()=>status('Tap the page once to enable call audio.'))};
   pc.onicecandidate=e=>{if(e.candidate&&call)request('ice',{call_id:call.id,candidate:e.candidate.toJSON()}).catch(err=>status(err.message))};
