@@ -20,16 +20,15 @@ a{display:flex;align-items:center;gap:11px;min-height:42px;padding:9px 11px;bord
 <div class="label">More</div><a href="accounts.html" target="_top"><span class="ico">👤</span>Account / Profile</a></aside>
 <script>
 (function(){const send=s=>parent.postMessage(s,location.origin);function open(){document.body.classList.add('open');send('hp-sidebar-open')}function close(){document.body.classList.remove('open');send('hp-sidebar-close')}
-let startX=null,startY=0,pointerId=null;
-function pointerDown(e){if(e.pointerType==='mouse')return;startX=e.clientX;startY=e.clientY;pointerId=e.pointerId;try{e.currentTarget.setPointerCapture(e.pointerId)}catch(_){}}
-function pointerUp(e){if(startX===null||e.pointerId!==pointerId)return;const dx=e.clientX-startX,dy=e.clientY-startY;if(Math.abs(dx)>48&&Math.abs(dx)>Math.abs(dy)*1.2){if(dx>0&&!document.body.classList.contains('open'))open();else if(dx<0&&document.body.classList.contains('open'))close()}startX=null;pointerId=null}
-function pointerCancel(){startX=null;pointerId=null}
+let startX=null,startY=0;
+function swipeStart(e){if(!e.touches||e.touches.length!==1)return;startX=e.touches[0].clientX;startY=e.touches[0].clientY}
+function swipeEnd(e){if(startX===null||!e.changedTouches||!e.changedTouches.length)return;const t=e.changedTouches[0],dx=t.clientX-startX,dy=t.clientY-startY;if(dx< -55&&Math.abs(dx)>Math.abs(dy)*1.25)close();startX=null}
+function swipeCancel(){startX=null}
 const edge=document.getElementById('edge'),panel=document.getElementById('panel');
 const chatToggle=document.getElementById('chat-button-toggle');
 try{chatToggle.checked=localStorage.getItem('hp_chat_button_visible')==='true'}catch(_){}
 chatToggle.addEventListener('change',()=>{const visible=chatToggle.checked;try{localStorage.setItem('hp_chat_button_visible',String(visible))}catch(_){}send('hp-chat-visibility:'+String(visible))});
-edge.addEventListener('pointerdown',pointerDown);edge.addEventListener('pointerup',pointerUp);edge.addEventListener('pointercancel',pointerCancel);
-panel.addEventListener('pointerdown',pointerDown);panel.addEventListener('pointerup',pointerUp);panel.addEventListener('pointercancel',pointerCancel);panel.addEventListener('lostpointercapture',pointerCancel);const scrim=document.getElementById('scrim');
+panel.addEventListener('touchstart',swipeStart,{passive:true});panel.addEventListener('touchend',swipeEnd,{passive:true});panel.addEventListener('touchcancel',swipeCancel,{passive:true});const scrim=document.getElementById('scrim');
 scrim.addEventListener('click',close);
 let lastEdgeTap=0;
 edge.addEventListener('touchend',e=>{const now=Date.now();if(now-lastEdgeTap<360){open();lastEdgeTap=0}else lastEdgeTap=now},{passive:true});
