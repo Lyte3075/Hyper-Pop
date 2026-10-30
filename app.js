@@ -29,7 +29,7 @@
       frame.title='Hyper-Pop navigation';
       frame.src=new URL('sidebar.html?v=seamless-2',base).href;
       frame.setAttribute('allowtransparency','true');
-      frame.style.cssText='position:fixed;z-index:2147483000;top:0;left:0;width:100vw;height:100%;height:100dvh;border:0;background:transparent;overflow:hidden;pointer-events:none;';
+      frame.style.cssText='position:fixed;z-index:2147483000;top:0;left:0;width:100vw;height:100%;height:100dvh;border:0;background:transparent;overflow:hidden;pointer-events:none;visibility:hidden;';
       (document.body||document.documentElement).appendChild(frame);
     }
     function commandFrame(action){frame.contentWindow?.postMessage('hp-sidebar-command-'+action,location.origin);}
@@ -48,23 +48,10 @@
       edgeStart=null;
     },{passive:true,capture:true});
     document.addEventListener('touchcancel',function(){edgeStart=null},{passive:true,capture:true});
-    var closeStart=null,closeY=0;
-    document.addEventListener('touchstart',function(e){
-      if(!e.touches||!e.touches.length)return;
-      var t=e.touches[0];
-      closeStart=t.clientX<320?t.clientX:null;closeY=t.clientY;
-    },{passive:true,capture:true});
-    document.addEventListener('touchend',function(e){
-      if(closeStart===null||!e.changedTouches||!e.changedTouches.length)return;
-      var t=e.changedTouches[0],dx=t.clientX-closeStart,dy=t.clientY-closeY;
-      if(dx< -55&&Math.abs(dx)>Math.abs(dy)*1.25)commandFrame('close');
-      closeStart=null;
-    },{passive:true,capture:true});
-    document.addEventListener('touchcancel',function(){closeStart=null},{passive:true,capture:true});
     window.addEventListener('message',function(e){
       if(e.origin!==location.origin||e.source!==frame.contentWindow)return;
-      if(e.data==='hp-sidebar-open'){frame.style.pointerEvents='auto'}
-      if(e.data==='hp-sidebar-close'){frame.style.pointerEvents='none'}
+      if(e.data==='hp-sidebar-open'){frame.style.visibility='visible';frame.style.pointerEvents='auto'}
+      if(e.data==='hp-sidebar-close'){frame.style.pointerEvents='none';frame.style.visibility='hidden'}
     });
     if(oldToggle&&!oldToggle.dataset.hpSidebarBound){
       oldToggle.dataset.hpSidebarBound='1';
