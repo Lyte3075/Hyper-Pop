@@ -22,7 +22,7 @@
  function mountPanel(){const win=$('hp-chat-window'),pickers=$('hp-chat-pickers');if(win&&pickers&&panel.parentElement!==win)win.insertBefore(panel,pickers)}
  mountPanel();
  function status(s){const n=$('hp-voice-status');if(n)n.textContent=s}
- function show(title,s,buttons){const win=$('hp-chat-window'),launch=$('hp-chat-launch');if(win){win.classList.add('open');if(launch)launch.style.display='none'}$('hp-voice-title').textContent=title;status(s);const a=$('hp-voice-actions');a.replaceChildren();buttons.forEach(([label,id,fn])=>{const b=document.createElement('button');b.id=id;b.textContent=label;b.addEventListener('click',fn);a.append(b)});panel.classList.add('open')}
+ function show(title,s,buttons){if(title==='Incoming voice call'&&window.HyperPopPresenceStatus!=='dnd')window.HyperPopNotify?.('Incoming voice call',s);const win=$('hp-chat-window'),launch=$('hp-chat-launch');if(win){win.classList.add('open');if(launch)launch.style.display='none'}$('hp-voice-title').textContent=title;status(s);const a=$('hp-voice-actions');a.replaceChildren();buttons.forEach(([label,id,fn])=>{const b=document.createElement('button');b.id=id;b.textContent=label;b.addEventListener('click',fn);a.append(b)});panel.classList.add('open')}
  function hide(){panel.classList.remove('open')}
  async function request(action,data={}){
   const token=localStorage.getItem('hyperpop_token');if(!token)throw new Error('Sign in to use voice calls.');
