@@ -114,6 +114,15 @@
         var link=document.createElement('a');link.href='/stats';link.textContent='Live site stats ↗';link.setAttribute('data-hp-stats-link','');
         link.style.cssText='display:inline-block;margin:10px 0 0 12px;color:#4be0e3;font:600 12px system-ui;text-decoration:none;';
         footer.append(link);
+        footer.style.cursor='pointer';
+        footer.setAttribute('title','Open live Hyper-Pop site statistics');
+        if(!footer.dataset.hpStatsClickable){
+          footer.dataset.hpStatsClickable='1';
+          footer.addEventListener('click',function(event){
+            if(event.target.closest('a,button'))return;
+            location.href='/stats';
+          });
+        }
       });
     }
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addFooterLink,{once:true});else addFooterLink();
