@@ -7,22 +7,23 @@
  let call=null,pc=null,stream=null,muted=false,pollTimer=null,inboxTimer=null,remoteCallerIce=0,remoteCalleeIce=0,remoteDescriptionReady=false,ending=false;
  const css=`
  #hp-chat-call{border:1px solid #7df9ff55;background:#123039;color:#9ffaff;border-radius:9px;padding:6px 10px;font-weight:800;cursor:pointer}
- #hp-voice-overlay{position:fixed;z-index:2147483600;inset:0;display:none;place-items:center;padding:18px;background:#05050bdc;backdrop-filter:blur(14px);font:14px system-ui;color:#f7f4ff}
- #hp-voice-overlay.open{display:grid}
- #hp-voice-card{width:min(360px,100%);padding:22px;border:1px solid #7df9ff55;border-radius:20px;background:linear-gradient(145deg,#19192b,#0b0b14);box-shadow:0 20px 80px #000c;text-align:center}
- #hp-voice-title{font-size:20px;font-weight:850;margin-bottom:6px}
- #hp-voice-status{color:#a8a5c0;min-height:22px;margin-bottom:18px}
- #hp-voice-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
- #hp-voice-actions button{border:1px solid #ffffff24;border-radius:11px;padding:11px 15px;background:#ffffff10;color:#fff;font-weight:750;cursor:pointer}
+ #hp-voice-panel{display:none;padding:10px 12px;border-bottom:1px solid #ffffff18;background:linear-gradient(100deg,#10232a,#171729);color:#f7f4ff}
+ #hp-voice-panel.open{display:block}
+ #hp-voice-title{font-size:13px;font-weight:850;margin-bottom:3px}
+ #hp-voice-status{color:#a8dfe2;font-size:11px;min-height:17px;margin-bottom:8px}
+ #hp-voice-actions{display:flex;gap:7px;flex-wrap:wrap}
+ #hp-voice-actions button{border:1px solid #ffffff24;border-radius:9px;padding:7px 11px;background:#ffffff10;color:#fff;font-weight:750;cursor:pointer}
  #hp-voice-accept{background:#146c55!important;border-color:#2de0a1!important}
  #hp-voice-hang{background:#9b3347!important;border-color:#ff718a!important}
  #hp-voice-audio{display:none}
  `;
  const style=document.createElement('style');style.textContent=css;document.head.append(style);
- const overlay=document.createElement('div');overlay.id='hp-voice-overlay';overlay.innerHTML='<div id="hp-voice-card"><div id="hp-voice-title">Voice call</div><div id="hp-voice-status" role="status">Ready</div><div id="hp-voice-actions"></div><audio id="hp-voice-audio" autoplay playsinline></audio></div>';document.body.append(overlay);
+ const panel=document.createElement('div');panel.id='hp-voice-panel';panel.innerHTML='<div id="hp-voice-title">Voice call</div><div id="hp-voice-status" role="status">Ready</div><div id="hp-voice-actions"></div><audio id="hp-voice-audio" autoplay playsinline></audio>';
+ function mountPanel(){const win=$('hp-chat-window'),pickers=$('hp-chat-pickers');if(win&&pickers&&panel.parentElement!==win)win.insertBefore(panel,pickers)}
+ mountPanel();
  function status(s){const n=$('hp-voice-status');if(n)n.textContent=s}
- function show(title,s,buttons){$('hp-voice-title').textContent=title;status(s);const a=$('hp-voice-actions');a.replaceChildren();buttons.forEach(([label,id,fn])=>{const b=document.createElement('button');b.id=id;b.textContent=label;b.addEventListener('click',fn);a.append(b)});overlay.classList.add('open')}
- function hide(){overlay.classList.remove('open')}
+ function show(title,s,buttons){$('hp-voice-title').textContent=title;status(s);const a=$('hp-voice-actions');a.replaceChildren();buttons.forEach(([label,id,fn])=>{const b=document.createElement('button');b.id=id;b.textContent=label;b.addEventListener('click',fn);a.append(b)});panel.classList.add('open')}
+ function hide(){panel.classList.remove('open')}
  async function request(action,data={}){
   const token=localStorage.getItem('hyperpop_token');if(!token)throw new Error('Sign in to use voice calls.');
   const r=await fetch(API,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({token,action,...data})});
@@ -98,7 +99,7 @@
   });head.insertBefore(b,head.querySelector('#hp-chat-close'));
   return true;
  }
- const observer=new MutationObserver(()=>installButton());observer.observe(document.documentElement,{childList:true,subtree:true});installButton();
+ const observer=new MutationObserver(()=>{installButton();mountPanel()});observer.observe(document.documentElement,{childList:true,subtree:true});installButton();mountPanel();
  window.HyperPopVoiceCall={start:(id,name)=>startCall(id,name||'Friend')};
  inboxTimer=setInterval(checkInbox,2500);checkInbox();
  window.addEventListener('beforeunload',()=>{if(call)request('hangup',{call_id:call.id}).catch(()=>{});cleanup()});
