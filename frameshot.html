@@ -438,6 +438,7 @@ function addToKillFeed(type, weapon) {
 }
 
 function initGame(){
+    window.__hpFrameshotScoreSubmitted = false;
     AudioEngine.startMusic(); gameState='PLAYING'; score = hardModeToggled ? 15000 : 0; stylePoints = score;
     airCombo=0; maxAirCombo=0; lastBossScore = Math.floor(score/5000)*5000; lastSuperBossScore = Math.floor(score/20000)*20000;
     bots=[]; projectiles=[]; effects=[]; particles=[];
