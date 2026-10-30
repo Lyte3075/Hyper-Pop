@@ -29,7 +29,7 @@
       frame.title='Hyper-Pop navigation';
       frame.src=new URL('sidebar.html?v=seamless-2',base).href;
       frame.setAttribute('allowtransparency','true');
-      frame.style.cssText='position:fixed;z-index:2147483000;top:0;left:0;width:100vw;height:100%;height:100dvh;border:0;background:transparent;overflow:hidden;pointer-events:auto;';
+      frame.style.cssText='position:fixed;z-index:2147483000;top:0;left:0;width:100vw;height:100%;height:100dvh;border:0;background:transparent;overflow:hidden;pointer-events:none;';
       (document.body||document.documentElement).appendChild(frame);
     }
     function setFrameOpen(open){frame.contentWindow?.postMessage(open?'hp-sidebar-open':'hp-sidebar-close',location.origin);}
@@ -63,8 +63,8 @@
     document.addEventListener('touchcancel',function(){closeStart=null},{passive:true,capture:true});
     window.addEventListener('message',function(e){
       if(e.origin!==location.origin||e.source!==frame.contentWindow)return;
-      if(e.data==='hp-sidebar-open')setFrameOpen(true);
-      if(e.data==='hp-sidebar-close')setFrameOpen(false);
+      if(e.data==='hp-sidebar-open'){frame.style.pointerEvents='auto';setFrameOpen(true)}
+      if(e.data==='hp-sidebar-close'){setFrameOpen(false);frame.style.pointerEvents='none'}
     });
     if(oldToggle&&!oldToggle.dataset.hpSidebarBound){
       oldToggle.dataset.hpSidebarBound='1';
