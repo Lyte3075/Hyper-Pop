@@ -3,6 +3,7 @@
   var script = document.currentScript;
   var base = new URL('.', script && script.src ? script.src : location.href);
   var path = location.pathname;
+  var HP_BUILD_VERSION='social-2026-10-29-a';
   var soundtrackDisabled = document.body && document.body.dataset.noSoundtrack === 'true';
   if (!soundtrackDisabled && !document.getElementById('hp-sound-orb')) {
     var fallbackStyle = document.createElement('style');
@@ -35,6 +36,15 @@
     function commandFrame(action){frame.contentWindow?.postMessage('hp-sidebar-command-'+action,location.origin);}
     // Capture the gesture in the parent document. Touch events that begin on
     // an iframe do not reliably bubble into its parent document on iOS.
+    var edgeHit=document.getElementById('hp-sidebar-edge-hit');
+    if(!edgeHit){
+      edgeHit=document.createElement('div');edgeHit.id='hp-sidebar-edge-hit';
+      edgeHit.setAttribute('aria-label','Open navigation');
+      edgeHit.style.cssText='position:fixed;z-index:2147483001;top:0;left:0;width:44px;height:100%;height:100dvh;background:linear-gradient(90deg,#0b0b16 0%,#0b0b1688 38%,transparent 100%);pointer-events:auto;touch-action:pan-y;cursor:ew-resize;';
+      (document.body||document.documentElement).appendChild(edgeHit);
+      edgeHit.addEventListener('dblclick',function(){commandFrame('open')});
+      var edgeTap=0;edgeHit.addEventListener('touchend',function(){var now=Date.now();if(now-edgeTap<380){commandFrame('open');edgeTap=0}else edgeTap=now},{passive:true});
+    }
     var edgeStart=null,edgeY=0;
     document.addEventListener('touchstart',function(e){
       if(!e.touches||!e.touches.length)return;
@@ -50,13 +60,37 @@
     document.addEventListener('touchcancel',function(){edgeStart=null},{passive:true,capture:true});
     window.addEventListener('message',function(e){
       if(e.origin!==location.origin||e.source!==frame.contentWindow)return;
-      if(e.data==='hp-sidebar-open'){frame.style.visibility='visible';frame.style.pointerEvents='auto'}
-      if(e.data==='hp-sidebar-close'){frame.style.pointerEvents='none';frame.style.visibility='hidden'}
+      if(e.data==='hp-sidebar-open'){frame.style.visibility='visible';frame.style.pointerEvents='auto';edgeHit.style.display='none'}
+      if(e.data==='hp-sidebar-close'){frame.style.pointerEvents='none';frame.style.visibility='hidden';edgeHit.style.display='block'}
     });
     if(oldToggle&&!oldToggle.dataset.hpSidebarBound){
       oldToggle.dataset.hpSidebarBound='1';
       oldToggle.addEventListener('click',function(e){e.preventDefault();commandFrame('toggle');});
     }
+  })();
+  // Lightweight build check. A prompt appears only when the deployed app.js
+  // advertises a newer build than the one this page is currently running.
+  (function(){
+    var key='hp_seen_build_version',version=HP_BUILD_VERSION;
+    function showUpdate(){
+      if(document.getElementById('hp-update-overlay'))return;
+      var style=document.createElement('style');
+      style.textContent='#hp-update-overlay{position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;padding:22px;background:#05050bd9;backdrop-filter:blur(12px);font-family:Inter,system-ui,sans-serif}#hp-update-card{width:min(390px,100%);padding:24px;border:1px solid #7df9ff55;border-radius:18px;background:linear-gradient(145deg,#171728f7,#0b0b14f7);box-shadow:0 18px 70px #000b;color:#f7f4ff;text-align:center}#hp-update-card h2{margin:0 0 9px;font-size:21px}#hp-update-card p{margin:0 0 20px;color:#aaa7c1;font-size:13px;line-height:1.5}#hp-update-actions{display:flex;gap:10px}#hp-update-actions button{flex:1;min-height:43px;border-radius:11px;border:1px solid #ffffff26;font:600 13px inherit;cursor:pointer}#hp-update-yes{background:#7df9ff;color:#071014;border-color:#7df9ff!important}#hp-update-no{background:#ffffff0a;color:#eee}';
+      document.head.appendChild(style);
+      var overlay=document.createElement('div');overlay.id='hp-update-overlay';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-labelledby','hp-update-title');
+      overlay.innerHTML='<div id="hp-update-card"><h2 id="hp-update-title">✨ Hyper-Pop has an update!</h2><p>A newer version is ready. Update now to get the latest fixes and features?</p><div id="hp-update-actions"><button id="hp-update-no" type="button">Not now</button><button id="hp-update-yes" type="button">Yes, update</button></div></div>';
+      document.body.appendChild(overlay);
+      overlay.querySelector('#hp-update-no').addEventListener('click',function(){try{localStorage.setItem(key,version)}catch(_){}overlay.remove();style.remove()});
+      overlay.querySelector('#hp-update-yes').addEventListener('click',function(){try{localStorage.setItem(key,version)}catch(_){}overlay.remove();style.remove();location.reload()});
+    }
+    try{
+      var seen=localStorage.getItem(key);
+      if(!seen){localStorage.setItem(key,version);seen=version}
+      fetch(new URL('app.js?hp-version-check='+Date.now(),base),{cache:'no-store',credentials:'same-origin'})
+        .then(function(r){if(!r.ok)throw new Error('Version check failed');return r.text()})
+        .then(function(src){var match=src.match(/var HP_BUILD_VERSION=['"]([^'"]+)['"]/);if(match&&match[1]!==version&&match[1]!==seen)showUpdate()})
+        .catch(function(){});
+    }catch(_){}
   })();
   var files = ['terminal.js?v=cmdfix-10','chat-widget.js?v=popout-2'];
   if (!/\/accounts\.html$/.test(location.pathname)) files.unshift('account.js?v=profile-2');
