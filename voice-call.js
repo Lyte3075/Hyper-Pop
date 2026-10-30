@@ -80,8 +80,14 @@
  }
  function beginPolling(){clearInterval(pollTimer);pollTimer=setInterval(async()=>{if(!call||!pc)return;try{const d=await request('poll',{call_id:call.id});await processCall(d.call)}catch(e){status(e.message)}},1000)}
  async function checkInbox(){
-  if(call||!localStorage.getItem('hyperpop_token'))return;
-  try{const d=await request('inbox');const incoming=d.calls?.[0];if(!incoming)return;call={id:incoming.id,caller_id:incoming.caller_id};const title='Incoming voice call';show(title,'Someone is calling you…',[['Decline','hp-voice-hang',decline],['Accept','hp-voice-accept',()=>acceptCall(incoming)]]);const name='';}catch(_){}
+  if(!localStorage.getItem('hyperpop_token'))return;
+  if(call&&!pc){
+   try{const d=await request('poll',{call_id:call.id});if(['declined','ended','missed'].includes(d.call.status)){cleanup();show('Voice call',d.call.status==='missed'?'Missed call.':'Call ended.',[['Close','hp-voice-close',hide]])}}
+   catch(_){cleanup();hide()}
+   return;
+  }
+  if(call)return;
+  try{const d=await request('inbox');const incoming=d.calls?.[0];if(!incoming)return;call={id:incoming.id,caller_id:false,peer:incoming.caller_id};show('Incoming voice call','Someone is calling you…',[['Decline','hp-voice-hang',decline],['Accept','hp-voice-accept',()=>acceptCall(incoming)]]);}catch(_){}
  }
  function installButton(){
   const head=$('hp-chat-head');if(!head||$('hp-chat-call'))return false;
