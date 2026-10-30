@@ -71,7 +71,7 @@
       oldToggle.addEventListener('click',function(e){e.preventDefault();frame.contentWindow?.postMessage('hp-sidebar-toggle',location.origin);});
     }
   })();
-  var files = ['terminal.js?v=cmdfix-10','chat-widget.js?v=popout-1'];
+  var files = ['terminal.js?v=cmdfix-10','chat-widget.js?v=popout-2'];
   if (!/\/accounts\.html$/.test(location.pathname)) files.unshift('account.js?v=profile-2');
   if (!soundtrackDisabled) files.push('soundtrack.js?v=page-mode-6');
   files.forEach(function(file){var node=document.createElement('script');node.src=new URL(file,base).href;node.async=false;node.onerror=function(){console.error('[Hyper-Pop] Failed to load '+node.src)};(document.head||document.documentElement).appendChild(node)});
