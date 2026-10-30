@@ -44,6 +44,8 @@ Deno.serve(async (req) => {
       if((existing||[]).length) return json({ok:false,error:"A call with this friend is already in progress."},409);
       const {data,error}=await db.from("hyperpop_voice_calls").insert({caller_id:me,callee_id:target}).select("id,status,created_at,expires_at").single();
       if(error) throw error;
+      // Push is best-effort: a missing subscription or VAPID configuration must never block a call.
+      fetch(`${url}/functions/v1/hyperpop-push`,{method:"POST",headers:{"Content-Type":"application/json","apikey":key},body:JSON.stringify({token,action:"notify_call",call_id:data.id})}).catch(()=>{});
       return json({ok:true,call:data});
     }
     const call = await getCall();
