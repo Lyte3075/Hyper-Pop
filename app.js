@@ -3,7 +3,7 @@
   var script = document.currentScript;
   var base = new URL('.', script && script.src ? script.src : location.href);
   var path = location.pathname;
-  var HP_BUILD_VERSION='social-2026-10-30-d';
+  var HP_BUILD_VERSION='social-2026-10-30-e';
   var soundtrackDisabled = document.body && document.body.dataset.noSoundtrack === 'true';
   if (!soundtrackDisabled && !document.getElementById('hp-sound-orb')) {
     var fallbackStyle = document.createElement('style');
@@ -28,7 +28,7 @@
       frame=document.createElement('iframe');
       frame.id='hp-sidebar-frame';
       frame.title='Hyper-Pop navigation';
-      frame.src=new URL('sidebar.html?v=presence-1',base).href;
+      frame.src=new URL('sidebar.html?v=presence-2',base).href;
       frame.setAttribute('allowtransparency','true');
       frame.style.cssText='position:fixed;z-index:2147483000;top:0;left:0;width:100vw;height:100%;height:100dvh;border:0;background:transparent;overflow:hidden;pointer-events:none;visibility:hidden;';
       (document.body||document.documentElement).appendChild(frame);
@@ -92,7 +92,7 @@
         .catch(function(){});
     }catch(_){}
   })();
-  var files = ['terminal.js?v=cmdfix-10','chat-widget.js?v=notifications-1','voice-call.js?v=voice-4'];
+  var files = ['terminal.js?v=cmdfix-10','chat-widget.js?v=notifications-2','voice-call.js?v=voice-4'];
   if (!/\/accounts\.html$/.test(location.pathname)) files.unshift('account.js?v=profile-2');
   if (!soundtrackDisabled) files.push('soundtrack.js?v=page-mode-6');
   files.forEach(function(file){var node=document.createElement('script');node.src=new URL(file,base).href;node.async=false;node.onerror=function(){console.error('[Hyper-Pop] Failed to load '+node.src)};(document.head||document.documentElement).appendChild(node)});
