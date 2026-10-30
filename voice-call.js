@@ -48,7 +48,7 @@
   if(call)return;try{
    show('Calling '+friendName,'Requesting microphone access…',[['Cancel','hp-voice-hang',hangup]]);
    await mediaAndPeer();
-   const d=await request('start',{to:friendId});call=d.call;
+   const d=await request('start',{to:friendId});call={...d.call,caller_id:true};
    const offer=await pc.createOffer();await pc.setLocalDescription(offer);
    await request('offer',{call_id:call.id,description:pc.localDescription.toJSON()});
    show('Calling '+friendName,'Ringing…',[['Cancel call','hp-voice-hang',hangup]]);
@@ -56,8 +56,8 @@
   }catch(e){cleanup();show('Could not start call',e.message,[['Close','hp-voice-close',hide]])}
  }
  async function acceptCall(c){
-  if(call)return;try{
-   call={id:c.id,peer:c.caller_id};
+  if(pc)return;try{
+   call={id:c.id,caller_id:false,peer:c.caller_id};
    show('Incoming voice call','Connecting microphone…',[['Decline','hp-voice-hang',decline]]);
    await mediaAndPeer();await request('accept',{call_id:call.id});
    show('Voice call','Joining call…',[['Mute','hp-voice-mute',toggleMute],['Hang up','hp-voice-hang',hangup]]);
@@ -70,7 +70,7 @@
  async function processCall(c){
   if(!call||!pc)return;
   if(['declined','ended','missed'].includes(c.status)){const msg=c.status==='declined'?'Call declined.':c.status==='missed'?'Call timed out.':'Call ended.';cleanup();show('Voice call',msg,[['Close','hp-voice-close',hide]]);return}
-  if(c.offer&&!pc.remoteDescription){await pc.setRemoteDescription(c.offer);remoteDescriptionReady=true;const answer=await pc.createAnswer();await pc.setLocalDescription(answer);await request('answer',{call_id:call.id,description:pc.localDescription.toJSON()})}
+  if(!call.caller_id&&c.offer&&!pc.remoteDescription){await pc.setRemoteDescription(c.offer);remoteDescriptionReady=true;const answer=await pc.createAnswer();await pc.setLocalDescription(answer);await request('answer',{call_id:call.id,description:pc.localDescription.toJSON()})}
   if(c.answer&&!pc.remoteDescription&&call.caller_id){await pc.setRemoteDescription(c.answer);remoteDescriptionReady=true}
   if(remoteDescriptionReady){
    const remote=call.caller_id?c.callee_ice:c.caller_ice;let index=call.caller_id?remoteCalleeIce:remoteCallerIce;
