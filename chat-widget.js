@@ -112,7 +112,7 @@
    const r=await fetch('https://iapnejlttsqqefkpmelp.supabase.co/rest/v1/rpc/hyperpop_social_notifications',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({p_token:token})});
    const d=await r.json().catch(()=>({}));
    if(!r.ok||!d.ok)return;
-   updateUnread(d.unread_count);currentStatus=d.status||currentStatus;
+   updateUnread(d.unread_count);currentStatus=d.status||currentStatus;window.HyperPopPresenceStatus=currentStatus;
    const messages=d.messages||[];
    if(!hasNotificationBaseline){messages.forEach(m=>knownUnread.add(String(m.id)));hasNotificationBaseline=true;return}
    const fresh=messages.filter(m=>!knownUnread.has(String(m.id)));
@@ -133,7 +133,7 @@
    const r=await fetch('https://iapnejlttsqqefkpmelp.supabase.co/rest/v1/rpc/hyperpop_set_status',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({p_token:token,p_status:status})});
    const d=await r.json().catch(()=>({}));
    if(!r.ok||!d.ok)throw new Error(d.error||'Could not update status.');
-   currentStatus=status;
+   currentStatus=status;window.HyperPopPresenceStatus=status;
    const frame=document.getElementById('hp-sidebar-frame');
    frame?.contentWindow?.postMessage({type:'hp-status-update',status},location.origin);
    return d;
