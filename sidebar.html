@@ -28,7 +28,7 @@ a{display:flex;align-items:center;gap:11px;min-height:42px;padding:9px 11px;bord
 <div class="label">Settings</div><label class="setting"><span>Show floating chat button<small>Display the chat shortcut on pages</small></span><input id="chat-button-toggle" type="checkbox"></label>
 <div class="label">More</div><a href="accounts.html" target="_top"><span class="ico">👤</span>Account / Profile</a></aside>
 <script>
-(function(){const send=s=>parent.postMessage(s,location.origin);function open(){document.body.classList.add('open');send('hp-sidebar-open')}function close(){document.body.classList.remove('open');send('hp-sidebar-close')}
+(function(){const send=s=>parent.postMessage(s,location.origin);function open(){document.body.classList.add('open');send('hp-sidebar-open');send({type:'hp-status-request'})}function close(){document.body.classList.remove('open');send('hp-sidebar-close')}
 let startX=null,startY=0;
 function swipeStart(e){if(!e.touches||e.touches.length!==1)return;startX=e.touches[0].clientX;startY=e.touches[0].clientY}
 function swipeEnd(e){if(startX===null||!e.changedTouches||!e.changedTouches.length)return;const t=e.changedTouches[0],dx=t.clientX-startX,dy=t.clientY-startY;if(dx< -55&&Math.abs(dx)>Math.abs(dy)*1.25)close();startX=null}
