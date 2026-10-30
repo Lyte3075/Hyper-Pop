@@ -16,7 +16,7 @@ async function load(){
       return;
     }
     const timed=['reaction','aim','number'].includes(selected);
-    const heading=timed?'TIME (LOWEST WINS)':'SCORE (HIGHEST WINS)';
+    const heading=timed?'LOWER IS BETTER':'HIGHER IS BETTER';
     board.innerHTML='<div class="board-row board-head"><span>#</span><span>PLAYER</span><span>'+heading+'</span></div>'+rows.map(r=>'<div class="board-row"><span>'+r.rank+'</span><span>@'+String(r.username).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))+'</span><span class="board-score">'+(timed?Math.round(r.score)+' ms':Math.round(r.score*100)/100)+'</span></div>').join('');
   }catch(error){
     console.error('[Hyper-Pop leaderboard]',error);
