@@ -3,7 +3,7 @@
  if(window.__HP_FLOAT_CHAT__)return;window.__HP_FLOAT_CHAT__=true;
  const API='https://iapnejlttsqqefkpmelp.supabase.co/rest/v1/rpc/hyperpop_social',KEY='sb_publishable_TB7oC4nDlUJq-Gcb2yoTjQ_Dvbh6NlM';
  const css=`
- #hp-chat-launch{position:fixed;z-index:2147482500;right:18px;bottom:72px;border:1px solid #ffffff28;border-radius:999px;padding:12px 16px;background:linear-gradient(120deg,#9b7bff,#4bcbd3);color:#10101c;font:700 13px system-ui;box-shadow:0 8px 30px #0008;cursor:pointer}
+ #hp-chat-launch{position:fixed;z-index:10001;right:66px;bottom:14px;width:42px;height:42px;min-width:42px;padding:0;display:grid;place-items:center;border:1px solid #ffffff22;border-radius:12px;background:#0b0b12ef;color:#7df9ff;font:800 18px monospace;box-shadow:0 8px 30px #0008;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none;transition:transform .15s,border-color .15s}#hp-chat-launch:active{transform:scale(.94);border-color:#7df9ff88}#hp-chat-launch:focus-visible{outline:3px solid #7df9ff;outline-offset:3px}
  #hp-chat-window{position:fixed;z-index:2147482501;right:18px;bottom:126px;width:min(370px,calc(100vw - 28px));height:min(520px,calc(100dvh - 155px));display:none;grid-template-rows:auto auto 1fr auto;background:#10101df7;color:#f4f2ff;border:1px solid #ffffff24;border-radius:19px;box-shadow:0 20px 70px #000b;backdrop-filter:blur(22px);overflow:hidden;font:14px system-ui}
  #hp-chat-window.open{display:grid}
  #hp-chat-window *{box-sizing:border-box}
@@ -19,10 +19,10 @@
  #hp-chat-compose input{min-width:0;flex:1;padding:11px;border:1px solid #ffffff20;border-radius:11px;background:#ffffff0c;color:#fff;font:13px system-ui}
  #hp-chat-compose button{border:0;border-radius:11px;padding:0 14px;background:#a78bfa;color:#111;font-weight:800}
  #hp-chat-note{padding:6px 12px;color:#75e5e8;font-size:11px;min-height:22px}
- @media(max-width:520px){#hp-chat-launch{right:12px;bottom:68px}#hp-chat-window{right:8px;bottom:116px;width:calc(100vw - 16px);height:min(66dvh,560px)}}
+ @media(max-width:520px){#hp-chat-launch{right:66px;bottom:14px;width:42px;height:42px}#hp-chat-window{right:8px;bottom:68px;width:calc(100vw - 16px);height:min(66dvh,560px)}}
  `;
  const style=document.createElement('style');style.textContent=css;document.head.append(style);
- const launch=document.createElement('button');launch.id='hp-chat-launch';launch.type='button';launch.textContent='✉ Chat';
+ const launch=document.createElement('button');launch.id='hp-chat-launch';launch.type='button';launch.textContent='✉';launch.setAttribute('aria-label','Open chat');launch.title='Chat';
  const win=document.createElement('section');win.id='hp-chat-window';win.setAttribute('aria-label','Hyper-Pop chat');
  win.innerHTML='<div id="hp-chat-head"><span>✦ Hyper-Pop Chat</span><button type="button" id="hp-chat-close" aria-label="Close chat">✕</button></div><div id="hp-chat-pickers"><select id="hp-chat-conversations" aria-label="Choose a conversation"><option value="">Conversations…</option></select><select id="hp-chat-friends" aria-label="Message a friend"><option value="">＋ New message…</option></select></div><div id="hp-chat-feed"><div style="color:#aaa7c1;text-align:center;padding:28px 8px">Choose a conversation or a friend to start chatting.</div></div><div><div id="hp-chat-note" role="status"></div><form id="hp-chat-compose"><input id="hp-chat-input" maxlength="2000" placeholder="Write a message…" autocomplete="off"><button>Send</button></form></div>';
  document.body.append(launch,win);
