@@ -29,7 +29,7 @@ body[data-theme="rainbow"]{background:radial-gradient(circle at 15% 20%,#ff4fd86
 <div class="score"><div class="label">Buttons pressed</div><div class="big" id="n">0</div><div class="rate"><span id="cps">0</span> clicks/sec • <span id="power">+1</span> per click</div><div class="combo" id="combo"></div><div class="event" id="event">Press the button. Fast.</div></div>
 <div class="click-area" id="area"><button class="clicker" id="b"><span>CLICK!</span></button></div><div class="flash" id="flash"></div>
 <div class="toast" id="toast">Your button awaits.</div>
-<div class="actions"><button class="btn dark" id="save">💾 SAVE</button><button class="btn dark" id="reset">↻ RESET</button><a class="btn dark" href="leaderboard.html">🏆 LEADERBOARD</a><a class="btn dark" href="auth.html">👤 ACCOUNT</a></div>
+<div class="actions"><button class="btn dark" id="save">💾 SAVE</button><button class="btn dark" id="submit-score">🏆 SUBMIT SCORE</button><button class="btn dark" id="reset">↻ RESET</button><a class="btn dark" href="leaderboard.html">🏆 LEADERBOARD</a><a class="btn dark" href="auth.html">👤 ACCOUNT</a></div>
 </section>
 <aside class="box shop"><div class="tabs"><button class="tab on" id="upTab">UPGRADES</button><button class="tab" id="achTab">STATS</button></div>
 <div id="shop"></div><div id="stats" style="display:none"></div></aside>
@@ -264,6 +264,7 @@ function check(){achievements.forEach(a=>{if(!s.ach[a[0]]&&s.total>=a[3]){s.ach[
 $("b").onclick=clicker;
 $("reset").onclick=()=>{sound("ui");if(confirm("Reset all Button Bonanza progress?")){sound("no");localStorage.removeItem(KEY);location.reload()}};
 $("save").onclick=()=>{save();toast("💾 Progress saved.")};
+$("submit-score").onclick=async()=>{const score=Number.isFinite(Number(s.total))?Math.max(0,Number(s.total)):1e300;if(typeof hpSubmit!=="function"){toast("Leaderboard service is loading. Try again.");return;}const ok=await hpSubmit("clicker",score);toast(ok?"🏆 Button Bonanza score submitted!":"Log in to submit your score.");};
 $("upTab").onclick=()=>{tabPop();$("shop").style.display="block";$("stats").style.display="none";$("upTab").classList.add("on");$("achTab").classList.remove("on")};
 $("achTab").onclick=()=>{tabPop();$("shop").style.display="none";$("stats").style.display="block";$("achTab").classList.add("on");$("upTab").classList.remove("on")};
 function spawnGolden(){if(document.querySelector(".golden"))return;let g=document.createElement("button");g.className="golden";g.textContent="⭐";g.title="Golden Button";g.style.left=(15+Math.random()*70)+"%";g.style.top=(20+Math.random()*55)+"%";g.onclick=()=>{let bonus=Math.max(100,effectivePower()*50+production()*30);s.golden=(s.golden||0)+1;taDa();s.n+=bonus;s.total+=bonus;toast("🌟 GOLDEN BUTTON! +"+fmt(bonus));burst();g.remove()};$("area").append(g);setTimeout(()=>g.remove(),8000)}
