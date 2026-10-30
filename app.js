@@ -3,7 +3,7 @@
   var script = document.currentScript;
   var base = new URL('.', script && script.src ? script.src : location.href);
   var path = location.pathname;
-  var HP_BUILD_VERSION='social-2026-10-29-a';
+  var HP_BUILD_VERSION='social-2026-10-29-b';
   var soundtrackDisabled = document.body && document.body.dataset.noSoundtrack === 'true';
   if (!soundtrackDisabled && !document.getElementById('hp-sound-orb')) {
     var fallbackStyle = document.createElement('style');
@@ -92,7 +92,7 @@
         .catch(function(){});
     }catch(_){}
   })();
-  var files = ['terminal.js?v=cmdfix-10','chat-widget.js?v=popout-2'];
+  var files = ['terminal.js?v=cmdfix-10','chat-widget.js?v=popout-2','voice-call.js?v=voice-1'];
   if (!/\/accounts\.html$/.test(location.pathname)) files.unshift('account.js?v=profile-2');
   if (!soundtrackDisabled) files.push('soundtrack.js?v=page-mode-6');
   files.forEach(function(file){var node=document.createElement('script');node.src=new URL(file,base).href;node.async=false;node.onerror=function(){console.error('[Hyper-Pop] Failed to load '+node.src)};(document.head||document.documentElement).appendChild(node)});
