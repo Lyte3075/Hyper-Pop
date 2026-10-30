@@ -1,6 +1,7 @@
 /* Hyper-Pop floating chat. Persistent across soft navigation. */
 (function(){
  if(window.__HP_FLOAT_CHAT__)return;window.__HP_FLOAT_CHAT__=true;
+ const PUSH_API='https://iapnejlttsqqefkpmelp.supabase.co/functions/v1/hyperpop-push';
  const API='https://iapnejlttsqqefkpmelp.supabase.co/rest/v1/rpc/hyperpop_social',KEY='sb_publishable_TB7oC4nDlUJq-Gcb2yoTjQ_Dvbh6NlM';
  const css=`
  #hp-chat-launch{position:fixed;z-index:10001;right:66px;bottom:14px;width:42px;height:42px;min-width:42px;padding:0;display:grid;place-items:center;border:1px solid #ffffff22;border-radius:12px;background:#0b0b12ef;color:#7df9ff;font:800 18px monospace;box-shadow:0 8px 30px #0008;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none;transition:transform .15s,border-color .15s}#hp-chat-launch:active{transform:scale(.94);border-color:#7df9ff88}#hp-chat-launch:focus-visible{outline:3px solid #7df9ff;outline-offset:3px}
@@ -99,7 +100,7 @@
  }
  $('hp-chat-conversations').addEventListener('change',e=>{selectedFriend=null;$('hp-chat-friends').value='';showConversation(e.target.value)});
  $('hp-chat-friends').addEventListener('change',async e=>{const id=e.target.value;if(!id){selectedFriend=null;return}const option=e.target.selectedOptions[0];selectedFriend={id,name:option.textContent.replace(/ · online$/,'')};note('Opening chat…');const d=await rpc('chat_open_friend',{friend_id:id});if(!d.ok){note(d.error);return}await refreshLists();$('hp-chat-friends').value=id;await showConversation(String(d.conversation_id))});
- $('hp-chat-compose').addEventListener('submit',async e=>{e.preventDefault();const body=$('hp-chat-input').value.trim();if(!body||!selected)return;const d=await rpc('chat_send',{conversation_id:selected,body});if(!d.ok){note(d.error);return}$('hp-chat-input').value='';await showConversation(selected);});
+ $('hp-chat-compose').addEventListener('submit',async e=>{e.preventDefault();const body=$('hp-chat-input').value.trim();if(!body||!selected)return;const d=await rpc('chat_send',{conversation_id:selected,body});if(!d.ok){note(d.error);return}const sentConversation=selected;const token=localStorage.getItem('hyperpop_token');if(token)fetch(PUSH_API,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({token,action:'notify_message',conversation_id:sentConversation})}).catch(()=>{});$('hp-chat-input').value='';await showConversation(sentConversation);});
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&win.classList.contains('open'))close()});
  window.addEventListener('storage',e=>{if(e.key==='hyperpop_token'&&win.classList.contains('open'))refreshLists()});
  setInterval(()=>{if(!win.classList.contains('open')||document.hidden)return;if(selected)showConversation(selected,true);if(Date.now()-lastListRefresh>15000)refreshLists()},2500);
@@ -151,6 +152,9 @@
   }
  });
 
+ if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(e=>console.warn('[Hyper-Pop] Push service worker unavailable:',e));
+ window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='hp-push-open')return;const u=new URL(e.data.url,location.origin);const id=u.searchParams.get('hp-chat');if(id)open(id)});
+ const pushChatId=new URLSearchParams(location.search).get('hp-chat');if(pushChatId)setTimeout(()=>open(pushChatId),1200);
  pollNotifications();setInterval(pollNotifications,9000);
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)pollNotifications()});
 })();
