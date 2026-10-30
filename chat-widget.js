@@ -42,7 +42,7 @@
  #hp-chat-head>span{letter-spacing:-.02em}
  #hp-chat-head button{cursor:pointer;transition:background .15s,border-color .15s}
  #hp-chat-head button:hover{background:#ffffff20}
- @media(max-width:520px){#hp-chat-launch{right:66px;bottom:14px;width:42px;height:42px}#hp-chat-window{right:8px;bottom:68px;width:calc(100vw - 16px);height:min(72dvh,600px);max-height:calc(100dvh - 90px)}#hp-chat-toast{top:calc(8px + env(safe-area-inset-top))}#hp-chat-bubble{max-width:92%}}
+ @media(max-width:520px){#hp-chat-launch{right:66px;bottom:14px;width:42px;height:42px}#hp-chat-window{right:8px;bottom:68px;width:calc(100vw - 16px);height:min(72dvh,600px);max-height:calc(100dvh - 90px)}#hp-chat-toast{top:calc(8px + env(safe-area-inset-top))}.hp-chat-bubble{max-width:92%}}
  `;
  const style=document.createElement('style');style.textContent=css;document.head.append(style);
  const launch=document.createElement('button');launch.id='hp-chat-launch';launch.type='button';launch.innerHTML='✉<span id="hp-chat-unread-badge" aria-hidden="true"></span>';launch.setAttribute('aria-label','Open chat');launch.title='Chat';
@@ -82,9 +82,9 @@
   cs.replaceChildren(new Option('Choose a conversation…',''));
   if(chats.ok)(chats.conversations||[]).forEach(c=>{const label=(c.title||c.label||'Conversation')+(c.unread?' · unread':'');cs.add(new Option(label,String(c.id)))});
   fs.replaceChildren(new Option('＋ Message a friend…',''));
-  if(friends.ok)(friends.friends||[]).forEach(f=>fs.add(new Option('@'+f.username+(f.online?' · online':''),String(f.id))));
+  if(friends.ok)(friends.friends||[]).forEach(f=>fs.add(new Option('@'+f.username+(' · '+(f.status==='invisible'||!f.online?'offline':({idle:'idle',dnd:'do not disturb',online:'online'})[f.status]||'online')),String(f.id))));
   if(old&&[...cs.options].some(o=>o.value===old)){cs.value=old}
-  if(oldFriend&&[...fs.options].some(o=>o.value===String(oldFriend))){fs.value=String(oldFriend);selectedFriend={id:String(oldFriend),name:fs.selectedOptions[0]?.textContent?.replace(/ · online$/,'')||'Friend'}}
+  if(oldFriend&&[...fs.options].some(o=>o.value===String(oldFriend))){fs.value=String(oldFriend);selectedFriend={id:String(oldFriend),name:fs.selectedOptions[0]?.textContent?.replace(/ · (?:online|idle|do not disturb|offline)$/,'')||'Friend'}}
   lastListRefresh=Date.now();
   if(!chats.ok)note(chats.error);else if(!localStorage.getItem('hyperpop_token'))note('Sign in to use chat.');
  }
