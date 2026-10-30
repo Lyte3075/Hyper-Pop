@@ -44,7 +44,10 @@
     function select(i){uiSound("select");s.selected=i;save();render()}
     function buy(){
      if(s.gameOver)return;
+// social
      const i=s.selected,q=Math.max(1,Math.floor(Number($("qty").value)||1));
+     const i=s.selected,q=Math.max(1,Math.floor(Number($("#qty").value)||1));
+// main
      const subtotal=q*value(i),fee=subtotal*FEE_RATE,total=subtotal+fee;
      const types=Object.keys(s.holdings).filter(i=>shares(i)>0);
      if(s.cash+0.00001<total){uiSound("error");return note("Not enough cash. Shares cost "+money(subtotal)+" plus a "+(FEE_RATE*100).toFixed(1)+"% trading fee ("+money(fee)+").",true)}
@@ -54,7 +57,10 @@
     }
     function sell(){
      if(s.gameOver)return;
+// social
      const i=s.selected,q=Math.max(1,Math.floor(Number($("qty").value)||1));
+     const i=s.selected,q=Math.max(1,Math.floor(Number($("#qty").value)||1));
+// main
      if(shares(i)<q){uiSound("error");return note("You don't own that many shares.",true)}
      const gross=q*value(i),fee=gross*FEE_RATE,proceeds=gross-fee;
      s.cash+=proceeds;s.holdings[i]-=q;if(s.holdings[i]<=0)delete s.holdings[i];
@@ -84,6 +90,7 @@
      render()
     }
     function reset(){uiSound("reset");s=fresh();save();note("Fresh portfolio. $1,000 loaded.");render()}
+// social
     function render(){const n=net(),p=portfolio(),count=Object.keys(s.holdings).filter(i=>shares(i)>0).length;$("stats").innerHTML='<div class="stat"><small>Cash</small><b class="money">'+money(s.cash)+'</b></div><div class="stat"><small>Invested</small><b>'+money(p)+'</b></div><div class="stat"><small>Net worth · Day '+s.day+'</small><b class="'+(n>=1000?"money":"loss")+'">'+money(n)+'</b></div>';$("selected").textContent=stocks[s.selected].name+" ("+stocks[s.selected].ticker+") · "+money(value(s.selected))+" · "+shares(s.selected)+" owned · "+stocks[s.selected].sector+" · risk "+stocks[s.selected].risk.toFixed(2)+"× volatility · trading fee "+(FEE_RATE*100).toFixed(1)+"%";const q=$("search").value.toLowerCase();$("market").innerHTML=stocks.map((x,i)=>{if(q&&!((x.name+" "+x.ticker+" "+x.sector).toLowerCase().includes(q)))return "";const v=value(i),change=(v/x.base-1)*100;return '<button class="stock '+(i===s.selected?"active":"")+'" data-i="'+i+'"><div><span class="name">'+x.name+'</span> <span class="ticker">'+x.ticker+'</span><div class="sub">'+x.sector+(shares(i)?" · "+shares(i)+" owned":"")+'</div></div><div class="price">'+money(v)+'</div><div class="move '+(change>=0?"up":"down")+'">'+(change>=0?"+":"")+change.toFixed(1)+"%</div></button>"}).join("");document.querySelectorAll(".stock").forEach(b=>b.onclick=()=>select(Number(b.dataset.i)));$("holdings").innerHTML=count?Object.keys(s.holdings).filter(i=>shares(i)>0).map(i=>'<div class="holding"><div><b>'+stocks[i].name+'</b><br><span class="sub">'+shares(i)+' shares × '+money(value(i))+'</span></div><div style="display:flex;align-items:center;gap:6px"><input class="holding-qty" aria-label="Shares to sell" type="number" min="1" max="'+shares(i)+'" step="1" value="1" data-qty="'+i+'" style="width:64px;min-width:0;padding:7px 4px;border:1px solid #ffffff25;border-radius:8px;background:#ffffff0b;color:#fff"><button class="btn red holding-sell" type="button" data-sell="'+i+'" style="padding:7px 9px">Sell</button></div></div>').join(""):'<div class="empty">No stocks yet. Pick one from the market.</div>';document.querySelectorAll(".holding-qty").forEach(input=>input.disabled=s.gameOver);document.querySelectorAll(".holding-sell").forEach(b=>{b.disabled=s.gameOver;b.onclick=()=>{const i=Number(b.dataset.sell),input=document.querySelector('.holding-qty[data-qty="'+i+'"]');s.selected=i;const q=Math.floor(Number(input&&input.value)||1);$("qty").value=String(Math.max(1,Math.min(shares(i),q)));sell()}});$("next").disabled=$("buy").disabled=$("sell").disabled=s.gameOver}
     $("buy").onclick=buy;
     $("sell").onclick=sell;
@@ -91,6 +98,9 @@
     $("reset").onclick=reset;
     $("search").oninput=render;
     render();
+    function render(){const n=net(),p=portfolio(),count=Object.keys(s.holdings).filter(i=>shares(i)>0).length;$("stats").innerHTML='<div class="stat"><small>Cash</small><b class="money">'+money(s.cash)+'</b></div><div class="stat"><small>Invested</small><b>'+money(p)+'</b></div><div class="stat"><small>Net worth · Day '+s.day+'</small><b class="'+(n>=1000?"money":"loss")+'">'+money(n)+'</b></div>';$("selected").textContent=stocks[s.selected].name+" ("+stocks[s.selected].ticker+") · "+money(value(s.selected))+" · "+shares(s.selected)+" owned · "+stocks[s.selected].sector+" · risk "+stocks[s.selected].risk.toFixed(2)+"× volatility · trading fee "+(FEE_RATE*100).toFixed(1)+"%";const q=$("search").value.toLowerCase();$("market").innerHTML=stocks.map((x,i)=>{if(q&&!((x.name+" "+x.ticker+" "+x.sector).toLowerCase().includes(q)))return "";const v=value(i),change=(v/x.base-1)*100;return '<button class="stock '+(i===s.selected?"active":"")+'" data-i="'+i+'"><div><span class="name">'+x.name+'</span> <span class="ticker">'+x.ticker+'</span><div class="sub">'+x.sector+(shares(i)?" · "+shares(i)+" owned":"")+'</div></div><div class="price">'+money(v)+'</div><div class="move '+(change>=0?"up":"down")+'">'+(change>=0?"+":"")+change.toFixed(1)+"%</div></button>"}).join("");document.querySelectorAll(".stock").forEach(b=>{b.onclick=()=>select(Number(b.dataset.i))});$("holdings").innerHTML=count?Object.keys(s.holdings).filter(i=>shares(i)>0).map(i=>'<div class="holding"><div><b>'+stocks[i].name+'</b><br><span class="sub">'+shares(i)+' shares × '+money(value(i))+'</span></div><div style="display:flex;align-items:center;gap:6px"><input class="holding-qty" aria-label="Shares to sell" type="number" min="1" max="'+shares(i)+'" step="1" value="1" data-qty="'+i+'" style="width:64px;min-width:0;padding:7px 4px;border:1px solid #ffffff25;border-radius:8px;background:#ffffff0b;color:#fff"><button class="btn red holding-sell" type="button" data-sell="'+i+'" style="padding:7px 9px">Sell</button></div></div>').join(""):'<div class="empty">No stocks yet. Pick one from the market.</div>';document.querySelectorAll(".holding-qty").forEach(input=>input.disabled=s.gameOver);document.querySelectorAll(".holding-sell").forEach(b=>{b.disabled=s.gameOver;b.onclick=()=>{const i=Number(b.dataset.sell),input=document.querySelector('.holding-qty[data-qty="'+i+'"]');s.selected=i;const q=Math.floor(Number(input&&input.value)||1);$("#qty").value=String(Math.max(1,Math.min(shares(i),q)));sell()}});$("next").disabled=$("buy").disabled=$("sell").disabled=s.gameOver}
+    $("buy").onclick=buy;$("sell").onclick=sell;$("next").onclick=advance;$("reset").onclick=reset;$("search").oninput=render;render();
+// main
     
   }
   if(!window.__HP_STOCK_POP_NAV_BOUND__){
