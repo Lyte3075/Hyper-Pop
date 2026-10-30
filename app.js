@@ -3,7 +3,7 @@
   var script = document.currentScript;
   var base = new URL('.', script && script.src ? script.src : location.href);
   var path = location.pathname;
-  var HP_BUILD_VERSION='social-2026-10-30-h';
+  var HP_BUILD_VERSION='social-2026-10-30-i';
   var soundtrackDisabled = document.body && document.body.dataset.noSoundtrack === 'true';
   if (!soundtrackDisabled && !document.getElementById('hp-sound-orb')) {
     var fallbackStyle = document.createElement('style');
@@ -91,6 +91,33 @@
         .then(function(src){var match=src.match(/var HP_BUILD_VERSION=['"]([^'"]+)['"]/);if(match&&match[1]!==version&&match[1]!==seen)showUpdate()})
         .catch(function(){});
     }catch(_){}
+  })();
+  // Anonymous live traffic telemetry. Only random browser/session IDs and page paths are stored.
+  (function(){
+    var API='https://iapnejlttsqqefkpmelp.supabase.co/functions/v1/hyperpop-stats';
+    var ANON='sb_publishable_TB7oC4nDlUJq-Gcb2yoTjQ_Dvbh6NlM';
+    function id(){return (window.crypto&&crypto.randomUUID)?crypto.randomUUID():String(Date.now())+'-'+Math.random().toString(36).slice(2)}
+    function get(key,store){try{var v=store.getItem(key);if(!v){v=id();store.setItem(key,v)}return v}catch(_){return id()}}
+    var visitor=get('hp_stats_visitor',localStorage),session=get('hp_stats_session',sessionStorage),lastPath='';
+    function send(action){
+      var path=location.pathname+location.search;
+      if(action==='heartbeat'&&path===lastPath){}else lastPath=path;
+      var payload={action:action,visitor_id:visitor,session_id:session,page_path:path,token:(function(){try{return localStorage.getItem('hyperpop_token')||''}catch(_){return ''}})()};
+      fetch(API,{method:'POST',headers:{apikey:ANON,'Content-Type':'application/json'},body:JSON.stringify(payload),keepalive:true}).catch(function(){});
+    }
+    function page(){send('visit');send('heartbeat')}
+    page();setInterval(function(){send('heartbeat')},45000);
+    window.addEventListener('hyperpop:navigate',page);
+    function addFooterLink(){
+      document.querySelectorAll('footer').forEach(function(footer){
+        if(footer.querySelector('[data-hp-stats-link]'))return;
+        var link=document.createElement('a');link.href='/stats';link.textContent='Live site stats ↗';link.setAttribute('data-hp-stats-link','');
+        link.style.cssText='display:inline-block;margin:10px 0 0 12px;color:#4be0e3;font:600 12px system-ui;text-decoration:none;';
+        footer.append(link);
+      });
+    }
+    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addFooterLink,{once:true});else addFooterLink();
+    window.addEventListener('hyperpop:navigate',addFooterLink);
   })();
   var files = ['terminal.js?v=cmdfix-10','chat-widget.js?v=push-1','voice-call.js?v=direct-2'];
   if (!/\/accounts\.html$/.test(location.pathname)) files.unshift('account.js?v=profile-2');
