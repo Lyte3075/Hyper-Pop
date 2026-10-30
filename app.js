@@ -3,7 +3,7 @@
   var script = document.currentScript;
   var base = new URL('.', script && script.src ? script.src : location.href);
   var path = location.pathname;
-  var HP_BUILD_VERSION='social-2026-10-30-b';
+  var HP_BUILD_VERSION='social-2026-10-30-c';
   var soundtrackDisabled = document.body && document.body.dataset.noSoundtrack === 'true';
   if (!soundtrackDisabled && !document.getElementById('hp-sound-orb')) {
     var fallbackStyle = document.createElement('style');
@@ -92,7 +92,7 @@
         .catch(function(){});
     }catch(_){}
   })();
-  var files = ['terminal.js?v=cmdfix-10','chat-widget.js?v=popout-3','voice-call.js?v=voice-2'];
+  var files = ['terminal.js?v=cmdfix-10','chat-widget.js?v=popout-4','voice-call.js?v=voice-3'];
   if (!/\/accounts\.html$/.test(location.pathname)) files.unshift('account.js?v=profile-2');
   if (!soundtrackDisabled) files.push('soundtrack.js?v=page-mode-6');
   files.forEach(function(file){var node=document.createElement('script');node.src=new URL(file,base).href;node.async=false;node.onerror=function(){console.error('[Hyper-Pop] Failed to load '+node.src)};(document.head||document.documentElement).appendChild(node)});
@@ -108,7 +108,7 @@
       try{
         const response=await fetch(target.href,{credentials:'same-origin'});if(!response.ok)throw new Error('Page request failed: '+response.status);
         const markup=await response.text(),parsed=new DOMParser().parseFromString(markup,'text/html');if(!parsed.body||!parsed.title)throw new Error('Invalid page response');
-        const persistentNodes=['hp-sound-orb','hp-sound-panel','hp-terminal-launcher','hp-terminal','hp-sidebar-frame'].map(id=>document.getElementById(id)).filter(Boolean);
+        const persistentNodes=['hp-sound-orb','hp-sound-panel','hp-terminal-launcher','hp-terminal','hp-terminal-style','hp-chat-launch','hp-chat-window','hp-chat-widget-style','hp-voice-panel','hp-sidebar-frame'].map(id=>document.getElementById(id)).filter(Boolean);
         const bodyAttrs=[...parsed.body.attributes].map(a=>[a.name,a.value]);[...document.body.attributes].forEach(a=>document.body.removeAttribute(a.name));bodyAttrs.forEach(([name,value])=>document.body.setAttribute(name,value));
         document.body.replaceChildren();[...parsed.body.childNodes].forEach(node=>{if(!(node.nodeType===1&&node.tagName==='SCRIPT'))document.body.append(node.cloneNode(true))});persistentNodes.forEach(node=>document.body.append(node));
         document.title=parsed.title;
