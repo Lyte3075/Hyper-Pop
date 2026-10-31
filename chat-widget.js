@@ -23,8 +23,10 @@
  #hp-chat-window.party-mode #hp-group-create,#hp-chat-window.party-mode #hp-group-builder{display:none!important}\n #hp-chat-window.party-mode #hp-party-panel{display:grid}\n #hp-chat-window.party-mode{grid-template-rows:auto auto 1fr}\n .hp-party-card{padding:11px;border:1px solid #ffffff16;border-radius:13px;background:#ffffff06}\n #hp-party-invites:empty{display:none}\n .hp-party-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #ffffff10;font-size:12px}\n .hp-party-row:last-child{border-bottom:0}\n .hp-party-muted{color:#aaa7c1;font-size:11px}\n .hp-party-action{padding:8px 10px;border:1px solid #ffffff20;border-radius:9px;background:#ffffff0c;color:#f4f2ff;font:700 11px system-ui}\n .hp-party-action.primary{background:linear-gradient(120deg,#b7a0ff,#7df9ff);color:#10101d;border:0}\n #hp-party-chat-feed{display:flex;flex-direction:column;gap:7px;max-height:180px;overflow:auto;margin:8px 0}\n #hp-party-chat-feed .hp-party-msg{padding:8px 10px;border-radius:10px;background:#ffffff0b;font-size:12px;overflow-wrap:anywhere}\n #hp-party-chat-feed small{display:block;color:#aaa7c1;font-size:10px;margin-bottom:3px}\n #hp-party-chat-compose{display:flex;gap:6px}\n #hp-party-chat-compose input{min-width:0;flex:1;padding:9px;border:1px solid #ffffff20;border-radius:9px;background:#ffffff0b;color:#fff;font:12px system-ui}
  #hp-group-create{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid #ffffff18;background:#121221;min-width:0;width:100%;overflow:hidden}#hp-group-create #hp-chat-target{display:block;min-width:0;width:100%;max-width:100%;height:38px;padding:0 9px;border:1px solid #ffffff20;border-radius:10px;background:#1b1b2c;color:#f4f2ff;font:12px system-ui}#hp-group-create #hp-group-actions{display:flex;gap:6px;align-items:center;min-width:0}#hp-group-create #hp-group-actions button{display:inline-flex;align-items:center;justify-content:center;min-width:0;white-space:nowrap;padding:9px 8px;font-size:10px}#hp-group-create #hp-add-group-members{border-color:#b7a0ff66;background:#28213e;color:#d5c7ff}
  #hp-group-create button,#hp-group-builder button{padding:8px 10px;border:1px solid #7df9ff55;border-radius:9px;background:#123039;color:#9ffaff;font:750 11px system-ui}
- #hp-group-builder{display:none;min-height:0;max-height:min(245px,42dvh);overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch;padding:10px;border-bottom:1px solid #ffffff18;background:#171729;gap:8px;align-content:start}
+ #hp-group-builder{display:none;position:relative;z-index:2;min-height:0;max-height:min(245px,42dvh);overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch;padding:10px;border-top:1px solid #ffffff20;border-bottom:1px solid #ffffff20;background:#171729;opacity:1;backdrop-filter:none;-webkit-backdrop-filter:none;gap:8px;align-content:start}
  #hp-group-builder.open{display:grid}
+ #hp-chat-window.group-builder-open{grid-template-rows:auto auto auto auto minmax(0,1fr) auto}
+ #hp-chat-window.group-builder-open #hp-group-builder{isolation:isolate;box-shadow:0 5px 14px #0008}
  #hp-group-builder input,#hp-group-builder select{width:100%;min-width:0;padding:9px;border:1px solid #ffffff20;border-radius:9px;background:#1b1b2c;color:#fff;font:12px system-ui}
  #hp-group-builder select{height:150px;min-height:150px;max-height:150px;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch}
  #hp-group-builder small{color:#aaa7c1;font-size:10px}
@@ -147,15 +149,16 @@
  window.addEventListener('hyperpop:navigate',syncChatMount);
  const groupBuilder=$('hp-group-builder');let groupBuilderMode='create';
  function configureGroupBuilder(mode){
-  groupBuilderMode=mode;groupBuilder.classList.add('open');
+  groupBuilderMode=mode;groupBuilder.classList.add('open');win.classList.add('group-builder-open');
   $('hp-group-title').style.display=mode==='create'?'':'none';
   $('hp-group-builder-help').textContent=mode==='create'?'Select 1 to 9 friends to add to this new group.':'Select friends to add to this existing group. Group chats support up to 10 members total.';
   $('hp-group-create-submit').textContent=mode==='create'?'Create group':'Add selected people';
   $('hp-group-friends').replaceChildren();
  }
- $('hp-new-group').addEventListener('click',()=>{if(groupBuilder.classList.contains('open')&&groupBuilderMode==='create'){groupBuilder.classList.remove('open');return}configureGroupBuilder('create');refreshLists()});
+ function closeGroupBuilder(){groupBuilder.classList.remove('open');win.classList.remove('group-builder-open')}
+ $('hp-new-group').addEventListener('click',()=>{if(groupBuilder.classList.contains('open')&&groupBuilderMode==='create'){closeGroupBuilder();return}configureGroupBuilder('create');refreshLists()});
  $('hp-add-group-members').addEventListener('click',async()=>{if(!window.HyperPopSelectedGroupConversation){note('Open a group chat first.');return}configureGroupBuilder('add');await refreshLists();const current=await fetch('https://iapnejlttsqqefkpmelp.supabase.co/rest/v1/rpc/hyperpop_group_members',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({p_token:localStorage.getItem('hyperpop_token'),p_conversation_id:window.HyperPopSelectedGroupConversation})}).then(r=>r.json()).catch(()=>({}));if(!current.ok){note(current.error||'Could not load group members.');return}const existing=new Set((current.members||[]).map(m=>String(m.id)));[...$('hp-group-friends').options].forEach(o=>{if(existing.has(String(o.value)))o.remove()});note('Select friends to add to this group.')});
- $('hp-group-cancel').addEventListener('click',()=>groupBuilder.classList.remove('open'));
+ $('hp-group-cancel').addEventListener('click',closeGroupBuilder);
  $('hp-group-create-submit').addEventListener('click',async()=>{
   const ids=[...$('hp-group-friends').selectedOptions].map(o=>o.value);
   if(!ids.length){note('Choose at least one friend.');return}
@@ -165,7 +168,7 @@
    const b=$('hp-group-create-submit');b.disabled=true;b.textContent='Creating…';
    const d=await rpc('group_create',{title,friend_ids:ids});b.disabled=false;b.textContent='Create group';
    if(!d.ok){note(d.error||'Could not create group chat.');return}
-   $('hp-group-title').value='';groupBuilder.classList.remove('open');await open(d.conversation_id);note('Group chat created!');
+   $('hp-group-title').value='';closeGroupBuilder();await open(d.conversation_id);note('Group chat created!');
   }else{
    const conversationId=window.HyperPopSelectedGroupConversation;if(!conversationId){note('Open a group chat first.');return}
    const b=$('hp-group-create-submit');b.disabled=true;b.textContent='Adding…';
@@ -173,7 +176,7 @@
    const r=await fetch('https://iapnejlttsqqefkpmelp.supabase.co/rest/v1/rpc/hyperpop_group_add_members',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({p_token:token,p_data:{conversation_id:conversationId,friend_ids:ids}})});
    const d=await r.json().catch(()=>({}));b.disabled=false;b.textContent='Add selected people';
    if(!r.ok||!d.ok){note(d.error||'Could not add people to this group.');return}
-   groupBuilder.classList.remove('open');note(d.added?d.added+' member'+(d.added===1?'':'s')+' added to the group.':'Those friends are already in this group.');await refreshLists();
+   closeGroupBuilder();note(d.added?d.added+' member'+(d.added===1?'':'s')+' added to the group.':'Those friends are already in this group.');await refreshLists();
   }
  });
  async function refreshLists(){
