@@ -21,7 +21,7 @@
  #hp-chat-head button{background:#ffffff12;color:#fff;border:1px solid #ffffff20;border-radius:9px;padding:6px 10px}
  #hp-chat-pickers{display:none}\n #hp-chat-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px 10px;border-bottom:1px solid #ffffff18;background:#10101d}\n #hp-chat-tabs button{padding:9px;border:1px solid #ffffff18;border-radius:10px;background:#ffffff08;color:#bdb9d2;font:700 12px system-ui}\n #hp-chat-tabs button.active{border-color:#7df9ff66;background:#7df9ff14;color:#8ffaff}\n #hp-party-panel{display:none;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch;padding:12px;gap:10px;align-content:start}\n #hp-chat-window.party-mode #hp-chat-pickers,#hp-chat-window.party-mode #hp-chat-feed,#hp-chat-window.party-mode>div:last-child{display:none}
  #hp-chat-window.party-mode #hp-group-create,#hp-chat-window.party-mode #hp-group-builder{display:none!important}\n #hp-chat-window.party-mode #hp-party-panel{display:grid}\n #hp-chat-window.party-mode{grid-template-rows:auto auto 1fr}\n .hp-party-card{padding:11px;border:1px solid #ffffff16;border-radius:13px;background:#ffffff06}\n #hp-party-invites:empty{display:none}\n .hp-party-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #ffffff10;font-size:12px}\n .hp-party-row:last-child{border-bottom:0}\n .hp-party-muted{color:#aaa7c1;font-size:11px}\n .hp-party-action{padding:8px 10px;border:1px solid #ffffff20;border-radius:9px;background:#ffffff0c;color:#f4f2ff;font:700 11px system-ui}\n .hp-party-action.primary{background:linear-gradient(120deg,#b7a0ff,#7df9ff);color:#10101d;border:0}\n #hp-party-chat-feed{display:flex;flex-direction:column;gap:7px;max-height:180px;overflow:auto;margin:8px 0}\n #hp-party-chat-feed .hp-party-msg{padding:8px 10px;border-radius:10px;background:#ffffff0b;font-size:12px;overflow-wrap:anywhere}\n #hp-party-chat-feed small{display:block;color:#aaa7c1;font-size:10px;margin-bottom:3px}\n #hp-party-chat-compose{display:flex;gap:6px}\n #hp-party-chat-compose input{min-width:0;flex:1;padding:9px;border:1px solid #ffffff20;border-radius:9px;background:#ffffff0b;color:#fff;font:12px system-ui}
- #hp-group-create{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid #ffffff18;background:#121221;min-width:0;width:100%;overflow:hidden}#hp-group-create #hp-chat-target{display:block;min-width:0;width:100%;max-width:100%;height:38px;padding:0 9px;border:1px solid #ffffff20;border-radius:10px;background:#1b1b2c;color:#f4f2ff;font:12px system-ui}#hp-group-create #hp-group-actions{display:flex;gap:6px;align-items:center;min-width:0}#hp-group-create #hp-group-actions button{display:inline-flex;align-items:center;justify-content:center;min-width:0;white-space:nowrap;padding:9px 8px;font-size:10px}#hp-group-create #hp-add-group-members{border-color:#b7a0ff66;background:#28213e;color:#d5c7ff}
+ #hp-group-create{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid #ffffff18;background:#121221;min-width:0;width:100%;overflow:hidden}#hp-group-create #hp-chat-target{display:block;min-width:0;width:100%;max-width:100%;height:38px;padding:0 9px;border:1px solid #ffffff20;border-radius:10px;background:#1b1b2c;color:#f4f2ff;font:12px system-ui}#hp-group-create #hp-chat-target optgroup{background:#11111f;color:#7df9ff;font-weight:800}#hp-group-create #hp-chat-target option{background:#1b1b2c;color:#f4f2ff;font-weight:400}#hp-group-create #hp-group-actions{display:flex;gap:6px;align-items:center;min-width:0}#hp-group-create #hp-group-actions button{display:inline-flex;align-items:center;justify-content:center;min-width:0;white-space:nowrap;padding:9px 8px;font-size:10px}#hp-group-create #hp-add-group-members{border-color:#b7a0ff66;background:#28213e;color:#d5c7ff}
  #hp-group-create button,#hp-group-builder button{padding:8px 10px;border:1px solid #7df9ff55;border-radius:9px;background:#123039;color:#9ffaff;font:750 11px system-ui}
  #hp-group-builder{display:none;position:relative;z-index:2;min-height:0;max-height:min(245px,42dvh);overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch;padding:10px;border-top:1px solid #ffffff20;border-bottom:1px solid #ffffff20;background:#171729;opacity:1;backdrop-filter:none;-webkit-backdrop-filter:none;gap:8px;align-content:start}
  #hp-group-builder.open{display:grid}
@@ -183,23 +183,25 @@
   if(busy)return;busy=true;
   const [chats,friends]=await Promise.all([namedChatList(),rpc('friends_list')]);busy=false;
   const target=$('hp-chat-target'),old=selected,oldFriend=selectedFriend?.id;
-  target.replaceChildren(new Option('Choose a contact or group…',''));
+  const groupOptions=new optgroup();groupOptions.label='Group Chats';
+  const friendOptions=new optgroup();friendOptions.label='Friends';
+  target.replaceChildren(new Option('Choose a conversation…',''),groupOptions,friendOptions);
   const seenFriends=new Set(),seenGroups=new Set();
   const gfs=$('hp-group-friends'),selectedGroup=[...gfs.selectedOptions].map(o=>o.value);gfs.replaceChildren();
+  if(chats.ok)(chats.conversations||[]).forEach(c=>{
+   const id=String(c.id||''),title=String(c.title||'').trim();
+   if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))return;
+   // Direct chats are represented by the friend entry below, avoiding duplicate entries.
+   if(!title||/^@/.test(title)||/^direct chat$/i.test(title)||/^party chat$/i.test(title))return;
+   if(seenGroups.has(id))return;seenGroups.add(id);
+   groupOptions.append(new Option((c.unread?'● ':'')+'▣ '+title,'conversation:'+id));
+  });
   if(friends.ok)(friends.friends||[]).forEach(f=>{
    const id=String(f.id||'');if(!id||seenFriends.has(id))return;seenFriends.add(id);
    const state=f.status==='invisible'||!f.online?'offline':({idle:'idle',dnd:'do not disturb',online:'online'})[f.status]||'online';
    const label='@'+f.username+' · '+state;
-   target.add(new Option(label,'friend:'+id));
+   friendOptions.append(new Option(label,'friend:'+id));
    gfs.add(new Option('@'+f.username,id));
-  });
-  if(chats.ok)(chats.conversations||[]).forEach(c=>{
-   const id=String(c.id||''),title=String(c.title||'').trim();
-   if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))return;
-   // Direct chats are represented by their contact above, avoiding duplicate entries.
-   if(!title||/^@/.test(title)||/^direct chat$/i.test(title)||/^party chat$/i.test(title))return;
-   if(seenGroups.has(id))return;seenGroups.add(id);
-   target.add(new Option((c.unread?'● ':'')+'▣ '+title,'conversation:'+id));
   });
   [...gfs.options].forEach(o=>o.selected=selectedGroup.includes(o.value));
   if(oldFriend&&[...target.options].some(o=>o.value==='friend:'+String(oldFriend)))target.value='friend:'+String(oldFriend);
