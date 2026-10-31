@@ -179,18 +179,37 @@ const drag=player.ground?(inputAmount>.08?(sprint?1.15:1.8):player.sliding>0?.35
 player.vel.x*=Math.exp(-drag*dt);player.vel.z*=Math.exp(-drag*dt);
 let horizontal=Math.hypot(player.vel.x,player.vel.z);
 if(horizontal>maxSpeed){const s=maxSpeed/horizontal;player.vel.x*=s;player.vel.z*=s;horizontal=maxSpeed}
-const sideProbe=collides(player.pos.x+Math.sign(player.vel.x||1)*.8,player.pos.y,player.pos.z)||collides(player.pos.x,player.pos.y,player.pos.z+Math.sign(player.vel.z||-1)*.8);
-if(player.ground&&sideProbe&&horizontal>5&&inputAmount>.15&&player.upAction){player.ground=false;player.wallrun=.9;player.wallSide=Math.sign(player.vel.x||1);player.vel.y=Math.max(player.vel.y,1.8);player.upAction=false;}
-if(!player.ground&&sideProbe&&horizontal>5&&inputAmount>.15&&(player.upAction||player.wallrun>0)){
- player.wallrun=Math.min(1.65,player.wallrun+dt);player.wallSide=Math.sign(player.vel.x||1);player.upAction=false;
- player.vel.y=Math.max(player.vel.y,-.65);player.vel.y+=9.5*dt;
- player.vel.x*=1.006;player.vel.z*=1.006;
-}else{player.wallrun=Math.max(0,player.wallrun-dt*2.8);player.wallSide=0}
+// Probe both sides of the runner, not just the direction of travel.
+const probeX=collides(player.pos.x+Math.sign(player.vel.x||1)*.72,player.pos.y,player.pos.z);
+const probeZ=collides(player.pos.x,player.pos.y,player.pos.z+Math.sign(player.vel.z||-1)*.72);
+const sideHit=probeX||probeZ;
+const sideNormal=probeX?new THREE.Vector3(-Math.sign(player.vel.x||1),0,0):new THREE.Vector3(0,0,-Math.sign(player.vel.z||-1));
+const movingIntoWall=sideHit&&(player.vel.x*sideNormal.x+player.vel.z*sideNormal.z)<-1.2;
+if(player.ground&&movingIntoWall&&horizontal>6&&inputAmount>.2&&player.upAction){
+ player.ground=false;player.wallrun=1.35;player.wallSide=probeX?Math.sign(player.vel.x||1):Math.sign(player.vel.z||-1);
+ player.vel.y=Math.max(player.vel.y,2.4);player.upAction=false;
+}
+if(player.wallrun>0){
+ if(sideHit&&horizontal>3.5){
+  player.wallrun=Math.max(0,player.wallrun-dt);
+  // Preserve travel direction along the wall and prevent the runner falling away.
+  const tangent=new THREE.Vector3(-sideNormal.z,0,sideNormal.x);
+  const along=player.vel.x*tangent.x+player.vel.z*tangent.z;
+  if(Math.abs(along)>2){player.vel.x=tangent.x*along;player.vel.z=tangent.z*along}
+  player.vel.y=Math.max(player.vel.y,-.15);
+  player.vel.y+=5.2*dt;
+  player.pos.addScaledVector(sideNormal,.035);
+ }else{player.wallrun=0;player.wallSide=0}
+}else if(!player.ground&&player.upAction&&sideHit&&horizontal>4&&inputAmount>.2){
+ player.wallrun=1.15;player.wallSide=probeX?Math.sign(player.vel.x||1):Math.sign(player.vel.z||-1);
+ player.vel.y=Math.max(player.vel.y,1.8);player.upAction=false;
+}
 if(player.quickturnBuffer>0){player.yaw+=Math.PI;player.quickturnBuffer=0;if(player.wallrun>0){const kick=new THREE.Vector3(-Math.sin(player.yaw),0,-Math.cos(player.yaw));player.vel.x=kick.x*10;player.vel.z=kick.z*10;player.vel.y=Math.max(player.vel.y,7.8);player.wallrun=0;}toast('QUICKTURN')}
 const obstacleAhead=collides(player.pos.x+forward.x*.9,player.pos.y,player.pos.z+forward.z*.9);
 if(player.jumpBuffer>0&&player.wallrun>0){player.vel.x=-player.wallSide*8.5;player.vel.y=9.2;player.wallrun=0;player.jumpBuffer=0;player.upAction=false}
 else if(player.jumpBuffer>0&&(player.ground||player.coyote>0)&&!obstacleAhead){player.vel.y=player.sliding>0?8.5:9.6;player.ground=false;player.coyote=0;player.jumpBuffer=0;player.sliding=0;player.upAction=false}
-player.vel.y-=player.wallrun>0?5.5*dt:22*dt;
+player.vel.y-=player.wallclimb>0?4.2*dt:player.wallrun>0?5.2*dt:22*dt;
+if(player.wallclimb>0){player.vel.y=Math.max(player.vel.y,5.4);player.vel.x+=forward.x*1.8*dt;player.vel.z+=forward.z*1.8*dt;}
 const oldY=player.pos.y,oldGround=player.ground;
 let nx=player.pos.x+player.vel.x*dt,nz=player.pos.z+player.vel.z*dt,ny=player.pos.y+player.vel.y*dt;
 const front=collides(nx,player.pos.y,nz);
@@ -202,8 +221,10 @@ else{
   player.vault=.42;player.pos.y=top+1.72;player.vel.y=0;player.ground=true;player.upAction=false;
   const push=forward.clone().multiplyScalar(1.15);player.pos.add(push);
   player.vel.x*=.72;player.vel.z*=.72;
- }else if(player.upAction&&ledgeHeight>=2.65&&ledgeHeight<7.5&&horizontal>1.5&&inputAmount>.12){
-  player.wallclimb=.55;player.vel.y=Math.max(player.vel.y,8.6);player.vel.x+=forward.x*2.4;player.vel.z+=forward.z*2.4;player.upAction=false;player.wallrun=0;
+ }else if(player.upAction&&ledgeHeight>=2.65&&ledgeHeight<7.5&&horizontal>1.5&&inputAmount>.12&&player.wallclimb<=0){
+  // Climb is a committed upward traversal, with a short hang-like lift and forward mantle.
+  player.wallclimb=.72;player.vel.y=9.8;player.vel.x+=forward.x*3.1;player.vel.z+=forward.z*3.1;
+  player.upAction=false;player.wallrun=0;
  }else{
   if(!collides(nx,player.pos.y,player.pos.z))player.pos.x=nx;else player.vel.x*= -.08;
   if(!collides(player.pos.x,player.pos.y,nz))player.pos.z=nz;else player.vel.z*= -.08;
@@ -224,7 +245,7 @@ horizontal=Math.hypot(player.vel.x,player.vel.z);
 const moving=player.ground&&horizontal>.6;
 bobPhase+=dt*(moving?7+horizontal*.65:1.5);
 const bob=moving?Math.sin(bobPhase)*Math.min(.045,horizontal*.0035):0;
-const targetY=player.pos.y+(player.sliding>0?-.58:0)+(player.wallrun>0?.08:0)+(player.wallclimb>0?.12:0)-player.landBlend*.16+bob;
+const targetY=player.pos.y+(player.sliding>0?-.58:0)+(player.wallrun>0?.08:0)+(player.wallclimb>0?.2:0)-player.landBlend*.16+bob;
 player.camY=THREE.MathUtils.damp(player.camY||targetY,targetY,player.ground?15:8,dt);
 const targetFov=78+Math.min(horizontal/17,1)*9+(player.sliding>0?5:0)+(player.wallrun>0?3:0);
 cameraFov=THREE.MathUtils.damp(cameraFov,targetFov,5,dt);camera.fov=cameraFov;camera.updateProjectionMatrix();
