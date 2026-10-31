@@ -1,7 +1,7 @@
 /* Hyper-Pop social hub UI. Calls the token-authenticated social RPC API. */
 (function(){
  const $=id=>document.getElementById(id), token=()=>localStorage.getItem('hyperpop_token');
- let selectedConversation=null, me=null,liveRefreshBusy=false,knownIncomingRequests=null,cachedFriends=[];
+ let selectedConversation=null, me=null,liveRefreshBusy=false,knownIncomingRequests=null,cachedFriends=[],partyChatConversation=null,partyChatBusy=false;
  async function rpc(action,data={}){const t=token();if(!t)return {ok:false,error:'Please sign in first.'};try{const r=await fetch('https://iapnejlttsqqefkpmelp.supabase.co/rest/v1/rpc/hyperpop_social',{method:'POST',headers:{apikey:'sb_publishable_TB7oC4nDlUJq-Gcb2yoTjQ_Dvbh6NlM','Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({p_token:t,p_action:action,p_data:data})});const raw=await r.text();let d;try{d=raw?JSON.parse(raw):{}}catch(_){d={message:raw}}if(!r.ok){const detail=Array.isArray(d)?d[0]:d;return {ok:false,error:detail.message||detail.error||detail.details||('Social request failed ('+r.status+').')}}return d}catch(e){console.error('[Hyper-Pop social]',action,e);return {ok:false,error:'Could not reach the social server.'}}}
  function status(s){$('social-status').textContent=s}
  function presenceLabel(f){if(!f.online||f.status==='invisible')return'Offline';return({idle:'Idle',dnd:'Do not disturb',online:'Online'})[f.status]||'Online'}
@@ -20,7 +20,7 @@
    if(u.bio){const bio=document.createElement('div');bio.className='social-user-bio';bio.textContent=u.bio;info.append(bio)}
    const action=document.createElement('button');action.className='social-btn';action.textContent=u.is_friend?'Friends':u.request_sent?'Requested':u.request_received?'Accept':'＋ Add';
    action.disabled=!!(u.is_friend||u.request_sent);
-   action.addEventListener('click',async()=>{action.disabled=true;action.textContent=u.request_received?'Accepting…':'Sending…';const x=u.request_received?await rpc('friend_accept',{friendship_id:u.friendship_id}):await rpc('friend_request',{username:u.username});status(x.error||(x.ok?(u.request_received?'Friend request accepted.':'Friend request sent.'):'Could not complete request.'));if(x.ok){action.textContent=u.request_received?'Friends':'Requested';await Promise.all([loadFriends(),loadChats()]);if($('friend-search').value.trim().length>=2)search()}else{action.disabled=false;action.textContent=u.request_received?'Accept':'＋ Add'}});
+   action.addEventListener('click',async()=>{action.disabled=true;action.textContent=u.request_received?'Accepting…':'Sending…';const x=u.request_received?await rpc('friend_accept',{friendship_id:u.friendship_id}):await rpc('friend_request',{username:u.username});status(x.error||(x.ok?(u.request_received?'Friend request accepted.':'Friend request sent.'):'Could not complete request.'));if(x.ok){action.textContent=u.request_received?'Friends':'Requested';await Promise.all([loadFriends(),loadChats(),loadParty(),loadPartyChat()]);if($('friend-search').value.trim().length>=2)search()}else{action.disabled=false;action.textContent=u.request_received?'Accept':'＋ Add'}});
    d.append(avatar,info,action);return d;
  }
  async function search(){
@@ -38,13 +38,52 @@
    matches.forEach(u=>results.append(renderUserResult(u)));
  }
  function scheduleSearch(){clearTimeout(searchTimer);searchTimer=setTimeout(search,220)}
+
+ async function loadPartyChat(){
+  if(partyChatBusy||!token()||!$('party-chat-feed'))return;
+  partyChatBusy=true;
+  try{
+   const r=await fetch('https://iapnejlttsqqefkpmelp.supabase.co/rest/v1/rpc/hyperpop_party_chat',{method:'POST',headers:{apikey:'sb_publishable_TB7oC4nDlUJq-Gcb2yoTjQ_Dvbh6NlM','Content-Type':'application/json'},body:JSON.stringify({p_token:token(),p_action:'get',p_data:{}})});
+   const d=await r.json().catch(()=>({}));
+   if(!r.ok||!d.ok){$('party-chat-feed').replaceChildren(empty(d.error||'Party chat is unavailable.'));return}
+   partyChatConversation=d.conversation_id;
+   const feed=$('party-chat-feed'),wasBottom=feed.scrollHeight-feed.scrollTop-feed.clientHeight<55;
+   feed.replaceChildren();
+   (d.messages||[]).slice().reverse().forEach(m=>{
+    const bubble=document.createElement('div');bubble.className='social-bubble'+(String(m.sender_id)===String(me?.id)?' mine':'');
+    const small=document.createElement('small');small.textContent='@'+m.username+' · '+new Date(m.created_at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+    const body=document.createElement('div');body.textContent=m.body;bubble.append(small,body);feed.append(bubble);
+   });
+   if(!feed.childElementCount)feed.append(empty('Your party chat is ready. Say something!'));
+   if(wasBottom)feed.scrollTop=feed.scrollHeight;
+  }catch(_){$('party-chat-feed')?.replaceChildren(empty('Could not load party chat.'))}
+  finally{partyChatBusy=false}
+ }
+ async function sendPartyChat(event){
+  event?.preventDefault();
+  const input=$('party-chat-input'),body=input?.value.trim();
+  if(!body||!partyChatConversation)return;
+  input.disabled=true;
+  try{
+   const r=await fetch('https://iapnejlttsqqefkpmelp.supabase.co/rest/v1/rpc/hyperpop_party_chat',{method:'POST',headers:{apikey:'sb_publishable_TB7oC4nDlUJq-Gcb2yoTjQ_Dvbh6NlM','Content-Type':'application/json'},body:JSON.stringify({p_token:token(),p_action:'send',p_data:{body}})});
+   const d=await r.json().catch(()=>({}));
+   if(!r.ok||!d.ok){status(d.error||'Could not send party message.');return}
+   input.value='';await loadPartyChat();
+  }catch(_){status('Could not send party message.')}
+  finally{input.disabled=false;input.focus()}
+ }
  async function loadParty(){
   const d=await rpc('party_get');$('party-current').replaceChildren();
   if(!d.ok){$('party-current').append(empty(d.error));return}
-  if(!d.party){$('party-current').append(empty('You are not in a party.'));$('party-games').innerHTML='<div class="social-item"><span>Solo games</span><span class="social-muted">1 player</span></div><div class="social-item"><span>Party-enabled games</span><span class="social-muted">2–6 players</span></div>';return}
+  if(!d.party){partyChatConversation=null;$('party-current').append(empty('You are not in a party.'));$('party-games').innerHTML='<div class="social-item"><span>Solo games</span><span class="social-muted">1 player</span></div><div class="social-item"><span>Party-enabled games</span><span class="social-muted">2–6 players</span></div>';return}
   const p=d.party,members=p.members||[];
   $('party-current').append(item('Party lobby',String(members.length)+' / 6 players · '+(p.game_slug||'No game selected')));
   members.forEach(m=>$('party-current').append(item('@'+m.username,m.is_leader?'Party leader':'Party member')));
+  const partyChat=document.createElement('section');partyChat.className='party-chat-panel';
+  partyChat.innerHTML='<h3>✉ Party chat</h3><div id="party-chat-feed" class="social-chatbox" aria-live="polite"><div class="social-empty">Loading party chat…</div></div><form id="party-chat-form" class="social-row" style="margin-top:9px"><input id="party-chat-input" class="social-input" maxlength="1000" placeholder="Message your party…" autocomplete="off"><button class="social-btn primary" type="submit">Send</button></form><div class="social-muted" style="margin-top:8px">Messages stay with this party while you navigate Hyper-Pop.</div>';
+  $('party-current').append(partyChat);
+  $('party-chat-form').addEventListener('submit',sendPartyChat);
+  loadPartyChat();
   const isLeader=members.some(m=>m.is_leader&&((me&&String(m.id)===String(me.id))||m.username===me?.username));
   if(isLeader&&members.length<6){
    const inviteRow=document.createElement('div');inviteRow.className='social-row';inviteRow.style.cssText='margin-top:10px;justify-content:flex-start';
