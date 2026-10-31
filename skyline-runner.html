@@ -54,8 +54,8 @@ kbd{display:inline-block;min-width:23px;text-align:center;padding:3px 5px;backgr
 <div id="hud"><div id="brand">SKYLINE<span> / /</span> RUNNER</div><div id="objective">ROUTE OBJECTIVE<strong id="objectiveText">EXPLORE THE CITY</strong></div><div id="mission">FREE ROAM // THE CITY<strong id="checkpointText">OPEN WORLD // NO ROUTE</strong></div><div id="speed"><b id="speedValue">00</b><br><small>KM/H</small></div><div id="crosshair"></div><div id="hint">WASD MOVE · UP TRAVERSE · DOWN SLIDE · EXTRA QUICKTURN</div><div id="progress"><div id="bar"></div></div></div>
 <div id="toast"></div>
 <button id="pause">Ⅱ PAUSE</button>
-<div id="mobile"><div id="joystick" aria-label="Movement joystick"><div id="stick"></div></div><div class="actions"><button class="touch up jump" data-key="Space">UP</button><button class="touch down" data-key="ControlLeft">DOWN</button><button class="touch extra" data-key="KeyQ">EXTRA</button></div></div><div id="look-label">TOUCH + DRAG TO LOOK</div>
-<div id="overlay"><div class="panel"><div class="kicker">OPEN-WORLD FIRST-PERSON PARKOUR</div><h1>RUN THE<br><span>LINE.</span></h1><p>An entire city is open. Find rooftop routes, vault barriers, mantle ledges, wall-run across facades and explore without a finish line.</p><button id="start">▶ &nbsp; ENTER THE CITY</button><div id="controls"><div><kbd>W A S D</kbd> MOVE</div><div><kbd>UP / SPACE</kbd> JUMP / VAULT / WALLRUN / CLIMB</div><div><kbd>DOWN / CTRL</kbd> SLIDE / ROLL / COIL</div><div><kbd>EXTRA / Q</kbd> QUICKTURN</div><div><kbd>SHIFT</kbd> MOMENTUM BURST</div><div><kbd>MOUSE</kbd> LOOK · <kbd>ESC</kbd> PAUSE</div></div></div></div>
+<div id="mobile"><div id="joystick" aria-label="Movement joystick"><div id="stick"></div></div><div class="actions"><button class="touch up jump" data-key="Space">UP</button><button class="touch down" data-key="ShiftLeft">DOWN</button><button class="touch extra" data-key="KeyQ">EXTRA</button></div></div><div id="look-label">TOUCH + DRAG TO LOOK</div>
+<div id="overlay"><div class="panel"><div class="kicker">OPEN-WORLD FIRST-PERSON PARKOUR</div><h1>RUN THE<br><span>LINE.</span></h1><p>An entire city is open. Find rooftop routes, vault barriers, mantle ledges, wall-run across facades and explore without a finish line.</p><button id="start">▶ &nbsp; ENTER THE CITY</button><div id="controls"><div><kbd>W A S D</kbd> MOVE</div><div><kbd>UP / SPACE</kbd> JUMP / VAULT / WALLRUN / CLIMB</div><div><kbd>DOWN / LEFT SHIFT</kbd> SLIDE / ROLL / DESCEND</div><div><kbd>EXTRA / Q</kbd> QUICKTURN</div><div><kbd>CTRL</kbd> SPRINT / MOMENTUM BURST</div><div><kbd>MOUSE</kbd> LOOK · <kbd>ESC</kbd> PAUSE</div></div></div></div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
 <script type="module">
 import * as THREE from 'three';
@@ -165,8 +165,8 @@ if(isMobile){wish.addScaledVector(right,moveX);wish.addScaledVector(forward,-mov
 const inputAmount=Math.min(1,wish.length());if(wish.lengthSq())wish.normalize();
 if(keys.Space){player.jumpBuffer=.16;player.upAction=true;keys.Space=false}else player.jumpBuffer=Math.max(0,player.jumpBuffer-dt);
 if(player.ground)player.coyote=.13;else player.coyote=Math.max(0,player.coyote-dt);
-const slideHeld=keys.ControlLeft||keys.ControlRight;
-const sprint=keys.ShiftLeft||keys.ShiftRight||inputAmount>.82&&player.ground;
+const slideHeld=keys.ShiftLeft;
+const sprint=keys.ControlLeft||keys.ControlRight||inputAmount>.82&&player.ground;
 const speed=Math.hypot(player.vel.x,player.vel.z);
 if(slideHeld&&player.ground&&speed>4.2)player.sliding=Math.max(player.sliding,.72);if(slideHeld&&!player.ground&&player.vel.y>0){player.roll=Math.max(player.roll,.28);player.vel.y-=2.8*dt;}player.roll=Math.max(0,player.roll-dt);
 player.sliding=Math.max(0,player.sliding-dt);
@@ -236,7 +236,7 @@ camera.rotation.set(player.pitch,player.yaw,player.runLean+(player.wallrun>0?pla
 
 document.getElementById('speedValue').textContent=String(Math.round(horizontal*3.6)).padStart(2,'0');
 document.getElementById('bar').style.width=(checkpoint/3*100)+'%';
-hint.textContent=isMobile?(player.wallrun>0?'UP // WALL RUN · EXTRA // QUICKTURN':player.wallclimb>0?'UP // WALL CLIMB':player.vault>0?'UP // VAULT / MANTLE':player.sliding>0?'DOWN // SLIDE · ROLL OUT':player.ground?'UP TRAVERSE · DOWN SLIDE · EXTRA QUICKTURN':'AIRBORNE // UP TO COIL / DOWN TO DISMOUNT'):(player.wallrun>0?'UP // WALL RUN · EXTRA // QUICKTURN':player.wallclimb>0?'UP // WALL CLIMB':player.vault>0?'UP // VAULT / MANTLE':player.sliding>0?'DOWN // SLIDE · ROLL OUT':player.ground?'SPACE UP · CTRL DOWN · Q EXTRA · SHIFT BURST':'AIRBORNE // UP TO COIL / DOWN TO DISMOUNT');
+hint.textContent=isMobile?(player.wallrun>0?'UP // WALL RUN · EXTRA // QUICKTURN':player.wallclimb>0?'UP // WALL CLIMB':player.vault>0?'UP // VAULT / MANTLE':player.sliding>0?'DOWN // SLIDE · ROLL OUT':player.ground?'UP TRAVERSE · DOWN SLIDE · EXTRA QUICKTURN':'AIRBORNE // UP TO COIL / DOWN TO DISMOUNT'):(player.wallrun>0?'UP // WALL RUN · EXTRA // QUICKTURN':player.wallclimb>0?'UP // WALL CLIMB':player.vault>0?'UP // VAULT / MANTLE':player.sliding>0?'DOWN // SLIDE · ROLL OUT':player.ground?'SPACE UP · LEFT SHIFT DOWN · Q EXTRA · CTRL SPRINT':'AIRBORNE // UP TO COIL / DOWN TO DISMOUNT');
 }
 function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last)/1000,.033);last=now;update(dt);renderer.render(scene,camera)}requestAnimationFrame(animate);
 function resizeGame(){const w=window.innerWidth,h=window.innerHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);isMobile=matchMedia('(pointer: coarse)').matches||w<=900;renderer.setPixelRatio(Math.min(devicePixelRatio,isMobile?1.25:1.7))}
