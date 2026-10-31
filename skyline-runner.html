@@ -51,11 +51,11 @@ kbd{display:inline-block;min-width:23px;text-align:center;padding:3px 5px;backgr
 </style>
 </head>
 <body>
-<div id="hud"><div id="brand">SKYLINE<span> / /</span> RUNNER</div><div id="objective">ROUTE OBJECTIVE<strong id="objectiveText">REACH THE BEACON</strong></div><div id="mission">FREE RUN // SECTOR 01<strong id="checkpointText">0 / 3 CHECKPOINTS</strong></div><div id="speed"><b id="speedValue">00</b><br><small>KM/H</small></div><div id="crosshair"></div><div id="hint">WASD MOVE · SPACE JUMP · SHIFT SLIDE</div><div id="progress"><div id="bar"></div></div></div>
+<div id="hud"><div id="brand">SKYLINE<span> / /</span> RUNNER</div><div id="objective">ROUTE OBJECTIVE<strong id="objectiveText">EXPLORE THE CITY</strong></div><div id="mission">FREE ROAM // THE CITY<strong id="checkpointText">OPEN WORLD // NO ROUTE</strong></div><div id="speed"><b id="speedValue">00</b><br><small>KM/H</small></div><div id="crosshair"></div><div id="hint">WASD MOVE · SPACE JUMP · SHIFT SLIDE</div><div id="progress"><div id="bar"></div></div></div>
 <div id="toast"></div>
 <button id="pause">Ⅱ PAUSE</button>
 <div id="mobile"><div id="joystick" aria-label="Movement joystick"><div id="stick"></div></div><div class="actions"><button class="touch" data-key="ShiftLeft">SLIDE</button><button class="touch jump" data-key="Space">JUMP</button></div></div><div id="look-label">TOUCH + DRAG TO LOOK</div>
-<div id="overlay"><div class="panel"><div class="kicker">A FIRST-PERSON PARKOUR EXPERIENCE</div><h1>RUN THE<br><span>LINE.</span></h1><p>Find your flow above the city. Build speed, clear the gaps, chain wall-runs and reach every signal. The skyline is your playground.</p><button id="start">▶ &nbsp; ENTER THE CITY</button><div id="controls"><div><kbd>W A S D</kbd> MOVE</div><div><kbd>SPACE</kbd> JUMP / CLIMB</div><div><kbd>SHIFT</kbd> SLIDE / ROLL</div><div><kbd>MOUSE</kbd> LOOK AROUND</div><div><kbd>ESC</kbd> PAUSE</div><div><kbd>R</kbd> RESTART RUN</div></div></div></div>
+<div id="overlay"><div class="panel"><div class="kicker">OPEN-WORLD FIRST-PERSON PARKOUR</div><h1>RUN THE<br><span>LINE.</span></h1><p>An entire city is open. Find rooftop routes, vault barriers, mantle ledges, wall-run across facades and explore without a finish line.</p><button id="start">▶ &nbsp; ENTER THE CITY</button><div id="controls"><div><kbd>W A S D</kbd> MOVE</div><div><kbd>SPACE</kbd> JUMP / CLIMB</div><div><kbd>SHIFT</kbd> SLIDE / ROLL</div><div><kbd>MOUSE</kbd> LOOK AROUND</div><div><kbd>ESC</kbd> PAUSE</div><div><kbd>R</kbd> RESTART RUN</div></div></div></div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
 <script type="module">
 import * as THREE from 'three';
@@ -69,20 +69,69 @@ const boxGeo=new THREE.BoxGeometry(1,1,1);
 function block(x,y,z,w,h,d,m=white,collide=true){const o=new THREE.Mesh(boxGeo,m);o.position.set(x,y,z);o.scale.set(w,h,d);o.castShadow=true;o.receiveShadow=true;scene.add(o);if(collide)solids.push({minX:x-w/2,maxX:x+w/2,minY:y-h/2,maxY:y+h/2,minZ:z-d/2,maxZ:z+d/2});return o}
 const solids=[];const platforms=[];
 function platform(x,z,w,d,y=0,m=white){block(x,y-.25,z,w,.5,d,m);platforms.push({x,z,w,d,y});}
-platform(0,0,18,22,0);platform(0,-27,12,14,1.2);platform(8,-49,13,15,2.2);platform(8,-74,18,16,1.4);platform(-5,-100,14,17,2.1);platform(-5,-127,20,18,0.8);platform(8,-155,16,18,1.8);platform(8,-183,24,20,0);
-function building(x,z,w,h,d,c=0xc4d0d3){const o=block(x,h/2-1,z,w,h,d,mat(c));for(let y=3;y<h-2;y+=4){const win=block(x,z?y:y,z,w*.82,.07,d+.03,glass,false);win.position.y=y;} }
-for(let i=0;i<38;i++){let x=(i%2?1:-1)*(25+Math.random()*70),z=-i*7-8,w=8+Math.random()*15,h=18+Math.random()*55,d=8+Math.random()*15;block(x,h/2-2,z,w,h,d,i%3?mat(0xd1dcde):mat(0xaabdc2),false);for(let y=4;y<h-3;y+=5)for(let xx=-w/2+1;xx<w/2-1;xx+=3){const win=new THREE.Mesh(new THREE.BoxGeometry(1.5,2,.04),glass);win.position.set(x+xx,y,z-d/2-.03);scene.add(win)}}
-function obstacle(x,z,w,h,d,y=0){block(x,y+h/2,z,w,h,d,dark);const stripe=block(x,y+h+.04,z,w+.08,.08,d+.08,red,false);return stripe}
-obstacle(0,-9,3,1.15,1,0);obstacle(-2,-31,2.3,1.0,.8,1.2);obstacle(11,-53,2,1.3,1,2.2);obstacle(3,-79,3,1.2,1,1.4);obstacle(-9,-105,2.5,1.1,1,2.1);obstacle(-1,-133,2,1.3,1,.8);obstacle(14,-160,2.5,1.1,1,1.8);
-function wall(x,y,z,w,h,d){block(x,y,z,w,h,d,pale)}
-wall(8,2,-14,.5,4,5);wall(-7,2,-35,.5,4,6);wall(16,3,-58,.5,6,7);wall(-2,2,-88,.5,4,6);wall(-14,2,-112,.5,4,6);wall(17,2,-168,.5,4,6);
+const groundMat=mat(0x78868a),roadMat=mat(0x38464b),sidewalkMat=mat(0xb8c4c5),roofMats=[mat(0xe7ebea),mat(0xcbd5d6),mat(0xaebfc2),mat(0xdce2e1)];
+// A continuous city floor with a walkable street grid and hundreds of reachable rooftops.
+platform(0,0,520,520,0,groundMat);
+for(let i=-8;i<=8;i++){
+ const p=i*32;
+ block(p,-.12,0,10,.22,520,roadMat,false);
+ block(0,-.08,p,520,.16,10,roadMat,false);
+ block(p+7,.04,0,3,.08,520,sidewalkMat,false);
+ block(0,.04,p+7,520,.08,3,sidewalkMat,false);
+}
+const cityBuildings=[];
+function makeBuilding(x,z,w,d,h,idx){
+ const m=roofMats[idx%roofMats.length],body=mat([0xb8c8cb,0x9eafb4,0xd2dcdd,0xaabcc0,0xc5d0d1][idx%5]);
+ const b=block(x,h/2,z,w,h,d,body,true);
+ platforms.push({x,z,w,d,y:h});
+ // Rooftop lip, HVAC units, access huts and occasional red route accents.
+ for(const side of [-1,1]){
+  const rail=new THREE.Mesh(new THREE.BoxGeometry(w,.28,.22),dark);rail.position.set(x,h+.14,z+side*(d/2-.15));scene.add(rail);
+ }
+ for(let n=0;n<2+(idx%3);n++){
+  const ox=x+(Math.random()-.5)*w*.62,oz=z+(Math.random()-.5)*d*.62;
+  const unit=block(ox,h+.65,oz,1.8,1.3,1.5,n%4===0?red:dark,false);
+ }
+ if(idx%7===0){const mast=block(x+w*.28,h+2,z-d*.25,.22,4,.22,red,false)}
+ cityBuildings.push({x,z,w,d,h});
+}
+let id=0;
+for(let gx=-7;gx<=7;gx++)for(let gz=-7;gz<=7;gz++){
+ const x=gx*32,z=gz*32;
+ // Keep a broad central plaza open and vary building heights for traversable routes.
+ if(Math.abs(gx)<=1&&Math.abs(gz)<=1)continue;
+ const w=15+Math.random()*8,d=15+Math.random()*8,h=5+Math.random()*20;
+ makeBuilding(x,z,w,d,h,id++);
+}
+// A cluster of lower buildings creates multiple ways to climb into the taller skyline.
+for(const [x,z,w,d,h] of [[0,-22,18,18,7],[22,-22,18,18,12],[-22,-22,18,18,9],[0,22,18,18,6],[22,22,18,18,10],[-22,22,18,18,8],[0,-54,20,18,13],[32,-54,18,20,18],[-32,-54,18,20,11],[0,54,20,18,15]]){
+ makeBuilding(x,z,w,d,h,id++);
+}
+// Rooftop bridges, ramps and low parkour obstacles connect nearby blocks.
+function bridge(x,z,w,d,y,rot=0){const o=block(x,y-.18,z,w,.36,d,pale,false);o.rotation.y=rot;platforms.push({x,z,w,d,y:y-.0})}
+for(let k=-5;k<=5;k++){
+ const x=k*32;
+ bridge(x+16,-22,12,3,9+(Math.abs(k)%3)*2);
+ bridge(x+16,22,12,3,8+(Math.abs(k)%4)*2);
+}
+function obstacle(x,z,w,h,d,y=0){block(x,y+h/2,z,w,h,d,dark,true);block(x,y+h+.04,z,w+.08,.08,d+.08,red,false)}
+for(let i=0;i<90;i++){
+ const b=cityBuildings[Math.floor(Math.random()*cityBuildings.length)];
+ const x=b.x+(Math.random()-.5)*b.w*.55,z=b.z+(Math.random()-.5)*b.d*.55;
+ obstacle(x,z,1.2+Math.random()*2,.65+Math.random()*1.0,1.1,b.h);
+}
+function wall(x,y,z,w,h,d){block(x,y,z,w,h,d,pale,true)}
 function rail(x,z,w,d,y=1){block(x,y,z,w,.12,d,dark,false);block(x,y+.55,z,w,.08,d,dark,false)}
-rail(0,-10,16,.15);rail(0,-22,12,.15,1.4);rail(8,-42,.15,12,2.4);rail(8,-65,16,.15,2.6);rail(-5,-91,12,.15,3);rail(-5,-118,18,.15,1.7);
-const beacons=[new THREE.Vector3(0,1.4,-27),new THREE.Vector3(8,2.4,-74),new THREE.Vector3(8,2.8,-183)];
-const beaconMeshes=[];for(const p of beacons){const g=new THREE.Group();const ring=new THREE.Mesh(new THREE.TorusGeometry(1.1,.09,8,32),red);ring.position.y=1.3;g.add(ring);const core=new THREE.Mesh(new THREE.SphereGeometry(.18,16,12),yellow);core.position.y=1.3;g.add(core);g.position.copy(p);scene.add(g);beaconMeshes.push(g)}
+// Rooftop navigation markers are environmental landmarks, not a linear objective.
+for(let i=0;i<24;i++){
+ const b=cityBuildings[i*3];
+ if(!b)continue;
+ const beacon=new THREE.Mesh(new THREE.BoxGeometry(.35,2.8,.35),red);
+ beacon.position.set(b.x,b.h+1.4,b.z);scene.add(beacon);
+}
 // skyline details and sun disc
 const sunDisc=new THREE.Mesh(new THREE.CircleGeometry(12,48),new THREE.MeshBasicMaterial({color:0xfff1d2}));sunDisc.position.set(-75,62,-190);scene.add(sunDisc);
-const player={pos:new THREE.Vector3(0,1.7,7),vel:new THREE.Vector3(),yaw:0,pitch:0,ground:true,sliding:0,wallrun:0,roll:0,coyote:.12,jumpBuffer:0,landBlend:0,runLean:0,camY:1.7,vault:0,wallSide:0};camera.position.copy(player.pos);
+const player={pos:new THREE.Vector3(0,8.7,0),vel:new THREE.Vector3(),yaw:0,pitch:0,ground:true,sliding:0,wallrun:0,roll:0,coyote:.12,jumpBuffer:0,landBlend:0,runLean:0,camY:1.7,vault:0,wallSide:0};camera.position.copy(player.pos);
 let cameraFov=78, bobPhase=0, wasGrounded=true, lastHorizontalSpeed=0;
 const keys={};let locked=false,started=false,paused=true,mouseDown=false,last=performance.now(),elapsed=0,checkpoint=0,runStart=0,finish=false;
 const overlay=document.getElementById('overlay'),hint=document.getElementById('hint');
@@ -102,7 +151,7 @@ joystick.addEventListener('pointerdown',e=>{e.preventDefault();stickPointer=e.po
 joystick.addEventListener('pointermove',e=>{if(e.pointerId===stickPointer)setStick(e)});
 ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>joystick.addEventListener(ev,releaseStick));
 let lookPointer=null,lastLookX=0,lastLookY=0;renderer.domElement.addEventListener('pointerdown',e=>{if(e.pointerType!=='touch'||e.clientX<innerWidth*.38||paused)return;lookPointer=e.pointerId;lastLookX=e.clientX;lastLookY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId)});renderer.domElement.addEventListener('pointermove',e=>{if(e.pointerId!==lookPointer||paused)return;const dx=e.clientX-lastLookX,dy=e.clientY-lastLookY;player.yaw-=dx*.004;player.pitch=THREE.MathUtils.clamp(player.pitch-dy*.003,-1.1,1.1);lastLookX=e.clientX;lastLookY=e.clientY});function endLook(e){if(e.pointerId===lookPointer)lookPointer=null}renderer.domElement.addEventListener('pointerup',endLook);renderer.domElement.addEventListener('pointercancel',endLook);
-function reset(){player.pos.set(0,1.7,7);player.vel.set(0,0,0);player.ground=true;checkpoint=0;finish=false;elapsed=0;runStart=performance.now();document.getElementById('checkpointText').textContent='0 / 3 CHECKPOINTS';document.getElementById('objectiveText').textContent='REACH THE BEACON';document.getElementById('bar').style.width='0%';toast('ROUTE RESET')}
+function reset(){player.pos.set(0,1.7,7);player.vel.set(0,0,0);player.ground=true;checkpoint=0;finish=false;elapsed=0;runStart=performance.now();document.getElementById('checkpointText').textContent='OPEN WORLD // NO ROUTE';document.getElementById('objectiveText').textContent='EXPLORE THE CITY';document.getElementById('bar').style.width='0%';toast('ROUTE RESET')}
 function getPlatform(x,z){let best=null;for(const p of platforms){if(x>p.x-p.w/2-.2&&x<p.x+p.w/2+.2&&z>p.z-p.d/2-.2&&z<p.z+p.d/2+.2&&(!best||p.y>best.y))best=p}return best}
 function collides(x,y,z){for(const s of solids){if(x>s.minX-.35&&x<s.maxX+.35&&z>s.minZ-.35&&z<s.maxZ+.35&&y-1.1<s.maxY&&y+.1>s.minY)return s}return null}
 function update(dt){
@@ -121,8 +170,8 @@ const slideHeld=keys.ShiftLeft||keys.ShiftRight;
 const speed=Math.hypot(player.vel.x,player.vel.z);
 if(slideHeld&&player.ground&&speed>5)player.sliding=Math.max(player.sliding,.72);
 player.sliding=Math.max(0,player.sliding-dt);
-const maxSpeed=player.sliding>0?19:(sprint?17:13.5);
-const accel=player.ground?(player.sliding>0?5.5: sprint?25:19):7.5;
+const maxSpeed=player.sliding>0?20:(sprint?18.5:14.5);
+const accel=player.ground?(player.sliding>0?6.5: sprint?27:21):9.5;
 if(player.sliding<=0||inputAmount>.15){
  player.vel.x+=wish.x*accel*dt;player.vel.z+=wish.z*accel*dt;
 }
@@ -132,21 +181,26 @@ let horizontal=Math.hypot(player.vel.x,player.vel.z);
 if(horizontal>maxSpeed){const s=maxSpeed/horizontal;player.vel.x*=s;player.vel.z*=s;horizontal=maxSpeed}
 const sideProbe=collides(player.pos.x+Math.sign(player.vel.x||1)*.8,player.pos.y,player.pos.z)||collides(player.pos.x,player.pos.y,player.pos.z+Math.sign(player.vel.z||-1)*.8);
 if(!player.ground&&sideProbe&&horizontal>5&&inputAmount>.15){
- player.wallrun=Math.min(1.15,player.wallrun+dt);player.wallSide=Math.sign(player.vel.x||1);
- player.vel.y=Math.max(player.vel.y,-1.1);player.vel.y+=7.5*dt;
+ player.wallrun=Math.min(1.65,player.wallrun+dt);player.wallSide=Math.sign(player.vel.x||1);
+ player.vel.y=Math.max(player.vel.y,-.65);player.vel.y+=9.5*dt;
  player.vel.x*=1.006;player.vel.z*=1.006;
 }else{player.wallrun=Math.max(0,player.wallrun-dt*2.8);player.wallSide=0}
-if(player.jumpBuffer>0&&player.wallrun>0){player.vel.x=-player.wallSide*7.5;player.vel.y=8.4;player.wallrun=0;player.jumpBuffer=0}
-else if(player.jumpBuffer>0&&(player.ground||player.coyote>0)){player.vel.y=player.sliding>0?8.2:9.1;player.ground=false;player.coyote=0;player.jumpBuffer=0;player.sliding=0}
-player.vel.y-=player.wallrun>0?8.5*dt:22*dt;
+if(player.jumpBuffer>0&&player.wallrun>0){player.vel.x=-player.wallSide*8.5;player.vel.y=9.2;player.wallrun=0;player.jumpBuffer=0}
+else if(player.jumpBuffer>0&&(player.ground||player.coyote>0)){player.vel.y=player.sliding>0?8.5:9.6;player.ground=false;player.coyote=0;player.jumpBuffer=0;player.sliding=0}
+player.vel.y-=player.wallrun>0?5.5*dt:22*dt;
 const oldY=player.pos.y,oldGround=player.ground;
 let nx=player.pos.x+player.vel.x*dt,nz=player.pos.z+player.vel.z*dt,ny=player.pos.y+player.vel.y*dt;
 const front=collides(nx,player.pos.y,nz);
 if(!front){player.pos.x=nx;player.pos.z=nz}
 else{
- const hitHeight=front.maxY-(player.pos.y-1.7);
- if(hitHeight<1.35&&horizontal>4&&inputAmount>.2&&player.vault<=0){
-  player.vault=.34;player.vel.y=Math.max(player.vel.y,5.7);player.vel.x+=forward.x*3.2;player.vel.z+=forward.z*3.2;
+ const feet=player.pos.y-1.7,top=front.maxY,ledgeHeight=top-feet;
+ if(ledgeHeight>0.25&&ledgeHeight<2.65&&horizontal>2.4&&inputAmount>.12&&player.vault<=0){
+  // Contextual mantle: pull up onto reachable ledges without a canned route.
+  player.vault=.42;player.pos.y=top+1.72;player.vel.y=0;player.ground=true;
+  const push=forward.clone().multiplyScalar(1.15);player.pos.add(push);
+  player.vel.x*=.72;player.vel.z*=.72;
+ }else if(ledgeHeight<=1.35&&horizontal>3&&inputAmount>.15&&player.vault<=0){
+  player.vault=.3;player.vel.y=Math.max(player.vel.y,5.2);player.vel.x+=forward.x*2.8;player.vel.z+=forward.z*2.8;
  }else{
   if(!collides(nx,player.pos.y,player.pos.z))player.pos.x=nx;else player.vel.x*= -.08;
   if(!collides(player.pos.x,player.pos.y,nz))player.pos.z=nz;else player.vel.z*= -.08;
@@ -161,8 +215,8 @@ if(ny<player.pos.y-1.2&&collides(player.pos.x,ny,player.pos.z)){ny=player.pos.y;
 player.pos.y=ny;
 if(player.ground&&!oldGround){player.landBlend=1;if(slideHeld||horizontal>10){player.sliding=Math.max(player.sliding,.28);player.vel.x*=1.04;player.vel.z*=1.04}}
 player.landBlend=Math.max(0,player.landBlend-dt*3.4);
-if(player.pos.y<-12){player.pos.set(0,1.7,7);player.vel.set(0,0,0);player.ground=true;player.wallrun=0;toast('FALL DETECTED // RESET')}
-if(player.pos.z<-205&&checkpoint===3&&!finish){finish=true;toast('ROUTE COMPLETE // '+((performance.now()-runStart)/1000).toFixed(2)+' SEC')}
+if(player.pos.y<-12){player.pos.set(0,8.7,0);player.vel.set(0,0,0);player.ground=true;player.wallrun=0;toast('FALL DETECTED // RETURNED TO PLAZA')}
+
 horizontal=Math.hypot(player.vel.x,player.vel.z);
 const moving=player.ground&&horizontal>.6;
 bobPhase+=dt*(moving?7+horizontal*.65:1.5);
@@ -175,11 +229,11 @@ const desiredLean=THREE.MathUtils.clamp((-player.vel.x*Math.cos(player.yaw)+play
 player.runLean=THREE.MathUtils.damp(player.runLean,desiredLean,6,dt);
 camera.position.set(player.pos.x,player.camY,player.pos.z);
 camera.rotation.set(player.pitch,player.yaw,player.runLean+(player.wallrun>0?player.wallSide*.13:0));
-beaconMeshes.forEach((b,i)=>{b.rotation.y+=dt*.8;b.position.y=beacons[i].y+Math.sin(performance.now()*.002+i)*.18});
-if(checkpoint<3&&player.pos.distanceTo(beacons[checkpoint])<3.2){checkpoint++;document.getElementById('checkpointText').textContent=checkpoint+' / 3 CHECKPOINTS';document.getElementById('objectiveText').textContent=checkpoint===3?'REACH THE FINAL ROOFTOP':'NEXT SIGNAL';toast('CHECKPOINT '+checkpoint+' // LOCKED IN')}
+
+
 document.getElementById('speedValue').textContent=String(Math.round(horizontal*3.6)).padStart(2,'0');
 document.getElementById('bar').style.width=(checkpoint/3*100)+'%';
-hint.textContent=isMobile?(player.wallrun>0?'WALL RUN // JUMP TO KICK OFF':player.vault>0?'VAULT // KEEP YOUR FLOW':player.sliding>0?'SLIDE // MOMENTUM PRESERVED':player.ground?'JOYSTICK MOVE · DRAG TO LOOK':'AIRBORNE // AIM FOR THE NEXT ROOF'):(player.wallrun>0?'WALL RUN // SPACE TO KICK OFF':player.vault>0?'VAULT // KEEP YOUR FLOW':player.sliding>0?'SLIDE // MOMENTUM PRESERVED':player.ground?'WASD MOVE · CTRL SPRINT · SPACE JUMP · SHIFT SLIDE':'AIRBORNE // AIM FOR THE NEXT ROOF');
+hint.textContent=isMobile?(player.wallrun>0?'WALL RUN // JUMP TO KICK OFF':player.vault>0?'MANTLE / VAULT // KEEP YOUR FLOW':player.sliding>0?'SLIDE // MOMENTUM PRESERVED':player.ground?'JOYSTICK MOVE · DRAG TO LOOK':'AIRBORNE // FIND A ROOFTOP'):(player.wallrun>0?'WALL RUN // SPACE TO KICK OFF':player.vault>0?'MANTLE / VAULT // KEEP YOUR FLOW':player.sliding>0?'SLIDE // MOMENTUM PRESERVED':player.ground?'WASD MOVE · CTRL SPRINT · SPACE JUMP · SHIFT SLIDE':'AIRBORNE // FIND A ROOFTOP');
 }
 function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last)/1000,.033);last=now;update(dt);renderer.render(scene,camera)}requestAnimationFrame(animate);
 function resizeGame(){const w=window.innerWidth,h=window.innerHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);isMobile=matchMedia('(pointer: coarse)').matches||w<=900;renderer.setPixelRatio(Math.min(devicePixelRatio,isMobile?1.25:1.7))}
