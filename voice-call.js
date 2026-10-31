@@ -113,5 +113,5 @@
  const observer=new MutationObserver(()=>{installButton();mountPanel()});observer.observe(document.documentElement,{childList:true,subtree:true});installButton();mountPanel();
  window.HyperPopVoiceCall={start:(id,name)=>startCall(id,name||'Friend')};
  inboxTimer=setInterval(checkInbox,2500);checkInbox();
- window.addEventListener('beforeunload',()=>{cleanup()});
+ window.addEventListener('beforeunload',()=>{if(call)request('hangup',{call_id:call.id}).catch(()=>{});cleanup()});
 })();
