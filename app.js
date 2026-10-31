@@ -28,7 +28,7 @@
       frame=document.createElement('iframe');
       frame.id='hp-sidebar-frame';
       frame.title='Hyper-Pop navigation';
-      frame.src=new URL('sidebar.html?v=panel-shadow-1',base).href;
+      frame.src=new URL('sidebar.html?v=transparent-sections-1',base).href;
       frame.setAttribute('allowtransparency','true');
       frame.style.cssText='position:fixed;z-index:2147483000;top:0;left:0;width:100vw;height:100%;height:100dvh;border:0;background:transparent;color-scheme:dark;overflow:hidden;pointer-events:none;visibility:hidden;';
       (document.body||document.documentElement).appendChild(frame);
@@ -40,7 +40,7 @@
     if(!edgeHit){
       edgeHit=document.createElement('div');edgeHit.id='hp-sidebar-edge-hit';
       edgeHit.setAttribute('aria-label','Open navigation');
-      edgeHit.style.cssText='position:fixed;z-index:2147483001;top:0;left:0;width:44px;height:100%;height:100dvh;background:linear-gradient(90deg,rgba(0,0,0,.16),rgba(0,0,0,.07) 35%,transparent 100%);box-shadow:0 0 18px rgba(0,0,0,.48);pointer-events:auto;touch-action:pan-y;cursor:ew-resize;';
+      edgeHit.style.cssText='position:fixed;z-index:2147483001;top:0;left:0;width:44px;height:100%;height:100dvh;background:transparent;pointer-events:auto;touch-action:pan-y;cursor:ew-resize;';
       (document.body||document.documentElement).appendChild(edgeHit);
       edgeHit.addEventListener('dblclick',function(){commandFrame('open')});
       var edgeTap=0;edgeHit.addEventListener('touchend',function(){var now=Date.now();if(now-edgeTap<380){commandFrame('open');edgeTap=0}else edgeTap=now},{passive:true});
