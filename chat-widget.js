@@ -45,11 +45,11 @@
  #hp-chat-head button:hover{background:#ffffff20}
  @media(max-width:520px){#hp-chat-launch{right:66px;bottom:14px;width:42px;height:42px}#hp-chat-window{right:8px;bottom:68px;width:calc(100vw - 16px);height:min(72dvh,600px);max-height:calc(100dvh - 90px)}#hp-chat-toast{top:calc(8px + env(safe-area-inset-top))}.hp-chat-bubble{max-width:92%}}
  `;
- const style=document.createElement('style');style.textContent=css;document.head.append(style);
+ const style=document.createElement('style');style.id='hp-chat-widget-style';style.textContent=css;document.head.append(style);
  const launch=document.createElement('button');launch.id='hp-chat-launch';launch.type='button';launch.innerHTML='✉<span id="hp-chat-unread-badge" aria-hidden="true"></span>';launch.setAttribute('aria-label','Open chat');launch.title='Chat';
  const win=document.createElement('section');win.id='hp-chat-window';win.setAttribute('aria-label','Hyper-Pop chat');
  win.innerHTML='<div id="hp-chat-head"><span>✦ Hyper-Pop Chat</span><button type="button" id="hp-chat-close" aria-label="Close chat">✕</button></div><div id="hp-chat-pickers"><select id="hp-chat-conversations" aria-label="Choose a conversation"><option value="">Conversations…</option></select><select id="hp-chat-friends" aria-label="Message a friend"><option value="">＋ New message…</option></select></div><div id="hp-chat-feed"><div style="color:#aaa7c1;text-align:center;padding:28px 8px">Choose a conversation or a friend to start chatting.</div></div><div><div id="hp-chat-note" role="status"></div><form id="hp-chat-compose"><input id="hp-chat-input" maxlength="2000" placeholder="Write a message…" autocomplete="off"><button>Send</button></form></div>';
- document.body.append(launch,win);
+ const embeddedHost=document.getElementById('chat-area');if(embeddedHost){win.classList.add('hp-chat-embedded','open');embeddedHost.append(win);launch.style.display='none';}else document.body.append(launch,win);
  const toast=document.createElement('div');toast.id='hp-chat-toast';toast.setAttribute('role','status');toast.innerHTML='<div class="hp-toast-icon">✦</div><div class="hp-toast-copy"><strong id="hp-toast-title"></strong><span id="hp-toast-detail"></span></div><button class="hp-toast-close" type="button" aria-label="Dismiss">×</button>';document.body.append(toast);
  let toastTimer=null,knownUnread=new Set(),hasNotificationBaseline=false,currentStatus='online';
  function showToast(title,detail,onClick){
@@ -73,9 +73,9 @@
  const $=id=>document.getElementById(id);let me=null,selected=null,selectedFriend=null,busy=false,lastListRefresh=0;
  async function rpc(action,data={}){const token=localStorage.getItem('hyperpop_token');if(!token)return{ok:false,error:'Sign in to use chat.'};try{const r=await fetch(API,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({p_token:token,p_action:action,p_data:data})});const raw=await r.text();let d;try{d=raw?JSON.parse(raw):{}}catch(_){d={message:raw}}if(!r.ok){const x=Array.isArray(d)?d[0]:d;return{ok:false,error:x.message||x.details||'Chat request failed.'}}return d}catch(_){return{ok:false,error:'Could not reach chat.'}}}
  function note(s){$('hp-chat-note').textContent=s||''}
- async function open(conversationId){win.classList.add('open');launch.style.display='none';await refreshLists();if(conversationId){const cs=$('hp-chat-conversations');if([...cs.options].some(o=>o.value===String(conversationId))){cs.value=String(conversationId);await showConversation(String(conversationId))}}}
- function close(){win.classList.remove('open');chatVisible()}
- launch.addEventListener('click',()=>open());$('hp-chat-close').addEventListener('click',close);
+ async function open(conversationId){win.classList.add('open');if(!win.classList.contains('hp-chat-embedded'))launch.style.display='none';await refreshLists();if(conversationId){const cs=$('hp-chat-conversations');if([...cs.options].some(o=>o.value===String(conversationId))){cs.value=String(conversationId);await showConversation(String(conversationId))}}}
+ function close(){if(win.classList.contains('hp-chat-embedded'))return;win.classList.remove('open');chatVisible()}
+ launch.addEventListener('click',()=>open());$('hp-chat-close').addEventListener('click',close);if(win.classList.contains('hp-chat-embedded'))$('hp-chat-close').style.display='none';
  async function refreshLists(){
   if(busy)return;busy=true;
   const [chats,friends]=await Promise.all([rpc('chat_list'),rpc('friends_list')]);busy=false;
