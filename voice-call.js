@@ -38,9 +38,13 @@
  }
  async function mediaAndPeer(){
   if(!navigator.mediaDevices?.getUserMedia)throw new Error('Microphone access is unavailable in this browser. Open Hyper-Pop over HTTPS in Safari or a supported browser.');
+  status('Requesting microphone permission…');
+  // Request the microphone immediately from the user's call/answer gesture.
+  // A network wait first can lose iOS Safari's transient user activation.
+  try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});}
+  catch(error){if(error?.name==='NotAllowedError'||error?.name==='PermissionDeniedError')throw new Error('Microphone permission was denied. Allow microphone access for your browser in iPhone Settings, reload Hyper-Pop, and try again.');if(error?.name==='NotFoundError'||error?.name==='DevicesNotFoundError')throw new Error('No microphone was found on this device.');if(error?.name==='NotReadableError')throw new Error('The microphone is busy in another app. Close other apps using it and try again.');throw error;}
   status('Preparing a direct connection…');
-  // Direct ICE (host + server-reflexive/STUN candidates) is the normal path.
-  // Metered TURN is optional: it is added as a fallback candidate, never a prerequisite.
+  // Direct ICE is the normal path. TURN is an optional fallback.
   const iceServers=[{urls:'stun:stun.l.google.com:19302'}];
   try{
    const relay=await request('ice_servers');
@@ -49,7 +53,6 @@
     if(urls.some(url=>typeof url==='string'&&url.startsWith('turn')))iceServers.push(server);
    });
   }catch(error){console.info('[Hyper-Pop voice] TURN unavailable; trying direct ICE:',error.message)}
-  stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});
   pc=new RTCPeerConnection({iceServers,iceTransportPolicy:'all'});
   stream.getTracks().forEach(t=>pc.addTrack(t,stream));
   pc.ontrack=e=>{const audio=$('hp-voice-audio');audio.srcObject=e.streams[0];audio.play().catch(()=>status('Tap the page once to enable call audio.'))};
