@@ -47,7 +47,7 @@ kbd{display:inline-block;min-width:23px;text-align:center;padding:3px 5px;backgr
 #pause{position:fixed;right:clamp(12px,2vw,25px);bottom:clamp(12px,2vw,25px);z-index:6;pointer-events:auto;background:#ffffffb8;color:#263840;border:1px solid #fff;padding:10px 13px;font-size:10px}
 #toast{position:fixed;left:50%;top:18%;transform:translate(-50%,-10px);opacity:0;transition:.3s;z-index:8;background:#f04443;color:#fff;padding:10px 16px;font-size:10px;letter-spacing:2px;pointer-events:none}
 @media(max-width:900px),(pointer:coarse){#mobile{display:flex}#pause{top:clamp(58px,8vh,78px);right:12px;bottom:auto}} 
-@media(max-width:700px){#mobile{padding:0 12px}#joystick{width:clamp(94px,28vw,126px);height:clamp(94px,28vw,126px)}#stick{width:clamp(42px,11vw,52px);height:clamp(42px,11vw,52px)}.touch{width:clamp(48px,13vw,58px);height:clamp(48px,13vw,58px)}.touch.jump{width:clamp(58px,16vw,70px);height:clamp(58px,16vw,70px)}#look-label{right:14px;bottom:calc(146px + env(safe-area-inset-bottom));font-size:7px}#brand{top:max(12px,env(safe-area-inset-top));left:13px;font-size:16px;letter-spacing:2px}#objective{top:max(13px,env(safe-area-inset-top));right:13px;font-size:8px}#objective strong{font-size:15px}#mission{top:58px;font-size:8px}#speed{left:14px;bottom:154px}#speed b{font-size:34px}#hint{bottom:139px;font-size:8px;max-width:92vw;text-align:center}#progress{bottom:128px}#pause{right:13px;top:58px;bottom:auto;padding:8px 10px;font-size:9px}.panel{padding:25px;width:92vw;max-height:90dvh;overflow:auto}.panel h1{font-size:60px}#controls{gap:6px 10px;font-size:8px}.kicker{font-size:8px;letter-spacing:2px}}
+@media(max-width:700px){#mobile{padding:0 12px}#joystick{width:clamp(94px,28vw,126px);height:clamp(94px,28vw,126px)}#stick{width:clamp(42px,11vw,52px);height:clamp(42px,11vw,52px)}.touch{width:clamp(48px,13vw,58px);height:clamp(48px,13vw,58px)}.touch.jump{width:clamp(58px,16vw,70px);height:clamp(58px,16vw,70px)}#look-label{right:14px;bottom:calc(146px + env(safe-area-inset-bottom));font-size:7px}#brand{top:max(12px,env(safe-area-inset-top));left:13px;font-size:16px;letter-spacing:2px}#objective{top:max(13px,env(safe-area-inset-top));right:13px;font-size:8px}#objective strong{font-size:15px}#mission{top:58px;font-size:8px}#speed{left:14px;bottom:175px}#speed b{font-size:34px}#hint{bottom:139px;font-size:8px;max-width:92vw;text-align:center}#progress{bottom:128px}#pause{right:13px;top:58px;bottom:auto;padding:8px 10px;font-size:9px}.panel{padding:25px;width:92vw;max-height:90dvh;overflow:auto}.panel h1{font-size:60px}#controls{gap:6px 10px;font-size:8px}.kicker{font-size:8px;letter-spacing:2px}}
 </style>
 </head>
 <body>
@@ -131,9 +131,9 @@ for(let i=0;i<24;i++){
 }
 // Facade glass bands and rooftop access markers make the skyline readable at speed.
 const windowMat=new THREE.MeshStandardMaterial({color:0x6f929d,metalness:.25,roughness:.28,emissive:0x20343a,emissiveIntensity:.18});
-for(const b of cityBuildings){
- const rows=Math.min(5,Math.floor(b.h/3.5));
- for(let row=0;row<rows;row++){const y=2.1+row*3.1;if(y>b.h-1.2)continue;const cols=Math.max(2,Math.floor(b.w/3.4));for(let col=0;col<cols;col++){const x=b.x-b.w/2+(col+.5)*b.w/cols;const win=new THREE.Mesh(new THREE.BoxGeometry(.95,1.35,.055),windowMat);win.position.set(x,y,b.z-b.d/2-.035);scene.add(win);const win2=win.clone();win2.position.z=b.z+b.d/2+.035;scene.add(win2);}}
+for(let bi=0;bi<cityBuildings.length;bi+=2){const b=cityBuildings[bi];
+ const rows=Math.min(3,Math.floor(b.h/5));
+ for(let row=0;row<rows;row++){const y=2.1+row*3.1;if(y>b.h-1.2)continue;const cols=Math.max(2,Math.floor(b.w/6));for(let col=0;col<cols;col++){const x=b.x-b.w/2+(col+.5)*b.w/cols;const win=new THREE.Mesh(new THREE.BoxGeometry(.95,1.35,.055),windowMat);win.position.set(x,y,b.z-b.d/2-.035);scene.add(win);const win2=win.clone();win2.position.z=b.z+b.d/2+.035;scene.add(win2);}}
 }
 for(const [x,z,w,d,h] of [[-10,-38,12,12,4.5],[12,-38,12,12,6],[-38,8,12,12,5],[38,8,12,12,6],[0,42,14,12,5.5]])makeBuilding(x,z,w,d,h,id++);
 for(let k=-4;k<=4;k++){const z=k*32;bridge(-16,z+16,3,12,7+(Math.abs(k)%3)*2);bridge(16,z+16,3,12,8+(Math.abs(k)%4)*2);}
@@ -176,8 +176,8 @@ if(isMobile){wish.addScaledVector(right,moveX);wish.addScaledVector(forward,-mov
 const inputAmount=Math.min(1,wish.length());if(wish.lengthSq())wish.normalize();
 if(keys.Space){player.jumpBuffer=.18;player.upBuffer=Math.max(player.upBuffer,.18);keys.Space=false}else player.jumpBuffer=Math.max(0,player.jumpBuffer-dt);player.upAction=player.upBuffer>0;
 if(player.ground)player.coyote=.13;else player.coyote=Math.max(0,player.coyote-dt);
-const slideHeld=keys.ControlLeft||keys.ControlRight;
-const sprint=keys.ShiftLeft||keys.ShiftRight||inputAmount>.82&&player.ground;
+const slideHeld=keys.ShiftLeft||keys.ShiftRight;
+const sprint=keys.ControlLeft||keys.ControlRight||inputAmount>.82&&player.ground;
 const speed=Math.hypot(player.vel.x,player.vel.z);
 if(slideHeld&&player.ground&&speed>4.2)player.sliding=Math.max(player.sliding,.72);if(slideHeld&&!player.ground&&player.vel.y>0){player.roll=Math.max(player.roll,.28);player.vel.y-=2.8*dt;}player.roll=Math.max(0,player.roll-dt);
 player.sliding=Math.max(0,player.sliding-dt);
@@ -264,7 +264,7 @@ camera.rotation.set(player.pitch,player.yaw,player.runLean+(player.wallrun>0?pla
 
 document.getElementById('speedValue').textContent=String(Math.round(horizontal*3.6)).padStart(2,'0');
 document.getElementById('bar').style.width=(checkpoint/3*100)+'%';
-hint.textContent=player.wallrun>0?'UP // WALL RUN · UP AGAIN TO WALL-HOP':player.wallclimb>0?'UP // WALL CLIMB':player.vault>0?'UP // VAULT / MANTLE':player.sliding>0?'DOWN // SLIDE · ROLL OUT':player.ground?(isMobile?'UP TRAVERSE · DOWN SLIDE · EXTRA QUICKTURN':'SPACE UP · CTRL DOWN · Q EXTRA · SHIFT BURST'):'AIRBORNE // UP NEAR WALL TO TRAVERSE';
+hint.textContent=player.wallrun>0?'UP // WALL RUN · UP AGAIN TO WALL-HOP':player.wallclimb>0?'UP // WALL CLIMB':player.vault>0?'UP // VAULT / MANTLE':player.sliding>0?'DOWN // SLIDE · ROLL OUT':player.ground?(isMobile?'UP TRAVERSE · DOWN SLIDE · EXTRA QUICKTURN':'SPACE UP · SHIFT DOWN · Q EXTRA · CTRL BURST'):'AIRBORNE // UP NEAR WALL TO TRAVERSE';
 }
 function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last)/1000,.033);last=now;update(dt);renderer.render(scene,camera)}requestAnimationFrame(animate);
 function resizeGame(){const w=window.innerWidth,h=window.innerHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);isMobile=matchMedia('(pointer: coarse)').matches||w<=900;renderer.setPixelRatio(Math.min(devicePixelRatio,isMobile?1.25:1.7))}
