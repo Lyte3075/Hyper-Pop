@@ -6,7 +6,7 @@
  const $=id=>document.getElementById(id);
  let call=null,pc=null,stream=null,muted=false,pollTimer=null,inboxTimer=null,remoteCallerIce=0,remoteCalleeIce=0,remoteDescriptionReady=false,ending=false;
  const css=`
- #hp-chat-head{gap:9px;justify-content:flex-start}\n #hp-chat-head>span{flex:1;min-width:0}\n #hp-chat-head>#hp-chat-call,#hp-chat-head>#hp-chat-close{flex:0 0 auto;min-height:32px;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap}\n #hp-chat-call{border:1px solid #7df9ff55!important;background:#123039!important;color:#9ffaff!important;border-radius:9px;padding:6px 12px!important;font-weight:800;cursor:pointer;font-size:12px}
+ #hp-chat-head{gap:8px;justify-content:flex-start;flex-wrap:wrap}\n #hp-chat-head>span{flex:1;min-width:0}\n #hp-chat-head>#hp-chat-call,#hp-chat-head>#hp-chat-close{flex:0 0 auto;min-height:32px;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap}\n #hp-chat-head>#hp-voice-panel{flex:0 0 100%;width:100%;min-width:0;box-sizing:border-box}\n #hp-chat-call{border:1px solid #7df9ff55!important;background:#123039!important;color:#9ffaff!important;border-radius:9px;padding:6px 12px!important;font-weight:800;cursor:pointer;font-size:12px}
  #hp-voice-panel{display:none;padding:10px 12px;border-bottom:1px solid #ffffff18;background:linear-gradient(100deg,#10232a,#171729);color:#f7f4ff}
  #hp-voice-panel.open{display:block}
  #hp-voice-title{font-size:13px;font-weight:850;margin-bottom:3px}
@@ -19,7 +19,7 @@
  `;
  const style=document.createElement('style');style.textContent=css;document.head.append(style);
  const panel=document.createElement('div');panel.id='hp-voice-panel';panel.innerHTML='<div id="hp-voice-title">Voice call</div><div id="hp-voice-status" role="status">Ready</div><div id="hp-voice-actions"></div><audio id="hp-voice-audio" autoplay playsinline></audio>';
- function mountPanel(){const win=$('hp-chat-window'),pickers=$('hp-chat-pickers');if(win&&pickers&&panel.parentElement!==win)win.insertBefore(panel,pickers)}
+ function mountPanel(){const head=$('hp-chat-head');if(head&&panel.parentElement!==head)head.append(panel)}
  mountPanel();
  function status(s){const n=$('hp-voice-status');if(n)n.textContent=s}
  function show(title,s,buttons){if(title==='Incoming voice call'&&window.HyperPopPresenceStatus!=='dnd')window.HyperPopNotify?.('Incoming voice call',s);const win=$('hp-chat-window'),launch=$('hp-chat-launch');if(win){win.classList.add('open');if(launch)launch.style.display='none'}$('hp-voice-title').textContent=title;status(s);const a=$('hp-voice-actions');a.replaceChildren();buttons.forEach(([label,id,fn])=>{const b=document.createElement('button');b.id=id;b.textContent=label;b.addEventListener('click',fn);a.append(b)});panel.classList.add('open')}
@@ -104,9 +104,9 @@
  function installButton(){
   const head=$('hp-chat-head');if(!head||$('hp-chat-call'))return false;
   const b=document.createElement('button');b.id='hp-chat-call';b.type='button';b.textContent='☎ Call';b.title='Call selected friend';b.addEventListener('click',()=>{
-   const select=$('hp-chat-friends'),id=select?.value,option=select?.selectedOptions?.[0];
-   if(!id){status('Choose a friend in “New message…” first.');show('Voice call','Choose a friend in the chat menu first.',[['Close','hp-voice-close',hide]]);return}
-   startCall(id,option.textContent.replace(/ · online$/,''));
+   const friend=window.HyperPopSelectedChatFriend,id=friend?.id;
+   if(!id){status('Choose a friend from the conversation selector first.');show('Voice call','Choose a friend from the conversation selector first.',[['Close','hp-voice-close',hide]]);return}
+   startCall(id,friend.name||'Friend');
   });head.insertBefore(b,head.querySelector('#hp-chat-close'));
   return true;
  }
