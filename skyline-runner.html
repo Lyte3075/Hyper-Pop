@@ -194,7 +194,7 @@ if(horizontal>maxSpeed){const s=maxSpeed/horizontal;player.vel.x*=s;player.vel.z
 const leftWall=collides(player.pos.x-right.x*.68,player.pos.y,player.pos.z-right.z*.68);
 const rightWall=collides(player.pos.x+right.x*.68,player.pos.y,player.pos.z+right.z*.68);
 const sideHit=leftWall||rightWall;
-const sideNormal=leftWall?right.clone():right.clone().negate();
+const sideNormal=leftWall?right.clone():rightWall?right.clone().negate():(player.wallSide===-1?right.clone():right.clone().negate());
 const wallAlong=player.vel.x*forward.x+player.vel.z*forward.z;
 const wallContact=!!sideHit&&Math.abs(wallAlong)>3.4&&horizontal>4.2;
 if(player.upAction&&wallContact&&player.wallrun<=0&&player.wallclimb<=0){
@@ -213,7 +213,7 @@ if(player.wallrun>0){
 }
 if(player.quickturnBuffer>0){player.yaw+=Math.PI;player.quickturnBuffer=0;if(player.wallrun>0){const kick=new THREE.Vector3(-Math.sin(player.yaw),0,-Math.cos(player.yaw));player.vel.x=kick.x*10;player.vel.z=kick.z*10;player.vel.y=Math.max(player.vel.y,7.8);player.wallrun=0;}toast('QUICKTURN')}
 const obstacleAhead=collides(player.pos.x+forward.x*.9,player.pos.y,player.pos.z+forward.z*.9);
-if(player.jumpBuffer>0&&player.wallrun>0){const away=player.wallSide===-1?right.clone().negate():right.clone();player.vel.x=forward.x*6+away.x*7.5;player.vel.z=forward.z*6+away.z*7.5;player.vel.y=9.2;player.wallrun=0;player.wallrunGrace=0;player.jumpBuffer=0;player.upBuffer=0;player.upAction=false}
+if(player.jumpBuffer>0&&player.wallrun>0){const away=player.wallSide===-1?right.clone():right.clone().negate();player.vel.x=forward.x*6+away.x*7.5;player.vel.z=forward.z*6+away.z*7.5;player.vel.y=9.2;player.wallrun=0;player.wallrunGrace=0;player.jumpBuffer=0;player.upBuffer=0;player.upAction=false}
 else if(player.jumpBuffer>0&&(player.ground||player.coyote>0)&&!obstacleAhead){player.vel.y=player.sliding>0?8.5:9.6;player.ground=false;player.coyote=0;player.jumpBuffer=0;player.sliding=0;player.upAction=false}
 player.vel.y-=player.wallclimb>0?0:player.wallrun>0?4.8*dt:22*dt;
 if(player.wallclimb>0){const climbStep=Math.min(player.wallclimbTargetY-player.pos.y,8.6*dt);player.pos.y+=Math.max(0,climbStep);player.pos.x+=forward.x*2.8*dt;player.pos.z+=forward.z*2.8*dt;player.vel.y=0;if(player.pos.y>=player.wallclimbTargetY-.08){player.pos.y=player.wallclimbTargetY;player.wallclimb=0;player.ground=true;player.vel.x+=forward.x*2.2;player.vel.z+=forward.z*2.2;}}
@@ -237,7 +237,7 @@ else{
   if(!collides(player.pos.x,player.pos.y,nz))player.pos.z=nz;else player.vel.z*= -.08;
  }
 }
-player.vault=Math.max(0,player.vault-dt);if(player.wallclimb>0)player.wallclimb=Math.max(0,player.wallclimb-dt);player.upBuffer=Math.max(0,player.upBuffer-dt);if(player.jumpBuffer<=0&&player.upBuffer<=0)player.upAction=false;
+player.vault=Math.max(0,player.vault-dt);player.upBuffer=Math.max(0,player.upBuffer-dt);if(player.jumpBuffer<=0&&player.upBuffer<=0)player.upAction=false;
 const p=getPlatform(player.pos.x,player.pos.z);
 if(p&&player.vel.y<=0&&oldY>=p.y+1.45&&ny<=p.y+1.7){
  ny=p.y+1.7;player.vel.y=0;player.ground=true;
