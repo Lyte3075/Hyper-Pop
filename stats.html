@@ -11,9 +11,57 @@
 body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.08;background-image:radial-gradient(#fff 1px,transparent 1px);background-size:22px 22px}
 .wrap{width:min(1080px,calc(100% - 32px));margin:auto;position:relative}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:24px 0}.brand{font-weight:800;font-size:19px;letter-spacing:-.7px}.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 15px;border-radius:12px;border:1px solid var(--line);background:#ffffff0a;color:var(--ink);font:600 13px inherit;text-decoration:none}.btn.primary{background:var(--cyan);color:#071014;border-color:var(--cyan)}.hero{text-align:center;padding:38px 0 26px}.eyebrow{font:11px "DM Mono",monospace;letter-spacing:.15em;color:var(--cyan);text-transform:uppercase}.hero h1{font-size:clamp(42px,9vw,76px);line-height:1;letter-spacing:-.07em;margin:14px 0;background:linear-gradient(100deg,#fff,var(--pink),var(--yellow,#ffe66d),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}.hero p{margin:0;color:var(--muted);font-size:14px}.overall{display:flex;align-items:center;justify-content:center;gap:9px;margin:20px auto 0;padding:11px 16px;width:max-content;max-width:100%;border:1px solid #4ade8040;border-radius:999px;background:#4ade8010;color:#86efac;font-size:13px;font-weight:700}.dot{width:9px;height:9px;border-radius:50%;background:#4ade80;box-shadow:0 0 12px currentColor}.section{margin:32px 0}.section-head{display:flex;justify-content:space-between;align-items:end;gap:12px;margin-bottom:14px}.section h2{font-size:21px;letter-spacing:-.04em;margin:0}.muted{color:var(--muted);font-size:12px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.card{border:1px solid var(--line);border-radius:18px;padding:17px;background:linear-gradient(145deg,#19192b,#10101e);box-shadow:0 16px 45px #0004;min-width:0}.stat-icon{font-size:19px}.value{font-size:clamp(27px,5vw,38px);font-weight:700;letter-spacing:-.06em;margin:10px 0 1px;font-variant-numeric:tabular-nums}.stat-label{font-size:13px;font-weight:700}.stat-sub{font-size:11px;color:var(--muted);margin-top:3px}.services{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.service{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;border:1px solid var(--line);border-radius:14px;background:#ffffff07}.service-name{font-size:13px;font-weight:600}.service-right{display:flex;align-items:center;gap:7px;white-space:nowrap}.pill{font:10px "DM Mono",monospace;text-transform:uppercase;letter-spacing:.04em;padding:5px 8px;border-radius:999px;background:#4ade8014;color:#86efac}.pill.degraded{background:#fbbf2418;color:#fcd34d}.pill.down{background:#fb71851a;color:#fda4af}.chart{height:190px;display:flex;align-items:end;gap:7px;padding:15px 4px 0}.bar-col{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:end;align-items:center;gap:7px}.bar{width:100%;max-width:34px;min-height:3px;border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,var(--cyan),var(--purple));box-shadow:0 0 14px #4be0e322}.bar-label{font:9px "DM Mono",monospace;color:var(--muted)}.bar-count{font:9px "DM Mono",monospace;color:#ddd}.incidents{display:grid;gap:8px}.incident{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:#ffffff06;font-size:12px}.incident .dot{flex:0 0 8px;width:8px;height:8px}.empty{padding:20px;text-align:center;border:1px dashed var(--line);border-radius:13px;color:var(--muted);font-size:12px}.footer{margin:42px 0 28px;padding:20px 0;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:12px}.links{display:flex;gap:16px;flex-wrap:wrap}.links a{color:var(--cyan);text-decoration:none}.links a:hover{text-decoration:underline}#updated{font:10px "DM Mono",monospace;color:var(--muted)}
 @media(max-width:720px){.stats{grid-template-columns:repeat(2,1fr)}.services{grid-template-columns:1fr}.top{padding-top:18px}.hero{padding-top:28px}.section{margin:25px 0}.service{padding:12px}.footer{align-items:flex-start;flex-direction:column}}
+
+/* terminal skin */
+:root{--bg:#050a08;--ink:#d9ffe5;--muted:#72927c;--cyan:#63ff9a;--pink:#b5ffc9;--purple:#20c968;--line:#38ff7830}
+body{background:#030705;color:var(--ink);font-family:"DM Mono",ui-monospace,monospace}
+body:before{opacity:.11;background-image:linear-gradient(#4cff7a0b 1px,transparent 1px),linear-gradient(90deg,#4cff7a0b 1px,transparent 1px);background-size:28px 28px}
+body:after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;background:repeating-linear-gradient(0deg,#0000 0px,#0000 3px,#7dff9a08 4px);opacity:.45}
+.wrap{max-width:1120px}
+.top{border-bottom:1px solid var(--line);padding:18px 0}
+.brand{font:700 14px "DM Mono",monospace;letter-spacing:.12em;color:#78ff9e}
+.btn{border:1px solid #50ff8c66;border-radius:7px;background:#07150d;color:#aaffc0;font:600 11px "DM Mono",monospace;letter-spacing:.06em;padding:12px 16px;box-shadow:inset 0 0 16px #24ff6610,0 0 18px #24ff6610;transition:.18s}
+.btn:hover{background:#0b2415;border-color:#7dffa5;box-shadow:0 0 22px #24ff6630;transform:translateY(-1px)}
+.btn.primary{background:#0d2918;color:#9bffb5;border-color:#54ff8b}
+.hero{text-align:left;padding:48px 0 28px}
+.eyebrow{color:#62ff98;font-size:10px;letter-spacing:.22em}
+.hero h1{font:700 clamp(35px,7vw,64px)/1.05 "DM Mono",monospace;letter-spacing:-.08em;margin:13px 0;color:#caffd8;background:none;-webkit-text-fill-color:initial;text-shadow:0 0 24px #38ff7830}
+.hero h1:before{content:"> ";color:#50ff8a}
+.hero p{color:#85a990;font:12px "DM Mono",monospace}
+.overall{margin:18px 0 0;width:max-content;border-radius:5px;background:#07190e;border-color:#43ff7845;color:#89ffa9;font:11px "DM Mono",monospace;text-transform:uppercase;letter-spacing:.06em}
+.section{margin:30px 0}
+.section-head{align-items:center;border-bottom:1px solid var(--line);padding-bottom:10px}
+.section h2{font:600 14px "DM Mono",monospace;letter-spacing:.02em;color:#b7ffca}
+.muted{color:#71977d;font:10px "DM Mono",monospace}
+.card{border:1px solid #2fff6c38;border-radius:8px;padding:16px;background:linear-gradient(145deg,#09150d,#050b07);box-shadow:0 12px 35px #0008,inset 0 0 24px #28ff6508}
+.stats{gap:10px}
+.value{font:700 clamp(26px,4vw,36px) "DM Mono",monospace;color:#8dffad;text-shadow:0 0 16px #3dff7040}
+.stat-icon{filter:grayscale(1);opacity:.65}
+.stat-label{font:600 11px "DM Mono",monospace;color:#d4ffe0}
+.stat-sub{font:10px "DM Mono",monospace;color:#72927c}
+.service{border:1px solid #2fff6c2a;border-radius:7px;background:#07110a}
+.service-name{font:11px "DM Mono",monospace;color:#d0ffdc}
+.pill{border-radius:4px;background:#0b2b16;color:#8dffad;font:9px "DM Mono",monospace}
+.pill.degraded{background:#30250a;color:#ffdb78}.pill.down{background:#300d0d;color:#ff9999}
+.chart-card{padding:12px 14px 16px;overflow:hidden}
+.chart-tools{display:flex;align-items:center;gap:9px}
+.chart-tools label,.chart-hint{font:9px "DM Mono",monospace;letter-spacing:.1em;color:#72927c}
+.chart-tools select{appearance:none;background:#07150d;border:1px solid #3cff7666;border-radius:5px;padding:8px 26px 8px 10px;color:#9cffb4;font:10px "DM Mono",monospace}
+.chart-hint{display:flex;justify-content:space-between;gap:10px;padding:2px 2px 12px}
+.chart-viewport{overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-color:#36e96c #07110a;scrollbar-width:thin;padding-bottom:8px}
+.chart{height:205px;display:flex;align-items:end;gap:8px;padding:15px 4px 0;width:max-content;min-width:100%}
+.bar-col{flex:0 0 34px}
+.bar{max-width:none;border-radius:3px 3px 0 0;background:linear-gradient(180deg,#a0ffb8,#18b954);box-shadow:0 0 14px #4be87925}
+.bar-label,.bar-count{font:9px "DM Mono",monospace;color:#81a78c}
+.incident{border:1px solid #2fff6c25;border-radius:6px;background:#07110a;color:#9ebfa7;font:10px "DM Mono",monospace}
+.empty{border-color:#2fff6c40;color:#779681;font:10px "DM Mono",monospace}
+.footer{border-color:var(--line);font:10px "DM Mono",monospace}
+.links a{color:#7dffa0;font:10px "DM Mono",monospace}
+#updated{font:9px "DM Mono",monospace}
+@media(max-width:720px){.hero{padding-top:34px}.section-head{align-items:flex-start;flex-wrap:wrap}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.card{padding:13px}.service{gap:8px}.chart-tools{margin-left:auto}}
 </style></head><body>
 <div class="wrap">
-<header class="top"><div class="brand">✦ HYPER-POP <span class="muted">/ STATUS</span></div><a class="btn primary" href="index.html">← Back to Hyper-Pop</a></header>
+<header class="top"><div class="brand">✦ HYPER-POP <span class="muted">/ STATUS</span></div><a class="btn primary" href="index.html"><span aria-hidden="true">‹</span><span>RETURN TO HYPER-POP</span></a></header>
 <main>
 <section class="hero"><div class="eyebrow">Live system overview</div><h1>Status & Statistics</h1><p>A live look at the tiny internet, its community, and the systems keeping it running.</p><div id="overall" class="overall"><span class="dot"></span> Checking all systems…</div></section>
 <section class="section"><div class="section-head"><h2>📊 Hyper-Pop by the numbers</h2><span class="muted">Live counters</span></div>
@@ -23,27 +71,27 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.08;ba
 <div class="card"><div class="stat-icon">👤</div><div class="value" id="accounts">—</div><div class="stat-label">Total accounts</div><div class="stat-sub">Registered Hyper-Pop accounts</div></div>
 <div class="card"><div class="stat-icon">👀</div><div class="value" id="visits">—</div><div class="stat-label">Total visits</div><div class="stat-sub">Recorded page views since tracking launched</div></div>
 </div></section>
-<section class="section"><div class="section-head"><h2>📈 Visit activity</h2><span class="muted">Last 14 days</span></div><div class="card"><div id="chart" class="chart"><div class="empty">Collecting visit data…</div></div></div></section>
+<section class="section"><div class="section-head"><h2>📈 Visit activity</h2><div class="chart-tools"><label for="range-days">RANGE</label><select id="range-days"><option value="7">7 DAYS</option><option value="14" selected>14 DAYS</option><option value="30">30 DAYS</option><option value="90">90 DAYS</option><option value="365">1 YEAR</option></select></div></div><div class="card chart-card"><div class="chart-hint">SCROLL / SWIPE HORIZONTALLY TO EXPLORE HISTORY <span>← →</span></div><div class="chart-viewport"><div id="chart" class="chart"><div class="empty">Collecting visit data…</div></div></div></div></section>
 <section class="section"><div class="section-head"><h2>🛠️ Service status</h2><span class="muted">Automated health checks</span></div><div id="services" class="services"><div class="empty">Checking services…</div></div></section>
 <section class="section"><div class="section-head"><h2>🧾 Incident history</h2><span class="muted">Recent detected status changes</span></div><div id="incidents" class="incidents"><div class="empty">Loading incident history…</div></div></section>
 </main>
-<footer class="footer"><div><div>Hyper-Pop © <span id="year"></span> · Made for curious people.</div><div id="updated">Waiting for live data…</div></div><nav class="links"><a href="https://github.com/Lyte3075/Hyper-Pop" target="_blank" rel="noopener">GitHub repository ↗</a><a href="https://lyte3075.is-a.dev/" target="_blank" rel="noopener">Lyte's Directory ↗</a></nav></footer>
+<footer class="footer"><div><div>Hyper-Pop © <span id="year"></span> · Made for curious people.</div><div id="updated">Waiting for live data…</div></div><div class="links"><a href="https://github.com/Lyte3075/Hyper-Pop" target="_blank" rel="noopener">GitHub repository ↗</a><a href="https://lyte3075.is-a.dev/" target="_blank" rel="noopener">Lyte's Directory ↗</a></div></footer>
 </div>
 <script>
 (function(){
 const API='https://iapnejlttsqqefkpmelp.supabase.co/functions/v1/hyperpop-stats',ANON='sb_publishable_TB7oC4nDlUJq-Gcb2yoTjQ_Dvbh6NlM';
 const $=id=>document.getElementById(id);$('year').textContent=new Date().getFullYear();
 const fmt=n=>Number(n||0).toLocaleString();
-async function load(){try{const r=await fetch(API,{method:'POST',headers:{apikey:ANON,'Content-Type':'application/json'},body:JSON.stringify({action:'stats'})});const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||'Unavailable');
+async function load(){try{const r=await fetch(API,{method:'POST',headers:{apikey:ANON,'Content-Type':'application/json'},body:JSON.stringify({action:'stats',range_days:Number($('range-days').value)||14})});const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||'Unavailable');
 $('active-users').textContent=fmt(d.stats.active_users);$('active-sessions').textContent=fmt(d.stats.active_sessions);$('accounts').textContent=fmt(d.stats.accounts);$('visits').textContent=fmt(d.stats.visits);
 const services=d.services||[],bad=services.filter(s=>s.status!=='operational'),overall=$('overall');overall.innerHTML='<span class="dot"></span>'+(!bad.length?'All Systems Operational':bad.length+' Service'+(bad.length===1?'':'s')+' Experiencing Issues');overall.style.color=bad.some(s=>s.status==='down')?'#fda4af':bad.length?'#fcd34d':'#86efac';overall.style.borderColor=bad.some(s=>s.status==='down')?'#fb718550':bad.length?'#fbbf2450':'#4ade8040';
 $('services').replaceChildren();services.forEach(s=>{const row=document.createElement('div');row.className='service';const name=document.createElement('span');name.className='service-name';name.textContent=s.name;const right=document.createElement('span');right.className='service-right';const pill=document.createElement('span');pill.className='pill '+(s.status==='down'?'down':s.status==='degraded'?'degraded':'');pill.textContent=s.status;right.append(pill);if(s.uptime_pct!=null){const up=document.createElement('span');up.className='muted';up.textContent=s.uptime_pct+'% uptime';right.append(up)}if(s.latency_ms!=null){const ms=document.createElement('span');ms.className='muted';ms.textContent=s.latency_ms+' ms';right.append(ms)}row.append(name,right);$('services').append(row)});
-const days=d.visits_by_day||[],max=Math.max(1,...days.map(x=>x.count));$('chart').replaceChildren();days.forEach(x=>{const col=document.createElement('div');col.className='bar-col';const count=document.createElement('span');count.className='bar-count';count.textContent=x.count?fmt(x.count):'';const bar=document.createElement('div');bar.className='bar';bar.style.height=Math.max(2,x.count/max*100)+'%';bar.title=x.date+': '+x.count+' visits';const label=document.createElement('span');label.className='bar-label';label.textContent=x.date.slice(5);col.append(count,bar,label);$('chart').append(col)});
+const days=d.visits_by_day||[],max=Math.max(1,...days.map(x=>x.count));$('chart').replaceChildren();$('chart').style.width=Math.max(100,days.length*42)+'px';days.forEach(x=>{const col=document.createElement('div');col.className='bar-col';const count=document.createElement('span');count.className='bar-count';count.textContent=x.count?fmt(x.count):'';const bar=document.createElement('div');bar.className='bar';bar.style.height=Math.max(2,x.count/max*100)+'%';bar.title=x.date+': '+x.count+' visits';const label=document.createElement('span');label.className='bar-label';label.textContent=x.date.slice(5);col.append(count,bar,label);$('chart').append(col)});
 const incidents=d.incidents||[];$('incidents').replaceChildren();if(!incidents.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='No status changes have been recorded yet. All systems look good.';$('incidents').append(empty)}else incidents.slice(0,12).forEach(x=>{const row=document.createElement('div');row.className='incident';const dot=document.createElement('span');dot.className='dot';dot.style.background=x.status==='down'?'#fb7185':x.status==='degraded'?'#fbbf24':'#4ade80';const text=document.createElement('span');text.textContent=x.service+' · '+x.status+' · '+new Date(x.at).toLocaleString();row.append(dot,text);$('incidents').append(row)});
 $('updated').textContent='Last updated '+new Date(d.updated_at).toLocaleTimeString()+' · Refreshes every 30 seconds';
 }catch(e){$('overall').textContent='Unable to retrieve live status';$('overall').style.color='#fda4af';$('updated').textContent='Live data unavailable. Retrying shortly.';console.error('[Hyper-Pop stats]',e)}}
-load();setInterval(load,30000);
+$('range-days').addEventListener('change',load);load();setInterval(load,30000);
 })();
 </script>
-<script src="app.js?v=stats-1"></script>
+<script src="app.js?v=stats-2"></script>
 </body></html>
