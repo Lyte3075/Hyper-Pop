@@ -160,8 +160,10 @@
   const cs=$('hp-chat-conversations'),fs=$('hp-chat-friends');const old=selected,oldFriend=selectedFriend?.id||fs.value;
   cs.replaceChildren(new Option('Choose a conversation…',''));
   if(chats.ok)(chats.conversations||[]).forEach(c=>{const label=(c.title||c.label||'Conversation')+(c.unread?' · unread':'');cs.add(new Option(label,String(c.id)))});
-  fs.replaceChildren(new Option('＋ Message a friend…',''));\n  const gfs=$('hp-group-friends'),selectedGroup=[...gfs.selectedOptions].map(o=>o.value);gfs.replaceChildren();
-  if(friends.ok)(friends.friends||[]).forEach(f=>{const label='@'+f.username+(' · '+(f.status==='invisible'||!f.online?'offline':({idle:'idle',dnd:'do not disturb',online:'online'})[f.status]||'online'));fs.add(new Option(label,String(f.id)));gfs.add(new Option('@'+f.username,String(f.id)))});\n  [...gfs.options].forEach(o=>o.selected=selectedGroup.includes(o.value));
+  fs.replaceChildren(new Option('＋ Message a friend…',''));
+  const gfs=$('hp-group-friends'),selectedGroup=[...gfs.selectedOptions].map(o=>o.value);gfs.replaceChildren();
+  if(friends.ok)(friends.friends||[]).forEach(f=>{const label='@'+f.username+(' · '+(f.status==='invisible'||!f.online?'offline':({idle:'idle',dnd:'do not disturb',online:'online'})[f.status]||'online'));fs.add(new Option(label,String(f.id)));gfs.add(new Option('@'+f.username,String(f.id)))});
+  [...gfs.options].forEach(o=>o.selected=selectedGroup.includes(o.value));
   if(old&&[...cs.options].some(o=>o.value===old)){cs.value=old}
   if(oldFriend&&[...fs.options].some(o=>o.value===String(oldFriend))){fs.value=String(oldFriend);selectedFriend={id:String(oldFriend),name:fs.selectedOptions[0]?.textContent?.replace(/ · (?:online|idle|do not disturb|offline)$/,'')||'Friend'}}
   lastListRefresh=Date.now();
