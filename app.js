@@ -3,7 +3,7 @@
   var script = document.currentScript;
   var base = new URL('.', script && script.src ? script.src : location.href);
   var path = location.pathname;
-  var HP_BUILD_VERSION='social-2026-10-30-i';
+  var HP_BUILD_VERSION='social-2026-10-30-j';
   var soundtrackDisabled = document.body && document.body.dataset.noSoundtrack === 'true';
   if (!soundtrackDisabled && !document.getElementById('hp-sound-orb')) {
     var fallbackStyle = document.createElement('style');
@@ -110,19 +110,18 @@
     window.addEventListener('hyperpop:navigate',page);
     function addFooterLink(){
       document.querySelectorAll('footer').forEach(function(footer){
-        if(footer.querySelector('[data-hp-stats-link]'))return;
-        var link=document.createElement('a');link.href='/stats';link.textContent='Live site stats ↗';link.setAttribute('data-hp-stats-link','');
-        link.style.cssText='display:inline-block;margin:10px 0 0 12px;color:#4be0e3;font:600 12px system-ui;text-decoration:none;';
-        footer.append(link);
+        var text=(footer.textContent||'').replace(/\\s+/g,' ').trim();
+        if(!text.includes('Each experience lives on its own page.'))return;
         footer.style.cursor='pointer';
-        footer.setAttribute('title','Open live Hyper-Pop site statistics');
-        if(!footer.dataset.hpStatsClickable){
-          footer.dataset.hpStatsClickable='1';
-          footer.addEventListener('click',function(event){
-            if(event.target.closest('a,button'))return;
-            location.href='/stats';
-          });
-        }
+        footer.setAttribute('title','Open Hyper-Pop live status and statistics');
+        footer.setAttribute('role','link');
+        footer.setAttribute('tabindex','0');
+        footer.classList.add('hp-stats-footer-link');
+        if(footer.dataset.hpStatsClickable)return;
+        footer.dataset.hpStatsClickable='1';
+        function openStats(){location.href='/stats'}
+        footer.addEventListener('click',function(event){if(event.target.closest('a,button'))return;openStats()});
+        footer.addEventListener('keydown',function(event){if((event.key==='Enter'||event.key===' ')&&event.target===footer){event.preventDefault();openStats()}});
       });
     }
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addFooterLink,{once:true});else addFooterLink();
