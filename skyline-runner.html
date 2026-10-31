@@ -143,7 +143,7 @@ document.addEventListener('pointerlockchange',()=>locked=document.pointerLockEle
 document.addEventListener('mousemove',e=>{if(!locked||paused)return;player.yaw-=e.movementX*.0022;player.pitch-=e.movementY*.0018;player.pitch=THREE.MathUtils.clamp(player.pitch,-1.25,1.25)});
 document.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Space'){player.upAction=true}if(e.code==='KeyQ'&&!e.repeat){player.quickturnBuffer=.18}if(['Space','ArrowUp','ArrowDown'].includes(e.code))e.preventDefault();if(e.code==='Escape'&&started){paused=true;overlay.style.display='grid';overlay.style.opacity=1;document.querySelector('.panel h1').innerHTML='TAKE A<br><span>BREATHER.</span>';document.querySelector('.panel p').textContent='Your run is paused. The rooftops will still be here.';document.getElementById('start').textContent='▶  RESUME RUN';document.getElementById('start').onclick=()=>{overlay.style.display='none';paused=false;renderer.domElement.requestPointerLock?.()}}if(e.code==='KeyR')reset()});
 document.addEventListener('keyup',e=>keys[e.code]=false);
-document.querySelectorAll('.touch').forEach(b=>{const k=b.dataset.key;b.addEventListener('pointerdown',e=>{e.preventDefault();keys[k]=true;b.setPointerCapture(e.pointerId)});['pointerup','pointercancel','lostpointercapture'].forEach(ev=>b.addEventListener(ev,()=>keys[k]=false))});
+document.querySelectorAll('.touch').forEach(b=>{const k=b.dataset.key;b.addEventListener('pointerdown',e=>{e.preventDefault();keys[k]=true;if(k==='KeyQ')player.quickturnBuffer=.18;b.setPointerCapture(e.pointerId)});['pointerup','pointercancel','lostpointercapture'].forEach(ev=>b.addEventListener(ev,()=>keys[k]=false))});
 const joystick=document.getElementById('joystick'),stick=document.getElementById('stick');let moveX=0,moveY=0,stickPointer=null;
 function setStick(e){const r=joystick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy;const max=r.width*.34,len=Math.hypot(dx,dy);if(len>max){dx=dx/len*max;dy=dy/len*max}moveX=dx/max;moveY=dy/max;stick.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`}
 function releaseStick(){moveX=0;moveY=0;stickPointer=null;stick.style.transform='translate(-50%,-50%)'}
@@ -180,6 +180,7 @@ player.vel.x*=Math.exp(-drag*dt);player.vel.z*=Math.exp(-drag*dt);
 let horizontal=Math.hypot(player.vel.x,player.vel.z);
 if(horizontal>maxSpeed){const s=maxSpeed/horizontal;player.vel.x*=s;player.vel.z*=s;horizontal=maxSpeed}
 const sideProbe=collides(player.pos.x+Math.sign(player.vel.x||1)*.8,player.pos.y,player.pos.z)||collides(player.pos.x,player.pos.y,player.pos.z+Math.sign(player.vel.z||-1)*.8);
+if(player.ground&&sideProbe&&horizontal>5&&inputAmount>.15&&player.upAction){player.ground=false;player.wallrun=.9;player.wallSide=Math.sign(player.vel.x||1);player.vel.y=Math.max(player.vel.y,1.8);player.upAction=false;}
 if(!player.ground&&sideProbe&&horizontal>5&&inputAmount>.15&&(player.upAction||player.wallrun>0)){
  player.wallrun=Math.min(1.65,player.wallrun+dt);player.wallSide=Math.sign(player.vel.x||1);player.upAction=false;
  player.vel.y=Math.max(player.vel.y,-.65);player.vel.y+=9.5*dt;
@@ -217,7 +218,7 @@ if(ny<player.pos.y-1.2&&collides(player.pos.x,ny,player.pos.z)){ny=player.pos.y;
 player.pos.y=ny;
 if(player.ground&&!oldGround){player.landBlend=1;if(slideHeld||horizontal>10){player.sliding=Math.max(player.sliding,.28);player.vel.x*=1.04;player.vel.z*=1.04}}
 player.landBlend=Math.max(0,player.landBlend-dt*3.4);
-if(player.pos.y<-12){player.pos.set(0,8.7,0);player.vel.set(0,0,0);player.ground=true;player.wallrun=0;toast('FALL DETECTED // RETURNED TO PLAZA')}
+if(player.pos.y<-12){player.pos.set(0,1.7,0);player.vel.set(0,0,0);player.ground=true;player.wallrun=0;toast('FALL DETECTED // RETURNED TO PLAZA')}
 
 horizontal=Math.hypot(player.vel.x,player.vel.z);
 const moving=player.ground&&horizontal>.6;
