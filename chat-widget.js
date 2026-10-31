@@ -21,7 +21,7 @@
  #hp-chat-head button{background:#ffffff12;color:#fff;border:1px solid #ffffff20;border-radius:9px;padding:6px 10px}
  #hp-chat-pickers{display:none}\n #hp-chat-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px 10px;border-bottom:1px solid #ffffff18;background:#10101d}\n #hp-chat-tabs button{padding:9px;border:1px solid #ffffff18;border-radius:10px;background:#ffffff08;color:#bdb9d2;font:700 12px system-ui}\n #hp-chat-tabs button.active{border-color:#7df9ff66;background:#7df9ff14;color:#8ffaff}\n #hp-party-panel{display:none;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch;padding:12px;gap:10px;align-content:start}\n #hp-chat-window.party-mode #hp-chat-pickers,#hp-chat-window.party-mode #hp-chat-feed,#hp-chat-window.party-mode>div:last-child{display:none}
  #hp-chat-window.party-mode #hp-group-create,#hp-chat-window.party-mode #hp-group-builder{display:none!important}\n #hp-chat-window.party-mode #hp-party-panel{display:grid}\n #hp-chat-window.party-mode{grid-template-rows:auto auto 1fr}\n .hp-party-card{padding:11px;border:1px solid #ffffff16;border-radius:13px;background:#ffffff06}\n #hp-party-invites:empty{display:none}\n .hp-party-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #ffffff10;font-size:12px}\n .hp-party-row:last-child{border-bottom:0}\n .hp-party-muted{color:#aaa7c1;font-size:11px}\n .hp-party-action{padding:8px 10px;border:1px solid #ffffff20;border-radius:9px;background:#ffffff0c;color:#f4f2ff;font:700 11px system-ui}\n .hp-party-action.primary{background:linear-gradient(120deg,#b7a0ff,#7df9ff);color:#10101d;border:0}\n #hp-party-chat-feed{display:flex;flex-direction:column;gap:7px;max-height:180px;overflow:auto;margin:8px 0}\n #hp-party-chat-feed .hp-party-msg{padding:8px 10px;border-radius:10px;background:#ffffff0b;font-size:12px;overflow-wrap:anywhere}\n #hp-party-chat-feed small{display:block;color:#aaa7c1;font-size:10px;margin-bottom:3px}\n #hp-party-chat-compose{display:flex;gap:6px}\n #hp-party-chat-compose input{min-width:0;flex:1;padding:9px;border:1px solid #ffffff20;border-radius:9px;background:#ffffff0b;color:#fff;font:12px system-ui}
- #hp-group-create{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid #ffffff18;background:#121221;min-width:0;width:100%;overflow:hidden}#hp-group-create #hp-chat-target{display:block;min-width:0;width:100%;max-width:100%;height:38px;padding:0 9px;border:1px solid #ffffff20;border-radius:10px;background:#1b1b2c;color:#f4f2ff;font:12px system-ui}#hp-group-create #hp-new-group{display:inline-flex;align-items:center;justify-content:center;min-width:0;max-width:none;white-space:nowrap;padding:9px 10px;font-size:11px}
+ #hp-group-create{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid #ffffff18;background:#121221;min-width:0;width:100%;overflow:hidden}#hp-group-create #hp-chat-target{display:block;min-width:0;width:100%;max-width:100%;height:38px;padding:0 9px;border:1px solid #ffffff20;border-radius:10px;background:#1b1b2c;color:#f4f2ff;font:12px system-ui}#hp-group-create #hp-group-actions{display:flex;gap:6px;align-items:center;min-width:0}#hp-group-create #hp-group-actions button{display:inline-flex;align-items:center;justify-content:center;min-width:0;white-space:nowrap;padding:9px 8px;font-size:10px}#hp-group-create #hp-add-group-members{border-color:#b7a0ff66;background:#28213e;color:#d5c7ff}
  #hp-group-create button,#hp-group-builder button{padding:8px 10px;border:1px solid #7df9ff55;border-radius:9px;background:#123039;color:#9ffaff;font:750 11px system-ui}
  #hp-group-builder{display:none;min-height:0;max-height:min(245px,42dvh);overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch;padding:10px;border-bottom:1px solid #ffffff18;background:#171729;gap:8px;align-content:start}
  #hp-group-builder.open{display:grid}
@@ -57,7 +57,7 @@
  const style=document.createElement('style');style.id='hp-chat-widget-style';style.textContent=css;document.head.append(style);
  const launch=document.createElement('button');launch.id='hp-chat-launch';launch.type='button';launch.innerHTML='✉<span id="hp-chat-unread-badge" aria-hidden="true"></span>';launch.setAttribute('aria-label','Open chat');launch.title='Chat';
  const win=document.createElement('section');win.id='hp-chat-window';win.setAttribute('aria-label','Hyper-Pop chat');
- win.innerHTML='<div id="hp-chat-head"><span>✦ Hyper-Pop Chat</span><button type="button" id="hp-chat-close" aria-label="Close chat">✕</button></div><div id="hp-chat-tabs"><button id="hp-chat-tab-messages" class="active" type="button">✉ Messages</button><button id="hp-chat-tab-party" type="button">◉ Party</button></div><div id="hp-group-create"><select id="hp-chat-target" aria-label="Choose a conversation or message a friend"><option value="">Choose a conversation or friend…</option></select><button id="hp-new-group" type="button">＋ New group chat</button></div><div id="hp-group-builder"><input id="hp-group-title" maxlength="60" placeholder="Group name"><select id="hp-group-friends" multiple aria-label="Select group members"></select><small>Select 1 to 9 friends. On desktop use Ctrl or Command to select multiple.</small><div style="display:flex;gap:7px"><button id="hp-group-create-submit" type="button">Create group</button><button id="hp-group-cancel" type="button">Cancel</button></div></div><div id="hp-chat-feed"><div style="color:#aaa7c1;text-align:center;padding:28px 8px">Choose a conversation or a friend to start chatting.</div></div><div id="hp-party-panel" aria-label="Party management"><div class="hp-party-card" id="hp-party-overview">Loading party…</div><div class="hp-party-card" id="hp-party-members"></div><div class="hp-party-card" id="hp-party-invites"></div><div class="hp-party-card"><strong style="font-size:12px">✉ Party chat</strong><div id="hp-party-chat-feed"><div class="hp-party-muted">Loading party messages…</div></div><form id="hp-party-chat-compose"><input id="hp-party-chat-input" maxlength="1000" placeholder="Message your party…" autocomplete="off"><button class="hp-party-action primary">Send</button></form></div></div><div><div id="hp-chat-note" role="status"></div><form id="hp-chat-compose"><input id="hp-chat-input" maxlength="2000" placeholder="Write a message…" autocomplete="off"><button>Send</button></form></div>';
+ win.innerHTML='<div id="hp-chat-head"><span>✦ Hyper-Pop Chat</span><button type="button" id="hp-chat-close" aria-label="Close chat">✕</button></div><div id="hp-chat-tabs"><button id="hp-chat-tab-messages" class="active" type="button">✉ Messages</button><button id="hp-chat-tab-party" type="button">◉ Party</button></div><div id="hp-group-create"><select id="hp-chat-target" aria-label="Choose a conversation or message a friend"><option value="">Choose a conversation or friend…</option></select><div id="hp-group-actions"><button id="hp-new-group" type="button">＋ New group chat</button><button id="hp-add-group-members" type="button" style="display:none">＋ Add people</button></div></div><div id="hp-group-builder"><input id="hp-group-title" maxlength="60" placeholder="Group name"><select id="hp-group-friends" multiple aria-label="Select group members"></select><small id="hp-group-builder-help">Select 1 to 9 friends. On desktop use Ctrl or Command to select multiple.</small><div style="display:flex;gap:7px"><button id="hp-group-create-submit" type="button">Create group</button><button id="hp-group-cancel" type="button">Cancel</button></div></div><div id="hp-chat-feed"><div style="color:#aaa7c1;text-align:center;padding:28px 8px">Choose a conversation or a friend to start chatting.</div></div><div id="hp-party-panel" aria-label="Party management"><div class="hp-party-card" id="hp-party-overview">Loading party…</div><div class="hp-party-card" id="hp-party-members"></div><div class="hp-party-card" id="hp-party-invites"></div><div class="hp-party-card"><strong style="font-size:12px">✉ Party chat</strong><div id="hp-party-chat-feed"><div class="hp-party-muted">Loading party messages…</div></div><form id="hp-party-chat-compose"><input id="hp-party-chat-input" maxlength="1000" placeholder="Message your party…" autocomplete="off"><button class="hp-party-action primary">Send</button></form></div></div><div><div id="hp-chat-note" role="status"></div><form id="hp-chat-compose"><input id="hp-chat-input" maxlength="2000" placeholder="Write a message…" autocomplete="off"><button>Send</button></form></div>';
  const embeddedHost=document.getElementById('chat-area');if(embeddedHost){win.classList.add('hp-chat-embedded','open');embeddedHost.append(win);launch.style.display='none';}else document.body.append(launch,win);
  const toast=document.createElement('div');toast.id='hp-chat-toast';toast.setAttribute('role','status');toast.innerHTML='<div class="hp-toast-icon">✦</div><div class="hp-toast-copy"><strong id="hp-toast-title"></strong><span id="hp-toast-detail"></span></div><button class="hp-toast-close" type="button" aria-label="Dismiss">×</button>';document.body.append(toast);
  let toastTimer=null,knownUnread=new Set(),hasNotificationBaseline=false,currentStatus='online';
@@ -144,18 +144,36 @@
  launch.addEventListener('click',()=>open());$('hp-chat-close').addEventListener('click',close);if(win.classList.contains('hp-chat-embedded'))$('hp-chat-close').style.display='none';
  function syncChatMount(){const host=document.getElementById('chat-area');if(host){win.classList.add('hp-chat-embedded','open');host.append(win);launch.style.display='none';$('hp-chat-close').style.display='none'}else if(win.classList.contains('hp-chat-embedded')){win.classList.remove('hp-chat-embedded','open');document.body.append(win);$('hp-chat-close').style.display='';chatVisible()}}
  window.addEventListener('hyperpop:navigate',syncChatMount);
- const groupBuilder=$('hp-group-builder');
- $('hp-new-group').addEventListener('click',()=>{groupBuilder.classList.toggle('open');if(groupBuilder.classList.contains('open'))refreshLists()});
+ const groupBuilder=$('hp-group-builder');let groupBuilderMode='create';
+ function configureGroupBuilder(mode){
+  groupBuilderMode=mode;groupBuilder.classList.add('open');
+  $('hp-group-title').style.display=mode==='create'?'':'none';
+  $('hp-group-builder-help').textContent=mode==='create'?'Select 1 to 9 friends to add to this new group.':'Select friends to add to this existing group. Group chats support up to 10 members total.';
+  $('hp-group-create-submit').textContent=mode==='create'?'Create group':'Add selected people';
+  $('hp-group-friends').replaceChildren();
+ }
+ $('hp-new-group').addEventListener('click',()=>{if(groupBuilder.classList.contains('open')&&groupBuilderMode==='create'){groupBuilder.classList.remove('open');return}configureGroupBuilder('create');refreshLists()});
+ $('hp-add-group-members').addEventListener('click',async()=>{if(!window.HyperPopSelectedGroupConversation){note('Open a group chat first.');return}configureGroupBuilder('add');await refreshLists();const current=await fetch('https://iapnejlttsqqefkpmelp.supabase.co/rest/v1/rpc/hyperpop_group_members',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({p_token:localStorage.getItem('hyperpop_token'),p_conversation_id:window.HyperPopSelectedGroupConversation})}).then(r=>r.json()).catch(()=>({}));if(!current.ok){note(current.error||'Could not load group members.');return}const existing=new Set((current.members||[]).map(m=>String(m.id)));[...$('hp-group-friends').options].forEach(o=>{if(existing.has(String(o.value)))o.remove()});note('Select friends to add to this group.')});
  $('hp-group-cancel').addEventListener('click',()=>groupBuilder.classList.remove('open'));
  $('hp-group-create-submit').addEventListener('click',async()=>{
-  const title=$('hp-group-title').value.trim(),ids=[...$('hp-group-friends').selectedOptions].map(o=>o.value);
-  if(!title){note('Give your group chat a name.');return}
-  if(ids.length<1||ids.length>9){note('Choose between 1 and 9 friends.');return}
-  const b=$('hp-group-create-submit');b.disabled=true;b.textContent='Creating…';
-  const d=await rpc('group_create',{title,friend_ids:ids});
-  b.disabled=false;b.textContent='Create group';
-  if(!d.ok){note(d.error||'Could not create group chat.');return}
-  $('hp-group-title').value='';groupBuilder.classList.remove('open');await open(d.conversation_id);note('Group chat created!');
+  const ids=[...$('hp-group-friends').selectedOptions].map(o=>o.value);
+  if(!ids.length){note('Choose at least one friend.');return}
+  if(groupBuilderMode==='create'){
+   const title=$('hp-group-title').value.trim();if(!title){note('Give your group chat a name.');return}
+   if(ids.length>9){note('Choose between 1 and 9 friends.');return}
+   const b=$('hp-group-create-submit');b.disabled=true;b.textContent='Creating…';
+   const d=await rpc('group_create',{title,friend_ids:ids});b.disabled=false;b.textContent='Create group';
+   if(!d.ok){note(d.error||'Could not create group chat.');return}
+   $('hp-group-title').value='';groupBuilder.classList.remove('open');await open(d.conversation_id);note('Group chat created!');
+  }else{
+   const conversationId=window.HyperPopSelectedGroupConversation;if(!conversationId){note('Open a group chat first.');return}
+   const b=$('hp-group-create-submit');b.disabled=true;b.textContent='Adding…';
+   const token=localStorage.getItem('hyperpop_token');
+   const r=await fetch('https://iapnejlttsqqefkpmelp.supabase.co/rest/v1/rpc/hyperpop_group_add_members',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({p_token:token,p_data:{conversation_id:conversationId,friend_ids:ids}})});
+   const d=await r.json().catch(()=>({}));b.disabled=false;b.textContent='Add selected people';
+   if(!r.ok||!d.ok){note(d.error||'Could not add people to this group.');return}
+   groupBuilder.classList.remove('open');note(d.added?d.added+' member'+(d.added===1?'':'s')+' added to the group.':'Those friends are already in this group.');await refreshLists();
+  }
  });
  async function refreshLists(){
   if(busy)return;busy=true;
@@ -186,7 +204,7 @@
   if(!chats.ok)note(chats.error);else if(!localStorage.getItem('hyperpop_token'))note('Sign in to use chat.');
  }
  async function showConversation(id,quiet=false){
-  if(!id)return;selected=id;const target=$('hp-chat-target');if(target&&[...target.options].some(o=>o.value==='conversation:'+String(id)))target.value='conversation:'+String(id);
+  if(!id)return;selected=id;const target=$('hp-chat-target');const isGroup=!!(target&&[...target.options].some(o=>o.value==='conversation:'+String(id)));if(isGroup)target.value='conversation:'+String(id);window.HyperPopSelectedGroupConversation=isGroup?String(id):null;window.HyperPopSelectedChatIsGroup=isGroup;$('hp-add-group-members').style.display=isGroup?'':'none';if(window.HyperPopVoiceCall?.setGroupMode)window.HyperPopVoiceCall.setGroupMode(isGroup);
   const feed=$('hp-chat-feed'),wasNearBottom=feed.scrollHeight-feed.scrollTop-feed.clientHeight<70,oldHeight=feed.scrollHeight,oldTop=feed.scrollTop;if(!quiet)feed.replaceChildren();const d=await rpc('chat_messages',{conversation_id:id});
   if(!d.ok){if(!quiet){feed.textContent=d.error;note('Chat load failed · '+String(id)+' · '+d.error)}console.error('[Hyper-Pop chat] chat_messages failed',{conversationId:String(id),error:d.error});return}
   const messages=(d.messages||[]).slice().reverse();
@@ -202,7 +220,7 @@
    selectedFriend={id,name};window.HyperPopSelectedChatFriend=selectedFriend;
    note('Opening chat…');const d=await rpc('chat_open_friend',{friend_id:id});
    if(!d.ok){note(d.error);return}
-   selected=String(d.conversation_id||'');await showConversation(selected);
+   selected=String(d.conversation_id||'');window.HyperPopSelectedGroupConversation=null;window.HyperPopSelectedChatIsGroup=false;$('hp-add-group-members').style.display='none';if(window.HyperPopVoiceCall?.setGroupMode)window.HyperPopVoiceCall.setGroupMode(false);await showConversation(selected);
    // Keep the contact selected, so the Call button retains its recipient.
    e.target.value='friend:'+id;
   }
