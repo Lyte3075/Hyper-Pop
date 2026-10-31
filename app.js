@@ -3,7 +3,7 @@
   var script = document.currentScript;
   var base = new URL('.', script && script.src ? script.src : location.href);
   var path = location.pathname;
-  var HP_BUILD_VERSION='social-2026-10-30-j';
+  var HP_BUILD_VERSION='social-2026-10-30-k';
   var soundtrackDisabled = document.body && document.body.dataset.noSoundtrack === 'true';
   if (!soundtrackDisabled && !document.getElementById('hp-sound-orb')) {
     var fallbackStyle = document.createElement('style');
@@ -28,9 +28,9 @@
       frame=document.createElement('iframe');
       frame.id='hp-sidebar-frame';
       frame.title='Hyper-Pop navigation';
-      frame.src=new URL('sidebar.html?v=dark-canvas-1',base).href;
+      frame.src=new URL('sidebar.html?v=transparent-sections-1',base).href;
       frame.setAttribute('allowtransparency','true');
-      frame.style.cssText='position:fixed;z-index:2147483000;top:0;left:0;width:100vw;height:100%;height:100dvh;border:0;background:rgba(3,7,5,.01);color-scheme:dark;overflow:hidden;pointer-events:none;visibility:hidden;';
+      frame.style.cssText='position:fixed;z-index:2147483000;top:0;left:0;width:100vw;height:100%;height:100dvh;border:0;background:transparent;color-scheme:dark;overflow:hidden;pointer-events:none;visibility:hidden;';
       (document.body||document.documentElement).appendChild(frame);
     }
     function commandFrame(action){frame.contentWindow?.postMessage('hp-sidebar-command-'+action,location.origin);}
@@ -40,7 +40,7 @@
     if(!edgeHit){
       edgeHit=document.createElement('div');edgeHit.id='hp-sidebar-edge-hit';
       edgeHit.setAttribute('aria-label','Open navigation');
-      edgeHit.style.cssText='position:fixed;z-index:2147483001;top:0;left:0;width:44px;height:100%;height:100dvh;background:linear-gradient(90deg,#0b0b16 0%,#0b0b1688 38%,transparent 100%);pointer-events:auto;touch-action:pan-y;cursor:ew-resize;';
+      edgeHit.style.cssText='position:fixed;z-index:2147483001;top:0;left:0;width:44px;height:100%;height:100dvh;background:transparent;pointer-events:auto;touch-action:pan-y;cursor:ew-resize;';
       (document.body||document.documentElement).appendChild(edgeHit);
       edgeHit.addEventListener('dblclick',function(){commandFrame('open')});
       var edgeTap=0;edgeHit.addEventListener('touchend',function(){var now=Date.now();if(now-edgeTap<380){commandFrame('open');edgeTap=0}else edgeTap=now},{passive:true});
