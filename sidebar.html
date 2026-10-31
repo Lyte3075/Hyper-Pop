@@ -1,11 +1,11 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:rgba(3,7,5,.01)!important;color-scheme:dark;color:#f4f2ff;pointer-events:none;font-family:Inter,system-ui,-apple-system,sans-serif}
-#edge{position:fixed;inset:0 auto 0 0;width:28px;background:linear-gradient(to right,#0b0b16 0%,transparent 100%);touch-action:none;cursor:ew-resize;pointer-events:auto}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent!important;color-scheme:dark;color:#f4f2ff;pointer-events:none;font-family:Inter,system-ui,-apple-system,sans-serif}
+#edge{position:fixed;inset:0 auto 0 0;width:28px;background:transparent;touch-action:none;cursor:ew-resize;pointer-events:auto}
 #scrim{position:fixed;inset:0;background:linear-gradient(90deg,#000b 0%,#0009 45%,#0007 100%);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s,visibility .2s}
-#panel{touch-action:pan-y;pointer-events:auto;position:fixed;inset:0 auto 0 0;width:min(320px,90vw);height:100%;overflow:auto;padding:calc(22px + env(safe-area-inset-top)) 14px calc(20px + env(safe-area-inset-bottom));background:#0d0d19f7;border-right:1px solid #ffffff1c;backdrop-filter:blur(22px);transform:translateX(-102%);transition:transform .22s ease;box-shadow:5px 0 14px #0005}
+#panel{touch-action:pan-y;pointer-events:auto;position:fixed;inset:0 auto 0 0;width:min(320px,90vw);height:100%;overflow:auto;padding:calc(22px + env(safe-area-inset-top)) 14px calc(20px + env(safe-area-inset-bottom));background:transparent!important;border-right:1px solid #ffffff20;backdrop-filter:none;transform:translateX(-102%);transition:transform .22s ease;box-shadow:none}
 body.open #panel{transform:translateX(0)}body.open #scrim{opacity:1;visibility:visible;pointer-events:auto}
-.brand{font-size:18px;font-weight:800;margin:0 0 4px}.note{font:10px monospace;color:#aaa7c1;letter-spacing:.12em;text-transform:uppercase;margin:0 0 18px}.label{font:10px monospace;color:#4be0e3;letter-spacing:.13em;text-transform:uppercase;margin:18px 8px 7px}
+.brand{font-size:18px;font-weight:800;margin:0 0 4px}.note{font:10px monospace;color:#aaa7c1;letter-spacing:.12em;text-transform:uppercase;margin:0 0 18px}.label{display:flex;align-items:center;justify-content:space-between;width:100%;font:10px monospace;color:#4be0e3;letter-spacing:.13em;text-transform:uppercase;margin:18px 0 7px;padding:9px 8px;border:1px solid #ffffff18;border-radius:9px;background:#ffffff08;text-align:left;cursor:pointer}.label::after{content:'⌄';font-size:15px;transition:transform .16s}.label[aria-expanded='false']::after{transform:rotate(-90deg)}.sidebar-section-content{display:flex;flex-direction:column;gap:2px}.sidebar-section-content[hidden]{display:none}
 a{display:flex;align-items:center;gap:11px;min-height:42px;padding:9px 11px;border:1px solid transparent;border-radius:11px;color:#dedbed;text-decoration:none;font-size:13px}a:hover,a:focus-visible{background:#ffffff0b;border-color:#ffffff20;color:#fff;outline:none}.ico{width:22px;flex:0 0 22px;text-align:center;font-size:16px}
 .setting{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px;border:1px solid #ffffff18;border-radius:12px;background:#ffffff08;color:#dedbed;font-size:13px}
 .setting input{width:18px;height:18px;accent-color:#9b7bff;flex:0 0 auto}
@@ -32,6 +32,38 @@ a{display:flex;align-items:center;gap:11px;min-height:42px;padding:9px 11px;bord
 <div class="label">Settings</div><label class="setting"><span>Show floating chat button<small>Display the chat shortcut on pages</small></span><input id="chat-button-toggle" type="checkbox"></label>
 <div class="label">More</div><a href="stats.html" target="_top"><span class="ico">📊</span>Live site stats</a><a href="accounts.html" target="_top"><span class="ico">👤</span>Account / Profile</a></aside>
 <script>
+(function(){
+ const STORAGE_KEY='hp_sidebar_sections_v1';
+ let saved={};
+ try{saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}')||{}}catch(_){}
+ document.querySelectorAll('#panel .label').forEach((heading,index)=>{
+   const content=document.createElement('div');
+   content.className='sidebar-section-content';
+   content.id='hp-sidebar-section-'+index;
+   let node=heading.nextElementSibling;
+   while(node&&!node.classList.contains('label')){
+     const next=node.nextElementSibling;
+     content.appendChild(node);
+     node=next;
+   }
+   heading.insertAdjacentElement('afterend',content);
+   heading.setAttribute('role','button');
+   heading.setAttribute('tabindex','0');
+   heading.setAttribute('aria-controls',content.id);
+   const expanded=Object.prototype.hasOwnProperty.call(saved,String(index))?saved[String(index)]!==false:true;
+   function setExpanded(open){
+     heading.setAttribute('aria-expanded',String(open));
+     content.hidden=!open;
+     saved[String(index)]=open;
+     try{localStorage.setItem(STORAGE_KEY,JSON.stringify(saved))}catch(_){}
+   }
+   function toggle(){setExpanded(heading.getAttribute('aria-expanded')!=='true')}
+   heading.addEventListener('click',toggle);
+   heading.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle()}});
+   setExpanded(expanded);
+ });
+})();
+
 (function(){const send=s=>parent.postMessage(s,location.origin);function open(){document.body.classList.add('open');send('hp-sidebar-open');send({type:'hp-status-request'})}function close(){document.body.classList.remove('open');send('hp-sidebar-close')}
 let startX=null,startY=0;
 function swipeStart(e){if(!e.touches||e.touches.length!==1)return;startX=e.touches[0].clientX;startY=e.touches[0].clientY}
