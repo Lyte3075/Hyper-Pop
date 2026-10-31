@@ -131,7 +131,7 @@ for(let i=0;i<24;i++){
 }
 // skyline details and sun disc
 const sunDisc=new THREE.Mesh(new THREE.CircleGeometry(12,48),new THREE.MeshBasicMaterial({color:0xfff1d2}));sunDisc.position.set(-75,62,-190);scene.add(sunDisc);
-const player={pos:new THREE.Vector3(0,8.7,0),vel:new THREE.Vector3(),yaw:0,pitch:0,ground:true,sliding:0,wallrun:0,roll:0,coyote:.12,jumpBuffer:0,landBlend:0,runLean:0,camY:1.7,vault:0,wallSide:0};camera.position.copy(player.pos);
+const player={pos:new THREE.Vector3(0,1.7,0),vel:new THREE.Vector3(),yaw:0,pitch:0,ground:true,sliding:0,wallrun:0,roll:0,coyote:.12,jumpBuffer:0,landBlend:0,runLean:0,camY:1.7,vault:0,wallSide:0};camera.position.copy(player.pos);
 let cameraFov=78, bobPhase=0, wasGrounded=true, lastHorizontalSpeed=0;
 const keys={};let locked=false,started=false,paused=true,mouseDown=false,last=performance.now(),elapsed=0,checkpoint=0,runStart=0,finish=false;
 const overlay=document.getElementById('overlay'),hint=document.getElementById('hint');
@@ -151,7 +151,7 @@ joystick.addEventListener('pointerdown',e=>{e.preventDefault();stickPointer=e.po
 joystick.addEventListener('pointermove',e=>{if(e.pointerId===stickPointer)setStick(e)});
 ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>joystick.addEventListener(ev,releaseStick));
 let lookPointer=null,lastLookX=0,lastLookY=0;renderer.domElement.addEventListener('pointerdown',e=>{if(e.pointerType!=='touch'||e.clientX<innerWidth*.38||paused)return;lookPointer=e.pointerId;lastLookX=e.clientX;lastLookY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId)});renderer.domElement.addEventListener('pointermove',e=>{if(e.pointerId!==lookPointer||paused)return;const dx=e.clientX-lastLookX,dy=e.clientY-lastLookY;player.yaw-=dx*.004;player.pitch=THREE.MathUtils.clamp(player.pitch-dy*.003,-1.1,1.1);lastLookX=e.clientX;lastLookY=e.clientY});function endLook(e){if(e.pointerId===lookPointer)lookPointer=null}renderer.domElement.addEventListener('pointerup',endLook);renderer.domElement.addEventListener('pointercancel',endLook);
-function reset(){player.pos.set(0,1.7,7);player.vel.set(0,0,0);player.ground=true;checkpoint=0;finish=false;elapsed=0;runStart=performance.now();document.getElementById('checkpointText').textContent='OPEN WORLD // NO ROUTE';document.getElementById('objectiveText').textContent='EXPLORE THE CITY';document.getElementById('bar').style.width='0%';toast('ROUTE RESET')}
+function reset(){player.pos.set(0,1.7,0);player.vel.set(0,0,0);player.ground=true;checkpoint=0;finish=false;elapsed=0;runStart=performance.now();document.getElementById('checkpointText').textContent='OPEN WORLD // NO ROUTE';document.getElementById('objectiveText').textContent='EXPLORE THE CITY';document.getElementById('bar').style.width='100%';toast('ROUTE RESET')}
 function getPlatform(x,z){let best=null;for(const p of platforms){if(x>p.x-p.w/2-.2&&x<p.x+p.w/2+.2&&z>p.z-p.d/2-.2&&z<p.z+p.d/2+.2&&(!best||p.y>best.y))best=p}return best}
 function collides(x,y,z){for(const s of solids){if(x>s.minX-.35&&x<s.maxX+.35&&z>s.minZ-.35&&z<s.maxZ+.35&&y-1.1<s.maxY&&y+.1>s.minY)return s}return null}
 function update(dt){
