@@ -161,17 +161,27 @@
   if(busy)return;busy=true;
   const [chats,friends]=await Promise.all([namedChatList(),rpc('friends_list')]);busy=false;
   const target=$('hp-chat-target'),old=selected,oldFriend=selectedFriend?.id;
-  target.replaceChildren(new Option('Choose a conversation or friend…',''));
-  const conversationGroup=document.createElement('optgroup');conversationGroup.label='Conversations';
-  if(chats.ok){const seenIds=new Set(),seenLabels=new Set();(chats.conversations||[]).forEach(c=>{const id=String(c.id||'').trim(),labelText=String(c.title||c.label||'Conversation').trim(),key=labelText.toLocaleLowerCase();if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)||seenIds.has(id)||seenLabels.has(key))return;seenIds.add(id);seenLabels.add(key);const label=labelText+(c.unread?' · unread':'');conversationGroup.append(new Option(label,'conversation:'+id))})}
-  if(conversationGroup.childElementCount)target.append(conversationGroup);
-  const friendGroup=document.createElement('optgroup');friendGroup.label='Start a message';
+  target.replaceChildren(new Option('Choose a contact or group…',''));
+  const seenFriends=new Set(),seenGroups=new Set();
   const gfs=$('hp-group-friends'),selectedGroup=[...gfs.selectedOptions].map(o=>o.value);gfs.replaceChildren();
-  if(friends.ok){const friendIds=new Set();(friends.friends||[]).forEach(f=>{const id=String(f.id||'');if(!id||friendIds.has(id))return;friendIds.add(id);const label='@'+f.username+(' · '+(f.status==='invisible'||!f.online?'offline':({idle:'idle',dnd:'do not disturb',online:'online'})[f.status]||'online'));friendGroup.append(new Option(label,'friend:'+id));gfs.add(new Option('@'+f.username,id))})};
-  if(friendGroup.childElementCount)target.append(friendGroup);
+  if(friends.ok)(friends.friends||[]).forEach(f=>{
+   const id=String(f.id||'');if(!id||seenFriends.has(id))return;seenFriends.add(id);
+   const state=f.status==='invisible'||!f.online?'offline':({idle:'idle',dnd:'do not disturb',online:'online'})[f.status]||'online';
+   const label='@'+f.username+' · '+state;
+   target.add(new Option(label,'friend:'+id));
+   gfs.add(new Option('@'+f.username,id));
+  });
+  if(chats.ok)(chats.conversations||[]).forEach(c=>{
+   const id=String(c.id||''),title=String(c.title||'').trim();
+   if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))return;
+   // Direct chats are represented by their contact above, avoiding duplicate entries.
+   if(!title||/^@/.test(title)||/^direct chat$/i.test(title)||/^party chat$/i.test(title))return;
+   if(seenGroups.has(id))return;seenGroups.add(id);
+   target.add(new Option((c.unread?'● ':'')+'▣ '+title,'conversation:'+id));
+  });
   [...gfs.options].forEach(o=>o.selected=selectedGroup.includes(o.value));
-  if(old&&[...target.options].some(o=>o.value==='conversation:'+old))target.value='conversation:'+old;
-  else if(oldFriend&&[...target.options].some(o=>o.value==='friend:'+String(oldFriend)))target.value='friend:'+String(oldFriend);
+  if(oldFriend&&[...target.options].some(o=>o.value==='friend:'+String(oldFriend)))target.value='friend:'+String(oldFriend);
+  else if(old&&[...target.options].some(o=>o.value==='conversation:'+old))target.value='conversation:'+old;
   lastListRefresh=Date.now();
   if(!chats.ok)note(chats.error);else if(!localStorage.getItem('hyperpop_token'))note('Sign in to use chat.');
  }
@@ -184,7 +194,19 @@
   messages.forEach(m=>{const b=document.createElement('div');b.className='hp-chat-bubble'+(me&&m.sender_id===me.id?' mine':'');const s=document.createElement('small');const stamp=m.created_at?new Date(m.created_at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'';s.textContent='@'+(m.username||'user')+(stamp?' · '+stamp:'');const t=document.createElement('div');t.textContent=m.body;b.append(s,t);fragment.append(b)});feed.replaceChildren(fragment);
   feed.scrollTop=wasNearBottom||!quiet?feed.scrollHeight:oldTop+(feed.scrollHeight-oldHeight);if(!quiet)note('');
  }
- $('hp-chat-target').addEventListener('change',async e=>{const value=e.target.value;if(!value)return;if(value.startsWith('conversation:')){selectedFriend=null;window.HyperPopSelectedChatFriend=null;await showConversation(value.slice(12));return}if(value.startsWith('friend:')){const id=value.slice(7),option=e.target.selectedOptions[0];selectedFriend={id,name:option.textContent.replace(/ · (?:online|idle|do not disturb|offline)$/,'')};window.HyperPopSelectedChatFriend=selectedFriend;note('Opening chat…');const d=await rpc('chat_open_friend',{friend_id:id});if(!d.ok){note(d.error);return}selectedFriend={id,name:selectedFriend.name};window.HyperPopSelectedChatFriend=selectedFriend;await refreshLists();$('hp-chat-target').value='conversation:'+String(d.conversation_id);await showConversation(String(d.conversation_id))}});
+ $('hp-chat-target').addEventListener('change',async e=>{
+  const value=e.target.value;if(!value)return;
+  if(value.startsWith('conversation:')){selectedFriend=null;window.HyperPopSelectedChatFriend=null;await showConversation(value.slice(12));return}
+  if(value.startsWith('friend:')){
+   const id=value.slice(7),option=e.target.selectedOptions[0],name=option.textContent.replace(/ · (?:online|idle|do not disturb|offline)$/,'').trim();
+   selectedFriend={id,name};window.HyperPopSelectedChatFriend=selectedFriend;
+   note('Opening chat…');const d=await rpc('chat_open_friend',{friend_id:id});
+   if(!d.ok){note(d.error);return}
+   selected=String(d.conversation_id||'');await showConversation(selected);
+   // Keep the contact selected, so the Call button retains its recipient.
+   e.target.value='friend:'+id;
+  }
+ });
  $('hp-chat-compose').addEventListener('submit',async e=>{e.preventDefault();const body=$('hp-chat-input').value.trim();if(!body||!selected)return;const d=await rpc('chat_send',{conversation_id:selected,body});if(!d.ok){note(d.error);return}const sentConversation=selected;const token=localStorage.getItem('hyperpop_token');if(token)fetch(PUSH_API,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({token,action:'notify_message',conversation_id:sentConversation})}).catch(()=>{});$('hp-chat-input').value='';await showConversation(sentConversation);});
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&win.classList.contains('open'))close()});
  window.addEventListener('storage',e=>{if(e.key==='hyperpop_token'&&win.classList.contains('open'))refreshLists()});
