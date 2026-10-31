@@ -183,8 +183,8 @@
   if(busy)return;busy=true;
   const [chats,friends]=await Promise.all([namedChatList(),rpc('friends_list')]);busy=false;
   const target=$('hp-chat-target'),old=selected,oldFriend=selectedFriend?.id;
-  const groupOptions=new optgroup();groupOptions.label='Group Chats';
-  const friendOptions=new optgroup();friendOptions.label='Friends';
+  const groupOptions=document.createElement('optgroup');groupOptions.label='Group Chats';
+  const friendOptions=document.createElement('optgroup');friendOptions.label='Friends';
   target.replaceChildren(new Option('Choose a conversation…',''),groupOptions,friendOptions);
   const seenFriends=new Set(),seenGroups=new Set();
   const gfs=$('hp-group-friends'),selectedGroup=[...gfs.selectedOptions].map(o=>o.value);gfs.replaceChildren();
