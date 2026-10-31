@@ -73,7 +73,7 @@
   launch.title=n?n+' unread message'+(n===1?'':'s'):'Chat';
  }
 
- const chatVisible=()=>{let visible=true;try{visible=localStorage.getItem('hp_chat_button_visible')!=='false'}catch(_){}launch.style.display=visible?'block':'none';return visible};
+ const chatVisible=()=>{let visible=true;try{localStorage.setItem('hp_chat_button_visible','true')}catch(_){}launch.style.display='grid';return true};
  chatVisible();
  window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.source)return;if(typeof e.data==='string'&&e.data.startsWith('hp-chat-visibility:')){const visible=e.data.endsWith('true');try{localStorage.setItem('hp_chat_button_visible',String(visible))}catch(_){}launch.style.display=visible?'block':'none'}});
 
