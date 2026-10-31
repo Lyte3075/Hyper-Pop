@@ -165,8 +165,8 @@ if(isMobile){wish.addScaledVector(right,moveX);wish.addScaledVector(forward,-mov
 const inputAmount=Math.min(1,wish.length());if(wish.lengthSq())wish.normalize();
 if(keys.Space){player.jumpBuffer=.16;player.upAction=true;keys.Space=false}else player.jumpBuffer=Math.max(0,player.jumpBuffer-dt);
 if(player.ground)player.coyote=.13;else player.coyote=Math.max(0,player.coyote-dt);
-const slideHeld=keys.ShiftLeft;
-const sprint=keys.ControlLeft||keys.ControlRight||inputAmount>.82&&player.ground;
+const slideHeld=keys.ControlLeft||keys.ControlRight;
+const sprint=keys.ShiftLeft||keys.ShiftRight||inputAmount>.82&&player.ground;
 const speed=Math.hypot(player.vel.x,player.vel.z);
 if(slideHeld&&player.ground&&speed>4.2)player.sliding=Math.max(player.sliding,.72);if(slideHeld&&!player.ground&&player.vel.y>0){player.roll=Math.max(player.roll,.28);player.vel.y-=2.8*dt;}player.roll=Math.max(0,player.roll-dt);
 player.sliding=Math.max(0,player.sliding-dt);
@@ -257,7 +257,7 @@ camera.rotation.set(player.pitch,player.yaw,player.runLean+(player.wallrun>0?pla
 
 document.getElementById('speedValue').textContent=String(Math.round(horizontal*3.6)).padStart(2,'0');
 document.getElementById('bar').style.width=(checkpoint/3*100)+'%';
-hint.textContent=isMobile?(player.wallrun>0?'UP // WALL RUN · EXTRA // QUICKTURN':player.wallclimb>0?'UP // WALL CLIMB':player.vault>0?'UP // VAULT / MANTLE':player.sliding>0?'DOWN // SLIDE · ROLL OUT':player.ground?'UP TRAVERSE · DOWN SLIDE · EXTRA QUICKTURN':'AIRBORNE // UP TO COIL / DOWN TO DISMOUNT'):(player.wallrun>0?'UP // WALL RUN · EXTRA // QUICKTURN':player.wallclimb>0?'UP // WALL CLIMB':player.vault>0?'UP // VAULT / MANTLE':player.sliding>0?'DOWN // SLIDE · ROLL OUT':player.ground?'SPACE UP · LEFT SHIFT DOWN · Q EXTRA · CTRL SPRINT':'AIRBORNE // UP TO COIL / DOWN TO DISMOUNT');
+hint.textContent=isMobile?(player.wallrun>0?'UP // WALL RUN · EXTRA // QUICKTURN':player.wallclimb>0?'UP // WALL CLIMB':player.vault>0?'UP // VAULT / MANTLE':player.sliding>0?'DOWN // SLIDE · ROLL OUT':player.ground?'UP TRAVERSE · DOWN SLIDE · EXTRA QUICKTURN':'AIRBORNE // UP TO COIL / DOWN TO DISMOUNT'):(player.wallrun>0?'UP // WALL RUN · EXTRA // QUICKTURN':player.wallclimb>0?'UP // WALL CLIMB':player.vault>0?'UP // VAULT / MANTLE':player.sliding>0?'DOWN // SLIDE · ROLL OUT':player.ground?'SPACE UP · CTRL DOWN · Q EXTRA · SHIFT BURST':'AIRBORNE // UP TO COIL / DOWN TO DISMOUNT');
 }
 function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last)/1000,.033);last=now;update(dt);renderer.render(scene,camera)}requestAnimationFrame(animate);
 function resizeGame(){const w=window.innerWidth,h=window.innerHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);isMobile=matchMedia('(pointer: coarse)').matches||w<=900;renderer.setPixelRatio(Math.min(devicePixelRatio,isMobile?1.25:1.7))}
