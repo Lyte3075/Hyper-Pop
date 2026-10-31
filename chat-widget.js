@@ -109,16 +109,18 @@
    const incoming=i.ok?(i.invites||[]):[];
    if(incoming.length){const heading=document.createElement('strong');heading.textContent='Invitations';invites.append(heading);incoming.forEach(inv=>invites.append(partyRow('Invite from @'+inv.from,'Join their party',partyButton('Accept',async()=>{const d=await partyRPC('party_accept',{invite_id:inv.id});note(d.error||(d.ok?'Joined party!':''));refreshParty()},true))))}
    else if(!partySnapshot)invites.append(Object.assign(document.createElement('div'),{className:'hp-party-muted',textContent:'No pending party invites.'}));
+   if(partySnapshot&&invitePickerOpen)showPartyInvitePicker();
    await refreshPartyChat();
   }catch(e){$('hp-party-overview').textContent='Could not load party information.'}
   finally{partyBusy=false}
  }
  function showPartyInvitePicker(){
+  invitePickerOpen=true;
   const area=$('hp-party-invites');area.replaceChildren();const heading=document.createElement('strong');heading.textContent='Invite a friend';area.append(heading);
   const members=new Set((partySnapshot?.members||[]).map(m=>String(m.id)));
   const available=partyFriends.filter(f=>!members.has(String(f.id)));
   if(!available.length){area.append(Object.assign(document.createElement('p'),{className:'hp-party-muted',textContent:'No friends available to invite yet.'}));return}
-  available.forEach(f=>area.append(partyRow('@'+f.username,'Friend',partyButton('Invite',async()=>{const d=await partyRPC('party_invite',{username:f.username});note(d.error||(d.ok?'Invite sent to @'+f.username+'.':''));if(d.ok)area.replaceChildren(Object.assign(document.createElement('div'),{className:'hp-party-muted',textContent:'Invite sent to @'+f.username+'.'}))},true))));
+  available.forEach(f=>area.append(partyRow('@'+f.username,'Friend',partyButton('Invite',async e=>{const b=e.currentTarget;b.disabled=true;b.textContent='Sending…';const d=await partyRPC('party_invite',{username:f.username});note(d.error||(d.ok?'Invite sent to @'+f.username+'.':''));b.textContent=d.ok?'Sent ✓':'Retry';b.disabled=!!d.ok},true))));
  }
  async function refreshPartyChat(){
   if(partyChatBusy||!partySnapshot)return;partyChatBusy=true;
