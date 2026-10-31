@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#eaf0f2">
 <title>SKYLINE // Free Run</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap');
 :root{--red:#f04443;--ink:#17232b;--muted:#687780;--ui-scale:clamp(.78,1vw + .35,1.15)}
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;height:100dvh;min-height:100%;overflow:hidden;overscroll-behavior:none;touch-action:none;background:#dce6e9;font-family:'DM Mono',monospace;color:var(--ink)}canvas{display:block;position:fixed;inset:0;width:100%;height:100%;touch-action:none}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;width:100%;height:100%;height:100dvh;min-height:100%;overflow:hidden;overscroll-behavior:none;touch-action:none;-webkit-text-size-adjust:100%;background:#dce6e9;font-family:'DM Mono',monospace;color:var(--ink)}canvas{display:block;position:fixed;inset:0;width:100%;height:100%;touch-action:none}
 #hud{padding:clamp(10px,2.2vw,28px);padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
 #brand{top:clamp(12px,2.5vh,28px);left:clamp(12px,2.5vw,30px);font-size:clamp(15px,2vw,23px)}
 #objective{top:clamp(12px,2.8vh,30px);right:clamp(12px,2.5vw,30px);font-size:clamp(8px,.8vw,10px)}
@@ -39,7 +39,7 @@ kbd{display:inline-block;min-width:23px;text-align:center;padding:3px 5px;backgr
 #joystick{width:clamp(94px,15vw,150px);height:clamp(94px,15vw,150px);border-radius:50%;position:relative;pointer-events:auto;touch-action:none;background:radial-gradient(circle,#ffffff18 0 42%,#ffffff0b 43% 100%);border:1px solid #ffffff55;box-shadow:inset 0 0 25px #172c3b22,0 8px 30px #0002;backdrop-filter:blur(5px);user-select:none;-webkit-user-select:none}
 #joystick:before{content:"";position:absolute;inset:17px;border:1px solid #ffffff38;border-radius:50%}
 #stick{position:absolute;left:50%;top:50%;width:clamp(42px,6vw,60px);height:clamp(42px,6vw,60px);border-radius:50%;transform:translate(-50%,-50%);background:linear-gradient(145deg,#ffffffec,#cbd8dcdd);border:1px solid #fff;box-shadow:0 5px 18px #0005;pointer-events:none}
-#mobile .actions{display:flex;gap:13px;align-items:end;pointer-events:auto}
+#mobile .actions{display:grid;grid-template-areas:'up up' 'down extra';grid-template-columns:1fr 1fr;gap:8px 10px;align-items:center;justify-items:center;pointer-events:auto;padding:10px 4px 2px}#mobile .touch.up{grid-area:up;justify-self:center;margin-bottom:1px}#mobile .touch.down{grid-area:down}#mobile .touch.extra{grid-area:extra}
 .touch{pointer-events:auto;width:clamp(48px,7vw,68px);height:clamp(48px,7vw,68px);border:1px solid #ffffffb0;background:linear-gradient(145deg,#344b5dcc,#172c3bcc);color:white;border-radius:50%;backdrop-filter:blur(10px);font:700 10px 'DM Mono';letter-spacing:1px;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:0 5px 18px #0003}
 .touch.jump{width:clamp(58px,8.5vw,82px);height:clamp(58px,8.5vw,82px);background:linear-gradient(145deg,#f45a55ed,#c82f38ed);border-color:#ffffffd0;font-size:11px}.touch.down{background:linear-gradient(145deg,#243b49e8,#142a37e8)}.touch.extra{background:linear-gradient(145deg,#f0b64de8,#a86b22e8);color:#1f2b31;border-color:#fff}
 .touch:active{transform:scale(.94);filter:brightness(1.15)}
@@ -129,9 +129,17 @@ for(let i=0;i<24;i++){
  const beacon=new THREE.Mesh(new THREE.BoxGeometry(.35,2.8,.35),red);
  beacon.position.set(b.x,b.h+1.4,b.z);scene.add(beacon);
 }
+// Facade glass bands and rooftop access markers make the skyline readable at speed.
+const windowMat=new THREE.MeshStandardMaterial({color:0x6f929d,metalness:.25,roughness:.28,emissive:0x20343a,emissiveIntensity:.18});
+for(const b of cityBuildings){
+ const rows=Math.min(5,Math.floor(b.h/3.5));
+ for(let row=0;row<rows;row++){const y=2.1+row*3.1;if(y>b.h-1.2)continue;const cols=Math.max(2,Math.floor(b.w/3.4));for(let col=0;col<cols;col++){const x=b.x-b.w/2+(col+.5)*b.w/cols;const win=new THREE.Mesh(new THREE.BoxGeometry(.95,1.35,.055),windowMat);win.position.set(x,y,b.z-b.d/2-.035);scene.add(win);const win2=win.clone();win2.position.z=b.z+b.d/2+.035;scene.add(win2);}}
+}
+for(const [x,z,w,d,h] of [[-10,-38,12,12,4.5],[12,-38,12,12,6],[-38,8,12,12,5],[38,8,12,12,6],[0,42,14,12,5.5]])makeBuilding(x,z,w,d,h,id++);
+for(let k=-4;k<=4;k++){const z=k*32;bridge(-16,z+16,3,12,7+(Math.abs(k)%3)*2);bridge(16,z+16,3,12,8+(Math.abs(k)%4)*2);}
 // skyline details and sun disc
 const sunDisc=new THREE.Mesh(new THREE.CircleGeometry(12,48),new THREE.MeshBasicMaterial({color:0xfff1d2}));sunDisc.position.set(-75,62,-190);scene.add(sunDisc);
-const player={pos:new THREE.Vector3(0,1.7,0),vel:new THREE.Vector3(),yaw:0,pitch:0,ground:true,sliding:0,wallrun:0,roll:0,coyote:.12,jumpBuffer:0,landBlend:0,runLean:0,camY:1.7,vault:0,wallSide:0,wallclimb:0,quickturnBuffer:0,upAction:false,roll:0};camera.position.copy(player.pos);
+const player={pos:new THREE.Vector3(0,1.7,0),vel:new THREE.Vector3(),yaw:0,pitch:0,ground:true,sliding:0,wallrun:0,wallrunGrace:0,roll:0,coyote:.12,jumpBuffer:0,upBuffer:0,landBlend:0,runLean:0,camY:1.7,vault:0,wallSide:0,wallclimb:0,wallclimbTargetY:0,quickturnBuffer:0,upAction:false};camera.position.copy(player.pos);
 let cameraFov=78, bobPhase=0, wasGrounded=true, lastHorizontalSpeed=0;
 const keys={};let locked=false,started=false,paused=true,mouseDown=false,last=performance.now(),elapsed=0,checkpoint=0,runStart=0,finish=false;
 const overlay=document.getElementById('overlay'),hint=document.getElementById('hint');
@@ -141,9 +149,12 @@ document.getElementById('start').onclick=begin;
 document.getElementById('pause').onclick=()=>{if(!started){begin();return}paused=!paused;if(paused){overlay.style.display='grid';overlay.style.opacity=1;document.querySelector('.panel h1').innerHTML='TAKE A<br><span>BREATHER.</span>';document.querySelector('.panel p').textContent='Your run is paused. The rooftops will still be here.';document.getElementById('start').textContent='▶  RESUME RUN';document.getElementById('start').onclick=()=>{overlay.style.display='none';paused=false;renderer.domElement.requestPointerLock?.()}}else{overlay.style.display='none';renderer.domElement.requestPointerLock?.()}};
 document.addEventListener('pointerlockchange',()=>locked=document.pointerLockElement===renderer.domElement);
 document.addEventListener('mousemove',e=>{if(!locked||paused)return;player.yaw-=e.movementX*.0022;player.pitch-=e.movementY*.0018;player.pitch=THREE.MathUtils.clamp(player.pitch,-1.25,1.25)});
-document.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Space'){player.upAction=true}if(e.code==='KeyQ'&&!e.repeat){player.quickturnBuffer=.18}if(['Space','ArrowUp','ArrowDown'].includes(e.code))e.preventDefault();if(e.code==='Escape'&&started){paused=true;overlay.style.display='grid';overlay.style.opacity=1;document.querySelector('.panel h1').innerHTML='TAKE A<br><span>BREATHER.</span>';document.querySelector('.panel p').textContent='Your run is paused. The rooftops will still be here.';document.getElementById('start').textContent='▶  RESUME RUN';document.getElementById('start').onclick=()=>{overlay.style.display='none';paused=false;renderer.domElement.requestPointerLock?.()}}if(e.code==='KeyR')reset()});
+document.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Space'&&!e.repeat){player.upBuffer=.24}if(e.code==='KeyQ'&&!e.repeat){player.quickturnBuffer=.18}if(['Space','ArrowUp','ArrowDown'].includes(e.code))e.preventDefault();if(e.code==='Escape'&&started){paused=true;overlay.style.display='grid';overlay.style.opacity=1;document.querySelector('.panel h1').innerHTML='TAKE A<br><span>BREATHER.</span>';document.querySelector('.panel p').textContent='Your run is paused. The rooftops will still be here.';document.getElementById('start').textContent='▶  RESUME RUN';document.getElementById('start').onclick=()=>{overlay.style.display='none';paused=false;renderer.domElement.requestPointerLock?.()}}if(e.code==='KeyR')reset()});
 document.addEventListener('keyup',e=>keys[e.code]=false);
-document.querySelectorAll('.touch').forEach(b=>{const k=b.dataset.key;b.addEventListener('pointerdown',e=>{e.preventDefault();keys[k]=true;if(k==='KeyQ')player.quickturnBuffer=.18;b.setPointerCapture(e.pointerId)});['pointerup','pointercancel','lostpointercapture'].forEach(ev=>b.addEventListener(ev,()=>keys[k]=false))});
+document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false});
+for(const ev of ['gesturestart','gesturechange','gestureend'])document.addEventListener(ev,e=>e.preventDefault(),{passive:false});
+let lastTouchEnd=0;document.addEventListener('touchend',e=>{const now=Date.now();if(now-lastTouchEnd<=320)e.preventDefault();lastTouchEnd=now},{passive:false});
+document.querySelectorAll('.touch').forEach(b=>{const k=b.dataset.key;b.addEventListener('pointerdown',e=>{e.preventDefault();keys[k]=true;if(k==='Space')player.upBuffer=.24;if(k==='KeyQ')player.quickturnBuffer=.18;b.setPointerCapture(e.pointerId)});['pointerup','pointercancel','lostpointercapture'].forEach(ev=>b.addEventListener(ev,()=>keys[k]=false))});
 const joystick=document.getElementById('joystick'),stick=document.getElementById('stick');let moveX=0,moveY=0,stickPointer=null;
 function setStick(e){const r=joystick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy;const max=r.width*.34,len=Math.hypot(dx,dy);if(len>max){dx=dx/len*max;dy=dy/len*max}moveX=dx/max;moveY=dy/max;stick.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`}
 function releaseStick(){moveX=0;moveY=0;stickPointer=null;stick.style.transform='translate(-50%,-50%)'}
@@ -163,7 +174,7 @@ if(keys.KeyW||keys.ArrowUp)wish.add(forward);if(keys.KeyS||keys.ArrowDown)wish.s
 if(keys.KeyD||keys.ArrowRight)wish.add(right);if(keys.KeyA||keys.ArrowLeft)wish.sub(right);
 if(isMobile){wish.addScaledVector(right,moveX);wish.addScaledVector(forward,-moveY)}
 const inputAmount=Math.min(1,wish.length());if(wish.lengthSq())wish.normalize();
-if(keys.Space){player.jumpBuffer=.16;player.upAction=true;keys.Space=false}else player.jumpBuffer=Math.max(0,player.jumpBuffer-dt);
+if(keys.Space){player.jumpBuffer=.18;player.upBuffer=Math.max(player.upBuffer,.18);keys.Space=false}else player.jumpBuffer=Math.max(0,player.jumpBuffer-dt);player.upAction=player.upBuffer>0;
 if(player.ground)player.coyote=.13;else player.coyote=Math.max(0,player.coyote-dt);
 const slideHeld=keys.ControlLeft||keys.ControlRight;
 const sprint=keys.ShiftLeft||keys.ShiftRight||inputAmount>.82&&player.ground;
@@ -179,41 +190,38 @@ const drag=player.ground?(inputAmount>.08?(sprint?1.15:1.8):player.sliding>0?.35
 player.vel.x*=Math.exp(-drag*dt);player.vel.z*=Math.exp(-drag*dt);
 let horizontal=Math.hypot(player.vel.x,player.vel.z);
 if(horizontal>maxSpeed){const s=maxSpeed/horizontal;player.vel.x*=s;player.vel.z*=s;horizontal=maxSpeed}
-// Probe both sides of the runner, not just the direction of travel.
-const probeX=collides(player.pos.x+Math.sign(player.vel.x||1)*.72,player.pos.y,player.pos.z);
-const probeZ=collides(player.pos.x,player.pos.y,player.pos.z+Math.sign(player.vel.z||-1)*.72);
-const sideHit=probeX||probeZ;
-const sideNormal=probeX?new THREE.Vector3(-Math.sign(player.vel.x||1),0,0):new THREE.Vector3(0,0,-Math.sign(player.vel.z||-1));
-const movingIntoWall=sideHit&&(player.vel.x*sideNormal.x+player.vel.z*sideNormal.z)<-1.2;
-if(player.ground&&movingIntoWall&&horizontal>6&&inputAmount>.2&&player.upAction){
- player.ground=false;player.wallrun=1.35;player.wallSide=probeX?Math.sign(player.vel.x||1):Math.sign(player.vel.z||-1);
- player.vel.y=Math.max(player.vel.y,2.4);player.upAction=false;
+// Probe perpendicular to facing, so either flank can initiate a wall-run.
+const leftWall=collides(player.pos.x-right.x*.68,player.pos.y,player.pos.z-right.z*.68);
+const rightWall=collides(player.pos.x+right.x*.68,player.pos.y,player.pos.z+right.z*.68);
+const sideHit=leftWall||rightWall;
+const sideNormal=leftWall?right.clone():right.clone().negate();
+const wallAlong=player.vel.x*forward.x+player.vel.z*forward.z;
+const wallContact=!!sideHit&&Math.abs(wallAlong)>3.4&&horizontal>4.2;
+if(player.upAction&&wallContact&&player.wallrun<=0&&player.wallclimb<=0){
+ player.wallrun=1.35;player.wallrunGrace=.22;player.wallSide=leftWall?-1:1;player.ground=false;
+ player.vel.y=Math.max(player.vel.y,1.7);player.upAction=false;player.upBuffer=0;player.jumpBuffer=0;
 }
 if(player.wallrun>0){
- if(sideHit&&horizontal>3.5){
+ if(sideHit&&horizontal>3.1){player.wallrunGrace=.22;player.pos.addScaledVector(sideNormal,.025)}
+ else player.wallrunGrace=Math.max(0,player.wallrunGrace-dt);
+ if(player.wallrunGrace>0){
   player.wallrun=Math.max(0,player.wallrun-dt);
-  // Preserve travel direction along the wall and prevent the runner falling away.
-  const tangent=new THREE.Vector3(-sideNormal.z,0,sideNormal.x);
-  const along=player.vel.x*tangent.x+player.vel.z*tangent.z;
-  if(Math.abs(along)>2){player.vel.x=tangent.x*along;player.vel.z=tangent.z*along}
-  player.vel.y=Math.max(player.vel.y,-.15);
-  player.vel.y+=5.2*dt;
-  player.pos.addScaledVector(sideNormal,.035);
+  const normalSpeed=player.vel.x*sideNormal.x+player.vel.z*sideNormal.z;
+  player.vel.x-=sideNormal.x*normalSpeed;player.vel.z-=sideNormal.z*normalSpeed;
+  player.vel.y=Math.max(player.vel.y,-1.15);
  }else{player.wallrun=0;player.wallSide=0}
-}else if(!player.ground&&player.upAction&&sideHit&&horizontal>4&&inputAmount>.2){
- player.wallrun=1.15;player.wallSide=probeX?Math.sign(player.vel.x||1):Math.sign(player.vel.z||-1);
- player.vel.y=Math.max(player.vel.y,1.8);player.upAction=false;
 }
 if(player.quickturnBuffer>0){player.yaw+=Math.PI;player.quickturnBuffer=0;if(player.wallrun>0){const kick=new THREE.Vector3(-Math.sin(player.yaw),0,-Math.cos(player.yaw));player.vel.x=kick.x*10;player.vel.z=kick.z*10;player.vel.y=Math.max(player.vel.y,7.8);player.wallrun=0;}toast('QUICKTURN')}
 const obstacleAhead=collides(player.pos.x+forward.x*.9,player.pos.y,player.pos.z+forward.z*.9);
-if(player.jumpBuffer>0&&player.wallrun>0){player.vel.x=-player.wallSide*8.5;player.vel.y=9.2;player.wallrun=0;player.jumpBuffer=0;player.upAction=false}
+if(player.jumpBuffer>0&&player.wallrun>0){const away=player.wallSide===-1?right.clone().negate():right.clone();player.vel.x=forward.x*6+away.x*7.5;player.vel.z=forward.z*6+away.z*7.5;player.vel.y=9.2;player.wallrun=0;player.wallrunGrace=0;player.jumpBuffer=0;player.upBuffer=0;player.upAction=false}
 else if(player.jumpBuffer>0&&(player.ground||player.coyote>0)&&!obstacleAhead){player.vel.y=player.sliding>0?8.5:9.6;player.ground=false;player.coyote=0;player.jumpBuffer=0;player.sliding=0;player.upAction=false}
-player.vel.y-=player.wallclimb>0?4.2*dt:player.wallrun>0?5.2*dt:22*dt;
-if(player.wallclimb>0){player.vel.y=Math.max(player.vel.y,5.4);player.vel.x+=forward.x*1.8*dt;player.vel.z+=forward.z*1.8*dt;}
+player.vel.y-=player.wallclimb>0?0:player.wallrun>0?4.8*dt:22*dt;
+if(player.wallclimb>0){const climbStep=Math.min(player.wallclimbTargetY-player.pos.y,8.6*dt);player.pos.y+=Math.max(0,climbStep);player.pos.x+=forward.x*2.8*dt;player.pos.z+=forward.z*2.8*dt;player.vel.y=0;if(player.pos.y>=player.wallclimbTargetY-.08){player.pos.y=player.wallclimbTargetY;player.wallclimb=0;player.ground=true;player.vel.x+=forward.x*2.2;player.vel.z+=forward.z*2.2;}}
 const oldY=player.pos.y,oldGround=player.ground;
 let nx=player.pos.x+player.vel.x*dt,nz=player.pos.z+player.vel.z*dt,ny=player.pos.y+player.vel.y*dt;
 const front=collides(nx,player.pos.y,nz);
-if(!front){player.pos.x=nx;player.pos.z=nz}
+if(player.wallclimb>0){player.pos.x=nx;player.pos.z=nz}
+else if(!front){player.pos.x=nx;player.pos.z=nz}
 else{
  const feet=player.pos.y-1.7,top=front.maxY,ledgeHeight=top-feet;
  if(player.upAction&&ledgeHeight>0.25&&ledgeHeight<2.65&&horizontal>2.4&&inputAmount>.12&&player.vault<=0){
@@ -221,16 +229,15 @@ else{
   player.vault=.42;player.pos.y=top+1.72;player.vel.y=0;player.ground=true;player.upAction=false;
   const push=forward.clone().multiplyScalar(1.15);player.pos.add(push);
   player.vel.x*=.72;player.vel.z*=.72;
- }else if(player.upAction&&ledgeHeight>=2.65&&ledgeHeight<7.5&&horizontal>1.5&&inputAmount>.12&&player.wallclimb<=0){
-  // Climb is a committed upward traversal, with a short hang-like lift and forward mantle.
-  player.wallclimb=.72;player.vel.y=9.8;player.vel.x+=forward.x*3.1;player.vel.z+=forward.z*3.1;
-  player.upAction=false;player.wallrun=0;
+ }else if(player.upAction&&ledgeHeight>=2.65&&ledgeHeight<=10.5&&horizontal>1.2&&inputAmount>.08&&player.wallclimb<=0){
+  // Climb the face, then clear the lip onto the rooftop instead of pushing into the wall.
+  player.wallclimb=Math.min(1.2,ledgeHeight/8.6);player.wallclimbTargetY=top+1.72;player.vel.y=0;player.wallrun=0;player.wallrunGrace=0;player.upAction=false;player.upBuffer=0;player.jumpBuffer=0;
  }else{
   if(!collides(nx,player.pos.y,player.pos.z))player.pos.x=nx;else player.vel.x*= -.08;
   if(!collides(player.pos.x,player.pos.y,nz))player.pos.z=nz;else player.vel.z*= -.08;
  }
 }
-player.vault=Math.max(0,player.vault-dt);player.wallclimb=Math.max(0,player.wallclimb-dt);if(player.jumpBuffer<=0)player.upAction=false;
+player.vault=Math.max(0,player.vault-dt);if(player.wallclimb>0)player.wallclimb=Math.max(0,player.wallclimb-dt);player.upBuffer=Math.max(0,player.upBuffer-dt);if(player.jumpBuffer<=0&&player.upBuffer<=0)player.upAction=false;
 const p=getPlatform(player.pos.x,player.pos.z);
 if(p&&player.vel.y<=0&&oldY>=p.y+1.45&&ny<=p.y+1.7){
  ny=p.y+1.7;player.vel.y=0;player.ground=true;
@@ -239,13 +246,13 @@ if(ny<player.pos.y-1.2&&collides(player.pos.x,ny,player.pos.z)){ny=player.pos.y;
 player.pos.y=ny;
 if(player.ground&&!oldGround){player.landBlend=1;if(slideHeld||horizontal>10){player.sliding=Math.max(player.sliding,.28);player.vel.x*=1.04;player.vel.z*=1.04}}
 player.landBlend=Math.max(0,player.landBlend-dt*3.4);
-if(player.pos.y<-12){player.pos.set(0,1.7,0);player.vel.set(0,0,0);player.ground=true;player.wallrun=0;toast('FALL DETECTED // RETURNED TO PLAZA')}
+if(player.pos.y<-12){player.pos.set(0,1.7,0);player.vel.set(0,0,0);player.ground=true;player.wallrun=0;player.wallrunGrace=0;player.wallclimb=0;toast('FALL DETECTED // RETURNED TO PLAZA')}
 
 horizontal=Math.hypot(player.vel.x,player.vel.z);
 const moving=player.ground&&horizontal>.6;
 bobPhase+=dt*(moving?7+horizontal*.65:1.5);
 const bob=moving?Math.sin(bobPhase)*Math.min(.045,horizontal*.0035):0;
-const targetY=player.pos.y+(player.sliding>0?-.58:0)+(player.wallrun>0?.08:0)+(player.wallclimb>0?.2:0)-player.landBlend*.16+bob;
+const targetY=player.pos.y+(player.sliding>0?-.58:0)+(player.wallrun>0?.08:0)-player.landBlend*.16+bob;
 player.camY=THREE.MathUtils.damp(player.camY||targetY,targetY,player.ground?15:8,dt);
 const targetFov=78+Math.min(horizontal/17,1)*9+(player.sliding>0?5:0)+(player.wallrun>0?3:0);
 cameraFov=THREE.MathUtils.damp(cameraFov,targetFov,5,dt);camera.fov=cameraFov;camera.updateProjectionMatrix();
@@ -257,7 +264,7 @@ camera.rotation.set(player.pitch,player.yaw,player.runLean+(player.wallrun>0?pla
 
 document.getElementById('speedValue').textContent=String(Math.round(horizontal*3.6)).padStart(2,'0');
 document.getElementById('bar').style.width=(checkpoint/3*100)+'%';
-hint.textContent=isMobile?(player.wallrun>0?'UP // WALL RUN · EXTRA // QUICKTURN':player.wallclimb>0?'UP // WALL CLIMB':player.vault>0?'UP // VAULT / MANTLE':player.sliding>0?'DOWN // SLIDE · ROLL OUT':player.ground?'UP TRAVERSE · DOWN SLIDE · EXTRA QUICKTURN':'AIRBORNE // UP TO COIL / DOWN TO DISMOUNT'):(player.wallrun>0?'UP // WALL RUN · EXTRA // QUICKTURN':player.wallclimb>0?'UP // WALL CLIMB':player.vault>0?'UP // VAULT / MANTLE':player.sliding>0?'DOWN // SLIDE · ROLL OUT':player.ground?'SPACE UP · CTRL DOWN · Q EXTRA · SHIFT BURST':'AIRBORNE // UP TO COIL / DOWN TO DISMOUNT');
+hint.textContent=player.wallrun>0?'UP // WALL RUN · UP AGAIN TO WALL-HOP':player.wallclimb>0?'UP // WALL CLIMB':player.vault>0?'UP // VAULT / MANTLE':player.sliding>0?'DOWN // SLIDE · ROLL OUT':player.ground?(isMobile?'UP TRAVERSE · DOWN SLIDE · EXTRA QUICKTURN':'SPACE UP · CTRL DOWN · Q EXTRA · SHIFT BURST'):'AIRBORNE // UP NEAR WALL TO TRAVERSE';
 }
 function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last)/1000,.033);last=now;update(dt);renderer.render(scene,camera)}requestAnimationFrame(animate);
 function resizeGame(){const w=window.innerWidth,h=window.innerHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);isMobile=matchMedia('(pointer: coarse)').matches||w<=900;renderer.setPixelRatio(Math.min(devicePixelRatio,isMobile?1.25:1.7))}
