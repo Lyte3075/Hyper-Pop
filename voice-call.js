@@ -106,15 +106,16 @@
  }
  function installButton(){
   const head=$('hp-chat-head');if(!head||$('hp-chat-call'))return false;
-  const b=document.createElement('button');b.id='hp-chat-call';b.type='button';b.textContent='☎ Call';b.title='Call selected friend';b.addEventListener('click',()=>{
+  const b=document.createElement('button');b.id='hp-chat-call';b.type='button';b.textContent='☎ Call';b.title='Call selected friend or group';b.addEventListener('click',()=>{
+   if(window.HyperPopSelectedChatIsGroup&&window.HyperPopSelectedGroupConversation){const id=window.HyperPopSelectedGroupConversation;const title=$('hp-chat-target')?.selectedOptions?.[0]?.textContent?.replace(/^●?\\s*▣\\s*/,'')||'Group chat';if(window.HyperPopGroupVoice?.start){window.HyperPopGroupVoice.start(id,title);return}status('Group voice is still loading. Reload Hyper-Pop and try again.');return}
    const friend=window.HyperPopSelectedChatFriend,id=friend?.id;
-   if(!id){status('Choose a friend from the conversation selector first.');show('Voice call','Choose a friend from the conversation selector first.',[['Close','hp-voice-close',hide]]);return}
+   if(!id){status('Choose a friend or group chat first.');show('Voice call','Choose a friend or group chat first.',[['Close','hp-voice-close',hide]]);return}
    startCall(id,friend.name||'Friend');
   });head.insertBefore(b,head.querySelector('#hp-chat-close'));
   return true;
  }
  const observer=new MutationObserver(()=>{installButton();mountPanel()});observer.observe(document.documentElement,{childList:true,subtree:true});installButton();mountPanel();
- window.HyperPopVoiceCall={start:(id,name)=>startCall(id,name||'Friend')};
+ window.HyperPopVoiceCall={start:(id,name)=>startCall(id,name||'Friend'),setGroupMode:isGroup=>{const b=$('hp-chat-call');if(!b)return;b.textContent=isGroup?'☎ Call group':'☎ Call';b.title=isGroup?'Start a voice call with this group':'Call selected friend'}};
  inboxTimer=setInterval(checkInbox,2500);checkInbox();
  window.addEventListener('beforeunload',()=>{if(call)request('hangup',{call_id:call.id}).catch(()=>{});cleanup()});
 })();
