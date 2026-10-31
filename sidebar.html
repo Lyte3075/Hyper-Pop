@@ -105,7 +105,7 @@ pushButton.addEventListener('click',async()=>{
 refreshPushButton();
 
 const chatToggle=document.getElementById('chat-button-toggle');
-try{chatToggle.checked=localStorage.getItem('hp_chat_button_visible')==='true'}catch(_){}
+try{if(localStorage.getItem('hp_chat_button_visible')===null)localStorage.setItem('hp_chat_button_visible','true');chatToggle.checked=localStorage.getItem('hp_chat_button_visible')!=='false'}catch(_){chatToggle.checked=true}
 chatToggle.addEventListener('change',()=>{const visible=chatToggle.checked;try{localStorage.setItem('hp_chat_button_visible',String(visible))}catch(_){}send('hp-chat-visibility:'+String(visible))});
 panel.addEventListener('touchstart',swipeStart,{passive:true});panel.addEventListener('touchend',swipeEnd,{passive:true});panel.addEventListener('touchcancel',swipeCancel,{passive:true});const scrim=document.getElementById('scrim');
 scrim.addEventListener('click',close);
