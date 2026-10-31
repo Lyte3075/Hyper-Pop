@@ -67,7 +67,7 @@
   toast.onclick=()=>{toast.classList.remove('show');if(onClick)onClick()};
  }
  toast.querySelector('.hp-toast-close').addEventListener('click',e=>{e.stopPropagation();toast.classList.remove('show')});
- window.HyperPopNotify=(title,detail)=>showToast(title,detail);
+ window.HyperPopNotify=(title,detail,onClick)=>showToast(title,detail,onClick);
  function updateUnread(count){
   const badge=$('hp-chat-unread-badge'),n=Math.max(0,Number(count)||0);
   badge.textContent=n>99?'99+':String(n);badge.classList.toggle('show',n>0);
@@ -140,6 +140,7 @@
 
  async function open(conversationId){win.classList.add('open');if(!win.classList.contains('hp-chat-embedded')){launch.style.display='none'}await refreshLists();if(conversationId){const target=$('hp-chat-target');if([...target.options].some(o=>o.value==='conversation:'+String(conversationId))){target.value='conversation:'+String(conversationId);await showConversation(String(conversationId))}}}
  window.HyperPopOpenChatWithFriend=async friendId=>{await open();const target=$('hp-chat-target');target.value='friend:'+String(friendId);target.dispatchEvent(new Event('change',{bubbles:true}))};
+ window.HyperPopOpenChatWithGroup=async conversationId=>{await open(String(conversationId))};
  function close(){if(win.classList.contains('hp-chat-embedded'))return;win.classList.remove('open');chatVisible()}
  launch.addEventListener('click',()=>open());$('hp-chat-close').addEventListener('click',close);if(win.classList.contains('hp-chat-embedded'))$('hp-chat-close').style.display='none';
  function syncChatMount(){const host=document.getElementById('chat-area');if(host){win.classList.add('hp-chat-embedded','open');host.append(win);launch.style.display='none';$('hp-chat-close').style.display='none'}else if(win.classList.contains('hp-chat-embedded')){win.classList.remove('hp-chat-embedded','open');document.body.append(win);$('hp-chat-close').style.display='';chatVisible()}}
