@@ -65,7 +65,7 @@
  async function loadInvites(){const d=await rpc('party_invites');if(!d.ok||!(d.invites||[]).length)return;const wrap=document.createElement('div');wrap.className='social-list';wrap.append(empty('Party invitations'));d.invites.forEach(i=>wrap.append(item('Invite from @'+i.from,'Join their party',[['Accept',async()=>{const x=await rpc('party_accept',{invite_id:i.id});status(x.error||'Joined party.');loadParty();loadInvites()}]])));$('party-current').prepend(wrap)}
  async function loadChats(){return}
  async function renderConversation(id){return}
- async function openFriendConversation(friendId){const d=await rpc('chat_open_friend',{friend_id:friendId});if(!d.ok){status(d.error);return}await loadChats();await renderConversation(d.conversation_id)}
+ async function openFriendConversation(friendId){if(window.HyperPopOpenChatWithFriend){await window.HyperPopOpenChatWithFriend(friendId);return}status('Chat is still loading. Try again in a moment.')}
  $('friend-search-btn').addEventListener('click',search);$('friend-search').addEventListener('input',scheduleSearch);$('friend-search').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();clearTimeout(searchTimer);search()}});
  $('party-create').addEventListener('click',async()=>{const d=await rpc('party_create');status(d.error||'Party created.');loadParty()});
  $('party-leave').addEventListener('click',async()=>{const d=await rpc('party_leave');status(d.error||'You left the party.');loadParty()});
