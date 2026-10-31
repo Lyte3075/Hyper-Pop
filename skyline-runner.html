@@ -114,6 +114,8 @@ if(keys.KeyW||keys.ArrowUp)wish.add(forward);if(keys.KeyS||keys.ArrowDown)wish.s
 if(keys.KeyD||keys.ArrowRight)wish.add(right);if(keys.KeyA||keys.ArrowLeft)wish.sub(right);
 if(isMobile){wish.addScaledVector(right,moveX);wish.addScaledVector(forward,-moveY)}
 const inputAmount=Math.min(1,wish.length());if(wish.lengthSq())wish.normalize();
+if(keys.Space){player.jumpBuffer=.16;keys.Space=false}else player.jumpBuffer=Math.max(0,player.jumpBuffer-dt);
+if(player.ground)player.coyote=.13;else player.coyote=Math.max(0,player.coyote-dt);
 const sprint=keys.ControlLeft||keys.ControlRight||inputAmount>.82&&player.ground;
 const slideHeld=keys.ShiftLeft||keys.ShiftRight;
 const speed=Math.hypot(player.vel.x,player.vel.z);
@@ -134,8 +136,8 @@ if(!player.ground&&sideProbe&&horizontal>5&&inputAmount>.15){
  player.vel.y=Math.max(player.vel.y,-1.1);player.vel.y+=7.5*dt;
  player.vel.x*=1.006;player.vel.z*=1.006;
 }else{player.wallrun=Math.max(0,player.wallrun-dt*2.8);player.wallSide=0}
-if(player.jumpBuffer>0&&(player.ground||player.coyote>0)){player.vel.y=player.sliding>0?8.2:9.1;player.ground=false;player.coyote=0;player.jumpBuffer=0;player.sliding=0}
-if(player.wallrun>0&&keys.Space){player.vel.x=-player.wallSide*7.5;player.vel.y=8.4;player.wallrun=0;keys.Space=false}
+if(player.jumpBuffer>0&&player.wallrun>0){player.vel.x=-player.wallSide*7.5;player.vel.y=8.4;player.wallrun=0;player.jumpBuffer=0}
+else if(player.jumpBuffer>0&&(player.ground||player.coyote>0)){player.vel.y=player.sliding>0?8.2:9.1;player.ground=false;player.coyote=0;player.jumpBuffer=0;player.sliding=0}
 player.vel.y-=player.wallrun>0?8.5*dt:22*dt;
 const oldY=player.pos.y,oldGround=player.ground;
 let nx=player.pos.x+player.vel.x*dt,nz=player.pos.z+player.vel.z*dt,ny=player.pos.y+player.vel.y*dt;
