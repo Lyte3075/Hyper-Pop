@@ -76,6 +76,8 @@
  async function open(conversationId){win.classList.add('open');if(!win.classList.contains('hp-chat-embedded'))launch.style.display='none';await refreshLists();if(conversationId){const cs=$('hp-chat-conversations');if([...cs.options].some(o=>o.value===String(conversationId))){cs.value=String(conversationId);await showConversation(String(conversationId))}}}
  function close(){if(win.classList.contains('hp-chat-embedded'))return;win.classList.remove('open');chatVisible()}
  launch.addEventListener('click',()=>open());$('hp-chat-close').addEventListener('click',close);if(win.classList.contains('hp-chat-embedded'))$('hp-chat-close').style.display='none';
+ function syncChatMount(){const host=document.getElementById('chat-area');if(host){win.classList.add('hp-chat-embedded','open');host.append(win);launch.style.display='none';$('hp-chat-close').style.display='none'}else if(win.classList.contains('hp-chat-embedded')){win.classList.remove('hp-chat-embedded','open');document.body.append(win);$('hp-chat-close').style.display='';chatVisible()}}
+ window.addEventListener('hyperpop:navigate',syncChatMount);
  async function refreshLists(){
   if(busy)return;busy=true;
   const [chats,friends]=await Promise.all([rpc('chat_list'),rpc('friends_list')]);busy=false;
