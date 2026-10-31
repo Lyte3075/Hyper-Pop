@@ -81,7 +81,7 @@
 
  const $=id=>document.getElementById(id);let me=null,selected=null,selectedFriend=null,busy=false,lastListRefresh=0;
  async function rpc(action,data={}){const token=localStorage.getItem('hyperpop_token');if(!token)return{ok:false,error:'Sign in to use chat.'};try{const r=await fetch(API,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({p_token:token,p_action:action,p_data:data})});const raw=await r.text();let d;try{d=raw?JSON.parse(raw):{}}catch(_){d={message:raw}}if(!r.ok){const x=Array.isArray(d)?d[0]:d;return{ok:false,error:x.message||x.details||'Chat request failed.'}}return d}catch(_){return{ok:false,error:'Could not reach chat.'}}}
- async function namedChatList(){const token=localStorage.getItem('hyperpop_token');if(!token)return{ok:false,error:'Sign in to use chat.'};try{const r=await fetch('https://iapnejlttsqqefkpmelp.supabase.co/rest/v1/rpc/hyperpop_chat_list_named',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({p_token:token})});const d=await r.json().catch(()=>({}));return r.ok?d:{ok:false,error:d.message||d.error||'Could not load conversations.'}}catch(_){return{ok:false,error:'Could not load conversations.'}}}
+ async function namedChatList(){return rpc('chat_list')}
  function note(s){$('hp-chat-note').textContent=s||''}
 
  const partyTab=$('hp-chat-tab-party'),messagesTab=$('hp-chat-tab-messages');
@@ -163,11 +163,11 @@
   const target=$('hp-chat-target'),old=selected,oldFriend=selectedFriend?.id;
   target.replaceChildren(new Option('Choose a conversation or friend…',''));
   const conversationGroup=document.createElement('optgroup');conversationGroup.label='Conversations';
-  if(chats.ok){const seen=new Set();(chats.conversations||[]).forEach(c=>{const id=String(c.id);if(!id||seen.has(id))return;seen.add(id);const label=(c.title||c.label||'Conversation')+(c.unread?' · unread':'');conversationGroup.append(new Option(label,'conversation:'+id))})}
+  if(chats.ok){const seenIds=new Set(),seenLabels=new Set();(chats.conversations||[]).forEach(c=>{const id=String(c.id||'').trim(),labelText=String(c.title||c.label||'Conversation').trim(),key=labelText.toLocaleLowerCase();if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)||seenIds.has(id)||seenLabels.has(key))return;seenIds.add(id);seenLabels.add(key);const label=labelText+(c.unread?' · unread':'');conversationGroup.append(new Option(label,'conversation:'+id))})}
   if(conversationGroup.childElementCount)target.append(conversationGroup);
   const friendGroup=document.createElement('optgroup');friendGroup.label='Start a message';
   const gfs=$('hp-group-friends'),selectedGroup=[...gfs.selectedOptions].map(o=>o.value);gfs.replaceChildren();
-  if(friends.ok)(friends.friends||[]).forEach(f=>{const label='@'+f.username+(' · '+(f.status==='invisible'||!f.online?'offline':({idle:'idle',dnd:'do not disturb',online:'online'})[f.status]||'online'));friendGroup.append(new Option(label,'friend:'+String(f.id)));gfs.add(new Option('@'+f.username,String(f.id)))});
+  if(friends.ok){const friendIds=new Set();(friends.friends||[]).forEach(f=>{const id=String(f.id||'');if(!id||friendIds.has(id))return;friendIds.add(id);const label='@'+f.username+(' · '+(f.status==='invisible'||!f.online?'offline':({idle:'idle',dnd:'do not disturb',online:'online'})[f.status]||'online'));friendGroup.append(new Option(label,'friend:'+id));gfs.add(new Option('@'+f.username,id))})};
   if(friendGroup.childElementCount)target.append(friendGroup);
   [...gfs.options].forEach(o=>o.selected=selectedGroup.includes(o.value));
   if(old&&[...target.options].some(o=>o.value==='conversation:'+old))target.value='conversation:'+old;
