@@ -163,7 +163,7 @@
       try{
         const response=await fetch(target.href,{credentials:'same-origin'});if(!response.ok)throw new Error('Page request failed: '+response.status);
         const markup=await response.text(),parsed=new DOMParser().parseFromString(markup,'text/html');if(!parsed.body||!parsed.title)throw new Error('Invalid page response');
-        const persistentNodes=['hp-sound-orb','hp-sound-panel','hp-terminal-launcher','hp-terminal','hp-terminal-style','hp-chat-launch','hp-chat-window','hp-chat-widget-style','hp-voice-panel','hp-sidebar-frame'].map(id=>document.getElementById(id)).filter(Boolean);
+        const persistentNodes=['hp-sound-orb','hp-sound-panel','hp-terminal-launcher','hp-terminal','hp-terminal-style','hp-chat-launch','hp-chat-window','hp-chat-widget-style','hp-voice-panel','hp-party-voice-dock','hp-sidebar-frame'].map(id=>document.getElementById(id)).filter(Boolean);
         const bodyAttrs=[...parsed.body.attributes].map(a=>[a.name,a.value]);[...document.body.attributes].forEach(a=>document.body.removeAttribute(a.name));bodyAttrs.forEach(([name,value])=>document.body.setAttribute(name,value));
         document.body.replaceChildren();[...parsed.body.childNodes].forEach(node=>{if(!(node.nodeType===1&&node.tagName==='SCRIPT'))document.body.append(node.cloneNode(true))});persistentNodes.forEach(node=>document.body.append(node));
         document.title=parsed.title;
