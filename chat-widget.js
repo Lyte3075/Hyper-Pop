@@ -196,7 +196,7 @@
  }
  $('hp-chat-target').addEventListener('change',async e=>{
   const value=e.target.value;if(!value)return;
-  if(value.startsWith('conversation:')){selectedFriend=null;window.HyperPopSelectedChatFriend=null;await showConversation(value.slice(12));return}
+  if(value.startsWith('conversation:')){selectedFriend=null;window.HyperPopSelectedChatFriend=null;await showConversation(value.slice('conversation:'.length));return}
   if(value.startsWith('friend:')){
    const id=value.slice(7),option=e.target.selectedOptions[0],name=option.textContent.replace(/ · (?:online|idle|do not disturb|offline)$/,'').trim();
    selectedFriend={id,name};window.HyperPopSelectedChatFriend=selectedFriend;
