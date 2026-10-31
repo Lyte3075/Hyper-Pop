@@ -45,6 +45,26 @@
       edgeHit.addEventListener('dblclick',function(){commandFrame('open')});
       var edgeTap=0;edgeHit.addEventListener('touchend',function(){var now=Date.now();if(now-edgeTap<380){commandFrame('open');edgeTap=0}else edgeTap=now},{passive:true});
     }
+    // Brief cyan feedback makes the otherwise invisible edge handle discoverable.
+    (function(){
+      if(document.getElementById('hp-sidebar-edge-hint'))return;
+      var style=document.createElement('style');
+      style.textContent='@keyframes hpEdgeCyanFlash{0%{opacity:0;box-shadow:0 0 0 rgba(80,245,255,0)}25%{opacity:1;box-shadow:0 0 22px 5px rgba(65,235,255,.72),inset -3px 0 14px rgba(65,235,255,.65)}100%{opacity:0;box-shadow:0 0 0 rgba(80,245,255,0)}}#hp-sidebar-edge-glow{position:fixed;z-index:2147483002;left:0;top:0;width:44px;height:100%;height:100dvh;border-right:2px solid rgba(95,245,255,.95);border-radius:0 12px 12px 0;pointer-events:none;opacity:0}#hp-sidebar-edge-glow.flash{animation:hpEdgeCyanFlash .85s ease-out both}#hp-sidebar-edge-hint{position:fixed;z-index:2147483003;left:54px;top:50%;transform:translate(-8px,-50%);padding:10px 13px;border:1px solid rgba(95,235,255,.55);border-radius:11px;background:rgba(8,19,31,.94);box-shadow:0 0 18px rgba(50,220,255,.22);color:#c9fbff;font:600 12px/1.35 system-ui,-apple-system,sans-serif;letter-spacing:.01em;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .18s ease,transform .18s ease,visibility .18s;white-space:nowrap}#hp-sidebar-edge-hint.show{opacity:1;visibility:visible;transform:translate(0,-50%)}@media(prefers-reduced-motion:reduce){#hp-sidebar-edge-glow.flash{animation:none;opacity:.8}#hp-sidebar-edge-hint{transition:none}}';
+      document.head.appendChild(style);
+      var glow=document.createElement('div');glow.id='hp-sidebar-edge-glow';glow.setAttribute('aria-hidden','true');
+      var hint=document.createElement('div');hint.id='hp-sidebar-edge-hint';hint.setAttribute('role','status');hint.setAttribute('aria-live','polite');hint.textContent='Double tap or swipe to access the sidebar.';
+      (document.body||document.documentElement).append(glow,hint);
+      var hideTimer;
+      function pulse(){
+        glow.classList.remove('flash');void glow.offsetWidth;glow.classList.add('flash');
+        hint.classList.add('show');clearTimeout(hideTimer);
+        hideTimer=setTimeout(function(){hint.classList.remove('show')},2300);
+      }
+      edgeHit.addEventListener('touchstart',pulse,{passive:true});
+      edgeHit.addEventListener('touchend',pulse,{passive:true});
+      edgeHit.addEventListener('pointerdown',pulse,{passive:true});
+      edgeHit.addEventListener('dblclick',pulse);
+    })();
     var edgeStart=null,edgeY=0;
     document.addEventListener('touchstart',function(e){
       if(!e.touches||!e.touches.length)return;
