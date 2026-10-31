@@ -30,7 +30,7 @@
       frame.title='Hyper-Pop navigation';
       frame.src=new URL('sidebar.html?v=push-1',base).href;
       frame.setAttribute('allowtransparency','true');
-      frame.style.cssText='position:fixed;z-index:2147483000;top:0;left:0;width:100vw;height:100%;height:100dvh;border:0;background:transparent;overflow:hidden;pointer-events:none;visibility:hidden;';
+      frame.style.cssText='position:fixed;z-index:2147483000;top:0;left:0;width:100vw;height:100%;height:100dvh;border:0;background:rgba(3,7,5,.01);color-scheme:dark;overflow:hidden;pointer-events:none;visibility:hidden;';
       (document.body||document.documentElement).appendChild(frame);
     }
     function commandFrame(action){frame.contentWindow?.postMessage('hp-sidebar-command-'+action,location.origin);}
