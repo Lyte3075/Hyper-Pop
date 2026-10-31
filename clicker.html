@@ -37,6 +37,8 @@ body[data-theme="rainbow"]{background:radial-gradient(circle at 15% 20%,#ff4fd86
 </main>
 <section class="box ach"><h2>🏆 Achievements</h2><div class="ach-grid" id="achievements"></div><h2 style="margin-top:18px">🎯 Tasks & Challenges</h2><div class="tasks" id="tasks"></div><h2 style="margin-top:18px">🎨 Unlockable Themes</h2><div class="theme-row" id="themes"></div></section><footer class="foot">Hyper-Pop ✦ tiny internet, increasingly enormous button</footer></div>
 <script>
+const HP_SCORE_API='https://iapnejlttsqqefkpmelp.supabase.co/rest/v1/rpc/hyperpop_submit_score',HP_SCORE_KEY='sb_publishable_TB7oC4nDlUJq-Gcb2yoTjQ_Dvbh6NlM';
+async function hpSubmit(game,score){const token=localStorage.getItem('hyperpop_token');if(!token)return false;try{const r=await fetch(HP_SCORE_API,{method:'POST',headers:{apikey:HP_SCORE_KEY,'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({p_token:token,p_game:game,p_score:Number.isFinite(Number(score))?Math.max(0,Number(score)):1e300})});const d=await r.json().catch(()=>({}));return !!(r.ok&&d.ok)}catch(e){console.warn('[Button Bonanza] Score submission failed',e);return false}}
 const KEY="hyperpop-button-bonanza-v2";
 let audioCtx=null;
 let soundOn=localStorage.getItem("hyperpop-button-sound")!=="off";
