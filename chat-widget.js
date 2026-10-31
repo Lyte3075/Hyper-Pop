@@ -112,7 +112,7 @@
    if(partySnapshot&&invitePickerOpen)showPartyInvitePicker();
    await refreshPartyChat();
   }catch(e){$('hp-party-overview').textContent='Could not load party information.'}
-  finally{partyBusy=false}
+  finally{partyBusy=false;if(partyMode&&invitePickerOpen)showPartyInvitePicker()}
  }
  function showPartyInvitePicker(){
   invitePickerOpen=true;
