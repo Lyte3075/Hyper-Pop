@@ -188,7 +188,7 @@
  async function showConversation(id,quiet=false){
   if(!id)return;selected=id;const target=$('hp-chat-target');if(target&&[...target.options].some(o=>o.value==='conversation:'+String(id)))target.value='conversation:'+String(id);
   const feed=$('hp-chat-feed'),wasNearBottom=feed.scrollHeight-feed.scrollTop-feed.clientHeight<70,oldHeight=feed.scrollHeight,oldTop=feed.scrollTop;if(!quiet)feed.replaceChildren();const d=await rpc('chat_messages',{conversation_id:id});
-  if(!d.ok){if(!quiet)feed.textContent=d.error;return}
+  if(!d.ok){if(!quiet){feed.textContent=d.error;note('Chat load failed · '+String(id)+' · '+d.error)}console.error('[Hyper-Pop chat] chat_messages failed',{conversationId:String(id),error:d.error});return}
   const messages=(d.messages||[]).slice().reverse();
   const fragment=document.createDocumentFragment();if(!messages.length){const empty=document.createElement('div');empty.style.cssText='color:#aaa7c1;text-align:center;padding:28px 8px';empty.textContent='Say hello!';fragment.append(empty)}
   messages.forEach(m=>{const b=document.createElement('div');b.className='hp-chat-bubble'+(me&&m.sender_id===me.id?' mine':'');const s=document.createElement('small');const stamp=m.created_at?new Date(m.created_at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'';s.textContent='@'+(m.username||'user')+(stamp?' · '+stamp:'');const t=document.createElement('div');t.textContent=m.body;b.append(s,t);fragment.append(b)});feed.replaceChildren(fragment);
@@ -207,7 +207,7 @@
    e.target.value='friend:'+id;
   }
  });
- $('hp-chat-compose').addEventListener('submit',async e=>{e.preventDefault();const body=$('hp-chat-input').value.trim();if(!body||!selected)return;const d=await rpc('chat_send',{conversation_id:selected,body});if(!d.ok){note(d.error);return}const sentConversation=selected;const token=localStorage.getItem('hyperpop_token');if(token)fetch(PUSH_API,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({token,action:'notify_message',conversation_id:sentConversation})}).catch(()=>{});$('hp-chat-input').value='';await showConversation(sentConversation);});
+ $('hp-chat-compose').addEventListener('submit',async e=>{e.preventDefault();const body=$('hp-chat-input').value.trim();if(!body||!selected)return;const d=await rpc('chat_send',{conversation_id:selected,body});if(!d.ok){note('Message failed · '+String(selected)+' · '+d.error);console.error('[Hyper-Pop chat] chat_send failed',{conversationId:String(selected),error:d.error});return}const sentConversation=selected;const token=localStorage.getItem('hyperpop_token');if(token)fetch(PUSH_API,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({token,action:'notify_message',conversation_id:sentConversation})}).catch(()=>{});$('hp-chat-input').value='';await showConversation(sentConversation);});
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&win.classList.contains('open'))close()});
  window.addEventListener('storage',e=>{if(e.key==='hyperpop_token'&&win.classList.contains('open'))refreshLists()});
  setInterval(()=>{if(!win.classList.contains('open')||document.hidden)return;if(partyMode&&!invitePickerOpen)refreshParty();if(selected)showConversation(selected,true);if(Date.now()-lastListRefresh>15000)refreshLists()},2500);
