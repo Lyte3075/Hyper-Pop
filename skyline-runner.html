@@ -7,8 +7,17 @@
 <title>SKYLINE // Free Run</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap');
-:root{--red:#f04443;--ink:#17232b;--muted:#687780}
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;touch-action:none;background:#dce6e9;font-family:'DM Mono',monospace;color:var(--ink)}canvas{display:block;position:fixed;inset:0;touch-action:none}
+:root{--red:#f04443;--ink:#17232b;--muted:#687780;--ui-scale:clamp(.78,1vw + .35,1.15)}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;height:100dvh;min-height:100%;overflow:hidden;overscroll-behavior:none;touch-action:none;background:#dce6e9;font-family:'DM Mono',monospace;color:var(--ink)}canvas{display:block;position:fixed;inset:0;width:100%;height:100%;touch-action:none}
+#hud{padding:clamp(10px,2.2vw,28px);padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+#brand{top:clamp(12px,2.5vh,28px);left:clamp(12px,2.5vw,30px);font-size:clamp(15px,2vw,23px)}
+#objective{top:clamp(12px,2.8vh,30px);right:clamp(12px,2.5vw,30px);font-size:clamp(8px,.8vw,10px)}
+#objective strong{font-size:clamp(14px,1.6vw,18px)}
+#speed{left:clamp(12px,2.5vw,30px);bottom:clamp(18px,3vh,30px)}
+#speed b{font-size:clamp(32px,5vw,52px)}
+#mission{top:clamp(58px,7vh,78px);font-size:clamp(8px,.8vw,10px);max-width:40vw}
+#hint{bottom:clamp(32px,5vh,48px);font-size:clamp(8px,.8vw,10px);max-width:90vw;text-align:center;white-space:normal}
+#progress{bottom:clamp(15px,2.5vh,24px);width:min(240px,42vw)}
 #hud{position:fixed;inset:0;pointer-events:none;z-index:4}
 #brand{position:absolute;top:24px;left:28px;font:800 23px 'Barlow Condensed';letter-spacing:3px;color:#26363d}#brand span{color:var(--red)}
 #objective{position:absolute;top:28px;right:30px;text-align:right;font-size:10px;letter-spacing:2px;color:#53636b}
@@ -26,18 +35,19 @@ button{font:700 12px 'DM Mono';letter-spacing:2px;border:0;cursor:pointer}
 #start{margin-top:22px;padding:17px 28px;background:var(--red);color:white;box-shadow:5px 5px 0 #a92e30}
 #controls{margin-top:27px;display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;font-size:9px;color:#6d7b80;line-height:1.7}
 kbd{display:inline-block;min-width:23px;text-align:center;padding:3px 5px;background:#e4ebec;border:1px solid #cbd5d8;color:#293b43;margin-right:5px}
-#mobile{display:none;position:fixed;inset:auto 0 max(22px,env(safe-area-inset-bottom));z-index:7;justify-content:space-between;align-items:end;padding:0 22px;pointer-events:none}
-#joystick{width:142px;height:142px;border-radius:50%;position:relative;pointer-events:auto;touch-action:none;background:radial-gradient(circle,#ffffff18 0 42%,#ffffff0b 43% 100%);border:1px solid #ffffff55;box-shadow:inset 0 0 25px #172c3b22,0 8px 30px #0002;backdrop-filter:blur(5px);user-select:none;-webkit-user-select:none}
+#mobile{display:none;position:fixed;inset:auto 0 max(18px,env(safe-area-inset-bottom));z-index:7;justify-content:space-between;align-items:end;padding:0 clamp(12px,3vw,34px);pointer-events:none;gap:10px}
+#joystick{width:clamp(94px,15vw,150px);height:clamp(94px,15vw,150px);border-radius:50%;position:relative;pointer-events:auto;touch-action:none;background:radial-gradient(circle,#ffffff18 0 42%,#ffffff0b 43% 100%);border:1px solid #ffffff55;box-shadow:inset 0 0 25px #172c3b22,0 8px 30px #0002;backdrop-filter:blur(5px);user-select:none;-webkit-user-select:none}
 #joystick:before{content:"";position:absolute;inset:17px;border:1px solid #ffffff38;border-radius:50%}
-#stick{position:absolute;left:50%;top:50%;width:58px;height:58px;border-radius:50%;transform:translate(-50%,-50%);background:linear-gradient(145deg,#ffffffec,#cbd8dcdd);border:1px solid #fff;box-shadow:0 5px 18px #0005;pointer-events:none}
+#stick{position:absolute;left:50%;top:50%;width:clamp(42px,6vw,60px);height:clamp(42px,6vw,60px);border-radius:50%;transform:translate(-50%,-50%);background:linear-gradient(145deg,#ffffffec,#cbd8dcdd);border:1px solid #fff;box-shadow:0 5px 18px #0005;pointer-events:none}
 #mobile .actions{display:flex;gap:13px;align-items:end;pointer-events:auto}
-.touch{pointer-events:auto;width:64px;height:64px;border:1px solid #ffffffb0;background:linear-gradient(145deg,#344b5dcc,#172c3bcc);color:white;border-radius:50%;backdrop-filter:blur(10px);font:700 10px 'DM Mono';letter-spacing:1px;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:0 5px 18px #0003}
-.touch.jump{width:76px;height:76px;background:linear-gradient(145deg,#f45a55ed,#c82f38ed);border-color:#ffffffd0;font-size:11px}
+.touch{pointer-events:auto;width:clamp(48px,7vw,68px);height:clamp(48px,7vw,68px);border:1px solid #ffffffb0;background:linear-gradient(145deg,#344b5dcc,#172c3bcc);color:white;border-radius:50%;backdrop-filter:blur(10px);font:700 10px 'DM Mono';letter-spacing:1px;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:0 5px 18px #0003}
+.touch.jump{width:clamp(58px,8.5vw,82px);height:clamp(58px,8.5vw,82px);background:linear-gradient(145deg,#f45a55ed,#c82f38ed);border-color:#ffffffd0;font-size:11px}
 .touch:active{transform:scale(.94);filter:brightness(1.15)}
 #look-label{position:fixed;right:20px;bottom:calc(166px + env(safe-area-inset-bottom));z-index:5;color:#fff9;font-size:8px;letter-spacing:2px;pointer-events:none;text-shadow:0 1px 5px #000}
-#pause{position:fixed;right:25px;bottom:25px;z-index:6;pointer-events:auto;background:#ffffffb8;color:#263840;border:1px solid #fff;padding:10px 13px;font-size:10px}
+#pause{position:fixed;right:clamp(12px,2vw,25px);bottom:clamp(12px,2vw,25px);z-index:6;pointer-events:auto;background:#ffffffb8;color:#263840;border:1px solid #fff;padding:10px 13px;font-size:10px}
 #toast{position:fixed;left:50%;top:18%;transform:translate(-50%,-10px);opacity:0;transition:.3s;z-index:8;background:#f04443;color:#fff;padding:10px 16px;font-size:10px;letter-spacing:2px;pointer-events:none}
-@media(max-width:700px){#mobile{display:flex;padding:0 15px}#joystick{width:126px;height:126px}#stick{width:52px;height:52px}.touch{width:57px;height:57px}.touch.jump{width:70px;height:70px}#look-label{right:14px;bottom:calc(146px + env(safe-area-inset-bottom));font-size:7px}#brand{top:max(12px,env(safe-area-inset-top));left:13px;font-size:16px;letter-spacing:2px}#objective{top:max(13px,env(safe-area-inset-top));right:13px;font-size:8px}#objective strong{font-size:15px}#mission{top:58px;font-size:8px}#speed{left:14px;bottom:154px}#speed b{font-size:34px}#hint{bottom:139px;font-size:8px;max-width:92vw;text-align:center}#progress{bottom:128px}#pause{right:13px;top:58px;bottom:auto;padding:8px 10px;font-size:9px}.panel{padding:25px;width:92vw;max-height:90dvh;overflow:auto}.panel h1{font-size:60px}#controls{gap:6px 10px;font-size:8px}.kicker{font-size:8px;letter-spacing:2px}}
+@media(max-width:900px),(pointer:coarse){#mobile{display:flex}#pause{top:clamp(58px,8vh,78px);right:12px;bottom:auto}} 
+@media(max-width:700px){#mobile{padding:0 12px}#joystick{width:clamp(94px,28vw,126px);height:clamp(94px,28vw,126px)}#stick{width:clamp(42px,11vw,52px);height:clamp(42px,11vw,52px)}.touch{width:clamp(48px,13vw,58px);height:clamp(48px,13vw,58px)}.touch.jump{width:clamp(58px,16vw,70px);height:clamp(58px,16vw,70px)}#look-label{right:14px;bottom:calc(146px + env(safe-area-inset-bottom));font-size:7px}#brand{top:max(12px,env(safe-area-inset-top));left:13px;font-size:16px;letter-spacing:2px}#objective{top:max(13px,env(safe-area-inset-top));right:13px;font-size:8px}#objective strong{font-size:15px}#mission{top:58px;font-size:8px}#speed{left:14px;bottom:154px}#speed b{font-size:34px}#hint{bottom:139px;font-size:8px;max-width:92vw;text-align:center}#progress{bottom:128px}#pause{right:13px;top:58px;bottom:auto;padding:8px 10px;font-size:9px}.panel{padding:25px;width:92vw;max-height:90dvh;overflow:auto}.panel h1{font-size:60px}#controls{gap:6px 10px;font-size:8px}.kicker{font-size:8px;letter-spacing:2px}}
 </style>
 </head>
 <body>
@@ -51,7 +61,7 @@ kbd{display:inline-block;min-width:23px;text-align:center;padding:3px 5px;backgr
 import * as THREE from 'three';
 const scene=new THREE.Scene();scene.background=new THREE.Color(0xb9d1d8);scene.fog=new THREE.Fog(0xb9d1d8,65,250);
 const camera=new THREE.PerspectiveCamera(78,innerWidth/innerHeight,.1,500);camera.rotation.order='YXZ';
-const isMobile=matchMedia('(pointer: coarse)').matches||innerWidth<=700;const renderer=new THREE.WebGLRenderer({antialias:!isMobile,powerPreference:'high-performance'});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,isMobile?1.25:1.7));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;document.body.appendChild(renderer.domElement);
+let isMobile=matchMedia('(pointer: coarse)').matches||innerWidth<=900;const renderer=new THREE.WebGLRenderer({antialias:!isMobile,powerPreference:'high-performance'});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,isMobile?1.25:1.7));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;document.body.appendChild(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xeaf7ff,0x87949a,2.0));const sun=new THREE.DirectionalLight(0xfff4df,3.2);sun.position.set(-45,80,35);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-90;sun.shadow.camera.right=90;sun.shadow.camera.top=90;sun.shadow.camera.bottom=-90;scene.add(sun);
 const mat=(c,r=.82)=>new THREE.MeshStandardMaterial({color:c,roughness:r});
 const white=mat(0xe9eeee),pale=mat(0xcbd6d9),dark=mat(0x50616a),glass=new THREE.MeshStandardMaterial({color:0x9ebbc4,metalness:.28,roughness:.18}),red=mat(0xf04443),yellow=mat(0xffc94a);
@@ -72,7 +82,8 @@ const beacons=[new THREE.Vector3(0,1.4,-27),new THREE.Vector3(8,2.4,-74),new THR
 const beaconMeshes=[];for(const p of beacons){const g=new THREE.Group();const ring=new THREE.Mesh(new THREE.TorusGeometry(1.1,.09,8,32),red);ring.position.y=1.3;g.add(ring);const core=new THREE.Mesh(new THREE.SphereGeometry(.18,16,12),yellow);core.position.y=1.3;g.add(core);g.position.copy(p);scene.add(g);beaconMeshes.push(g)}
 // skyline details and sun disc
 const sunDisc=new THREE.Mesh(new THREE.CircleGeometry(12,48),new THREE.MeshBasicMaterial({color:0xfff1d2}));sunDisc.position.set(-75,62,-190);scene.add(sunDisc);
-const player={pos:new THREE.Vector3(0,1.7,7),vel:new THREE.Vector3(),yaw:0,pitch:0,ground:true,sliding:0,wallrun:0,roll:0};camera.position.copy(player.pos);
+const player={pos:new THREE.Vector3(0,1.7,7),vel:new THREE.Vector3(),yaw:0,pitch:0,ground:true,sliding:0,wallrun:0,roll:0,coyote:.12,jumpBuffer:0,landBlend:0,runLean:0,camY:1.7,vault:0,wallSide:0};camera.position.copy(player.pos);
+let cameraFov=78, bobPhase=0, wasGrounded=true, lastHorizontalSpeed=0;
 const keys={};let locked=false,started=false,paused=true,mouseDown=false,last=performance.now(),elapsed=0,checkpoint=0,runStart=0,finish=false;
 const overlay=document.getElementById('overlay'),hint=document.getElementById('hint');
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.opacity=1;e.style.transform='translate(-50%,0)';setTimeout(()=>{e.style.opacity=0;e.style.transform='translate(-50%,-10px)'},1500)}
@@ -94,31 +105,83 @@ let lookPointer=null,lastLookX=0,lastLookY=0;renderer.domElement.addEventListene
 function reset(){player.pos.set(0,1.7,7);player.vel.set(0,0,0);player.ground=true;checkpoint=0;finish=false;elapsed=0;runStart=performance.now();document.getElementById('checkpointText').textContent='0 / 3 CHECKPOINTS';document.getElementById('objectiveText').textContent='REACH THE BEACON';document.getElementById('bar').style.width='0%';toast('ROUTE RESET')}
 function getPlatform(x,z){let best=null;for(const p of platforms){if(x>p.x-p.w/2-.2&&x<p.x+p.w/2+.2&&z>p.z-p.d/2-.2&&z<p.z+p.d/2+.2&&(!best||p.y>best.y))best=p}return best}
 function collides(x,y,z){for(const s of solids){if(x>s.minX-.35&&x<s.maxX+.35&&z>s.minZ-.35&&z<s.maxZ+.35&&y-1.1<s.maxY&&y+.1>s.minY)return s}return null}
-function update(dt){if(!started||paused)return;const forward=new THREE.Vector3(-Math.sin(player.yaw),0,-Math.cos(player.yaw));const right=new THREE.Vector3(Math.cos(player.yaw),0,-Math.sin(player.yaw));let wish=new THREE.Vector3();if(keys.KeyW||keys.ArrowUp)wish.add(forward);if(keys.KeyS||keys.ArrowDown)wish.sub(forward);if(keys.KeyD||keys.ArrowRight)wish.add(right);if(keys.KeyA||keys.ArrowLeft)wish.sub(right);if(isMobile){wish.addScaledVector(right,moveX);wish.addScaledVector(forward,-moveY)}if(wish.lengthSq())wish.normalize();
-const sprint=keys.ControlLeft||keys.ControlRight;const sliding=keys.ShiftLeft||keys.ShiftRight;const max=sprint?17:14;const accel=player.ground?24:8;
-player.vel.x+=wish.x*accel*dt;player.vel.z+=wish.z*accel*dt;
-const friction=player.ground?(wish.lengthSq()?1.8:5.5):.45;player.vel.x*=Math.exp(-friction*dt);player.vel.z*=Math.exp(-friction*dt);
-let speed=Math.hypot(player.vel.x,player.vel.z);if(speed>max){player.vel.x*=max/speed;player.vel.z*=max/speed}
-if(sliding&&player.ground&&speed>4){player.sliding=Math.max(player.sliding,.62);player.vel.x*=1.025;player.vel.z*=1.025}
-if(player.sliding>0)player.sliding-=dt;
-if(keys.Space&&player.ground){player.vel.y=player.sliding>0?7.5:8.5;player.ground=false;player.sliding=0;keys.Space=false}
-const sideWall=collides(player.pos.x+Math.sign(player.vel.x||1)*.65,player.pos.y,player.pos.z)||collides(player.pos.x,player.pos.y,player.pos.z+Math.sign(player.vel.z||-1)*.65);
-if(!player.ground&&sideWall&&speed>5&&wish.lengthSq()&&player.wallrun<.65){player.wallrun+=dt;player.vel.y=Math.max(player.vel.y,1.3);player.vel.x*=1.012;player.vel.z*=1.012}else player.wallrun=Math.max(0,player.wallrun-dt*2);
-player.vel.y-=20*dt;const oldY=player.pos.y;let nx=player.pos.x+player.vel.x*dt,nz=player.pos.z+player.vel.z*dt,ny=player.pos.y+player.vel.y*dt;
-if(!collides(nx,player.pos.y,nz)){player.pos.x=nx;player.pos.z=nz}else{if(!collides(nx,player.pos.y,player.pos.z))player.pos.x=nx;else player.vel.x*=-.12;if(!collides(player.pos.x,player.pos.y,nz))player.pos.z=nz;else player.vel.z*=-.12}
-const p=getPlatform(player.pos.x,player.pos.z);if(p&&player.vel.y<=0&&oldY>=p.y+.65&&ny<=p.y+1.7){ny=p.y+1.7;player.vel.y=0;player.ground=true}else player.ground=false;
+function update(dt){
+if(!started||paused)return;
+const forward=new THREE.Vector3(-Math.sin(player.yaw),0,-Math.cos(player.yaw));
+const right=new THREE.Vector3(Math.cos(player.yaw),0,-Math.sin(player.yaw));
+let wish=new THREE.Vector3();
+if(keys.KeyW||keys.ArrowUp)wish.add(forward);if(keys.KeyS||keys.ArrowDown)wish.sub(forward);
+if(keys.KeyD||keys.ArrowRight)wish.add(right);if(keys.KeyA||keys.ArrowLeft)wish.sub(right);
+if(isMobile){wish.addScaledVector(right,moveX);wish.addScaledVector(forward,-moveY)}
+const inputAmount=Math.min(1,wish.length());if(wish.lengthSq())wish.normalize();
+const sprint=keys.ControlLeft||keys.ControlRight||inputAmount>.82&&player.ground;
+const slideHeld=keys.ShiftLeft||keys.ShiftRight;
+const speed=Math.hypot(player.vel.x,player.vel.z);
+if(slideHeld&&player.ground&&speed>5)player.sliding=Math.max(player.sliding,.72);
+player.sliding=Math.max(0,player.sliding-dt);
+const maxSpeed=player.sliding>0?19:(sprint?17:13.5);
+const accel=player.ground?(player.sliding>0?5.5: sprint?25:19):7.5;
+if(player.sliding<=0||inputAmount>.15){
+ player.vel.x+=wish.x*accel*dt;player.vel.z+=wish.z*accel*dt;
+}
+const drag=player.ground?(inputAmount>.08?(sprint?1.15:1.8):player.sliding>0?.35:4.8):.16;
+player.vel.x*=Math.exp(-drag*dt);player.vel.z*=Math.exp(-drag*dt);
+let horizontal=Math.hypot(player.vel.x,player.vel.z);
+if(horizontal>maxSpeed){const s=maxSpeed/horizontal;player.vel.x*=s;player.vel.z*=s;horizontal=maxSpeed}
+const sideProbe=collides(player.pos.x+Math.sign(player.vel.x||1)*.8,player.pos.y,player.pos.z)||collides(player.pos.x,player.pos.y,player.pos.z+Math.sign(player.vel.z||-1)*.8);
+if(!player.ground&&sideProbe&&horizontal>5&&inputAmount>.15){
+ player.wallrun=Math.min(1.15,player.wallrun+dt);player.wallSide=Math.sign(player.vel.x||1);
+ player.vel.y=Math.max(player.vel.y,-1.1);player.vel.y+=7.5*dt;
+ player.vel.x*=1.006;player.vel.z*=1.006;
+}else{player.wallrun=Math.max(0,player.wallrun-dt*2.8);player.wallSide=0}
+if(player.jumpBuffer>0&&(player.ground||player.coyote>0)){player.vel.y=player.sliding>0?8.2:9.1;player.ground=false;player.coyote=0;player.jumpBuffer=0;player.sliding=0}
+if(player.wallrun>0&&keys.Space){player.vel.x=-player.wallSide*7.5;player.vel.y=8.4;player.wallrun=0;keys.Space=false}
+player.vel.y-=player.wallrun>0?8.5*dt:22*dt;
+const oldY=player.pos.y,oldGround=player.ground;
+let nx=player.pos.x+player.vel.x*dt,nz=player.pos.z+player.vel.z*dt,ny=player.pos.y+player.vel.y*dt;
+const front=collides(nx,player.pos.y,nz);
+if(!front){player.pos.x=nx;player.pos.z=nz}
+else{
+ const hitHeight=front.maxY-(player.pos.y-1.7);
+ if(hitHeight<1.35&&horizontal>4&&inputAmount>.2&&player.vault<=0){
+  player.vault=.34;player.vel.y=Math.max(player.vel.y,5.7);player.vel.x+=forward.x*3.2;player.vel.z+=forward.z*3.2;
+ }else{
+  if(!collides(nx,player.pos.y,player.pos.z))player.pos.x=nx;else player.vel.x*= -.08;
+  if(!collides(player.pos.x,player.pos.y,nz))player.pos.z=nz;else player.vel.z*= -.08;
+ }
+}
+player.vault=Math.max(0,player.vault-dt);
+const p=getPlatform(player.pos.x,player.pos.z);
+if(p&&player.vel.y<=0&&oldY>=p.y+1.45&&ny<=p.y+1.7){
+ ny=p.y+1.7;player.vel.y=0;player.ground=true;
+}else player.ground=false;
 if(ny<player.pos.y-1.2&&collides(player.pos.x,ny,player.pos.z)){ny=player.pos.y;player.vel.y=0}
 player.pos.y=ny;
-if(player.pos.y<-12){player.pos.set(0,1.7,7);player.vel.set(0,0,0);toast('FALL DETECTED // RESET')}
+if(player.ground&&!oldGround){player.landBlend=1;if(slideHeld||horizontal>10){player.sliding=Math.max(player.sliding,.28);player.vel.x*=1.04;player.vel.z*=1.04}}
+player.landBlend=Math.max(0,player.landBlend-dt*3.4);
+if(player.pos.y<-12){player.pos.set(0,1.7,7);player.vel.set(0,0,0);player.ground=true;player.wallrun=0;toast('FALL DETECTED // RESET')}
 if(player.pos.z<-205&&checkpoint===3&&!finish){finish=true;toast('ROUTE COMPLETE // '+((performance.now()-runStart)/1000).toFixed(2)+' SEC')}
-camera.position.set(player.pos.x,player.pos.y+(player.sliding>0?-.55:0)+Math.sin(performance.now()*.012)*Math.min(speed/90,.035),player.pos.z);camera.rotation.set(player.pitch,player.yaw,THREE.MathUtils.clamp(-player.vel.x*.012,-.12,.12));
+horizontal=Math.hypot(player.vel.x,player.vel.z);
+const moving=player.ground&&horizontal>.6;
+bobPhase+=dt*(moving?7+horizontal*.65:1.5);
+const bob=moving?Math.sin(bobPhase)*Math.min(.045,horizontal*.0035):0;
+const targetY=player.pos.y+(player.sliding>0?-.58:0)+(player.wallrun>0?.08:0)-player.landBlend*.16+bob;
+player.camY=THREE.MathUtils.damp(player.camY||targetY,targetY,player.ground?15:8,dt);
+const targetFov=78+Math.min(horizontal/17,1)*9+(player.sliding>0?5:0)+(player.wallrun>0?3:0);
+cameraFov=THREE.MathUtils.damp(cameraFov,targetFov,5,dt);camera.fov=cameraFov;camera.updateProjectionMatrix();
+const desiredLean=THREE.MathUtils.clamp((-player.vel.x*Math.cos(player.yaw)+player.vel.z*Math.sin(player.yaw))*.018,-.13,.13);
+player.runLean=THREE.MathUtils.damp(player.runLean,desiredLean,6,dt);
+camera.position.set(player.pos.x,player.camY,player.pos.z);
+camera.rotation.set(player.pitch,player.yaw,player.runLean+(player.wallrun>0?player.wallSide*.13:0));
 beaconMeshes.forEach((b,i)=>{b.rotation.y+=dt*.8;b.position.y=beacons[i].y+Math.sin(performance.now()*.002+i)*.18});
 if(checkpoint<3&&player.pos.distanceTo(beacons[checkpoint])<3.2){checkpoint++;document.getElementById('checkpointText').textContent=checkpoint+' / 3 CHECKPOINTS';document.getElementById('objectiveText').textContent=checkpoint===3?'REACH THE FINAL ROOFTOP':'NEXT SIGNAL';toast('CHECKPOINT '+checkpoint+' // LOCKED IN')}
-document.getElementById('speedValue').textContent=String(Math.round(speed*3.6)).padStart(2,'0');document.getElementById('bar').style.width=(checkpoint/3*100)+'%';
-hint.textContent=isMobile?(player.wallrun>0?'WALL RUN // KEEP MOVING':player.sliding>0?'SLIDE // MOMENTUM PRESERVED':player.ground?'JOYSTICK MOVE · DRAG RIGHT SIDE TO LOOK':'AIRBORNE // AIM FOR THE NEXT ROOF'):(player.wallrun>0?'WALL RUN // KEEP MOVING':player.sliding>0?'SLIDE // MOMENTUM PRESERVED':player.ground?'WASD MOVE · SPACE JUMP · SHIFT SLIDE':'AIRBORNE // AIM FOR THE NEXT ROOF');
+document.getElementById('speedValue').textContent=String(Math.round(horizontal*3.6)).padStart(2,'0');
+document.getElementById('bar').style.width=(checkpoint/3*100)+'%';
+hint.textContent=isMobile?(player.wallrun>0?'WALL RUN // JUMP TO KICK OFF':player.vault>0?'VAULT // KEEP YOUR FLOW':player.sliding>0?'SLIDE // MOMENTUM PRESERVED':player.ground?'JOYSTICK MOVE · DRAG TO LOOK':'AIRBORNE // AIM FOR THE NEXT ROOF'):(player.wallrun>0?'WALL RUN // SPACE TO KICK OFF':player.vault>0?'VAULT // KEEP YOUR FLOW':player.sliding>0?'SLIDE // MOMENTUM PRESERVED':player.ground?'WASD MOVE · CTRL SPRINT · SPACE JUMP · SHIFT SLIDE':'AIRBORNE // AIM FOR THE NEXT ROOF');
 }
 function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last)/1000,.033);last=now;update(dt);renderer.render(scene,camera)}requestAnimationFrame(animate);
-addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+function resizeGame(){const w=window.innerWidth,h=window.innerHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);isMobile=matchMedia('(pointer: coarse)').matches||w<=900;renderer.setPixelRatio(Math.min(devicePixelRatio,isMobile?1.25:1.7))}
+addEventListener('resize',resizeGame);addEventListener('orientationchange',()=>setTimeout(resizeGame,120));
 </script>
 </body>
 </html>
