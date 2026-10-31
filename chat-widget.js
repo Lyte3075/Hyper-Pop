@@ -116,7 +116,7 @@
  }
  function showPartyInvitePicker(){
   invitePickerOpen=true;
-  const area=$('hp-party-invites');area.replaceChildren();const heading=document.createElement('strong');heading.textContent='Invite a friend';area.append(heading);
+  const area=$('hp-party-invites');area.replaceChildren();const top=document.createElement('div');top.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px';const heading=document.createElement('strong');heading.textContent='Invite a friend';const close=partyButton('Close',()=>{invitePickerOpen=false;area.replaceChildren()},false);top.append(heading,close);area.append(top);
   const members=new Set((partySnapshot?.members||[]).map(m=>String(m.id)));
   const available=partyFriends.filter(f=>!members.has(String(f.id)));
   if(!available.length){area.append(Object.assign(document.createElement('p'),{className:'hp-party-muted',textContent:'No friends available to invite yet.'}));return}
@@ -161,7 +161,7 @@
  $('hp-chat-compose').addEventListener('submit',async e=>{e.preventDefault();const body=$('hp-chat-input').value.trim();if(!body||!selected)return;const d=await rpc('chat_send',{conversation_id:selected,body});if(!d.ok){note(d.error);return}const sentConversation=selected;const token=localStorage.getItem('hyperpop_token');if(token)fetch(PUSH_API,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({token,action:'notify_message',conversation_id:sentConversation})}).catch(()=>{});$('hp-chat-input').value='';await showConversation(sentConversation);});
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&win.classList.contains('open'))close()});
  window.addEventListener('storage',e=>{if(e.key==='hyperpop_token'&&win.classList.contains('open'))refreshLists()});
- setInterval(()=>{if(!win.classList.contains('open')||document.hidden)return;if(partyMode)refreshParty();if(selected)showConversation(selected,true);if(Date.now()-lastListRefresh>15000)refreshLists()},2500);
+ setInterval(()=>{if(!win.classList.contains('open')||document.hidden)return;if(partyMode&&!invitePickerOpen)refreshParty();if(selected)showConversation(selected,true);if(Date.now()-lastListRefresh>15000)refreshLists()},2500);
  rpc('me').then(d=>{if(d.ok)me=d.me||null});
  if(win.classList.contains('hp-chat-embedded'))refreshLists();
  
