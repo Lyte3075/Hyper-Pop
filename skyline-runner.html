@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#eaf0f2">
+<title>SKYLINE // Free Run</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap');
+:root{--red:#f04443;--ink:#17232b;--muted:#687780}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#dce6e9;font-family:'DM Mono',monospace;color:var(--ink)}canvas{display:block}
+#hud{position:fixed;inset:0;pointer-events:none;z-index:4}
+#brand{position:absolute;top:24px;left:28px;font:800 23px 'Barlow Condensed';letter-spacing:3px;color:#26363d}#brand span{color:var(--red)}
+#objective{position:absolute;top:28px;right:30px;text-align:right;font-size:10px;letter-spacing:2px;color:#53636b}
+#objective strong{display:block;font:700 18px 'Barlow Condensed';letter-spacing:1px;color:#25343b;margin-top:5px}
+#speed{position:absolute;left:30px;bottom:28px;color:#293b43}#speed b{font:800 52px 'Barlow Condensed';letter-spacing:-2px}#speed small{font-size:10px;letter-spacing:2px}
+#mission{position:absolute;left:50%;top:25px;transform:translateX(-50%);font-size:10px;letter-spacing:2px;color:#63727a;text-align:center}
+#mission strong{display:block;color:var(--red);font-size:12px;margin-top:5px}
+#crosshair{position:absolute;left:50%;top:50%;width:5px;height:5px;border:1px solid #fff;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 4px #0008}
+#hint{position:absolute;left:50%;bottom:38px;transform:translateX(-50%);font-size:10px;letter-spacing:1px;color:#fff;text-shadow:0 1px 4px #000;white-space:nowrap}
+#progress{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);width:min(240px,45vw);height:3px;background:#ffffff88}#bar{height:100%;width:0;background:var(--red)}
+#overlay{position:fixed;inset:0;z-index:10;display:grid;place-items:center;background:linear-gradient(110deg,#e9eff0f2,#d9e4e7e8),radial-gradient(circle at 75% 25%,#fff,transparent 40%);transition:opacity .4s}
+.panel{width:min(560px,90vw);padding:clamp(25px,6vw,54px);background:#f7faf9eF;border:1px solid #fff;box-shadow:0 25px 90px #344b5526}
+.kicker{font-size:10px;letter-spacing:4px;color:var(--red);font-weight:bold}.panel h1{font:900 clamp(58px,12vw,104px)/.8 'Barlow Condensed';letter-spacing:-3px;margin:22px 0 18px;color:#1e3038}.panel h1 span{color:var(--red)}.panel p{font-size:11px;line-height:1.9;color:#65747b;max-width:390px}
+button{font:700 12px 'DM Mono';letter-spacing:2px;border:0;cursor:pointer}
+#start{margin-top:22px;padding:17px 28px;background:var(--red);color:white;box-shadow:5px 5px 0 #a92e30}
+#controls{margin-top:27px;display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;font-size:9px;color:#6d7b80;line-height:1.7}
+kbd{display:inline-block;min-width:23px;text-align:center;padding:3px 5px;background:#e4ebec;border:1px solid #cbd5d8;color:#293b43;margin-right:5px}
+#mobile{display:none;position:fixed;inset:auto 0 18px;z-index:7;justify-content:space-between;padding:0 18px;pointer-events:none}
+.pad{display:flex;gap:8px;align-items:end}.touch{pointer-events:auto;width:54px;height:54px;border:1px solid #fff9;background:#172c3b55;color:white;border-radius:50%;backdrop-filter:blur(8px);font-size:16px;touch-action:none}
+#pause{position:fixed;right:25px;bottom:25px;z-index:6;pointer-events:auto;background:#ffffffb8;color:#263840;border:1px solid #fff;padding:10px 13px;font-size:10px}
+#toast{position:fixed;left:50%;top:18%;transform:translate(-50%,-10px);opacity:0;transition:.3s;z-index:8;background:#f04443;color:#fff;padding:10px 16px;font-size:10px;letter-spacing:2px;pointer-events:none}
+@media(max-width:700px){#mobile{display:flex}#brand{top:15px;left:15px;font-size:18px}#objective{top:18px;right:15px}#mission{top:64px}#speed{left:16px;bottom:95px}#speed b{font-size:38px}#hint{bottom:82px;font-size:9px}#progress{bottom:68px}#pause{right:15px;bottom:15px}.panel{padding:28px}.panel h1{font-size:64px}}
+</style>
+</head>
+<body>
+<div id="hud"><div id="brand">SKYLINE<span> / /</span> RUNNER</div><div id="objective">ROUTE OBJECTIVE<strong id="objectiveText">REACH THE BEACON</strong></div><div id="mission">FREE RUN // SECTOR 01<strong id="checkpointText">0 / 3 CHECKPOINTS</strong></div><div id="speed"><b id="speedValue">00</b><br><small>KM/H</small></div><div id="crosshair"></div><div id="hint">WASD MOVE · SPACE JUMP · SHIFT SLIDE</div><div id="progress"><div id="bar"></div></div></div>
+<div id="toast"></div>
+<button id="pause">Ⅱ PAUSE</button>
+<div id="mobile"><div class="pad"><button class="touch" data-key="KeyA">◀</button><button class="touch" data-key="KeyD">▶</button></div><div class="pad"><button class="touch" data-key="ShiftLeft">↓</button><button class="touch" data-key="Space">↑</button></div></div>
+<div id="overlay"><div class="panel"><div class="kicker">A FIRST-PERSON PARKOUR EXPERIENCE</div><h1>RUN THE<br><span>LINE.</span></h1><p>Find your flow above the city. Build speed, clear the gaps, chain wall-runs and reach every signal. The skyline is your playground.</p><button id="start">▶ &nbsp; ENTER THE CITY</button><div id="controls"><div><kbd>W A S D</kbd> MOVE</div><div><kbd>SPACE</kbd> JUMP / CLIMB</div><div><kbd>SHIFT</kbd> SLIDE / ROLL</div><div><kbd>MOUSE</kbd> LOOK AROUND</div><div><kbd>ESC</kbd> PAUSE</div><div><kbd>R</kbd> RESTART RUN</div></div></div></div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+<script type="module">
+import * as THREE from 'three';
+const scene=new THREE.Scene();scene.background=new THREE.Color(0xb9d1d8);scene.fog=new THREE.Fog(0xb9d1d8,65,250);
+const camera=new THREE.PerspectiveCamera(78,innerWidth/innerHeight,.1,500);camera.rotation.order='YXZ';
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;document.body.appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xeaf7ff,0x87949a,2.0));const sun=new THREE.DirectionalLight(0xfff4df,3.2);sun.position.set(-45,80,35);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-90;sun.shadow.camera.right=90;sun.shadow.camera.top=90;sun.shadow.camera.bottom=-90;scene.add(sun);
+const mat=(c,r=.82)=>new THREE.MeshStandardMaterial({color:c,roughness:r});
+const white=mat(0xe9eeee),pale=mat(0xcbd6d9),dark=mat(0x50616a),glass=new THREE.MeshStandardMaterial({color:0x9ebbc4,metalness:.28,roughness:.18}),red=mat(0xf04443),yellow=mat(0xffc94a);
+const boxGeo=new THREE.BoxGeometry(1,1,1);
+function block(x,y,z,w,h,d,m=white,collide=true){const o=new THREE.Mesh(boxGeo,m);o.position.set(x,y,z);o.scale.set(w,h,d);o.castShadow=true;o.receiveShadow=true;scene.add(o);if(collide)solids.push({minX:x-w/2,maxX:x+w/2,minY:y-h/2,maxY:y+h/2,minZ:z-d/2,maxZ:z+d/2});return o}
+const solids=[];const platforms=[];
+function platform(x,z,w,d,y=0,m=white){block(x,y-.25,z,w,.5,d,m);platforms.push({x,z,w,d,y});}
+platform(0,0,18,22,0);platform(0,-27,12,14,1.2);platform(8,-49,13,15,2.2);platform(8,-74,18,16,1.4);platform(-5,-100,14,17,2.1);platform(-5,-127,20,18,0.8);platform(8,-155,16,18,1.8);platform(8,-183,24,20,0);
+function building(x,z,w,h,d,c=0xc4d0d3){const o=block(x,h/2-1,z,w,h,d,mat(c));for(let y=3;y<h-2;y+=4){const win=block(x,z?y:y,z,w*.82,.07,d+.03,glass,false);win.position.y=y;} }
+for(let i=0;i<38;i++){let x=(i%2?1:-1)*(25+Math.random()*70),z=-i*7-8,w=8+Math.random()*15,h=18+Math.random()*55,d=8+Math.random()*15;block(x,h/2-2,z,w,h,d,i%3?mat(0xd1dcde):mat(0xaabdc2),false);for(let y=4;y<h-3;y+=5)for(let xx=-w/2+1;xx<w/2-1;xx+=3){const win=new THREE.Mesh(new THREE.BoxGeometry(1.5,2,.04),glass);win.position.set(x+xx,y,z-d/2-.03);scene.add(win)}}
+function obstacle(x,z,w,h,d,y=0){block(x,y+h/2,z,w,h,d,dark);const stripe=block(x,y+h+.04,z,w+.08,.08,d+.08,red,false);return stripe}
+obstacle(0,-9,3,1.15,1,0);obstacle(-2,-31,2.3,1.0,.8,1.2);obstacle(11,-53,2,1.3,1,2.2);obstacle(3,-79,3,1.2,1,1.4);obstacle(-9,-105,2.5,1.1,1,2.1);obstacle(-1,-133,2,1.3,1,.8);obstacle(14,-160,2.5,1.1,1,1.8);
+function wall(x,y,z,w,h,d){block(x,y,z,w,h,d,pale)}
+wall(8,2,-14,.5,4,5);wall(-7,2,-35,.5,4,6);wall(16,3,-58,.5,6,7);wall(-2,2,-88,.5,4,6);wall(-14,2,-112,.5,4,6);wall(17,2,-168,.5,4,6);
+function rail(x,z,w,d,y=1){block(x,y,z,w,.12,d,dark,false);block(x,y+.55,z,w,.08,d,dark,false)}
+rail(0,-10,16,.15);rail(0,-22,12,.15,1.4);rail(8,-42,.15,12,2.4);rail(8,-65,16,.15,2.6);rail(-5,-91,12,.15,3);rail(-5,-118,18,.15,1.7);
+const beacons=[new THREE.Vector3(0,1.4,-27),new THREE.Vector3(8,2.4,-74),new THREE.Vector3(8,2.8,-183)];
+const beaconMeshes=[];for(const p of beacons){const g=new THREE.Group();const ring=new THREE.Mesh(new THREE.TorusGeometry(1.1,.09,8,32),red);ring.position.y=1.3;g.add(ring);const core=new THREE.Mesh(new THREE.SphereGeometry(.18,16,12),yellow);core.position.y=1.3;g.add(core);g.position.copy(p);scene.add(g);beaconMeshes.push(g)}
+// skyline details and sun disc
+const sunDisc=new THREE.Mesh(new THREE.CircleGeometry(12,48),new THREE.MeshBasicMaterial({color:0xfff1d2}));sunDisc.position.set(-75,62,-190);scene.add(sunDisc);
+const player={pos:new THREE.Vector3(0,1.7,7),vel:new THREE.Vector3(),yaw:0,pitch:0,ground:true,sliding:0,wallrun:0,roll:0};camera.position.copy(player.pos);
+const keys={};let locked=false,started=false,paused=true,mouseDown=false,last=performance.now(),elapsed=0,checkpoint=0,runStart=0,finish=false;
+const overlay=document.getElementById('overlay'),hint=document.getElementById('hint');
+function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.opacity=1;e.style.transform='translate(-50%,0)';setTimeout(()=>{e.style.opacity=0;e.style.transform='translate(-50%,-10px)'},1500)}
+function begin(){started=true;paused=false;overlay.style.opacity=0;setTimeout(()=>overlay.style.display='none',450);runStart=performance.now();if(innerWidth>700)renderer.domElement.requestPointerLock?.();toast('RUNNER ONLINE');}
+document.getElementById('start').onclick=begin;
+document.getElementById('pause').onclick=()=>{if(!started){begin();return}paused=!paused;if(paused){overlay.style.display='grid';overlay.style.opacity=1;document.querySelector('.panel h1').innerHTML='TAKE A<br><span>BREATHER.</span>';document.querySelector('.panel p').textContent='Your run is paused. The rooftops will still be here.';document.getElementById('start').textContent='▶  RESUME RUN';document.getElementById('start').onclick=()=>{overlay.style.display='none';paused=false;renderer.domElement.requestPointerLock?.()}}else{overlay.style.display='none';renderer.domElement.requestPointerLock?.()}};
+document.addEventListener('pointerlockchange',()=>locked=document.pointerLockElement===renderer.domElement);
+document.addEventListener('mousemove',e=>{if(!locked||paused)return;player.yaw-=e.movementX*.0022;player.pitch-=e.movementY*.0018;player.pitch=THREE.MathUtils.clamp(player.pitch,-1.25,1.25)});
+document.addEventListener('keydown',e=>{keys[e.code]=true;if(['Space','ArrowUp','ArrowDown'].includes(e.code))e.preventDefault();if(e.code==='Escape'&&started){paused=true;overlay.style.display='grid';overlay.style.opacity=1;document.querySelector('.panel h1').innerHTML='TAKE A<br><span>BREATHER.</span>';document.querySelector('.panel p').textContent='Your run is paused. The rooftops will still be here.';document.getElementById('start').textContent='▶  RESUME RUN';document.getElementById('start').onclick=()=>{overlay.style.display='none';paused=false;renderer.domElement.requestPointerLock?.()}}if(e.code==='KeyR')reset()});
+document.addEventListener('keyup',e=>keys[e.code]=false);
+document.querySelectorAll('.touch').forEach(b=>{const k=b.dataset.key;b.addEventListener('pointerdown',e=>{e.preventDefault();keys[k]=true;b.setPointerCapture(e.pointerId)});['pointerup','pointercancel','lostpointercapture'].forEach(ev=>b.addEventListener(ev,()=>keys[k]=false))});
+let touchX=null,touchY=null;renderer.domElement.addEventListener('touchstart',e=>{if(e.touches.length===1){touchX=e.touches[0].clientX;touchY=e.touches[0].clientY}},{passive:true});renderer.domElement.addEventListener('touchmove',e=>{if(e.touches.length===1&&touchX!==null&&!paused){const t=e.touches[0];player.yaw-=(t.clientX-touchX)*.004;player.pitch=THREE.MathUtils.clamp(player.pitch-(t.clientY-touchY)*.003,-1.1,1.1);touchX=t.clientX;touchY=t.clientY}},{passive:true});
+function reset(){player.pos.set(0,1.7,7);player.vel.set(0,0,0);player.ground=true;checkpoint=0;finish=false;elapsed=0;runStart=performance.now();document.getElementById('checkpointText').textContent='0 / 3 CHECKPOINTS';document.getElementById('objectiveText').textContent='REACH THE BEACON';document.getElementById('bar').style.width='0%';toast('ROUTE RESET')}
+function getPlatform(x,z){let best=null;for(const p of platforms){if(x>p.x-p.w/2-.2&&x<p.x+p.w/2+.2&&z>p.z-p.d/2-.2&&z<p.z+p.d/2+.2&&(!best||p.y>best.y))best=p}return best}
+function collides(x,y,z){for(const s of solids){if(x>s.minX-.35&&x<s.maxX+.35&&z>s.minZ-.35&&z<s.maxZ+.35&&y-1.1<s.maxY&&y+.1>s.minY)return s}return null}
+function update(dt){if(!started||paused)return;const forward=new THREE.Vector3(-Math.sin(player.yaw),0,-Math.cos(player.yaw));const right=new THREE.Vector3(Math.cos(player.yaw),0,-Math.sin(player.yaw));let wish=new THREE.Vector3();if(keys.KeyW||keys.ArrowUp)wish.add(forward);if(keys.KeyS||keys.ArrowDown)wish.sub(forward);if(keys.KeyD||keys.ArrowRight)wish.add(right);if(keys.KeyA||keys.ArrowLeft)wish.sub(right);if(wish.lengthSq())wish.normalize();
+const sprint=keys.ControlLeft||keys.ControlRight;const sliding=keys.ShiftLeft||keys.ShiftRight;const max=sprint?17:14;const accel=player.ground?24:8;
+player.vel.x+=wish.x*accel*dt;player.vel.z+=wish.z*accel*dt;
+const friction=player.ground?(wish.lengthSq()?1.8:5.5):.45;player.vel.x*=Math.exp(-friction*dt);player.vel.z*=Math.exp(-friction*dt);
+let speed=Math.hypot(player.vel.x,player.vel.z);if(speed>max){player.vel.x*=max/speed;player.vel.z*=max/speed}
+if(sliding&&player.ground&&speed>4){player.sliding=Math.max(player.sliding,.62);player.vel.x*=1.025;player.vel.z*=1.025}
+if(player.sliding>0)player.sliding-=dt;
+if(keys.Space&&player.ground){player.vel.y=player.sliding>0?7.5:8.5;player.ground=false;player.sliding=0;keys.Space=false}
+const sideWall=collides(player.pos.x+Math.sign(player.vel.x||1)*.65,player.pos.y,player.pos.z)||collides(player.pos.x,player.pos.y,player.pos.z+Math.sign(player.vel.z||-1)*.65);
+if(!player.ground&&sideWall&&speed>5&&wish.lengthSq()&&player.wallrun<.65){player.wallrun+=dt;player.vel.y=Math.max(player.vel.y,1.3);player.vel.x*=1.012;player.vel.z*=1.012}else player.wallrun=Math.max(0,player.wallrun-dt*2);
+player.vel.y-=20*dt;const oldY=player.pos.y;let nx=player.pos.x+player.vel.x*dt,nz=player.pos.z+player.vel.z*dt,ny=player.pos.y+player.vel.y*dt;
+if(!collides(nx,player.pos.y,nz)){player.pos.x=nx;player.pos.z=nz}else{if(!collides(nx,player.pos.y,player.pos.z))player.pos.x=nx;else player.vel.x*=-.12;if(!collides(player.pos.x,player.pos.y,nz))player.pos.z=nz;else player.vel.z*=-.12}
+const p=getPlatform(player.pos.x,player.pos.z);if(p&&player.vel.y<=0&&oldY>=p.y+.65&&ny<=p.y+1.7){ny=p.y+1.7;player.vel.y=0;player.ground=true}else player.ground=false;
+if(ny<player.pos.y-1.2&&collides(player.pos.x,ny,player.pos.z)){ny=player.pos.y;player.vel.y=0}
+player.pos.y=ny;
+if(player.pos.y<-12){player.pos.set(0,1.7,7);player.vel.set(0,0,0);toast('FALL DETECTED // RESET')}
+if(player.pos.z<-205&&checkpoint===3&&!finish){finish=true;toast('ROUTE COMPLETE // '+((performance.now()-runStart)/1000).toFixed(2)+' SEC')}
+camera.position.set(player.pos.x,player.pos.y+(player.sliding>0?-.55:0)+Math.sin(performance.now()*.012)*Math.min(speed/90,.035),player.pos.z);camera.rotation.set(player.pitch,player.yaw,THREE.MathUtils.clamp(-player.vel.x*.012,-.12,.12));
+beaconMeshes.forEach((b,i)=>{b.rotation.y+=dt*.8;b.position.y=beacons[i].y+Math.sin(performance.now()*.002+i)*.18});
+if(checkpoint<3&&player.pos.distanceTo(beacons[checkpoint])<3.2){checkpoint++;document.getElementById('checkpointText').textContent=checkpoint+' / 3 CHECKPOINTS';document.getElementById('objectiveText').textContent=checkpoint===3?'REACH THE FINAL ROOFTOP':'NEXT SIGNAL';toast('CHECKPOINT '+checkpoint+' // LOCKED IN')}
+document.getElementById('speedValue').textContent=String(Math.round(speed*3.6)).padStart(2,'0');document.getElementById('bar').style.width=(checkpoint/3*100)+'%';
+hint.textContent=player.wallrun>0?'WALL RUN // KEEP MOVING':player.sliding>0?'SLIDE // MOMENTUM PRESERVED':player.ground?'WASD MOVE · SPACE JUMP · SHIFT SLIDE':'AIRBORNE // AIM FOR THE NEXT ROOF';
+}
+function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last)/1000,.033);last=now;update(dt);renderer.render(scene,camera)}requestAnimationFrame(animate);
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+</script>
+</body>
+</html>
