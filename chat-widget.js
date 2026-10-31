@@ -107,6 +107,7 @@
  window.addEventListener('storage',e=>{if(e.key==='hyperpop_token'&&win.classList.contains('open'))refreshLists()});
  setInterval(()=>{if(!win.classList.contains('open')||document.hidden)return;if(selected)showConversation(selected,true);if(Date.now()-lastListRefresh>15000)refreshLists()},2500);
  rpc('me').then(d=>{if(d.ok)me=d.me||null});
+ if(win.classList.contains('hp-chat-embedded'))refreshLists();
  
  async function pollNotifications(){
   const token=localStorage.getItem('hyperpop_token');
