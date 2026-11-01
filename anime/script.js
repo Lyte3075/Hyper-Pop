@@ -17,6 +17,7 @@ var dataEpisode;
 var dataURL;
 
 const apiEndpoint = "api.consumet.org";
+const animeBase = "/anime/";
 
 // Randomly set player iframes to these video onLoad
 var youtubeLinks = [
@@ -54,7 +55,7 @@ searchBtn.addEventListener("click", async function () {
     recentBtn.style.display = "none";
     resultContainer.innerHTML = "";
 
-    updateUrl(`/`);
+    updateUrl(animeBase);
 
     const query = queryInput.value;
     const res = await fetch(`https://${apiEndpoint}/anime/gogoanime/${query}?page=1`);
@@ -85,9 +86,9 @@ async function getSearchByEnter(event) {
 // Detect if homeBtn is clicked
 homeBtn.addEventListener("click", function () {
     if (appParam == 'true') {
-        window.location.href = "/?app=true";
+        window.location.href = animeBase + "?app=true";
     } else {
-        window.location.href = "/";
+        window.location.href = animeBase;
     }
 });
 
@@ -131,7 +132,7 @@ function displayRecent(results) {
             mainLoading.style.display = "flex";
             resultContainer.style.display = `none`;
 
-            updateUrl(`/?anime=${result.id}`);
+            updateUrl(`${animeBase}?anime=${encodeURIComponent(result.id)}`);
             dataURL = `${result.id}`
 
             const res = await fetch(`https://${apiEndpoint}/anime/gogoanime/info/${result.id}`);
@@ -280,7 +281,7 @@ function displayWatchInfo(episodeData) {
             if (appParam == 'true') {
                 updateUrl(`?playInApp=${selectedServer}`);
             } else {
-                videoPlayer.src = `/player/?url=${selectedServer}`;
+                videoPlayer.src = `${animeBase}player/?url=${encodeURIComponent(selectedServer)}`;
             }
         });
     };
@@ -409,7 +410,7 @@ function historyReload() {
             timedifference = getTimeDifference(array[i].date)
             historyLists.innerHTML += `
             <li>
-                <a href="/?anime=${array[i].url}">${array[i].title}</a> 
+                <a href="/anime/?anime=${encodeURIComponent(array[i].url)}">${array[i].title}</a> 
                 <span class="date">- ${timedifference}</span>
             </li>`
         }
