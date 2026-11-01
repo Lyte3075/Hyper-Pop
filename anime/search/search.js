@@ -3,7 +3,7 @@ const animeList = document.getElementById("resultContainer");
 const animecount = document.getElementById("animecount");
 
 const searchanime = async (searchBox) => {
-  const res = await fetch("/anime/search/data/anime.json");
+  const res = await fetch("./data/anime.json");
   const animedata = await res.json();
 
   let fits = animedata.filter((anime) => {
@@ -21,12 +21,13 @@ const searchanime = async (searchBox) => {
 };
 
 const outputHtml = (fits) => {
+  animeList.innerHTML = "";
   if (fits.length > 0) {
     const animeFits = fits
       .map(
         (fit) =>
           `<div class="fastsearchrow">
-              <a href="/anime/?anime=${encodeURIComponent(fit.url)}">${fit.name}</a>
+              <a href="../?anime=${encodeURIComponent(fit.url)}">${fit.name}</a>
           </div>`
       )
       .join("");
@@ -34,9 +35,9 @@ const outputHtml = (fits) => {
   }
 };
 
-searchInput.addEventListener("input", () => searchanime(search.value));
+searchInput.addEventListener("input", () => searchanime(searchInput.value));
 
-fetch('/anime/search/data/anime.json')
+fetch("./data/anime.json")
   .then(response => response.json())
   .then(data => {
     const count = Object.keys(data).length;
