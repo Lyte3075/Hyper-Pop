@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#101014">
+  <meta name="description" content="Anime classics you can actually watch, streamed from their official archive sources.">
+  <title>Anime | Hyper-Pop</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/"><span class="brand-mark">H</span><span>HYPER-POP <i>/ ANIME</i></span></a>
+    <a class="back-home" href="/">← Hyper-Pop</a>
+  </header>
+  <main class="shell">
+    <section class="hero">
+      <div class="eyebrow"><span class="live-dot"></span> THE ANIME CORNER</div>
+      <h1>Stories worth <span>rewinding time for.</span></h1>
+      <p>A growing shelf of anime you can play right here. Every title links to an authorized archive stream.</p>
+      <label class="search-wrap"><span>⌕</span><input id="search" type="search" placeholder="Search the collection..." autocomplete="off"></label>
+    </section>
+    <section class="section-head"><div><p class="eyebrow">THE COLLECTION</p><h2>Watch something</h2></div><span id="count" class="count"></span></section>
+    <section id="catalog" class="catalog" aria-live="polite"></section>
+    <section id="watch" class="watch" hidden>
+      <div class="watch-head"><div><p class="eyebrow">NOW PLAYING</p><h2 id="watch-title">Title</h2><p id="watch-meta" class="watch-meta"></p></div><button id="back" class="back-button">← Back to collection</button></div>
+      <div class="player-frame"><iframe id="stream" title="Anime video player" src="" allow="fullscreen; picture-in-picture" allowfullscreen loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
+      <p id="watch-note" class="watch-note"></p>
+      <a id="source-link" class="source-link" href="#" target="_blank" rel="noopener noreferrer">Open official archive page ↗</a>
+    </section>
+    <section class="notice"><span>ⓘ</span><p><b>About this collection</b><br>Hyper-Pop only lists titles with a verified public-domain or permissive distribution basis and a playable official/archive source. The collection is intentionally small while each entry is checked.</p></section>
+  </main>
+  <footer><span>HYPER-POP <i>×</i> ANIME</span><a href="/">Back to the main site ↗</a></footer>
+  <script src="script.js"></script>
+</body>
+</html>
