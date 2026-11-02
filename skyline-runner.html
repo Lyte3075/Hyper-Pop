@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><title>Rooftop Runner</title>
+<html lang="en"><head><meta charset="utf-8"><title>Skyline // Runner</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{--bg:rgba(240,246,250,.95);--fg:#1d2a33;--red:#e5242b;--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px)}
@@ -29,23 +29,28 @@ ol{text-align:left;display:inline-block;margin:.3rem;padding-left:1.6rem;font-si
 #bt{right:calc(8vmin + var(--sr));bottom:calc(31vmin + var(--sb));width:14vmin;height:14vmin}
 #bv,#bp,#br{top:calc(2vmin + var(--st));width:11vmin;height:11vmin}
 #bp{right:calc(2vmin + var(--sr))}#bv{right:calc(15vmin + var(--sr))}#br{right:calc(28vmin + var(--sr))}
+#bi{right:calc(29vmin + var(--sr));bottom:calc(23vmin + var(--sb));width:14vmin;height:14vmin;font-size:max(.7rem,2.2vmin)}
+.sm{display:none}body.intrial .sm{display:flex;width:11vmin;height:11vmin;top:calc(15vmin + var(--st));font-size:max(.7rem,2.2vmin)}#btr{right:calc(15vmin + var(--sr))}#bte{right:calc(2vmin + var(--sr))}
+#tut{position:fixed;top:calc(1rem + var(--st));left:50%;transform:translateX(-50%);max-width:min(88vw,30rem);display:none;pointer-events:none;background:rgba(20,26,31,.72);color:#fff;border-radius:.6rem;padding:.55rem 1rem;text-align:center;font-size:1.05rem;line-height:1.35;z-index:2}#tut small{opacity:.7;letter-spacing:.08em}
+#prompt{position:fixed;left:50%;bottom:24%;transform:translateX(-50%);display:none;pointer-events:none;background:rgba(20,26,31,.78);color:#fff;border:2px solid #1fd16b;border-radius:.6rem;padding:.5rem 1.1rem;font-weight:700;font-size:1.15rem;z-index:2;white-space:nowrap}
 #jb{position:absolute;width:24vmin;height:24vmin;margin:-12vmin 0 0 -12vmin;left:calc(20vmin + var(--sl));top:calc(100% - 26vmin - var(--sb));border-radius:50%;background:rgba(20,26,31,.22);border:2px solid rgba(255,255,255,.55);opacity:.55;pointer-events:none}
 #jk{position:absolute;left:50%;top:50%;width:10vmin;height:10vmin;border-radius:50%;background:rgba(255,255,255,.8);transform:translate(-50%,-50%)}
 </style></head><body>
-<div id="dot"></div><div id="vig"></div><div id="hurt"></div><div id="hud"></div><div id="toast"></div>
+<div id="dot"></div><div id="vig"></div><div id="hurt"></div><div id="hud"></div><div id="toast"></div><div id="tut"></div><div id="prompt"></div>
 <div id="ov"><div id="panel"></div></div>
-<div id="touch"><div id="jb"><div id="jk"></div></div><div class="tb" id="bj" data-t="jump">UP</div><div class="tb" id="bs" data-t="slide">DOWN</div><div class="tb" id="bt" data-t="turn">EXTRA</div><div class="tb" id="bp" data-t="pause">II</div></div>
+<div id="touch"><div id="jb"><div id="jk"></div></div><div class="tb" id="bj" data-t="jump">UP</div><div class="tb" id="bs" data-t="slide">DOWN</div><div class="tb" id="bt" data-t="turn">EXTRA</div><div class="tb" id="bi" data-t="interact">INTERACT</div><div class="tb" id="bv" data-t="vision">VIS</div><div class="tb" id="br" data-t="respawn">RESET</div><div class="tb sm" id="btr" data-t="trialRestart">REDO</div><div class="tb sm" id="bte" data-t="trialEnd">END</div><div class="tb" id="bp" data-t="pause">II</div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 // ---------- settings ----------
-const ACT=[['fwd','Forward'],['back','Back'],['left','Left'],['right','Right'],['jump','Up (jump, kick-off)'],['slide','Down (slide, roll, drop)'],['turn','Extra (quick turn)'],['vision','Runner vision'],['respawn','Respawn']];
-const DEF={fwd:'KeyW',back:'KeyS',left:'KeyA',right:'KeyD',jump:'Space',slide:'ControlLeft',turn:'KeyQ',vision:'KeyV',respawn:'KeyR'};
+const ACT=[['fwd','Forward'],['back','Back'],['left','Left'],['right','Right'],['jump','Up (jump, kick-off)'],['slide','Down (slide, roll, drop)'],['turn','Extra (quick turn)'],['vision','Runner vision'],['respawn','Respawn'],['interact','Interact (start trial)'],['trialRestart','Restart trial'],['trialEnd','End trial']];
+const DEF={fwd:'KeyW',back:'KeyS',left:'KeyA',right:'KeyD',jump:'Space',slide:'ControlLeft',turn:'KeyQ',vision:'KeyV',respawn:'KeyR',interact:'KeyE',trialRestart:'KeyT',trialEnd:'KeyG'};
 const isTouch=(typeof matchMedia==='function'&&matchMedia('(pointer:coarse)').matches)||'ontouchstart' in window;
 let set={sens:1,fov:75,vol:.7,bob:1,invY:false,vision:true,body:true,touch:isTouch,binds:{...DEF}};
 try{const s=JSON.parse(localStorage.getItem('rr_set'));if(s)set={...set,...s,binds:{...DEF,...s.binds}}}catch(e){}
 const save=()=>{try{localStorage.setItem('rr_set',JSON.stringify(set))}catch(e){}};
 let times=[];try{times=JSON.parse(localStorage.getItem('rr_times'))||[]}catch(e){}
 const lbl=c=>c.replace(/^Key|^Digit/,'').replace('Left',' L').replace('Right',' R');
+const tut={on:(()=>{try{return localStorage.getItem('sr_tut')!=='1'}catch(e){return true}})(),done:{}};
 
 // ---------- audio ----------
 let AC,master,noiseBuf,windG,slideG,wallG;
@@ -158,13 +163,16 @@ function tower(i,j,H){
   }
   add(cx,H,cz,W,.8,W,grey,'roof',1);add(cx+4,H+.8,cz-6,8,5,.8,redM,'wall',1);add(cx-6,H+.8,cz+5,.25,12,.25,grey,'crate',1);
 }
+const gapAt=k=>k%5===0?14:6; // every 5th street is a wide avenue
+const HT=[];for(let i=0;i<N;i++){HT[i]=[];for(let j=0;j<N;j++){const dc=Math.hypot(i-N/2,j-N/2)/(N/2);HT[i][j]=Math.max(28,Math.round(30+26*Math.max(0,1-dc)*(.75+.25*Math.sin(i*.9)*Math.cos(j*.8))+6*Math.sin(i*.6+1)*Math.cos(j*.5)+rnd()*7))}}
+for(let it=0;it<4;it++)for(let i=0;i<N;i++)for(let j=0;j<N;j++)for(const[di,dj]of[[1,0],[-1,0],[0,1],[0,-1]]){const a=i+di,b=j+dj;if(a<0||b<0||a>=N||b>=N)continue;HT[i][j]=Math.max(HT[a][b]-9,Math.min(HT[a][b]+9,HT[i][j]))} // neighbours never differ by more than 9m
 const TW={};[[3,3,72],[10,3,88],[16,4,96],[4,10,80],[15,10,88],[7,15,72],[12,16,96],[3,16,80],[17,17,88],[8,8,80]].forEach(([i,j,H])=>TW[i+','+j]=H);
 for(let i=0;i<N;i++){bl[i]=[];for(let j=0;j<N;j++){
-  const x=(i-N/2+.5)*BP,z=(j-N/2+.5)*BP,w=26+rnd()*8,d=26+rnd()*8;
+  const gl=gapAt(i),gr=gapAt(i+1),gu=gapAt(j),gd=gapAt(j+1),x=(i-N/2+.5)*BP+(gl-gr)/4,z=(j-N/2+.5)*BP+(gu-gd)/4,w=BP-gl/2-gr/2,d=BP-gu/2-gd/2;
   if(TW[i+','+j]){bl[i][j]={x,z,w:24,d:24,ht:0};tower(i,j,TW[i+','+j]);continue}
-  const dc=Math.hypot(i-N/2,j-N/2)/(N/2),ht=Math.max(28,Math.round(30+26*Math.max(0,1-dc)*(.75+.25*Math.sin(i*.9)*Math.cos(j*.8))+6*Math.sin(i*.6+1)*Math.cos(j*.5)+rnd()*7)),isS=i===N/2&&j===N/2; // taller downtown core, lower outskirts
+  const ht=HT[i][j],isS=i===N/2&&j===N/2; // taller downtown core, lower outskirts
   add(x,0,z,w,ht,d,(i+j)%2?white:grey,'roof');bl[i][j]={x,z,w,d,ht};
-  if(isS)continue;
+  if(isS){add(x,ht,z-5,2.5,1.1,2,redM,'crate',1);add(x+8,ht,z-6,3,1,2.4,springM,'spring',1);add(x-9,ht,z-6,1,5,12,redM,'wall',1);add(x+2,ht,z-12,8,7,1.2,white,'roof',1);continue} // training roof: vault, springboard, wall-run, wall-climb
   if(rnd()<.3){const dir=rnd()<.5?[1,0]:[0,1];ramp(x-dir[0]*12,z-dir[1]*12,24,6,ht,ht+6,dir[0],dir[1],white)}
   else{const q=rnd();
     if(q<.5)add(x+(rnd()-.5)*w*.5,ht,z+(rnd()-.5)*d*.5,2.5,1.1,2,redM,'crate');
@@ -177,7 +185,8 @@ for(let i=0;i<N;i++){bl[i]=[];for(let j=0;j<N;j++){
 for(let i=0;i<N;i++)for(let j=0;j<N;j++){
   const A=bl[i][j];
   if(i<N-1){const B=bl[i+1][j],gx=(B.x-B.w/2)-(A.x+A.w/2);
-    if(gx>1&&gx<14&&rnd()<.3){const top=Math.min(A.ht,B.ht);add((A.x+A.w/2+B.x-B.w/2)/2,top-.5,A.z,gx+1,.5,3.5,white,'roof')}} // skybridge
+    if(gx>9||(gx>2&&rnd()<.25)){const top=Math.min(A.ht,B.ht);add((A.x+A.w/2+B.x-B.w/2)/2,top-.5,A.z,gx+1,.5,gx>9?6:3.5,white,'roof')}
+    if(j<N-1){const B2=bl[i][j+1],gz=(B2.z-B2.d/2)-(A.z+A.d/2);if(gz>9||(gz>2&&rnd()<.25)){const top2=Math.min(A.ht,B2.ht);add(A.x,top2-.5,(A.z+A.d/2+B2.z-B2.d/2)/2,gz>9?6:3.5,.5,gz+1,white,'roof')}}} // skybridges: always across avenues, plus extra routes
   if(i<N-2&&rnd()<.22)zipTry(A,bl[i+2][j],bl[i+1][j]);
   if(j<N-2&&rnd()<.22)zipTry(A,bl[i][j+2],bl[i][j+1]);
 }
@@ -200,11 +209,12 @@ for(let k=0;k<10;k++){
   m.position.set(pts[0].x,pts[0].y+20,pts[0].z);S.add(m);
 }
 const target=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,60,16,1,true),new THREE.MeshBasicMaterial({color:0x2aa8ff,transparent:true,opacity:.6,side:THREE.DoubleSide}));target.visible=false;S.add(target); // blue = checkpoint
+const WE=N*BP/2+40;add(0,0,-WE,2*WE+20,260,10,white,'roof',1);add(0,0,WE,2*WE+20,260,10,white,'roof',1);add(-WE,0,0,10,260,2*WE,white,'roof',1);add(WE,0,0,10,260,2*WE,white,'roof',1); // city limits
 flushBatches();
 // ---------- player ----------
 const r=.35,G=22,start=new THREE.Vector3(startB.x,startB.ht+.02,startB.z+startB.d*.38),p=start.clone(),v=new THREE.Vector3(),respawn=start.clone();
 let yaw=0,pitch=0,h=1.8,ground=false,coyote=0,mom=0,slideT=0,rollT=0,wallT=1.6,climbT=1,wcd=0,roll=0,wallrun=false,wasWall=false,climbing=false,
-  started=false,t0=0,done=false,fov=75,bob=0,stepD=0,turnRem=0,cpIdx=-1,shake=0,toastT=0,hp=100,hurtT=0,hurtCool=0,stagger=0,rollBuf=0,vaultBuf=0,hang=null,vault=null,trial=null,trialCool=0,zip=null,zipCool=0,curRamp=null,streetT=0,climbTurn=false,jumpT=0,landT=0,hopT=0,hopSide=0,safeT=0;const cn={nx:0,nz:0},safe=start.clone();
+  started=false,t0=0,done=false,fov=75,bob=0,stepD=0,turnRem=0,cpIdx=-1,shake=0,toastT=0,hp=100,hurtT=0,hurtCool=0,stagger=0,rollBuf=0,vaultBuf=0,hang=null,vault=null,trial=null,trialCool=0,zip=null,zipCool=0,curRamp=null,streetT=0,climbTurn=false,jumpT=0,landT=0,hopT=0,hopSide=0,safeT=0,slideMin=0,jumpLead=1,jumpBuf=0,nearTrial=null,eyeH=1.65;const cn={nx:0,nz:0},safe=start.clone(),STR=1.2;
 const keys={},edge={};
 const ovp=(x,y,z,hh,b,e=0)=>x+r+e>b.min.x&&x-r-e<b.max.x&&y+hh>b.min.y&&y<b.max.y&&z+r+e>b.min.z&&z-r-e<b.max.z;
 const hit=(x,y,z,hh)=>boxes.some(b=>ovp(x,y,z,hh,b));
@@ -226,7 +236,7 @@ function zipStep(dt){
   p.set(g.a.x+g.d.x*u,g.a.y+g.d.y*u-2.1,g.a.z+g.d.z*u);v.set(g.d.x*z.sp,0,g.d.z*z.sp);
   if(edge.jump||z.u>=g.len){v.set(g.d.x*z.sp*.85,edge.jump?7:0,g.d.z*z.sp*.85);zip=null;zipCool=.5;wcd=.2;climbT=1;if(edge.jump)tone(300,.15,'triangle',.12,500)}
 }
-function startVault(b,nx,nz,spd){
+function startVault(b,nx,nz,spd){tut.done.vault=true;
   const depth=nx!==0?b.max.x-b.min.x:b.max.z-b.min.z,wantSpring=b.tag==='spring'&&keys[set.binds.jump];
   let tx=p.x-nx*(r+.8),tz=p.z-nz*(r+.8),ty=b.max.y+.02,over=false;
   if(!wantSpring&&depth<=3.4){ // hop clean over thin obstacles
@@ -241,7 +251,7 @@ function vaultStep(dt){
   p.y=g.over?g.sy+(g.b.max.y+.2-g.sy)*Math.sin(Math.PI*k):g.sy+(g.ty-g.sy)*(1-(1-k)*(1-k))+Math.sin(Math.PI*k)*.2;
   if(k>=1){
     vault=null;const sc=Math.max(1,6.5/(Math.hypot(g.vx,g.vz)||1));v.set(g.vx*sc*.97,0,g.vz*sc*.97);
-    if(g.b.tag==='spring'&&keys[set.binds.jump]){v.y=20;ground=false;wallT=1.6;climbT=1;tone(200,.25,'sine',.2,700);puff(1500,.15,.2)} // springboard: hold jump while vaulting on
+    if(g.b.tag==='spring'&&keys[set.binds.jump]){v.y=20;tut.done.spring=true;ground=false;wallT=1.6;climbT=1;tone(200,.25,'sine',.2,700);puff(1500,.15,.2)} // springboard: hold jump while vaulting on
     else if(!g.over)p.y=g.ty;
   }
 }
@@ -284,10 +294,10 @@ function step(dt){
   const maxS=6.5+mom;wcd-=dt;
   if(ground){wallT=1.6;climbT=1;coyote=.1}else coyote-=dt;
   // slide (needs a fresh key press, no auto-repeat)
-  if(edge.slide&&ground&&slideT<=0&&(hs0>5.5||curRamp)){slideT=.9;puff(3000,.25,.2)}
-  if(slideT>0&&curRamp&&H('slide'))slideT=Math.max(slideT,.45);
+  if(edge.slide&&ground&&slideT<=0&&(hs0>5.5||curRamp)){slideT=1;slideMin=.3;const kk=hs0>0?Math.min(1.12,15/hs0):1;v.x*=kk;v.z*=kk;puff(3000,.25,.2);tut.done.slide=true}
+  if(slideT>0){slideMin-=dt;const ss=Math.hypot(v.x,v.z);if(ground&&(ss>3.3||curRamp)&&(H('slide')||slideMin>0||(curRamp&&ss>2)))slideT=Math.max(slideT,.3);else if(slideMin<=0)slideT=Math.min(slideT,.04)} // slide lasts as long as momentum lasts
   if(edge.slide&&!ground)rollBuf=.4; // press slide just before landing to roll
-  if(slideT>0&&!H('slide')&&slideT<.7)slideT=Math.min(slideT,.12); // release ends slide early
+  // (slides now end by momentum, not a fixed timer)
   if(slideT>0)slideT-=dt;if(rollT>0)rollT-=dt;
   if(slideT>0||rollT>0)h=1.0;else h=Math.min(1.8,h+dt*6);
   const wasClimb=climbing&&climbT>0;climbing=false;if(!wasClimb)climbTurn=false;
@@ -314,14 +324,15 @@ function step(dt){
     if(edge.jump||(climbTurn&&turnRem<=0)){v.x=cn.nx*6.5;v.z=cn.nz*6.5;v.y=9;edge.jump=false;climbT=0;wcd=.3;climbTurn=false;hopT=1;hopSide=0;tone(300,.15,'triangle',.12,500)} // quick-turn mid-climb: turn around, then kick off facing out
   }else{
     if(slideT>0&&curRamp){const a2=Math.min(40,70*Math.abs(curRamp.s)),s2=Math.hypot(v.x,v.z);v.x-=curRamp.dx*a2*dt;v.z-=curRamp.dz*a2*dt;if(s2>28){v.x*=28/s2;v.z*=28/s2}} // slopes: slide down faster and longer
-    else if(slideT>0)v.x*=Math.max(0,1-dt*1.2),v.z*=Math.max(0,1-dt*1.2);
+    else if(slideT>0){const ss=Math.hypot(v.x,v.z);if(ss>0){const ns=Math.max(0,ss-(3.2+ss*.2)*dt);v.x*=ns/ss;v.z*=ns/ss}}
     else if(!wallrun){
       const a=ground?40:(dl>0?7:1.2),k=Math.min(1,a*dt),tgt=Math.max(maxS,ground?0:hs0);
       if(dl>0){v.x+=(dx*tgt-v.x)*k;v.z+=(dz*tgt-v.z)*k}else if(ground){v.x-=v.x*k;v.z-=v.z*k}
     }
     if(!wallrun)v.y-=G*dt;
   }
-  if(edge.jump&&coyote>0){jumpT=1;v.y=9;coyote=0;ground=false;mom=Math.min(5,mom+.3);tone(180,.12,'sine',.12,320);puff(1200,.1,.1)}
+  if(edge.jump)jumpBuf=.12;jumpBuf-=dt;
+  if(jumpBuf>0&&coyote>0){jumpBuf=0;jumpT=1;jumpLead=-jumpLead;v.y=9;coyote=0;ground=false;mom=Math.min(5,mom+.3);tone(180,.12,'sine',.12,320);puff(1200,.1,.1)}
   if(edge.jump)vaultBuf=.25; // jump into obstacles to vault / grab ledges
   // collisions
   const tryMantle=(b,nx,nz)=>{
@@ -345,7 +356,7 @@ function step(dt){
   for(const b of boxes)if(ovp(p.x,p.y,p.z,h,b)){
     if(v.y<=0){
       const imp=-v.y;p.y=b.max.y;
-      if(b.tag==='spring'&&keys[set.binds.jump]){v.y=20;wallT=1.6;climbT=1;tone(200,.25,'sine',.2,700);puff(1500,.15,.2);continue}
+      if(b.tag==='spring'&&keys[set.binds.jump]){v.y=20;tut.done.spring=true;wallT=1.6;climbT=1;tone(200,.25,'sine',.2,700);puff(1500,.15,.2);continue}
       if(!was&&imp>4){landT=Math.min(1,imp/18);
         puff(600,.2,Math.min(.5,imp/30));shake=Math.min(.12,imp/150);
         let dmg=imp>14?(imp-14)*7:0;
@@ -371,9 +382,11 @@ function step(dt){
     safeT-=dt;if(safeT<=0){safeT=.35;const sx=p.x-v.x*.14,sz=p.z-v.z*.14;if(!hit(sx,p.y+.05,sz,1.8))safe.set(sx,p.y+.05,sz)}
   }
   if(p.y<-35||Math.abs(p.x)>N*BP/2+120||Math.abs(p.z)>N*BP/2+120){p.copy(respawn);v.set(0,0,0);mom=0;toast('Back to checkpoint')}
-  // time trials
-  trialCool-=dt;
-  if(!trial){if(trialCool<=0)for(const t of trials){const q=t.pts[0];if(Math.hypot(p.x-q.x,p.z-q.z)<3.2&&Math.abs(p.y-q.y)<3.5){trial={t,i:1,t0:performance.now()};respawn.copy(q);chime();toast(t.name+' - go!');break}}}
+  // time trials: stand on a green beacon and Interact
+  trialCool-=dt;nearTrial=null;
+  if(!trial){if(trialCool<=0)for(const t of trials){const q=t.pts[0];if(Math.hypot(p.x-q.x,p.z-q.z)<3.4&&Math.abs(p.y-q.y)<3.5){nearTrial=t;if(edge.interact){trial={t,i:1,t0:performance.now()};respawn.copy(q);chime();toast(t.name+' - go!')}break}}}
+  else if(edge.trialRestart){restartTrial();toast('Trial restarted')}
+  else if(edge.trialEnd){endTrial();toast('Trial ended')}
   else{
     const q=trial.t.pts[trial.i];
     if(Math.hypot(p.x-q.x,p.z-q.z)<3.4&&Math.abs(p.y-q.y)<4){
@@ -401,6 +414,8 @@ function play(){ // works with or without pointer lock (sandboxed pages and touc
     setTimeout(()=>{if(playing&&!locked&&!set.touch)toast('Pointer lock unavailable: click and drag to look')},700);
   }
 }
+function restartTrial(){if(!trial)return;trial.i=1;trial.t0=performance.now();p.copy(trial.t.pts[0]);v.set(0,0,0);mom=0;respawn.copy(trial.t.pts[0])}
+function endTrial(){if(!trial)return;trial=null;trialCool=1.5;respawn.copy(start)}
 function pause(){
   playing=false;locked=false;if(document.pointerLockElement)document.exitPointerLock();
   for(const k in keys)keys[k]=false;joy.x=joy.y=0;joyId=lookId=null;touchUI.style.display='none';menu('main');
@@ -421,14 +436,16 @@ function menu(view,msg){
     P.querySelector('#rst').onclick=()=>{set.binds={...DEF};save();menu('set')};
     P.querySelector('#bk').onclick=()=>menu('main');
   }else{
-    P.innerHTML=`<h1>ROOFTOP <span>RUNNER</span></h1><p><b>${msg||(started?'Paused':'Run the rooftops. Green beacons start time trials, blue beacons are checkpoints, and the purple beacon is the finish.')}</b></p>
+    P.innerHTML=`<h1>SKYLINE <span>//</span> RUNNER</h1><p><b>${msg||(started?'Paused':'Run the rooftops. Stand on a green beacon and press Interact to start a time trial; blue beacons are checkpoints and the purple one is the finish.')}</b></p>
     <p>${set.touch?'<b>Left side</b> drag to move · <b>right side</b> drag to look · <b>UP</b>, <b>DOWN</b> and <b>EXTRA</b> buttons':ACT.map(([a,l])=>`<b>${lbl(set.binds[a])}</b> ${l}`).join(' · ')}</p>
     <p>Hold forward to build momentum. Run alongside <b style="color:var(--red)">red walls</b> at a shallow angle to wall-run (gravity still pulls you down). Face a tall wall head-on mid-jump to wall-climb. Jump into crates to vault smoothly; hold jump while vaulting onto an <b style="color:#ff8a1f">orange springboard</b> to launch. Tap jump at a ledge to grab it (climbing grabs automatically). Press jump near a zipline wire (yellow posts) to ride it, and slide down slopes to build speed. Towers have interiors: use the orange pads under each floor hole. Drops over ~5 m hurt: tap <b>slide</b> just before landing to roll. R returns you to the street and cancels a trial.</p>
-    <button id=pl>${started&&!done?'Resume':'Run'}</button><button id=st class=alt>Settings</button><button id=vs class=alt>Runner vision: ${set.vision?'on':'off'}</button><button id=rt class=alt>Return to start roof</button>${started?'<button id=rs class=alt>Restart</button>':''}
+    <button id=pl>${started&&!done?'Resume':'Run'}</button><button id=st class=alt>Settings</button><button id=tu class=alt>Tutorial: ${tut.on?'on':'off'}</button>${trial?'<button id=tr class=alt>Restart trial</button><button id=te class=alt>End trial</button>':''}<button id=vs class=alt>Runner vision: ${set.vision?'on':'off'}</button><button id=rt class=alt>Return to start roof</button>${started?'<button id=rs class=alt>Restart</button>':''}
     <h3>Time trials</h3><ol>${trials.map(t=>'<li>'+t.name+' · gold '+t.gold.toFixed(0)+'s · best '+(tb[t.name]?tb[t.name].toFixed(1)+'s':'--')+'</li>').join('')}</ol>`;
     P.querySelector('#pl').onclick=play;P.querySelector('#st').onclick=()=>menu('set');
     P.querySelector('#vs').onclick=()=>{set.vision=!set.vision;setVision();save();menu('main')};
     P.querySelector('#rt').onclick=()=>{p.copy(start);respawn.copy(start);safe.copy(start);v.set(0,0,0);trial=null;menu('main')};
+    P.querySelector('#tu').onclick=()=>{tut.on=!tut.on;if(tut.on)tut.done={};else{try{localStorage.setItem('sr_tut','1')}catch(e){}}menu('main')};
+    const tr=P.querySelector('#tr'),te=P.querySelector('#te');if(tr)tr.onclick=()=>{restartTrial();play()};if(te)te.onclick=()=>{endTrial();menu('main')};
     const rs=P.querySelector('#rs');if(rs)rs.onclick=()=>{reset();play()};
   }
 }
@@ -490,14 +507,14 @@ const FS=new THREE.Scene(),Cfp=new THREE.PerspectiveCamera(75,1,.02,10);
 FS.add(new THREE.HemisphereLight(0xffffff,0x8a97a0,1.05));const fl=new THREE.DirectionalLight(0xffffff,.5);fl.position.set(.3,1,.6);FS.add(fl);
 const fm=c=>new THREE.MeshLambertMaterial({color:c}),mJa=fm(0x2b3238),mTr=fm(0xe5242b),mSk=fm(0xd8a283),mGl=fm(0x1f2428),mPa=fm(0x3a434a),mSh=fm(0xeeeeee),mSo=fm(0x15191c);
 function bx(g,w,hh,d,x,y,z,m){const b=new THREE.Mesh(new THREE.BoxGeometry(w,hh,d),m);b.position.set(x,y,z);g.add(b);return b}
-function finger(par,x,z,len,w){const g=new THREE.Group(),g2=new THREE.Group();g.position.set(x,0,z);bx(g,w,w,len,0,0,-len/2,mSk);g2.position.z=-len;bx(g2,w*.9,w*.9,len*.85,0,0,-len*.425,mSk);g.add(g2);par.add(g);return[g,g2]}
-function mkArm(sx){ // shoulder > elbow > hand with 4 fingers + thumb
-  const sh=new THREE.Group(),el=new THREE.Group(),hd=new THREE.Group();sh.position.set(sx*.27,-.27,-.08);
+function finger(par,x,z,len,w){const g=new THREE.Group(),g2=new THREE.Group();g.position.set(x,0,z);bx(g,w,w,len,0,0,-len/2,mGl);g2.position.z=-len;bx(g2,w*.92,w*.92,len*.85,0,0,-len*.425,mSk);g.add(g2);par.add(g);return[g,g2]}
+function mkArm(sx){ // sleeve runs straight into a glove cuff: no bare skin between forearm and hand
+  const sh=new THREE.Group(),el=new THREE.Group(),hd=new THREE.Group();sh.position.set(sx*.33,-.27,-.08);
   bx(sh,.115,.115,.3,0,0,-.15,mJa);el.position.z=-.3;sh.add(el);
-  bx(el,.095,.095,.17,0,0,-.085,mJa);bx(el,.1,.1,.03,0,0,-.185,mTr);bx(el,.085,.085,.1,0,0,-.24,mSk);
-  hd.position.z=-.29;el.add(hd);bx(hd,.09,.035,.1,0,0,-.05,mGl);
-  const fs=[-.033,-.011,.011,.033].map((fx,i)=>finger(hd,fx,-.1,i===1||i===2?.048:.042,.019));
-  const th=new THREE.Group();th.position.set(-sx*.05,0,-.03);bx(th,.02,.02,.045,0,0,-.022,mSk);hd.add(th);
+  bx(el,.1,.1,.24,0,0,-.12,mJa);bx(el,.105,.105,.035,0,0,-.255,mTr);bx(el,.098,.098,.05,0,0,-.3,mGl);
+  hd.position.z=-.32;el.add(hd);bx(hd,.092,.04,.1,0,0,-.04,mGl);
+  const fs=[-.033,-.011,.011,.033].map((fx,i)=>finger(hd,fx,-.09,i===1||i===2?.05:.044,.02));
+  const th=new THREE.Group();th.position.set(-sx*.05,0,-.03);bx(th,.022,.022,.045,0,0,-.022,mGl);hd.add(th);
   return{sh,el,hd,fs,th};
 }
 const bodyRoot=new THREE.Group(),tor=new THREE.Group();FS.add(bodyRoot);bodyRoot.add(tor);
@@ -508,23 +525,26 @@ function mkLeg(sx){
   ft.position.y=-.42;kn.add(ft);bx(ft,.15,.09,.3,0,-.03,-.08,mSh);bx(ft,.152,.03,.31,0,-.08,-.08,mSo);bodyRoot.add(hip);return{hip,kn};
 }
 const aL=mkArm(-1),aR=mkArm(1),lL=mkLeg(-1),lR=mkLeg(1);FS.add(aL.sh,aR.sh);
-const AJ=['x','y','z','e','f','hx','hy','hz','g','p'],JK=[...AJ.map(k=>k+'L'),...AJ.map(k=>k+'R'),'hpL','knL','hpR','knR','lean','by'],J={};JK.forEach(k=>J[k]=0);
+const AJ=['x','y','z','e','f','hx','hy','hz','g','p'],JK=[...AJ.map(k=>k+'L'),...AJ.map(k=>k+'R'),'hpL','knL','hpR','knR','lean','by','px','py'],J={};JK.forEach(k=>J[k]=0);J.px=.33;J.py=-.27;
 let lyaw=0,lpitch=0,swX=0,swY=0;
 function animFP(dt,sp,now){
   jumpT=Math.max(0,jumpT-dt*2.8);landT=Math.max(0,landT-dt*4);hopT=Math.max(0,hopT-dt*3);
   const show=!!set.body;aL.sh.visible=aR.sh.visible=show;
-  bodyRoot.visible=show&&rollT<=0&&(pitch<-.3||slideT>0||!!vault||!!zip||!!hang||hopT>0||(climbing&&!ground));
+  bodyRoot.visible=show&&rollT<=0&&(pitch<-.3||slideT>0||!!vault||!!zip||!!hang||hopT>0||wallrun||(climbing&&!ground));
   if(!show)return;
-  const run=Math.min(1,sp/9),fast=Math.max(0,Math.min(1,(sp-9)/4)),ph=bob*1.6,sw=Math.sin(ph)*run,cs=Math.cos(ph)*run,br=Math.sin(now*.0016);
+  const run=Math.min(1,sp/9),fast=Math.max(0,Math.min(1,(sp-9)/4)),ph=bob*STR,sw=Math.sin(ph)*run,cs=Math.cos(ph)*run,br=Math.sin(now*.0016);
   const T={};JK.forEach(k=>T[k]=0);
   const A=(s2,o)=>{const sg=s2==='L'?-1:1;for(const k in o){const q=o[k];if(k==='out')T['y'+s2]=-sg*q;else if(k==='pi')T['hz'+s2]=-sg*q;else if(k==='hout')T['hy'+s2]=-sg*q;else T[k+s2]=q}};
   const both=o=>{A('L',o);A('R',o)};
   // run / idle
-  for(const s2 of['L','R']){const m=s2==='L'?1:-1;A(s2,{x:-.62+m*sw*(.55+.2*fast)+br*.015,out:-.1,e:1.15+fast*.25-m*cs*.25,pi:.9,hx:-.1,g:.4,p:.05})}
-  T.hpL=sw*.95;T.hpR=-sw*.95;T.knL=-(.12+Math.max(0,-cs)*.9);T.knR=-(.12+Math.max(0,cs)*.9);T.lean=fast*.1;
+  // run cycle: contralateral (left arm swings with the RIGHT leg), and each side gets its own phase lag, amplitude and grip so it never looks mirrored
+  const aPh={L:ph,R:ph+Math.PI+.14},lPh={L:ph+Math.PI-.08,R:ph+.06},amp={L:1,R:.9};
+  for(const s2 of['L','R']){const sa=Math.sin(aPh[s2])*run*amp[s2],ca=Math.cos(aPh[s2])*run,rr=s2==='R';
+    A(s2,{x:-.62-.5*run+sa*(.35+.15*fast)+br*.015,out:.16+.2*run+(rr?.03:0),e:1.15+.2*run+fast*.15+(rr?.1:0)-ca*.2,pi:.7,hx:rr?-.16:-.08,g:rr?.5:.4,p:.05})}
+  T.hpL=Math.sin(lPh.L)*run*.95;T.hpR=Math.sin(lPh.R)*run*.88;T.knL=-(.12+Math.max(0,Math.cos(lPh.L))*run*.9);T.knR=-(.14+Math.max(0,Math.cos(lPh.R))*run*.8);T.lean=fast*.1;
   const air=!ground&&!hang&&!zip&&!vault&&!wallrun&&!climbing&&rollT<=0;
   if(air){
-    const lead=Math.sin(ph)>=0;
+    const lead=jumpLead>0; // alternates every jump
     if(v.y>14){both({x:1.3,out:.35,e:.3,g:0,p:1,pi:.3});T.hpL=T.hpR=.35;T.knL=T.knR=-.9}               // springboard launch
     else if(v.y>1||jumpT>.2){A('L',{x:lead?.55:-.9,out:.2,e:1,g:.3});A('R',{x:lead?-.9:.55,out:.2,e:1,g:.3});   // jump: opposite arm and leg drive
       T.hpL=lead?1.05:-.45;T.hpR=lead?-.45:1.05;T.knL=lead?-1.4:-.8;T.knR=lead?-.8:-1.4}
@@ -533,7 +553,7 @@ function animFP(dt,sp,now){
   if(landT>0&&ground&&slideT<=0){const l=landT;both({x:-.62-l*.5,e:1.15+l*.55});T.hpL=T.hpR=.5*l;T.knL=T.knR=-.9*l;T.by=.22*l}  // landing absorb
   if(turnRem>0){const sv=Math.sin((1-turnRem/Math.PI)*Math.PI);T.yL-=sv*.7;T.yR-=sv*.7;T.eL+=sv*.3;T.eR+=sv*.3}               // quick turn: arms lag the spin
   if(stagger>0){const s3=Math.sin(now*.03)*.15;both({x:-.2+s3,out:.6,e:.9,g:.1,p:1})}
-  if(slideT>0){both({x:-.85,out:.5,e:.25,hx:-.2,g:.2,p:.4});T.hpL=T.hpR=1.35;T.knL=-.25;T.knR=-.1;T.lean=-.35;T.by=.38}
+  if(slideT>0){A('L',{x:-1.15,out:.55,e:.2,hx:-.3,g:.15,p:.6,pi:.3});A('R',{x:-.55+Math.sin(now*.012)*.03,out:.15,e:.9,hx:-.2,g:.5,p:.2,pi:.6});T.hpL=1.4;T.hpR=1.3;T.knL=-.2;T.knR=-.55;T.lean=-.5;T.by=.42} // slide: trailing hand near the ground, lead arm across the body, legs out front
   if(wallrun){const wl=roll<0,s2=wl?'L':'R',o=wl?'R':'L',m=o==='L'?1:-1;
     A(s2,{x:-.05+Math.sin(now*.04)*.03,out:1.3,e:.18,pi:-1.45,g:.1,p:.9,hx:.1});                              // wall-side hand pressed flat on the wall
     A(o,{x:-.5+m*sw*.8,e:1.3,pi:.9,g:.5})}
@@ -554,7 +574,10 @@ function animFP(dt,sp,now){
       const xx=k<.6?1.5-k*.8:1.02-(k-.6)/.4*1.5,ee=k<.6?.1+1.8*Math.sin(k/.6*Math.PI/2):1.9-(k-.6)/.4*1.5;
       both({x:xx,out:.1,e:ee,g:k<.6?1:Math.max(0,1-(k-.6)*5),hx:k>.6?-.7:.5,pi:.1});
       T.hpL=.6*Math.sin(k*Math.PI);T.knL=-1.3*Math.sin(k*Math.PI);T.hpR=.2;T.knR=-.4*Math.sin(k*Math.PI)}}
-  if(rollT>0){const pp=1-rollT/.5;both({x:-.9+(pp>.5?.5:0)*(pp-.5)*2,out:-.3,e:1.7,g:1,pi:1.1,hx:-.3,p:0})}     // roll: forearms tucked, fists in
+  if(rollT>0){const pp=1-rollT/.5;if(pp<.3)both({x:-.5,out:.25,e:.5,g:.1,p:.8,hx:-.2});else if(pp<.75){both({x:-.95,out:-.1,e:1.85,g:1,pi:1.1,hx:-.35,p:0});T.lean=.4}else both({x:-.3,out:.4,e:.8,g:.3,p:.6,pi:.4})} // roll: reach, tuck, recover
+  const special=air||slideT>0||wallrun||(climbing&&!ground)||hopT>0||!!vault||!!zip||!!hang||rollT>0;
+  T.px=special?.36:.36+.12*run;T.py=special?-.27:-.27-.16*run; // running: shoulders wide and low so the arms stay out of the way, hands only peek into the bottom corners
+  T.xL+=Math.sin(now*.0013)*.02;T.xR+=Math.sin(now*.0017+1)*.02; // tiny independent drift per arm
   const k=Math.min(1,dt*((hang||vault||rollT>0||hopT>0)?22:14));for(const n of JK)J[n]+=(T[n]-J[n])*k;
   const dy=(yaw-lyaw)/Math.max(dt,.001),dp=(pitch-lpitch)/Math.max(dt,.001);lyaw=yaw;lpitch=pitch;
   swY+=(Math.max(-.12,Math.min(.12,dy*.012))-swY)*Math.min(1,dt*10);swX+=(Math.max(-.1,Math.min(.1,-dp*.01))-swX)*Math.min(1,dt*10);
@@ -562,10 +585,44 @@ function animFP(dt,sp,now){
     w.sh.rotation.set(J['x'+s2]+swX,J['y'+s2]+swY,J['z'+s2]);w.el.rotation.set(J['e'+s2],0,J['f'+s2]);w.hd.rotation.set(J['hx'+s2],J['hy'+s2],J['hz'+s2]);
     const g=J['g'+s2],spr=J['p'+s2];w.fs.forEach(([a,b],i)=>{const m=[1,1.08,1.16,1.24][i];a.rotation.x=-g*1.15*m;b.rotation.x=-g*1.25*m;a.rotation.y=(i-1.5)*spr*.16});
     w.th.rotation.set(-.35*g,-sg*(.55-.4*g),0);
-    w.sh.position.set(sg*.27+sg*Math.cos(ph)*.01*run,-.27-Math.abs(Math.sin(ph))*.016*run-J.by*.6,-.08);
+    w.sh.position.set(sg*J.px+sg*Math.cos(ph)*.018*run,J.py-Math.abs(Math.sin(ph))*.03*run-J.by*.6,-.08);
   }
   lL.hip.rotation.x=J.hpL;lL.kn.rotation.x=J.knL;lR.hip.rotation.x=J.hpR;lR.kn.rotation.x=J.knR;
-  bodyRoot.rotation.x=-Math.max(-1.45,Math.min(1.45,pitch));bodyRoot.position.y=-J.by;tor.rotation.x=J.lean;
+  const lk=wallrun||(climbing&&!ground);bodyRoot.rotation.x=lk?-.45:-Math.max(-1.45,Math.min(1.45,pitch));bodyRoot.position.y=-J.by;tor.rotation.x=J.lean;
+}
+// ---------- tutorial + interact prompt ----------
+const tutEl=document.getElementById('tut'),promptEl=document.getElementById('prompt');
+const K=a=>set.touch?(({jump:'UP',slide:'DOWN',turn:'EXTRA',interact:'INTERACT'})[a]||lbl(set.binds[a])):lbl(set.binds[a]);
+const TS=[
+ ['move',()=>set.touch?'Drag on the left side of the screen to move':'Move with '+['fwd','left','back','right'].map(a=>lbl(set.binds[a])).join(' ')],
+ ['run',()=>'Hold forward to build momentum (reach 10 m/s)'],
+ ['jump',()=>'Jump: '+K('jump')],
+ ['vault',()=>'Vault: run at the red crate and press '+K('jump')],
+ ['spring',()=>'Springboard: hold '+K('jump')+' while vaulting onto the orange pad'],
+ ['slide',()=>'Slide: sprint, then press '+K('slide')+' (you keep your momentum)'],
+ ['wallrun',()=>'Wall-run: jump alongside the red wall at a shallow angle, holding forward'],
+ ['hop',()=>'Wall hop: press '+K('jump')+' while wall-running'],
+ ['climb',()=>'Wall-climb: jump straight at the white wall'],
+ ['ledge',()=>'Ledge grab: climb to the top of a wall, or tap '+K('jump')+' next to a ledge'],
+ ['turn',()=>'Quick turn: '+K('turn')+' (works mid wall-run and mid wall-climb)'],
+ ['roll',()=>'Roll: tap '+K('slide')+' just before landing a big drop'],
+ ['zip',()=>'Zipline: jump into a cable; '+K('jump')+' lets go'],
+ ['trial',()=>'Time trial: stand on a green beacon and press '+K('interact')]
+];
+let tutKey='';
+function tutTick(sp){
+  const D=tut.done;
+  if(sp>2)D.move=true;if(sp>10)D.run=true;if(jumpT>.95)D.jump=true;if(hopT>.95)D.hop=true;
+  if(wallrun)D.wallrun=true;if(climbing&&!ground)D.climb=true;if(hang)D.ledge=true;if(turnRem>0)D.turn=true;if(rollT>0)D.roll=true;if(zip)D.zip=true;if(trial)D.trial=true;
+  if(!tut.on||!playing){tutEl.style.display='none';tutKey='';return}
+  const i=TS.findIndex(t=>!D[t[0]]);
+  if(i<0){tut.on=false;try{localStorage.setItem('sr_tut','1')}catch(e){}toast('Tutorial complete!');tutEl.style.display='none';return}
+  const n=TS.filter(t=>D[t[0]]).length,txt=TS[i][1](),key=n+txt;
+  if(key!==tutKey){tutKey=key;tutEl.innerHTML='<small>TUTORIAL '+(n+1)+'/'+TS.length+'</small><br><b>'+txt+'</b>'}
+  tutEl.style.display='block';
+}
+function promptTick(){
+  if(playing&&nearTrial&&!trial){promptEl.textContent=(set.touch?'Tap INTERACT':'Press '+lbl(set.binds.interact))+' to start '+nearTrial.name;promptEl.style.display='block'}else promptEl.style.display='none';
 }
 // ---------- loop ----------
 const hud=document.getElementById('hud'),vig=document.getElementById('vig');let last=performance.now();
@@ -577,19 +634,22 @@ function loop(now){
   if(toastT>0){toastT-=dt;if(toastT<=0)document.getElementById('toast').style.opacity=0}
   const sp=Math.hypot(v.x,v.z);
   fov+=((set.fov+Math.min(22,sp*1.2)+(slideT>0?4:0))-fov)*Math.min(1,dt*5);C.fov=fov;C.updateProjectionMatrix();
-  bob+=sp*dt*(ground?1:0);shake*=1-Math.min(1,dt*9);
-  const bb=ground&&slideT<=0?Math.sin(bob*1.6)*.04*Math.min(1,sp/8)*set.bob:0;
-  const rollAng=rollT>0?Math.PI*2*(1-rollT/.5):0;
-  C.position.set(p.x,p.y+h-.15+bb-shake,p.z);
-  C.rotation.order='YXZ';C.rotation.set(pitch-rollAng-(vault?Math.sin(Math.PI*vault.t/vault.dur)*.1:0),yaw,roll+(slideT>0?.03:0)+(vault?Math.sin(Math.PI*vault.t/vault.dur)*.05:0));
+  bob+=sp*dt*((ground||wallrun)?1:0);shake*=1-Math.min(1,dt*9);
+  const run2=Math.min(1,sp/9),ph2=bob*STR,stepOn=(ground||wallrun)&&slideT<=0&&rollT<=0;
+  const bb=stepOn?-Math.abs(Math.sin(ph2))*.065*run2*set.bob:0,bsx=stepOn?Math.sin(ph2)*.014*run2*set.bob:0; // dip on every footfall, sway side to side
+  const eyeT=rollT>0?.7:slideT>0?.82:h-.15;eyeH+=(eyeT-eyeH)*Math.min(1,dt*(slideT>0||rollT>0?14:9));
+  const pr=rollT>0?1-rollT/.5:0,rollAng=rollT>0?Math.PI*2*(pr<.5?2*pr*pr:1-2*(1-pr)*(1-pr)):0;
+  C.position.set(p.x,p.y+eyeH+bb-shake,p.z);
+  C.rotation.order='YXZ';C.rotation.set(pitch-rollAng-(vault?Math.sin(Math.PI*vault.t/vault.dur)*.1:0)+(slideT>0?.06:0),yaw,roll+bsx+(slideT>0?.04:0)+(vault?Math.sin(Math.PI*vault.t/vault.dur)*.05:0));
   if(trial){const q=trial.t.pts[trial.i];target.visible=true;target.material.color.setHex(trial.i===trial.t.pts.length-1?0xc13cff:0x2aa8ff);target.position.set(q.x,q.y+30,q.z)}else target.visible=false;
   vig.style.opacity=Math.max(0,Math.min(.9,(sp-8)/6));
   hurtT=Math.max(0,hurtT-dt);document.getElementById('hurt').style.opacity=hurtT;
   if(AC){const n=AC.currentTime;
-    windG.gain.setTargetAtTime(Math.min(.35,sp/45)*(ground?.6:1),n,.1);
+    windG.gain.setTargetAtTime(Math.min(.08,sp/200)*(ground?.55:1),n,.1);
     slideG.gain.setTargetAtTime(slideT>0&&live?.14:0,n,.05);
     wallG.gain.setTargetAtTime(wallrun&&live?.2:0,n,.05)}
   hud.innerHTML=(trial?'TRIAL '+trial.t.name+' · '+((now-trial.t0)/1000).toFixed(1)+'s · '+(trial.i-1)+'/'+(trial.t.pts.length-1)+' · '+Math.round(Math.hypot(p.x-trial.t.pts[trial.i].x,p.z-trial.t.pts[trial.i].z))+'m<br>':'')+sp.toFixed(1)+' m/s · HP '+Math.round(hp)+(zip?' · ZIPLINE':hang?' · LEDGE':wallrun?' · WALL-RUN':climbing||(!ground&&keys[set.binds.fwd]&&climbT<1&&climbT>0&&v.y>4)?' · CLIMB':slideT>0?' · SLIDE':rollT>0?' · ROLL':'');
+  tutTick(sp);promptTick();document.body.classList.toggle('intrial',!!trial);
   animFP(dt,sp,now);
   R.render(S,C);
   if(set.body&&aL.sh.visible){R.autoClear=false;R.clearDepth();Cfp.fov=C.fov;Cfp.aspect=C.aspect;Cfp.updateProjectionMatrix();R.render(FS,Cfp);R.autoClear=true}
