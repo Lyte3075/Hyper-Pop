@@ -69,19 +69,48 @@ ol{color:#2b343a}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 // ---------- settings ----------
-const ACT=[['fwd','Forward'],['back','Back'],['left','Left'],['right','Right'],['jump','Up (jump, kick-off)'],['slide','Down (slide, roll, drop)'],['turn','Extra (quick turn)'],['vision','Runner vision'],['respawn','Respawn'],['interact','Interact (start trial)'],['trialRestart','Restart trial'],['trialEnd','End trial'],['gear','Draw / stow rope'],['rope','Fire / release rope']];
-const DEF={fwd:'KeyW',back:'KeyS',left:'KeyA',right:'KeyD',jump:'Space',slide:'ControlLeft',turn:'KeyQ',vision:'KeyV',respawn:'KeyR',interact:'KeyE',trialRestart:'KeyT',trialEnd:'KeyG',gear:'KeyF',rope:'KeyX'};
+const ACT=[['fwd','Forward'],['back','Back'],['left','Left'],['right','Right'],['jump','Up (jump, kick-off)'],['slide','Down (slide, roll, drop)'],['turn','Extra (quick turn)'],['vision','Runner vision'],['respawn','Respawn'],['interact','Interact (start trial)'],['trialRestart','Restart trial'],['trialEnd','End trial'],['tskip','Skip tutorial step'],['gear','Draw / stow rope'],['rope','Fire / release rope']];
+const DEF={fwd:'KeyW',back:'KeyS',left:'KeyA',right:'KeyD',jump:'Space',slide:'ControlLeft',turn:'KeyQ',vision:'KeyV',respawn:'KeyR',interact:'KeyE',trialRestart:'KeyT',trialEnd:'KeyG',tskip:'KeyN',gear:'KeyF',rope:'KeyX'};
 const isTouch=(typeof matchMedia==='function'&&matchMedia('(pointer:coarse)').matches)||'ontouchstart' in window;
 let set={sens:1,fov:75,vol:.7,bob:1,invY:false,vision:true,body:true,mm:true,mus:.5,cycle:true,weather:true,gear:{},touch:isTouch,binds:{...DEF}};
 try{const s=JSON.parse(localStorage.getItem('rr_set'));if(s)set={...set,...s,binds:{...DEF,...s.binds}}}catch(e){}
-if(set.gv!==3){set.gear={};set.gv=3}
+if(set.gv!==4){set.gear={};set.gv=4}
 const save=()=>{try{localStorage.setItem('rr_set',JSON.stringify(set))}catch(e){}};
 const storageOK=(()=>{try{localStorage.setItem('sr_t','1');localStorage.removeItem('sr_t');return true}catch(e){return false}})();
-const hasGear=k=>!!(set.gear&&set.gear[k]),GEARS=[['rope','Mag rope','Fire a line at blue anchors (posts, avenue pylons, spires) and swing. Draw it with F, fire with X or click.','rope'],['winch','Rope winch','Add-on: the rope reels in faster and reaches 120 m.','addon'],['gloves','Grip gloves','Wall-runs and wall-climbs last about 50% longer.','hands'],['grips','Ledge grips','Grab ledges up to 4 m above you.','hands'],['cutter','Glass cutters','Break glass at a much lower speed.','hands'],['boots','Impact boots','Falls hurt half as much.','feet'],['soles','Spring soles','Jump about 15% higher.','feet'],['shoes','Sprint shoes','About 12% more ground speed.','feet'],['knees','Slide pads','Slides glide much further.','legs'],['turner','Turn assist','Quick turn is twice as fast.','legs'],['glider','Glide pack','Hold jump while falling to slow your descent.','back'],['patch','Regen patch','Health returns about twice as fast.','back'],['band','Flow band','Your flow meter fades half as fast.','belt'],['magnet','Item magnet','Pick-ups come to you from further away.','belt']];
+const hasGear=k=>!!(set.gear&&set.gear[k]),GEARS=[
+['rope','Mag rope','MAIN GEAR. Fire at anchors, walls or (in the air) open space and swing. Draw it with the gear key, fire with X or click.','main'],
+['winch','Rope winch','Mag rope add-on: reels in faster and reaches further.','addon','rope'],
+['quick','Quick draw','Mag rope add-on: no re-fire delay and a wider aim cone.','addon','rope'],
+['sling','Slingshot','Mag rope add-on: letting go flings you much faster.','addon','rope'],
+['wingsuit','Wingsuit','MAIN GEAR. Hold jump in the air to glide and steer with the camera. Dive to gain speed, pull up to climb.','main'],
+['aero','Aero panels','Wingsuit add-on: tighter steering and a flatter glide.','addon','wingsuit'],
+['thrust','Thrusters','Wingsuit add-on: hold forward in flight to accelerate.','addon','wingsuit'],
+['stable','Stabilizer','Wingsuit add-on: you lose far less speed when pulling up.','addon','wingsuit'],
+['flare','Landing flare','Wingsuit add-on: hold slide in flight to brake and land softly.','addon','wingsuit'],
+['dash','Dash pack','MAIN GEAR. Press the gear key to burst forward where you look.','main'],
+['twin','Twin cells','Dash add-on: recharges almost twice as fast.','addon','dash'],
+['long','Long burst','Dash add-on: a longer, harder dash.','addon','dash'],
+['charge','Ground charge','Dash add-on: touching the ground refills the dash at once.','addon','dash'],
+['gloves','Grip gloves','Wall-runs and wall-climbs last about 50% longer.','hands'],
+['grips','Ledge grips','Grab ledges up to 4 m above you.','hands'],
+['cutter','Glass cutters','Break glass at a much lower speed.','hands'],
+['boots','Impact boots','Falls hurt half as much.','feet'],
+['soles','Spring soles','Jump about 15% higher.','feet'],
+['shoes','Sprint shoes','About 12% more ground speed.','feet'],
+['knees','Slide pads','Slides glide much further.','legs'],
+['turner','Turn assist','Quick turn is twice as fast.','legs'],
+['stride','Hop springs','Wall hops launch you faster.','legs'],
+['patch','Regen patch','Health returns about twice as fast.','back'],
+['armor','Impact vest','All damage is reduced by a quarter.','back'],
+['band','Flow band','Your flow meter fades half as fast.','belt'],
+['magnet','Item magnet','Pick-ups come to you from further away.','belt'],
+['cells','Pick-up cells','Medkits and flow cells give much more.','belt']];
 function toggleGear(k){
   set.gear=set.gear||{};const g=GEARS.find(x=>x[0]===k);if(!g)return;
-  if(set.gear[k]){set.gear[k]=false;if(k==='rope'){set.gear.winch=false;gearOn=false;rope=null}save();return}
-  if(g[3]==='addon'){if(!set.gear.rope){toast('The winch needs the mag rope equipped');return}set.gear[k]=true;save();return}
+  const off=key=>{set.gear[key]=false;if(key==='rope'){gearOn=false;rope=null}};
+  if(set.gear[k]){off(k);if(g[3]==='main')for(const o of GEARS)if(o[4]===k)set.gear[o[0]]=false;save();return}
+  if(g[3]==='addon'){if(!set.gear[g[4]]){toast('Equip '+GEARS.find(x=>x[0]===g[4])[1]+' first');return}set.gear[k]=true;save();return}
+  if(g[3]==='main'){for(const o of GEARS)if(o[3]==='main'&&o[0]!==k){off(o[0]);for(const a2 of GEARS)if(a2[4]===o[0])set.gear[a2[0]]=false}set.gear[k]=true;save();return}
   for(const o of GEARS)if(o[3]===g[3])set.gear[o[0]]=false;
   set.gear[k]=true;save();
 }
@@ -247,7 +276,7 @@ function addGlass(x,y,z,w,h,d){ // a pane you can smash by hitting it fast (5.5 
 function glassSound(){if(!AC)return;mNoise(AC.currentTime,.3,.35,3500,'highpass',master);puff(900,.25,.22);for(let k=0;k<8;k++)setTimeout(()=>tone(2200+Math.random()*3800,.09,'triangle',.07),k*28+Math.random()*50)}
 function shatter(b){
   const cx=b.mesh.position.x,cy=b.mesh.position.y,cz=b.mesh.position.z;
-  b.mesh.visible=false;b.min.x=b.max.x=b.min.y=b.max.y=b.min.z=b.max.z=1e9;glassN++;tut.ev.glass=true;
+  b.mesh.visible=false;b.min.x=b.max.x=b.min.y=b.max.y=b.min.z=b.max.z=1e9;glassN++;tut.ev.gap=true;
   for(let k=0;k<22;k++){const q=SH[shI++%SH.length];q.m.visible=true;q.life=1.4+Math.random()*.8;q.m.position.set(cx+(Math.random()-.5)*b.w,cy+(Math.random()-.5)*b.h,cz+(Math.random()-.5)*b.d);q.vx=v.x*.45+(Math.random()-.5)*5;q.vy=Math.random()*5-1;q.vz=v.z*.45+(Math.random()-.5)*5}
   glassSound();shake=Math.max(shake,.06);
 }
@@ -522,7 +551,7 @@ flushBatches();gridBuild();
 // ---------- player ----------
 const r=.35,G=22,cityStart=new THREE.Vector3(startB.x,startB.ht+.02,startB.z+startB.d*.38),trainStart=new THREE.Vector3(TX-80,TY+.02,TZ+62),start=(tut.on?trainStart:cityStart).clone(),p=start.clone(),v=new THREE.Vector3(),respawn=start.clone();
 let yaw=tut.on?-Math.PI/2:0,pitch=0,h=1.8,ground=false,coyote=0,mom=0,slideT=0,rollT=0,wallT=1.6,climbT=1,wcd=0,roll=0,wallrun=false,wasWall=false,climbing=false,
-  started=false,t0=0,done=false,fov=75,bob=0,stepD=0,turnRem=0,cpIdx=-1,shake=0,toastT=0,hp=100,hurtT=0,hurtCool=0,stagger=0,rollBuf=0,vaultBuf=0,hang=null,vault=null,trial=null,trialCool=0,zip=null,zipCool=0,curRamp=null,streetT=0,climbTurn=false,jumpT=0,landT=0,hopT=0,hopSide=0,safeT=0,slideMin=0,jumpLead=1,jumpBuf=0,nearTrial=null,eyeH=1.65,lad=null,ladCool=0,flow=0,glide=false,climbV=5,slideRun=0,wrRun=0,clRun=0,glassN=0,gTag='',gearOn=false,rope=null,ropeG=0,ropeCool=0,aim=null,airT=0,padT=0,padSev=0,dmgT=0,dmgDur=1,dmgSev=0,rollStill=false,cpActive=null,bagCount=0;const cn={nx:0,nz:0},safe=start.clone(),STR=1.2;
+  started=false,t0=0,done=false,fov=75,bob=0,stepD=0,turnRem=0,cpIdx=-1,shake=0,toastT=0,hp=100,hurtT=0,hurtCool=0,stagger=0,rollBuf=0,vaultBuf=0,hang=null,vault=null,trial=null,trialCool=0,zip=null,zipCool=0,curRamp=null,streetT=0,climbTurn=false,jumpT=0,landT=0,hopT=0,hopSide=0,safeT=0,slideMin=0,jumpLead=1,jumpBuf=0,nearTrial=null,eyeH=1.65,lad=null,ladCool=0,flow=0,glide=false,climbV=5,slideRun=0,wrRun=0,clRun=0,wrSeen=false,hookPt=null,hookAir=false,airHookCd=0,dashCd=0,ropeLos=0,tutIdx=-1,tutStepT=0,glassN=0,gTag='',gearOn=false,rope=null,ropeG=0,ropeCool=0,aim=null,airT=0,padT=0,padSev=0,dmgT=0,dmgDur=1,dmgSev=0,rollStill=false,cpActive=null,bagCount=0;const cn={nx:0,nz:0},safe=start.clone(),STR=1.2;
 const keys={},edge={};
 const ovp=(x,y,z,hh,b,e=0)=>x+r+e>b.min.x&&x-r-e<b.max.x&&y+hh>b.min.y&&y<b.max.y&&z+r+e>b.min.z&&z-r-e<b.max.z;
 const hit=(x,y,z,hh)=>nearBoxes(x,z).some(b=>ovp(x,y,z,hh,b));
@@ -532,9 +561,9 @@ function probeWall(e=.2){
   return null;
 }
 function slopeImpact(imp,hs){landT=Math.min(1,imp/18);puff(600,.2,Math.min(.5,imp/30));shake=Math.min(.12,imp/150);let dmg=(imp>14?(imp-14)*7:0)*(hasGear('boots')?.5:1);
-  if(rollBuf>0){rollT=.5;rollStill=hs<2.5;flow=Math.min(1,flow+.04);rollBuf=0;puff(1500,.3,.2);if(imp>24)dmg*=.5;else dmg=0}else if(dmg>0){stagger=.6;v.x*=.35;v.z*=.35;mom=0}
+  if(rollBuf>0){rollT=.5;rollStill=hs<2.5;flow=Math.min(1,flow+.064);rollBuf=0;puff(1500,.3,.2);if(imp>24)dmg*=.5;else dmg=0}else if(dmg>0){stagger=.6;v.x*=.35;v.z*=.35;mom=0}
   if(dmg>0)hurt(dmg,rollT>.45)} // falling onto a slope hurts like any other landing
-function hurt(d,rolled){hp-=d;hurtT=1;hurtCool=hasGear('patch')?1.5:3;if(!rolled){dmgSev=d/60;dmgDur=Math.min(1.5,.5+d/50);dmgT=dmgDur;stagger=Math.max(stagger,dmgDur*.9);shake=Math.max(shake,Math.min(.3,d/200))}if(hp<=0){hp=100;p.copy(respawn);v.set(0,0,0);mom=0;stagger=0;toast('Too hard a fall - back to checkpoint')}else toast('-'+Math.round(d)+' HP')}
+function hurt(d,rolled){d*=hasGear('armor')?.75:1;hp-=d;hurtT=1;hurtCool=hasGear('patch')?1.5:3;if(!rolled){dmgSev=d/60;dmgDur=Math.min(1.5,.5+d/50);dmgT=dmgDur;stagger=Math.max(stagger,dmgDur*.9);shake=Math.max(shake,Math.min(.3,d/200))}if(hp<=0){hp=100;p.copy(respawn);v.set(0,0,0);mom=0;stagger=0;toast('Too hard a fall - back to checkpoint')}else toast('-'+Math.round(d)+' HP')}
 function nearZip(){
   const hx=p.x,hy=p.y+1.9,hz=p.z;
   for(const g of zips){const wx=hx-g.a.x,wy=hy-g.a.y,wz=hz-g.a.z,t=Math.max(0,Math.min(g.len,wx*g.d.x+wy*g.d.y+wz*g.d.z));
@@ -557,9 +586,9 @@ function ladStep(dt){ // ladders: walk in and climb. pipes: jump to grab. forwar
 function zipStep(dt){
   const z=zip,g=z.g;z.sp=Math.min(24+flow*7,z.sp+9*dt);z.u+=z.sp*dt;const u=Math.min(z.u,g.len);
   p.set(g.a.x+g.d.x*u,g.a.y+g.d.y*u-2.1,g.a.z+g.d.z*u);v.set(g.d.x*z.sp,0,g.d.z*z.sp);
-  if(edge.jump||z.u>=g.len){v.set(g.d.x*z.sp*.85,edge.jump?7:0,g.d.z*z.sp*.85);if(g.finale)tut.ev.zip=true;zip=null;zipCool=.5;wcd=.2;flow=Math.min(1,flow+.048);climbT=1;if(edge.jump)tone(300,.15,'triangle',.12,500)}
+  if(edge.jump||z.u>=g.len){v.set(g.d.x*z.sp*.85,edge.jump?7:0,g.d.z*z.sp*.85);if(g.finale)tut.ev.zip=true;zip=null;zipCool=.5;wcd=.2;flow=Math.min(1,flow+.077);climbT=1;if(edge.jump)tone(300,.15,'triangle',.12,500)}
 }
-function startVault(b,nx,nz,spd){flow=Math.min(1,flow+.048);
+function startVault(b,nx,nz,spd){flow=Math.min(1,flow+.077);
   const depth=nx!==0?b.max.x-b.min.x:b.max.z-b.min.z,wantSpring=b.tag==='spring'&&keys[set.binds.jump];
   let tx=p.x-nx*(r+.8),tz=p.z-nz*(r+.8),ty=b.max.y+.02,over=false;
   if(!wantSpring&&depth<=3.4){ // hop clean over thin obstacles
@@ -574,7 +603,7 @@ function vaultStep(dt){
   p.y=g.over?g.sy+(g.b.max.y+.2-g.sy)*Math.sin(Math.PI*k):g.sy+(g.ty-g.sy)*(1-(1-k)*(1-k))+Math.sin(Math.PI*k)*.2;
   if(k>=1){
     vault=null;tut.ev.vault=true;const sc=Math.max(1,6.5/(Math.hypot(g.vx,g.vz)||1));v.set(g.vx*sc*.97,0,g.vz*sc*.97);
-    if(g.b.tag==='spring'&&keys[set.binds.jump]){v.y=20;tut.ev.spring=true;flow=Math.min(1,flow+.04);ground=false;wallT=1.6;climbT=1;tone(200,.25,'sine',.2,700);puff(1500,.15,.2)} // springboard: hold jump while vaulting on
+    if(g.b.tag==='spring'&&keys[set.binds.jump]){v.y=20;tut.ev.spring=true;flow=Math.min(1,flow+.064);ground=false;wallT=1.6;climbT=1;tone(200,.25,'sine',.2,700);puff(1500,.15,.2)} // springboard: hold jump while vaulting on
     else if(keys[set.binds.jump]){v.y=15;ground=false;wallT=1.6;climbT=1;tone(260,.15,'sine',.12,520);puff(1200,.1,.12);if(!g.over)p.y=g.ty} // hold jump through ANY vault for a smaller springboard hop
     else if(!g.over)p.y=g.ty;
   }
@@ -592,7 +621,7 @@ function hangStep(dt){
   }else{
     const k=Math.min(1,g.t/.32),yk=Math.min(1,k*1.6),xk=Math.max(0,(k-.4)/.6);
     p.y=g.sy+(g.top+.02-g.sy)*yk;p.x=g.sx-g.nx*(r+.45)*xk;p.z=g.sz-g.nz*(r+.45)*xk;
-    if(k>=1){tut.ev.ledge=true;hang=null;v.set(-g.nx*2,0,-g.nz*2);wallT=1.6;climbT=1;puff(900,.1,.14)}
+    if(k>=1){tut.ev.climb=true;hang=null;v.set(-g.nx*2,0,-g.nz*2);wallT=1.6;climbT=1;puff(900,.1,.14)}
   }
 }
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.opacity=1;toastT=2}
@@ -603,17 +632,37 @@ function step(dt){
   const gk=stagger>0?0:1,f=Math.max(-1,Math.min(1,(H('fwd')?1:0)-(H('back')?1:0)-joy.y))*gk,sd=Math.max(-1,Math.min(1,(H('right')?1:0)-(H('left')?1:0)+joy.x))*gk;
   stagger-=dt;vaultBuf-=dt;rollBuf-=dt;hurtCool-=dt;if(hurtCool<=0&&hp<100)hp=Math.min(100,hp+(hasGear('patch')?18:8)*dt);
   if(edge.vision){set.vision=!set.vision;setVision();save()}
-  if(edge.gear){if(!hasGear('rope'))toast('Mag rope is not equipped - open the inventory');else{gearOn=!gearOn;if(!gearOn)rope=null;toast(gearOn?'Mag rope drawn':'Mag rope stowed');tone(gearOn?500:300,.1,'square',.08,gearOn?900:200)}}
-  ropeCool-=dt;aim=null;slideRun=slideT>0?slideRun+dt:0;wrRun=wallrun?wrRun+dt:0;clRun=(climbing&&!ground)?clRun+dt:0;
-  if(gearOn&&!rope){
-    const cp=Math.cos(pitch),fx3=-Math.sin(yaw)*cp,fy3=Math.sin(pitch),fz3=-Math.cos(yaw)*cp,rng=hasGear('winch')?120:80,cand=[];
-    for(const a of anchors){const dx=a.x-p.x,dy=a.y-(p.y+1.5),dz=a.z-p.z;if(Math.abs(dx)>rng||Math.abs(dz)>rng||Math.abs(dy)>rng)continue;const dd=Math.hypot(dx,dy,dz);if(dd<6||dd>rng)continue;const dt2=(dx*fx3+dy*fy3+dz*fz3)/dd;if(dt2>.955)cand.push([dt2,a])}
+  if(edge.tskip&&tut.on)skipTutStep();
+  if(edge.gear){
+    if(tut.on)toast('Gear is switched off during the tutorial');
+    else if(hasGear('rope')){gearOn=!gearOn;if(!gearOn)rope=null;toast(gearOn?'Mag rope drawn':'Mag rope stowed');tone(gearOn?500:300,.1,'square',.08,gearOn?900:200)}
+    else if(hasGear('dash')){
+      if(dashCd<=0){const cp3=Math.cos(pitch),pw=hasGear('long')?19:14;v.x+=-Math.sin(yaw)*cp3*pw;v.z+=-Math.cos(yaw)*cp3*pw;v.y=Math.max(v.y,2.5);const s3=Math.hypot(v.x,v.z);if(s3>32){v.x*=32/s3;v.z*=32/s3}dashCd=hasGear('twin')?1.7:3.2;puff(2500,.15,.25);tone(240,.18,'sawtooth',.1,900);flow=Math.min(1,flow+.03);toast('Dash')}
+      else toast('Dash recharging')}
+    else if(hasGear('wingsuit'))toast('Wingsuit: hold the jump key in the air to glide');
+    else toast('No main gear equipped - open the inventory in the pause menu')}
+  ropeCool-=dt;dashCd-=dt;airHookCd-=dt;if(ground&&hasGear('charge'))dashCd=Math.min(dashCd,0);aim=null;slideRun=slideT>0?slideRun+dt:0;wrRun=wallrun?wrRun+dt:0;clRun=(climbing&&!ground)?clRun+dt:0;
+  hookPt=null;hookAir=false;
+  if(gearOn&&!rope&&!tut.on){
+    const cp=Math.cos(pitch),fx3=-Math.sin(yaw)*cp,fy3=Math.sin(pitch),fz3=-Math.cos(yaw)*cp,rng=hasGear('winch')?85:65,cone=hasGear('quick')?.93:.955,cand=[];
+    for(const a of anchors){const dx=a.x-p.x,dy=a.y-(p.y+1.5),dz=a.z-p.z;if(Math.abs(dx)>rng||Math.abs(dz)>rng||Math.abs(dy)>rng)continue;const dd=Math.hypot(dx,dy,dz);if(dd<6||dd>rng)continue;const dt2=(dx*fx3+dy*fy3+dz*fz3)/dd;if(dt2>cone)cand.push([dt2,a])}
     cand.sort((a,b)=>b[0]-a[0]);
     for(let k=0;k<Math.min(3,cand.length);k++){if(losClear(p.x,p.y+1.5,p.z,cand[k][1])){aim=cand[k][1];break}}
+    if(!aim){
+      const ex=p.x,ey=p.y+1.5,ez=p.z;let hit=null;
+      for(let d2=3;d2<=40;d2+=1.5){if(pointSolid(ex+fx3*d2,ey+fy3*d2,ez+fz3*d2)){hit=[ex+fx3*(d2-1.2),ey+fy3*(d2-1.2),ez+fz3*(d2-1.2)];break}}
+      if(hit)hookPt=hit;else if(!ground&&airHookCd<=0){hookPt=[ex+fx3*24,ey+fy3*24,ez+fz3*24];hookAir=true}
+    }
   }
-  if(edge.rope&&gearOn){if(rope){rope=null;ropeCool=.3}else if(aim&&ropeCool<=0){rope={a:aim,L:Math.hypot(aim.x-p.x,aim.y-(p.y+1.4),aim.z-p.z)};ropeG=0;slideT=rollT=0;tone(700,.08,'sawtooth',.1,1600);puff(2200,.1,.15)}}
-  if(rope&&edge.jump){rope=null;ropeCool=.3;{const sp9=Math.hypot(v.x,v.z);if(sp9>1){v.x*=1.08;v.z*=1.08}}v.y+=5;edge.jump=false;flow=Math.min(1,flow+.04)}
-  if(edge.respawn){p.copy(start);respawn.copy(start);safe.copy(start);v.set(0,0,0);trial=null;toast('Back to the start roof')}
+  if(edge.rope&&gearOn&&!tut.on){
+    if(rope){rope=null;ropeCool=.3}
+    else if(ropeCool<=0||hasGear('quick')){
+      const tg=aim||(hookPt?new THREE.Vector3(hookPt[0],hookPt[1],hookPt[2]):null);
+      if(tg){const L0=Math.hypot(tg.x-p.x,tg.y-(p.y+1.4),tg.z-p.z);rope={a:tg,L:L0,L0};ropeG=0;ropeLos=.15;slideT=rollT=0;if(hookAir)airHookCd=hasGear('quick')?.6:1.6;tone(700,.08,'sawtooth',.1,1600);puff(2200,.1,.15)}
+    }
+  }
+  if(rope&&edge.jump){rope=null;ropeCool=hasGear('quick')?.1:.7;{const sc3=hasGear('sling')?1.3:1.06,sp9=Math.hypot(v.x,v.z);if(sp9>1){v.x*=sc3;v.z*=sc3}}v.y+=hasGear('sling')?7:4;edge.jump=false;flow=Math.min(1,flow+.06)}
+  if(edge.respawn){const spx=tut.on?stagePos():null;p.copy(spx||start);respawn.copy(spx||start);safe.copy(spx||start);v.set(0,0,0);trial=null;toast('Back to the start roof')}
   if(edge.turn&&turnRem<=0){turnRem=Math.PI;puff(1500,.18,.25)}
   if(turnRem>0){const d=Math.min(turnRem,Math.PI/(hasGear('turner')?.08:.16)*dt);yaw+=d;turnRem-=d}
   if(hang){hangStep(dt);for(const k in edge)edge[k]=false;return}
@@ -626,10 +675,10 @@ function step(dt){
   let dx=fx*f+rx*sd,dz=fz*f+rz*sd;const dl=Math.hypot(dx,dz);if(dl>0){dx/=dl;dz/=dl}
   const hs0=Math.hypot(v.x,v.z);
   if(ground&&f>0)mom=Math.min(4.5,mom+dt*1);else if(ground&&dl===0)mom=Math.max(0,mom-dt*6);
-  const maxS=(6.5+mom+flow*10)*(hasGear('shoes')?1.12:1);flow=Math.max(0,flow-dt*(wallrun||slideT>0||lad||zip||vault?0:(hasGear('band')?.08:.18)));wcd-=dt; // flow decays slowly unless you keep moving with style
+  const maxS=(6.5+mom+flow*10)*(hasGear('shoes')?1.12:1);flow=Math.max(0,flow-dt*(wallrun||slideT>0||lad||zip||vault?0:(hasGear('band')?.06:.13)));wcd-=dt; // flow decays slowly unless you keep moving with style
   if(ground){wallT=1.6;climbT=1;coyote=.1}else coyote-=dt;
   // slide (needs a fresh key press, no auto-repeat)
-  if(edge.slide&&ground&&slideT<=0&&(hs0>5.5||curRamp)){slideT=1;slideMin=.3;const kk=hs0>0?Math.min(1.12+flow*.1,(15+flow*10)/hs0):1;flow=Math.min(1,flow+.024);v.x*=kk;v.z*=kk;puff(3000,.25,.2)}
+  if(edge.slide&&ground&&slideT<=0&&(hs0>5.5||curRamp)){slideT=1;slideMin=.3;const kk=hs0>0?Math.min(1.12+flow*.1,(15+flow*10)/hs0):1;flow=Math.min(1,flow+.038);v.x*=kk;v.z*=kk;puff(3000,.25,.2)}
   if(slideT>0){slideMin-=dt;const ss=Math.hypot(v.x,v.z);if(ground&&(ss>3.3||curRamp)&&(H('slide')||slideMin>0||(curRamp&&ss>2)))slideT=Math.max(slideT,.3);else if(!ground&&ss>3.3&&airT<1.4&&!wallrun)slideT=Math.max(slideT,.3);else if(slideMin<=0)slideT=Math.min(slideT,.04)} // slide lasts as long as momentum lasts
   if(edge.slide&&!ground)rollBuf=.4; // press slide just before landing to roll
   // (slides now end by momentum, not a fixed timer)
@@ -645,10 +694,10 @@ function step(dt){
       if(wasWall||(vn<.643&&vn>-.42)){ // facing angle only gates entry; once attached the camera can't detach
         wallrun=true;wallT-=dt*(hasGear('gloves')?.65:1);
         if(!wasWall){v.y=Math.max(Math.min(v.y,2.5),-2);tone(200,.12,'square',.08,120)}
-        const d=v.x*w.nx+v.z*w.nz,tx=v.x-w.nx*d,tz=v.z-w.nz*d,tl=Math.hypot(tx,tz)||1,sp=Math.max(hs0,Math.min(12+flow*10,Math.max(hs0,8)+3*(1+flow*2)*dt));flow=Math.min(1,flow+dt*.08);
+        const d=v.x*w.nx+v.z*w.nz,tx=v.x-w.nx*d,tz=v.z-w.nz*d,tl=Math.hypot(tx,tz)||1,sp=Math.max(hs0,Math.min(12+flow*10,Math.max(hs0,8)+3*(1+flow*2)*dt));flow=Math.min(1,flow+dt*.128);
         v.x=tx/tl*sp-w.nx*.6;v.z=tz/tl*sp-w.nz*.6;v.y-=5*dt;
         roll=(w.nx*rx+w.nz*rz)*-.25;
-        if(edge.jump){hopT=1;hopSide=(w.nx*rx+w.nz*rz)>0?-1:1;{const sc2=1.08+flow*.08;v.x*=sc2;v.z*=sc2}flow=Math.min(1,flow+.06);v.x+=w.nx*6;v.z+=w.nz*6;v.y=8.5;wcd=.35;edge.jump=false;wallrun=false;tone(300,.15,'triangle',.12,500)}
+        if(edge.jump){hopT=1;hopSide=(w.nx*rx+w.nz*rz)>0?-1:1;{const sc2=1.08+flow*.08+(hasGear('stride')?.1:0);v.x*=sc2;v.z*=sc2}flow=Math.min(1,flow+.096);v.x+=w.nx*6;v.z+=w.nz*6;v.y=8.5;wcd=.35;edge.jump=false;wallrun=false;tone(300,.15,'triangle',.12,500)}
       }
     }
   }
@@ -658,7 +707,7 @@ function step(dt){
     climbT-=dt*(hasGear('gloves')?.6:1);v.y=climbV;v.x=-cn.nx*1.5;v.z=-cn.nz*1.5;if(edge.turn)climbTurn=true; // attached to the wall, not to the camera
     if(edge.jump||(climbTurn&&turnRem<=0)){v.x=cn.nx*6.5;v.z=cn.nz*6.5;v.y=9;edge.jump=false;climbT=0;wcd=.3;climbTurn=false;hopT=1;hopSide=0;tone(300,.15,'triangle',.12,500)} // quick-turn mid-climb: turn around, then kick off facing out
   }else{
-    if(slideT>0&&curRamp){const a2=Math.min(26,46*Math.abs(curRamp.s)),s2=Math.hypot(v.x,v.z);v.x-=curRamp.dx*a2*dt;v.z-=curRamp.dz*a2*dt;const cp=24+flow*8;flow=Math.min(1,flow+dt*.08);if(s2>cp){v.x*=cp/s2;v.z*=cp/s2}} // slopes: slide down faster and longer
+    if(slideT>0&&curRamp){const a2=Math.min(26,46*Math.abs(curRamp.s)),s2=Math.hypot(v.x,v.z);v.x-=curRamp.dx*a2*dt;v.z-=curRamp.dz*a2*dt;const cp=24+flow*8;flow=Math.min(1,flow+dt*.128);if(s2>cp){v.x*=cp/s2;v.z*=cp/s2}} // slopes: slide down faster and longer
     else if(slideT>0){const ss=Math.hypot(v.x,v.z);if(ground&&ss>0){const ns=Math.max(0,ss-(3.2+ss*.2)*(hasGear('knees')?.55:1)*dt);v.x*=ns/ss;v.z*=ns/ss}}
     else if(!wallrun){
       const a=ground?40:(rope?1.5:(dl>0?7:1.2)),k=Math.min(1,a*dt),tgt=Math.max(maxS,ground?0:hs0);
@@ -671,23 +720,35 @@ function step(dt){
   if(edge.jump)vaultBuf=.25; // jump into obstacles to vault / grab ledges
   // collisions
   glide=false;
-  if(hasGear('glider')&&!ground&&v.y<-5&&H('jump')&&!rope&&!hang&&!zip&&!lad&&!wallrun&&!vault){v.y=-5;glide=true}
+  if(!tut.on&&hasGear('wingsuit')&&!ground&&H('jump')&&airT>.3&&(hs0>6||v.y<-4)&&!rope&&!hang&&!zip&&!lad&&!wallrun&&!vault){
+    const cp2=Math.cos(pitch),wx2=-Math.sin(yaw)*cp2,wy2=Math.sin(pitch),wz2=-Math.cos(yaw)*cp2,aero=hasGear('aero'),stab=hasGear('stable'),brake=!!keys[set.binds.slide]&&hasGear('flare');
+    let spd=Math.max(9,Math.hypot(v.x,v.y,v.z));
+    spd+=(-wy2*(stab?10:15)-(stab?1.4:2.6)+(f>0&&hasGear('thrust')?9:0)-(brake?14:0))*dt;
+    spd=Math.min(hasGear('thrust')?40:32,Math.max(8,spd));
+    const kk=Math.min(1,dt*(aero?2.8:1.8)),ty=Math.max(-22,wy2*spd*.7-(brake?1.5:aero?1.4:2.4));
+    v.x+=(wx2*spd-v.x)*kk;v.y+=(ty-v.y)*kk;v.z+=(wz2*spd-v.z)*kk;glide=true;
+  }
   if(rope){
-    ropeG=ground?ropeG+dt:0;if(ropeG>.45)rope=null;
+    ropeG=ground?ropeG+dt:0;if(ropeG>.5)rope=null;
   }
   if(rope){
     const ex=rope.a.x-p.x,ey=rope.a.y-(p.y+1.4),ez=rope.a.z-p.z,dd=Math.hypot(ex,ey,ez)||1,ux=ex/dd,uy=ey/dd,uz=ez/dd;
-    if(dd>(hasGear('winch')?140:100))rope=null;
-    else{
-      if(f>0){const reel=hasGear('winch')?30:18;v.x+=ux*reel*dt;v.y+=uy*reel*dt;v.z+=uz*reel*dt;rope.L=Math.max(5,Math.min(rope.L,dd))}
-      if(dd>rope.L){
-        const vr=v.x*ux+v.y*uy+v.z*uz;
-        if(vr<0){v.x-=vr*ux;v.y-=vr*uy;v.z-=vr*uz}
-        const c=Math.min(dd-rope.L,3);p.x+=ux*c*.6;p.y+=uy*c*.6;p.z+=uz*c*.6;
+    ropeLos-=dt;
+    if(ropeLos<=0){ropeLos=.15;if(!losClear(p.x,p.y+1.4,p.z,rope.a)){rope.snag=(rope.snag||0)+1;if(rope.snag>2)rope=null}else rope.snag=0}
+    if(rope){
+      if(dd>(hasGear('winch')?110:85))rope=null;
+      else{
+        if(f>0)rope.L=Math.max(5,rope.L-(hasGear('winch')?12:7)*dt);else if(keys[set.binds.back]&&!ground)rope.L=Math.min(rope.L0+10,rope.L+5*dt);
+        const st=dd-rope.L;
+        if(st>0){
+          const vc=v.x*ux+v.y*uy+v.z*uz,out=Math.max(0,-vc),acc=Math.min(170,75*st+9*out);
+          v.x+=ux*acc*dt;v.y+=uy*acc*dt;v.z+=uz*acc*dt;
+          if(st>3.5){const vr=v.x*ux+v.y*uy+v.z*uz;if(vr<0){v.x-=vr*ux;v.y-=vr*uy;v.z-=vr*uz}const c2=st-3.5;p.x+=ux*c2;p.y+=uy*c2;p.z+=uz*c2}
+        }
+        const sp9=Math.hypot(v.x,v.y,v.z),dr=.04+.0006*sp9;v.x*=1-dr*dt;v.y*=1-dr*dt;v.z*=1-dr*dt;
+        if(dl>0&&st>-.8){v.x+=dx*2.2*dt;v.z+=dz*2.2*dt}
+        flow=Math.min(1,flow+dt*.06);
       }
-      v.x*=1-.06*dt;v.y*=1-.03*dt;v.z*=1-.06*dt;
-      if(dl>0&&dd>=rope.L-.5){v.x+=dx*3*dt;v.z+=dz*3*dt}
-      flow=Math.min(1,flow+dt*.04);
     }
   }
   const tryMantle=(b,nx,nz)=>{
@@ -699,7 +760,7 @@ function step(dt){
       if(rise>=1&&rise<=(hasGear('grips')?4:2.8)&&(wasClimb||(fac&&vaultBuf>0))&&!hit(p.x-nx*(r+.6),b.max.y+.02,p.z-nz*(r+.6),h)){startHang(b,nx,nz);return true}
     }
     // wall-climb entry needs facing within 40 deg; once attached the camera no longer matters
-    if(!ground&&climbT>0&&rise>=1.3&&(wasClimb||(f>0&&fd>.766&&hs0>3))){if(!wasClimb){climbV=Math.max(4,Math.min(12,3+hs0*.55));climbT=Math.max(.5,Math.min(1.4,.45+hs0*.06))}climbing=true;cn.nx=nx;cn.nz=nz}
+    if(!ground&&climbT>0&&rise>=1.3&&(wasClimb||(f>0&&fd>.766&&hs0>3))){if(!wasClimb){climbV=Math.max(3.2,Math.min(7.5,2.2+hs0*.36));climbT=Math.max(.4,Math.min(.95,.4+hs0*.04))}climbing=true;cn.nx=nx;cn.nz=nz}
     return false;
   };
   const nb=nearBoxes(p.x,p.z);
@@ -713,12 +774,12 @@ function step(dt){
     if(b.tag==='glass'&&(v.y<-6||hs0>8)){shatter(b);continue}
     if(v.y<=0){
       const imp=-v.y;p.y=b.max.y;
-      if(b.tag==='spring'&&keys[set.binds.jump]){v.y=20;tut.ev.spring=true;flow=Math.min(1,flow+.04);wallT=1.6;climbT=1;tone(200,.25,'sine',.2,700);puff(1500,.15,.2);continue}
+      if(b.tag==='spring'&&keys[set.binds.jump]){v.y=20;tut.ev.spring=true;flow=Math.min(1,flow+.064);wallT=1.6;climbT=1;tone(200,.25,'sine',.2,700);puff(1500,.15,.2);continue}
       if(!was&&imp>4&&(b.tag==='pad'||b.tag==='tfloor')){padT=1;padSev=Math.min(1,imp/18);landT=0;rollBuf=0;puff(500,.4,.3);tone(120,.3,'sine',.16,55);shake=Math.min(.1,imp/200);if(b.tag==='pad')tut.ev.pad=true}
       else if(!was&&imp>4){landT=Math.min(1,imp/18);
         puff(600,.2,Math.min(.5,imp/30));shake=Math.min(.12,imp/150);
         let dmg=(imp>14?(imp-14)*7:0)*(hasGear('boots')?.5:1);
-        if(rollBuf>0){rollT=.5;rollStill=hs0<2.5;flow=Math.min(1,flow+.04);rollBuf=0;puff(1500,.3,.2);if(imp>24)dmg*=.5;else dmg=0}
+        if(rollBuf>0){rollT=.5;rollStill=hs0<2.5;flow=Math.min(1,flow+.064);rollBuf=0;puff(1500,.3,.2);if(imp>24)dmg*=.5;else dmg=0}
         else if(dmg>0){stagger=.6;v.x*=.35;v.z*=.35;mom=0}
         if(dmg>0)hurt(dmg,rollT>.45);
       }
@@ -735,12 +796,12 @@ function step(dt){
   const sp=Math.hypot(v.x,v.z);
   if(ground&&slideT<=0){stepD+=sp*dt;if(stepD>2.3){stepD=0;puff(700,.07,.16)}}
   if(ground&&p.y<4){ // touching the street sends you back up
-    p.copy(safe);v.set(0,0,0);mom=0;slideT=rollT=0;stagger=0;toast('Stay on the rooftops')
+    p.copy((tut.on&&stagePos())||safe);v.set(0,0,0);mom=0;slideT=rollT=0;stagger=0;toast('Stay on the rooftops')
   }else if(ground&&p.y>12&&slideT<=0&&!curRamp){
     safeT-=dt;if(safeT<=0){safeT=.35;const sx=p.x-v.x*.14,sz=p.z-v.z*.14;if(!hit(sx,p.y+.05,sz,1.8))safe.set(sx,p.y+.05,sz)}
   }
-  if(p.y<-35||Math.abs(p.x)>N*BP/2+120||Math.abs(p.z)>N*BP/2+120){p.copy(respawn);v.set(0,0,0);mom=0;toast('Back to checkpoint')}
-  for(const c of cpts)if(c!==cpActive&&Math.hypot(p.x-c.x,p.z-c.z)<3.2&&Math.abs(p.y-c.y)<4){cpActive=c;safe.set(c.x,c.y+.05,c.z);if(!trial)respawn.copy(safe);cpts.forEach(q=>q.mat.opacity=q===c?.85:.35);chime();toast('Checkpoint reached')}
+  if(p.y<-35||Math.abs(p.x)>N*BP/2+120||Math.abs(p.z)>N*BP/2+120){p.copy((tut.on&&stagePos())||respawn);v.set(0,0,0);mom=0;rope=null;toast('Back to checkpoint')}
+  for(const c of cpts)if(c!==cpActive&&Math.hypot(p.x-c.x,p.z-c.z)<3.2&&p.y>c.y-4&&p.y<c.y+12){cpActive=c;safe.set(c.x,c.y+.05,c.z);if(!trial)respawn.copy(safe);cpts.forEach(q=>q.mat.opacity=q===c?.85:.35);chime();toast('Checkpoint reached')}
   for(const b of bags)if(!b.got&&Math.abs(p.y+1-b.y)<2.5&&Math.hypot(p.x-b.x,p.z-b.z)<1.6){b.got=true;b.mesh.visible=false;bagCount++;saveBags();tone(900,.12,'triangle',.14,1500)}
   ladCool-=dt;
   if(!lad&&ladCool<=0&&!hang&&!vault&&!zip&&!wallrun){
@@ -753,18 +814,19 @@ function step(dt){
     }
   }
   if(ground&&gTag==='tfloor'&&tut.on&&Math.abs(p.x-TX)<TH&&Math.abs(p.z-TZ)<TH){const sg=stagePos();if(sg&&sg.y>TY+1){p.copy(sg);v.set(0,0,0);mom=0;toast('Back to the start of this stage')}}
+  if(tut.on&&!zip&&!tut.ev.zip&&(Math.abs(p.x-TX)>TH+22||Math.abs(p.z-TZ)>TH+22)){const sg=stagePos();if(sg){p.copy(sg);v.set(0,0,0);mom=0;rope=null;toast('Finish the tutorial first')}}
   if(tut.on&&ground&&!zip)for(const g of GATES)if(p.x>TX+g[0]&&p.x<TX+g[1]&&p.z>TZ+g[2]&&p.z<TZ+g[3]&&Math.abs(p.y-(TY+g[4]))<1.6&&!(tut.done[g[5]]||tut.ev[g[5]]||(g[5]==='roll'&&rollT>0))){const sg=stagePos();if(sg){p.copy(sg);v.set(0,0,0);mom=0;slideT=rollT=0;toast('Finish the current step first')}break}
   for(const it of items)if(it.t<=0&&Math.hypot(p.x-it.x,p.z-it.z)<(hasGear('magnet')?6:1.6)&&Math.abs(p.y+1-it.y)<(hasGear('magnet')?5:2.5)){
-    if(it.kind==='med'){if(hp>=100)continue;hp=Math.min(100,hp+40);toast('+40 HP')}else{flow=Math.min(1,flow+.25);toast('Flow boost')}
+    if(it.kind==='med'){if(hp>=100)continue;hp=Math.min(100,hp+(hasGear('cells')?70:40));toast('Medkit')}else{flow=Math.min(1,flow+(hasGear('cells')?.45:.25));toast('Flow boost')}
     it.t=45;it.mesh.visible=false;tone(700,.1,'triangle',.12,1100)}
   // time trials: stand on a green beacon and Interact
   trialCool-=dt;nearTrial=null;
-  if(!trial){if(trialCool<=0)for(const t of trials){const q=t.pts[0];if(Math.hypot(p.x-q.x,p.z-q.z)<3.4&&Math.abs(p.y-q.y)<3.5){nearTrial=t;if(edge.interact){trial={t,i:1,t0:performance.now()};respawn.copy(q);chime();toast(t.name+' - go!')}break}}}
+  if(!trial){if(trialCool<=0)for(const t of trials){const q=t.pts[0];if(Math.hypot(p.x-q.x,p.z-q.z)<3.4&&p.y>q.y-4&&p.y<q.y+38){nearTrial=t;if(edge.interact){trial={t,i:1,t0:performance.now()};respawn.copy(q);chime();toast(t.name+' - go!')}break}}}
   else if(edge.trialRestart){restartTrial();toast('Trial restarted')}
   else if(edge.trialEnd){endTrial();toast('Trial ended')}
   else{
     const q=trial.t.pts[trial.i];
-    if(Math.hypot(p.x-q.x,p.z-q.z)<3.4&&Math.abs(p.y-q.y)<4){
+    if(Math.hypot(p.x-q.x,p.z-q.z)<3.4&&p.y>q.y-5&&p.y<q.y+40){
       respawn.copy(q);trial.i++;chime();
       if(trial.i>=trial.t.pts.length){
         const tt=(performance.now()-trial.t0)/1000,t=trial.t,m=tt<=t.gold?'GOLD':tt<=t.gold*1.25?'SILVER':'BRONZE',nb=!tb[t.name]||tt<tb[t.name];
@@ -798,8 +860,8 @@ function pause(){
 function menu(view,msg){
   ovEl.style.display='flex';
   if(view==='inv'){
-    const CATS=[['rope','Rope'],['hands','Hands'],['feet','Feet'],['legs','Legs'],['back','Back'],['belt','Belt']];
-    P.innerHTML='<h2>Inventory</h2><p>One gear per category, or none. Add-ons (like the winch) work on top of their gear.</p>'+CATS.map(([c,cn])=>'<h3>'+cn+'</h3>'+GEARS.filter(g=>g[3]===c||(g[3]==='addon'&&c==='rope')).map(([k,n,dsc,ct])=>'<div class=gr><div><b>'+n+(ct==='addon'?' <small>(add-on)</small>':'')+'</b><br><small>'+dsc+'</small></div><button data-g="'+k+'" class="'+(hasGear(k)?'':'alt')+'">'+(hasGear(k)?'Equipped':'Equip')+'</button></div>').join('')).join('')+'<button id=ua class=alt>Unequip all</button><button id=ib>Back</button>';
+    const row=g=>'<div class=gr><div><b>'+g[1]+'</b><br><small>'+g[2]+'</small></div><button data-g="'+g[0]+'" class="'+(hasGear(g[0])?'':'alt')+'">'+(hasGear(g[0])?'Equipped':'Equip')+'</button></div>';
+    P.innerHTML='<h2>Inventory</h2><p>One main gear at a time. Add-ons only appear and work with the gear they belong to. Other gear: one per category.</p><h3>Main gear</h3>'+GEARS.filter(g=>g[3]==='main').map(g=>row(g)+(hasGear(g[0])?GEARS.filter(a2=>a2[4]===g[0]).map(a2=>'<div style="margin-left:1.2rem">'+row(a2)+'</div>').join(''):'')).join('')+['hands','feet','legs','back','belt'].map(c=>'<h3>'+c+'</h3>'+GEARS.filter(g=>g[3]===c).map(row).join('')).join('')+'<button id=ua class=alt>Unequip all</button><button id=ib>Back</button>';
     P.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{toggleGear(b.dataset.g);menu('inv')});
     P.querySelector('#ua').onclick=()=>{set.gear={};gearOn=false;rope=null;save();menu('inv')};
     P.querySelector('#ib').onclick=()=>menu('main');return}
@@ -823,7 +885,7 @@ function menu(view,msg){
     P.innerHTML=`<h1>SKYLINE <span>//</span> RUNNER</h1><p><b>${msg||(started?'Paused':'Run the rooftops. Stand on a green beacon and press Interact to start a time trial; blue beacons are checkpoints and the purple one is the finish.')}</b></p>
     <p>${set.touch?'<b>Left side</b> drag to move · <b>right side</b> drag to look · <b>UP</b>, <b>DOWN</b> and <b>EXTRA</b> buttons':ACT.map(([a,l])=>`<b>${lbl(set.binds[a])}</b> ${l}`).join(' · ')}</p>
     <p>Runner vision highlights what you need for the current trial or tutorial step. Chain tricks (vaults, wall-runs, hops, slides, rolls, ziplines) to build FLOW: your top speed climbs past 25 m/s. Run through glass at speed to shatter it. Equip the mag rope with F, aim at a blue anchor orb and press X (or click) to swing; Up lets go, forward reels in. Walk into ladders to climb; jump at pipes to grab on, then forward/back climbs, Down slides, Up lets go. Hold forward to build momentum. Run alongside <b style="color:var(--red)">walls</b> at a shallow angle to wall-run (gravity still pulls you down). Face a tall wall head-on mid-jump to wall-climb. Jump into crates to vault smoothly; hold jump while vaulting onto an <b style="color:#ff8a1f">orange springboard</b> to launch. Tap jump at a ledge to grab it (climbing grabs automatically). Press jump near a zipline wire (yellow posts) to ride it, and slide down slopes to build speed. Towers have interiors: use the orange pads under each floor hole. Drops over ~5 m hurt: tap <b>slide</b> just before landing to roll. R returns you to the street and cancels a trial.</p>
-    <button id=pl>${started&&!done?'Resume':'Run'}</button><button id=iv class=alt>Inventory</button><button id=st class=alt>Settings</button><button id=tg class=alt>Training grounds</button><button id=cg class=alt>City start</button><button id=tu class=alt>Tutorial: ${tut.on?'on':'off'}</button>${trial?'<button id=tr class=alt>Restart trial</button><button id=te class=alt>End trial</button>':''}<button id=vs class=alt>Runner vision: ${set.vision?'on':'off'}</button><button id=rt class=alt>Return to start roof</button>${started?'<button id=rs class=alt>Restart</button>':''}
+    <button id=pl>${started&&!done?'Resume':'Run'}</button><button id=iv class=alt>Inventory</button><button id=st class=alt>Settings</button><button id=tg class=alt>Training grounds</button><button id=cg class=alt>City start</button><button id=tu class=alt>Tutorial: ${tut.on?'on':'off'}</button>${tut.on?'<button id=ts class=alt>Skip tutorial step</button>':''}${trial?'<button id=tr class=alt>Restart trial</button><button id=te class=alt>End trial</button>':''}<button id=vs class=alt>Runner vision: ${set.vision?'on':'off'}</button><button id=rt class=alt>Return to start roof</button>${started?'<button id=rs class=alt>Restart</button>':''}
     <p><small>Runner bags ${bagCount}/${bags.length} · ${storageOK?'gear, bags and trial times are saved in this browser':'saving is blocked in this browser'}</small></p><h3>Time trials</h3><ol>${trials.map(t=>'<li>'+t.name+' · gold '+t.gold.toFixed(0)+'s · best '+(tb[t.name]?tb[t.name].toFixed(1)+'s':'--')+'</li>').join('')}</ol>`;
     P.querySelector('#pl').onclick=play;P.querySelector('#st').onclick=()=>menu('set');P.querySelector('#iv').onclick=()=>menu('inv');
     P.querySelector('#vs').onclick=()=>{set.vision=!set.vision;setVision();save();menu('main')};
@@ -831,6 +893,7 @@ function menu(view,msg){
     P.querySelector('#tu').onclick=()=>{tut.on=!tut.on;if(tut.on){tut.done={};tut.ev={}}else{try{localStorage.setItem('sr_tut','1')}catch(e){}}menu('main')};
     const go=vec=>{start.copy(vec);p.copy(vec);respawn.copy(vec);safe.copy(vec);v.set(0,0,0);trial=null;yaw=vec===trainStart?-Math.PI/2:0;pitch=0;mom=0;play()};
     P.querySelector('#tg').onclick=()=>go(trainStart);P.querySelector('#cg').onclick=()=>go(cityStart);
+    const ts2=P.querySelector('#ts');if(ts2)ts2.onclick=()=>{skipTutStep();play()};
     const tr=P.querySelector('#tr'),te=P.querySelector('#te');if(tr)tr.onclick=()=>{restartTrial();play()};if(te)te.onclick=()=>{endTrial();menu('main')};
     const rs=P.querySelector('#rs');if(rs)rs.onclick=()=>{reset();play()};
   }
@@ -987,11 +1050,12 @@ function animFP(dt,sp,now){
   const special=air||slideT>0||wallrun||(climbing&&!ground)||hopT>0||!!vault||!!zip||!!hang||rollT>0;
   T.px=special?.36:.36+.12*run;T.py=special?-.27:-.27-.16*run; // running: shoulders wide and low so the arms stay out of the way, hands only peek into the bottom corners
   T.xL+=Math.sin(now*.0013)*.02;T.xR+=Math.sin(now*.0017+1)*.02; // tiny independent drift per arm
+  if(lad||hang||zip||(climbing&&!ground)){T.xL=Math.min(T.xL,.8);T.xR=Math.min(T.xR,.8)}
   const k=Math.min(1,dt*((hang||vault||rollT>0||hopT>0)?22:14));for(const n of JK)J[n]+=(T[n]-J[n])*k;
   const dy=(yaw-lyaw)/Math.max(dt,.001),dp=(pitch-lpitch)/Math.max(dt,.001);lyaw=yaw;lpitch=pitch;
   swY+=(Math.max(-.12,Math.min(.12,dy*.012))-swY)*Math.min(1,dt*10);swX+=(Math.max(-.1,Math.min(.1,-dp*.01))-swX)*Math.min(1,dt*10);
   {const fixed=!!lad||!!hang||(climbing&&!ground),k2=Math.min(1,dt*10);let ry=0;if(climbing&&!ground){ry=Math.atan2(cn.nx,cn.nz)-yaw;ry=Math.atan2(Math.sin(ry),Math.cos(ry))}
-   armRoot.rotation.x+=((fixed?-Math.max(-1,Math.min(1,pitch)):0)-armRoot.rotation.x)*k2;armRoot.rotation.y+=((fixed?Math.max(-1,Math.min(1,ry)):0)-armRoot.rotation.y)*k2; // hands stay on the rungs / wall while you look around
+   armRoot.rotation.x+=((fixed?-Math.max(-.5,Math.min(.5,pitch)):0)-armRoot.rotation.x)*k2;armRoot.rotation.y+=((fixed?Math.max(-1,Math.min(1,ry)):0)-armRoot.rotation.y)*k2; // hands stay on the rungs / wall while you look around
    if(fixed){swX=0;swY=0}}
   for(const[w,s2,sg]of[[aL,'L',-1],[aR,'R',1]]){
     w.sh.rotation.set(J['x'+s2]+swX,J['y'+s2]+swY,J['z'+s2]);w.el.rotation.set(J['e'+s2],0,J['f'+s2]);w.hd.rotation.set(J['hx'+s2],J['hy'+s2],J['hz'+s2]);
@@ -1066,7 +1130,7 @@ function drawCompass(){
 const ropeMesh=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,1,6),new THREE.MeshBasicMaterial({color:0x2aa8ff})),aimRing=new THREE.Mesh(new THREE.TorusGeometry(1.1,.07,6,20),new THREE.MeshBasicMaterial({color:0x2aa8ff,transparent:true,opacity:.9,depthTest:false})),upV=new THREE.Vector3(0,1,0),tmpD=new THREE.Vector3();
 ropeMesh.visible=false;aimRing.visible=false;aimRing.renderOrder=5;S.add(ropeMesh);S.add(aimRing);
 function gearTick(){
-  aimRing.visible=!!(gearOn&&aim&&!rope&&playing);if(aimRing.visible){aimRing.position.copy(aim);aimRing.lookAt(C.position)}
+  aimRing.visible=!!(gearOn&&(aim||hookPt)&&!rope&&playing);if(aimRing.visible){if(aim)aimRing.position.copy(aim);else aimRing.position.set(hookPt[0],hookPt[1],hookPt[2]);aimRing.material.opacity=aim?.9:.4;aimRing.lookAt(C.position)}
   ropeMesh.visible=!!(rope&&playing);
   if(rope){const hx=p.x+Math.cos(yaw)*.3,hy=p.y+1.15,hz=p.z-Math.sin(yaw)*.3,dx=rope.a.x-hx,dy=rope.a.y-hy,dz=rope.a.z-hz,L=Math.hypot(dx,dy,dz)||1;ropeMesh.position.set(hx+dx/2,hy+dy/2,hz+dz/2);ropeMesh.scale.set(1,L,1);tmpD.set(dx/L,dy/L,dz/L);ropeMesh.quaternion.setFromUnitVectors(upV,tmpD)}
   document.body.classList.toggle('geared',gearOn);
@@ -1075,47 +1139,46 @@ function gearTick(){
 const tutEl=document.getElementById('tut'),promptEl=document.getElementById('prompt');
 const K=a=>set.touch?(({jump:'UP',slide:'DOWN',turn:'EXTRA',interact:'INTERACT'})[a]||lbl(set.binds[a])):lbl(set.binds[a]);
 const TS=[
- ['move',()=>set.touch?'Drag on the left side to move, then run up the ramp':'Move with '+['fwd','left','back','right'].map(a=>lbl(set.binds[a])).join(' ')+' and run up the ramp'],
- ['run',()=>'Hold forward to build momentum (reach 10 m/s)'],
- ['jump',()=>'Jump: '+K('jump')+'. Clear the three gaps'],
- ['glass',()=>'Break glass: sprint straight through the pane'],
- ['vault',()=>'Vault: run at a crate and press '+K('jump')],
- ['spring',()=>'Springboard: hold '+K('jump')+' while vaulting onto the orange pad'],
+ ['run',()=>'Run up the ramp and build speed: reach 10 m/s'],
+ ['gap',()=>'Jump the three gaps ('+K('jump')+'), then sprint straight through the glass pane to smash it'],
+ ['spring',()=>'Vault a crate ('+K('jump')+' into it), then hold '+K('jump')+' while vaulting onto the orange pad'],
  ['slide',()=>'Slide: sprint, then press '+K('slide')+' to duck the bar and ride the slope'],
  ['turn',()=>'Quick turn: sprint at the tall wall and climb it, then press '+K('turn')+' to spin round and kick back onto the platform behind you'],
- ['wallrun',()=>'Wall-run: jump alongside the wall at a shallow angle, holding forward'],
- ['hop',()=>'Wall hop: press '+K('jump')+' while wall-running'],
- ['climb',()=>'Wall-climb: jump straight at the tall wall'],
- ['ledge',()=>'Ledge grab: keep climbing to the top, or tap '+K('jump')+' next to a ledge'],
+ ['wall',()=>'Wall-run along the wall at a shallow angle, then press '+K('jump')+' to wall-hop off it'],
+ ['climb',()=>'Wall-climb the tall wall straight on, then pull up onto the ledge'],
  ['ladder',()=>'Ladder or pipe: climb up either one (walk into the ladder, or jump at the pipe)'],
- ['roll',()=>'Roll: drop off the ledge and tap '+K('slide')+' just before landing'],
+ ['roll',()=>'Roll: drop off the ledge and tap '+K('slide')+' just before you land'],
  ['pad',()=>'Landing pad: drop onto the teal pad for a soft landing'],
  ['zip',()=>'Zipline: jump into the cable to ride out to the city']
 ];
-const SG={move:[-80,62,0],run:[-80,62,0],jump:[-23,62,8],glass:[18.5,62,8],vault:[20,62,8],spring:[30,62,8],slide:[52,62,15],turn:[62,31.5,9],wallrun:[53.5,31,9],hop:[53.5,31,9],climb:[15,31,9],ledge:[15,31,9],ladder:[-4,31,17.5],pipe:[-4,31,17.5],roll:[-4,21,34],pad:[9,21,26],zip:[24,21,16]};
+const TIP={run:'Hold forward on the ramp. You do not need to jump yet.',gap:'Sprint first and jump at the very edge of each deck. The glass is on the last deck: run straight at it fast.',spring:'Jump into a crate and keep holding the jump key through the whole vault. The orange pad launches you up to the next deck.',slide:'Sprint across the deck, press the slide key once and let the slope carry you.',turn:'Run at the tall wall, jump into it and keep climbing, then press the quick-turn key while still on the wall.',wall:'Jump off the deck edge right beside the wall at a shallow angle and hold forward. Press jump while running on the wall.',climb:'Jump straight at the wall and hold forward. You pull up onto the ledge by yourself.',ladder:'Walk into the ladder and hold forward, or jump at the pipe.',roll:'Walk off the ledge and press the slide key just before you hit the ground.',pad:'Walk off the ledge onto the teal pad.',zip:'Jump up into the cable.'};
+const SG={run:[-80,62,0],gap:[-23,62,8],spring:[30,62,8],slide:[52,62,15],turn:[62,31.5,9],wall:[53.5,31,9],climb:[15,31,9],ladder:[-4,31,17.5],roll:[-4,21,34],pad:[9,21,26],zip:[24,21,16]};
 function stagePos(){const i=TS.findIndex(t=>!tut.done[t[0]]),g=i<0?null:SG[TS[i][0]];return g?new THREE.Vector3(TX+g[0],TY+g[2]+.02,TZ+g[1]):null}
-const WP={move:[-45,62,4.5],run:[-20,62,8],jump:[20,62,8],glass:[21,62,8],vault:[30,62,8],spring:[39,62,8],slide:[53.5,45,12],wallrun:[40,27.5,9],hop:[20,31,9],turn:[64,31.5,9],climb:[2,31,9],ledge:[-4,31,17.5],ladder:[-3,28,17.5],roll:[9,21,26],pad:[22,21,16],zip:[30,21,16]};
-const GATES=[[-11,-3,58,66,8,'run'],[2,10,58,66,8,'run'],[17,22.5,58,66,8,'run'],[22.5,37.5,58,66,8,'glass'],[37.5,42,58,66,8.5,'vault'],[47,60,57,67,15,'spring'],[48.5,58.5,26,37,9,'slide'],[58.8,67,26,37,9,'slide'],[48.5,49.6,26,37,9,'turn'],[3,32,26,36,9,'hop'],[-10,3,26,36,17.5,'ledge'],[-10,3,16,26,34,'ladder'],[3,15,16,26,26,'roll'],[16,32,16,26,16.4,'pad']]; // you cannot stand on a stage before finishing the step that leads to it
+const WP={run:[-45,62,4.5],gap:[21,62,8],spring:[39,62,8],slide:[53.5,45,12],turn:[64,31.5,9],wall:[40,27.5,9],climb:[2,31,9],ladder:[-3,28,17.5],roll:[9,21,26],pad:[22,21,16],zip:[30,21,16]};
+const GATES=[[-11,-3,58,66,8,'run'],[2,10,58,66,8,'run'],[17,22.5,58,66,8,'run'],[22.5,37.5,58,66,8,'gap'],[37.5,42,58,66,8.5,'gap'],[47,60,57,67,15,'spring'],[48.5,58.5,26,37,9,'slide'],[58.8,67,26,37,9,'slide'],[48.5,49.6,26,37,9,'turn'],[3,32,26,36,9,'wall'],[-10,3,26,36,17.5,'climb'],[-10,3,16,26,34,'ladder'],[3,15,16,26,26,'roll'],[16,32,16,26,16.4,'pad']]; // you cannot stand on a stage before finishing the step that leads to it
 const tutBeam=new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.2,28,14,1,true),new THREE.MeshBasicMaterial({color:0x2aa8ff,transparent:true,opacity:.55,side:THREE.DoubleSide}));tutBeam.visible=false;S.add(tutBeam);
 let tutKey='';
 let tutHoldUntil=0;
+function skipTutStep(){
+  const i=TS.findIndex(t=>!tut.done[t[0]]);if(i<0)return;
+  tut.done[TS[i][0]]=true;toast('Step skipped');tutHoldUntil=performance.now()+800;wrSeen=false;
+  const sg=stagePos();if(sg){p.copy(sg);v.set(0,0,0);mom=0;slideT=rollT=0;lad=null;hang=null;vault=null;zip=null;rope=null}
+}
 function tutTick(sp){
   const D=tut.done;
   if(!tut.on||!playing){tutEl.style.display='none';tutBeam.visible=false;tutKey='';return}
   const i=TS.findIndex(t=>!D[t[0]]);
   if(i<0){tut.on=false;try{localStorage.setItem('sr_tut','1')}catch(e){}start.copy(cityStart);toast('Tutorial complete!');tutEl.style.display='none';tutBeam.visible=false;return}
   const now2=performance.now(),holding=now2<tutHoldUntil,cur=TS[i][0];
-  const chk={move:()=>sp>2,run:()=>sp>10,
-    jump:()=>ground&&p.x>TX+17&&p.x<TX+23&&p.z>TZ+57&&p.z<TZ+67&&Math.abs(p.y-(TY+8))<1.5,
-    hop:()=>hopT>.95&&!lad,wallrun:()=>wrRun>.8,climb:()=>clRun>.5,slide:()=>slideRun>.8,roll:()=>rollT>0,
+  if(i!==tutIdx){tutIdx=i;tutStepT=now2}
+  const chk={run:()=>sp>10,wall:()=>{if(wrRun>.8)wrSeen=true;return wrSeen&&hopT>.95&&!lad},slide:()=>slideRun>.8,roll:()=>rollT>0,
     turn:()=>ground&&Math.abs(p.y-(TY+15))<1.3&&p.x>TX+58.3&&p.x<TX+63.5&&p.z>TZ+26&&p.z<TZ+37};
-  if(holding)tut.ev={};
-  else if((chk[cur]&&chk[cur]())||tut.ev[cur]){D[cur]=true;tut.ev={};chime();tutHoldUntil=now2+1300}
+  if(!holding&&((chk[cur]&&chk[cur]())||tut.ev[cur])){D[cur]=true;wrSeen=false;chime();tutHoldUntil=now2+1300}
   const n=TS.filter(t=>D[t[0]]).length,j=TS.findIndex(t=>!D[t[0]]);
   if(j<0){tutKey='';return}
   if(now2<tutHoldUntil){tutKey='';tutEl.innerHTML='<small>TUTORIAL '+n+'/'+TS.length+'</small><br><b>\u2713 Done</b>';tutEl.style.display='block';tutBeam.visible=false;return}
-  const txt=TS[j][1](),key=n+txt;
-  if(key!==tutKey){tutKey=key;tutEl.innerHTML='<small>TUTORIAL '+(n+1)+'/'+TS.length+'</small><br><b>'+txt+'</b><br><small id="tutd"></small>'}
+  const idle=now2-tutStepT,tip=idle>30000?TIP[TS[j][0]]:'',skip=idle>70000,txt=TS[j][1](),key=n+txt+(tip?'t':'')+(skip?'s':'');
+  if(key!==tutKey){tutKey=key;tutEl.innerHTML='<small>TUTORIAL '+(n+1)+'/'+TS.length+'</small><br><b>'+txt+'</b>'+(tip?'<br><small>Tip: '+tip+'</small>':'')+(skip?'<br><small>Stuck? Press '+lbl(set.binds.tskip)+' or use the pause menu to skip this step.</small>':'')+'<br><small id="tutd"></small>'}
   const q=WP[TS[j][0]];
   if(q){const dd=Math.round(Math.hypot(p.x-(TX+q[0]),p.z-(TZ+q[1]))),el=document.getElementById('tutd');if(el)el.textContent=dd+' m to the beacon';tutBeam.visible=true;tutBeam.position.set(TX+q[0],TY+q[2]+14,TZ+q[1])}else tutBeam.visible=false;
   tutEl.style.display='block';
@@ -1126,7 +1189,7 @@ function promptTick(){
 // ---------- runner vision: highlights only what the current objective needs ----------
 const HV=[],hvMat=new THREE.MeshBasicMaterial({color:0xe5242b,transparent:true,opacity:.8,depthWrite:false}),hvGeo=new THREE.BoxGeometry(1,1,1);
 for(let k=0;k<40;k++){const m=new THREE.Mesh(hvGeo,hvMat);m.visible=false;S.add(m);HV.push(m)}
-const ST={vault:[30,62],spring:[39,62],slide:[53,59],wallrun:[39,26],hop:[39,26],ladder:[-3,26],pipe:[-3,26],pad:[22,21]};
+const ST={gap:[30,62],spring:[36,62],slide:[53,59],wall:[39,26],ladder:[-3,26],pad:[22,21]};
 let hvT=0;
 function visionTick(dt,now){
   hvMat.opacity=.55+.3*Math.sin(now*.005);hvT-=dt;if(hvT>0)return;hvT=.3;
