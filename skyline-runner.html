@@ -78,11 +78,11 @@ if(set.gv!==4){set.gear={};set.gv=4}
 const save=()=>{try{localStorage.setItem('rr_set',JSON.stringify(set))}catch(e){}};
 const storageOK=(()=>{try{localStorage.setItem('sr_t','1');localStorage.removeItem('sr_t');return true}catch(e){return false}})();
 const hasGear=k=>!!(set.gear&&set.gear[k]),GEARS=[
-['rope','Mag rope','MAIN GEAR. Fire at anchors, walls or (in the air) open space and swing. Draw it with the gear key, fire with X or click.','main'],
+['rope','Mag rope','MAIN GEAR. Fire ONLY at the blue anchor orbs (roof posts, avenue pylons, spires, under bridges) and swing. Draw it with the gear key, fire with X or click.','main'],
 ['winch','Rope winch','Mag rope add-on: reels in faster and reaches further.','addon','rope'],
 ['quick','Quick draw','Mag rope add-on: no re-fire delay and a wider aim cone.','addon','rope'],
 ['sling','Slingshot','Mag rope add-on: letting go flings you much faster.','addon','rope'],
-['wingsuit','Wingsuit','MAIN GEAR. Hold jump in the air to glide and steer with the camera. Dive to gain speed, pull up to climb.','main'],
+['wingsuit','Wingsuit','MAIN GEAR. In the air, press the gear key to deploy, then steer with the camera. Dive to gain speed, pull up to climb, stall and you drop. Press the gear key again to stow.','main'],
 ['aero','Aero panels','Wingsuit add-on: tighter steering and a flatter glide.','addon','wingsuit'],
 ['thrust','Thrusters','Wingsuit add-on: hold forward in flight to accelerate.','addon','wingsuit'],
 ['stable','Stabilizer','Wingsuit add-on: you lose far less speed when pulling up.','addon','wingsuit'],
@@ -107,7 +107,7 @@ const hasGear=k=>!!(set.gear&&set.gear[k]),GEARS=[
 ['cells','Pick-up cells','Medkits and flow cells give much more.','belt']];
 function toggleGear(k){
   set.gear=set.gear||{};const g=GEARS.find(x=>x[0]===k);if(!g)return;
-  const off=key=>{set.gear[key]=false;if(key==='rope'){gearOn=false;rope=null}};
+  const off=key=>{set.gear[key]=false;if(key==='rope'){gearOn=false;rope=null}if(key==='wingsuit')wingOn=false};
   if(set.gear[k]){off(k);if(g[3]==='main')for(const o of GEARS)if(o[4]===k)set.gear[o[0]]=false;save();return}
   if(g[3]==='addon'){if(!set.gear[g[4]]){toast('Equip '+GEARS.find(x=>x[0]===g[4])[1]+' first');return}set.gear[k]=true;save();return}
   if(g[3]==='main'){for(const o of GEARS)if(o[3]==='main'&&o[0]!==k){off(o[0]);for(const a2 of GEARS)if(a2[4]===o[0])set.gear[a2[0]]=false}set.gear[k]=true;save();return}
@@ -326,6 +326,7 @@ function spire(cx,cz,H0,b){ // hollow tower: spiral ramp round an open atrium, g
   for(const[sx,sz]of[[1,1],[1,-1],[-1,1],[-1,-1]])spAcc.push([cx+sx*15.3,top/2,cz+sz*15.3,.8,top,.8]);
   for(let y=24;y<top;y+=24){spAcc.push([cx,y,cz+15.3,30.6,.5,.3],[cx,y,cz-15.3,30.6,.5,.3],[cx+15.3,y,cz,.3,.5,30.6],[cx-15.3,y,cz,.3,.5,30.6])}
 }
+function bridgeAnchor(x,topY,z){anchors.push(new THREE.Vector3(x,topY-3,z));pInst.push([x,topY-1.75,z,.1,2.5,.1]);oInst.push([x,topY-3,z,.5,.5,.5])}
 function addAnchor(ax,ay,az,H){anchors.push(new THREE.Vector3(ax,ay+H,az));pInst.push([ax,ay+H/2,az,.09,H,.09]);oInst.push([ax,ay+H,az,.45,.45,.45])} // mag-rope anchor: a post with a blue orb
 function pavilion(cx,cz,ht,ax){ // roofed glass corridor: smash through one end, run out of the other
   const L=9,Wd=6;
@@ -440,8 +441,8 @@ for(let i=0;i<N;i++){bl[i]=[];for(let j=0;j<N;j++){
 for(let i=0;i<N;i++)for(let j=0;j<N;j++){
   const A=bl[i][j];
   if(i<N-1){const B=bl[i+1][j],gx=(B.x-B.w/2)-(A.x+A.w/2);
-    if(!(A.tr&&B.tr)&&(gx>9||(gx>2&&rnd()<.25))){const top=Math.min(A.ht,B.ht);add((A.x+A.w/2+B.x-B.w/2)/2,top-.5,A.z,gx+1,.5,gx>9?6:3.5,white,'roof');if(gx>9)addGlass((A.x+A.w/2+B.x-B.w/2)/2,top,A.z,.2,3,6)}
-    if(j<N-1){const B2=bl[i][j+1],gz=(B2.z-B2.d/2)-(A.z+A.d/2);if(!(A.tr&&B2.tr)&&(gz>9||(gz>2&&rnd()<.25))){const top2=Math.min(A.ht,B2.ht);add(A.x,top2-.5,(A.z+A.d/2+B2.z-B2.d/2)/2,gz>9?6:3.5,.5,gz+1,white,'roof');if(gz>9)addGlass(A.x,top2,(A.z+A.d/2+B2.z-B2.d/2)/2,6,3,.2)}}} // skybridges: always across avenues, plus extra routes
+    if(!(A.tr&&B.tr)&&(gx>9||(gx>2&&rnd()<.25))){const top=Math.min(A.ht,B.ht);add((A.x+A.w/2+B.x-B.w/2)/2,top-.5,A.z,gx+1,.5,gx>9?6:3.5,white,'roof');bridgeAnchor((A.x+A.w/2+B.x-B.w/2)/2,top,A.z);if(gx>9)addGlass((A.x+A.w/2+B.x-B.w/2)/2,top,A.z,.2,3,6)}
+    if(j<N-1){const B2=bl[i][j+1],gz=(B2.z-B2.d/2)-(A.z+A.d/2);if(!(A.tr&&B2.tr)&&(gz>9||(gz>2&&rnd()<.25))){const top2=Math.min(A.ht,B2.ht);add(A.x,top2-.5,(A.z+A.d/2+B2.z-B2.d/2)/2,gz>9?6:3.5,.5,gz+1,white,'roof');bridgeAnchor(A.x,top2,(A.z+A.d/2+B2.z-B2.d/2)/2);if(gz>9)addGlass(A.x,top2,(A.z+A.d/2+B2.z-B2.d/2)/2,6,3,.2)}}} // skybridges: always across avenues, plus extra routes
   if(i<N-2&&rnd()<.22)zipTry(A,bl[i+2][j],bl[i+1][j]);
   if(j<N-2&&rnd()<.22)zipTry(A,bl[i][j+2],bl[i][j+1]);
 }
@@ -504,9 +505,9 @@ addGlass(TX+21,TY+8,TZ+62,.2,3,8);tb2(21,58.3,.6,3.4,.6,white,'roof',8);tb2(21,6
 tb2(53.5,59,10,.9,1,redM,'wall',16.05);tb2(48.5,59,.6,3,1,white,'roof',15);tb2(58.5,59,.6,3,1,white,'roof',15);
 ramp(TX+53.5,TZ+37,20,8,TY+9,TY+15,0,1,white);blk(48.5,58.5,26,37,9);trSign(66,48,14,'5  SLIDE','sprint, then DOWN: duck the bar|slopes keep you sliding faster');
 // 6 wall-run across a gap
-tb2(44.4,25.5,28.8,8,1,redM,'wall',8);tb2(58.8,27.6,.6,4,3.8,white,'roof',9);tb2(58.8,35.4,.6,4,3.8,white,'roof',9);blk(58.5,66,26,37,9);tb2(66.5,31.5,1,11,11.6,white,'roof',9);tb2(62.2,25.7,7.4,4,.6,white,'roof',9);tb2(62.2,37.3,7.4,4,.6,white,'roof',9);tb2(60.75,31.5,4.5,.8,11.6,white,'roof',14.2);for(const[pu,pw]of[[58.8,26.3],[62.7,26.3],[58.8,36.7],[62.7,36.7]])tb2(pu,pw,.8,5.2,.8,white,'roof',9);ramp(TX+48.5,TZ+31.5,10,8,TY+9,TY+15,1,0,white);tb2(49,47,.5,7,20,white,'roof',9);tb2(58,47,.5,7,20,white,'roof',9);blk(3,32,26,36,9);trSign(40,38,16,'6  WALL-RUN','jump alongside the wall, shallow angle|UP hops off, EXTRA turns you around');
+tb2(44.4,25.5,28.8,8,1,redM,'wall',8);tb2(58.8,31.5,.6,4,12,white,'roof',9);tb2(49,47,.5,7,20,white,'roof',9);tb2(58,47,.5,7,20,white,'roof',9);blk(3,32,26,36,9);trSign(40,38,16,'6  WALL-RUN','jump alongside the wall, shallow angle|UP hops off, EXTRA turns you around');
 // 7 wall-climb + ledge
-blk(-10,3,26,36,17.5);trSign(14,32,17,'7  WALL-CLIMB','jump straight at the wall|keep climbing: you grab the ledge');
+blk(-27,3,26,36,17.5);tb2(-18.5,25.7,17,4,.6,white,'roof',17.5);tb2(-15.5,36.3,23,4,.6,white,'roof',17.5);tb2(-27.3,31,.6,4,10.6,white,'roof',17.5);tb2(-20,31,1,11,10.6,white,'roof',17.5);tb2(-14.75,31,4.5,.8,10.6,white,'roof',21.7);for(const[pu,pw]of[[-16.8,26.3],[-12.7,26.3],[-16.8,35.7],[-12.7,35.7]])tb2(pu,pw,.8,4.2,.8,white,'roof',17.5);trSign(14,32,17,'7  WALL-CLIMB','jump straight at the wall|keep climbing: you grab the ledge');
 // 8 ladder and pipe
 blk(-10,3,16,26,34);addClimb(TX-6,TZ+26,0,1,TY+17.5,TY+34,false);addClimb(TX,TZ+26,0,1,TY+17.5,TY+34,true);
 trSign(-4,36,25,'8  LADDER & PIPE','walk into the ladder to climb it|jump at the pipe to grab on, UP lets go');
@@ -551,7 +552,7 @@ flushBatches();gridBuild();
 // ---------- player ----------
 const r=.35,G=22,cityStart=new THREE.Vector3(startB.x,startB.ht+.02,startB.z+startB.d*.38),trainStart=new THREE.Vector3(TX-80,TY+.02,TZ+62),start=(tut.on?trainStart:cityStart).clone(),p=start.clone(),v=new THREE.Vector3(),respawn=start.clone();
 let yaw=tut.on?-Math.PI/2:0,pitch=0,h=1.8,ground=false,coyote=0,mom=0,slideT=0,rollT=0,wallT=1.6,climbT=1,wcd=0,roll=0,wallrun=false,wasWall=false,climbing=false,
-  started=false,t0=0,done=false,fov=75,bob=0,stepD=0,turnRem=0,cpIdx=-1,shake=0,toastT=0,hp=100,hurtT=0,hurtCool=0,stagger=0,rollBuf=0,vaultBuf=0,hang=null,vault=null,trial=null,trialCool=0,zip=null,zipCool=0,curRamp=null,streetT=0,climbTurn=false,jumpT=0,landT=0,hopT=0,hopSide=0,safeT=0,slideMin=0,jumpLead=1,jumpBuf=0,nearTrial=null,eyeH=1.65,lad=null,ladCool=0,flow=0,glide=false,climbV=5,slideRun=0,wrRun=0,clRun=0,wrSeen=false,hookPt=null,hookAir=false,airHookCd=0,dashCd=0,ropeLos=0,tutIdx=-1,tutStepT=0,glassN=0,gTag='',gearOn=false,rope=null,ropeG=0,ropeCool=0,aim=null,airT=0,padT=0,padSev=0,dmgT=0,dmgDur=1,dmgSev=0,rollStill=false,cpActive=null,bagCount=0;const cn={nx:0,nz:0},safe=start.clone(),STR=1.2;
+  started=false,t0=0,done=false,fov=75,bob=0,stepD=0,turnRem=0,cpIdx=-1,shake=0,toastT=0,hp=100,hurtT=0,hurtCool=0,stagger=0,rollBuf=0,vaultBuf=0,hang=null,vault=null,trial=null,trialCool=0,zip=null,zipCool=0,curRamp=null,streetT=0,climbTurn=false,jumpT=0,landT=0,hopT=0,hopSide=0,safeT=0,slideMin=0,jumpLead=1,jumpBuf=0,nearTrial=null,eyeH=1.65,lad=null,ladCool=0,flow=0,glide=false,climbV=5,slideRun=0,wrRun=0,clRun=0,wrSeen=false,wingOn=false,wYaw=0,bankW=0,hookPt=null,hookAir=false,airHookCd=0,dashCd=0,ropeLos=0,tutIdx=-1,tutStepT=0,glassN=0,gTag='',gearOn=false,rope=null,ropeG=0,ropeCool=0,aim=null,airT=0,padT=0,padSev=0,dmgT=0,dmgDur=1,dmgSev=0,rollStill=false,cpActive=null,bagCount=0;const cn={nx:0,nz:0},safe=start.clone(),STR=1.2;
 const keys={},edge={};
 const ovp=(x,y,z,hh,b,e=0)=>x+r+e>b.min.x&&x-r-e<b.max.x&&y+hh>b.min.y&&y<b.max.y&&z+r+e>b.min.z&&z-r-e<b.max.z;
 const hit=(x,y,z,hh)=>nearBoxes(x,z).some(b=>ovp(x,y,z,hh,b));
@@ -639,27 +640,21 @@ function step(dt){
     else if(hasGear('dash')){
       if(dashCd<=0){const cp3=Math.cos(pitch),pw=hasGear('long')?19:14;v.x+=-Math.sin(yaw)*cp3*pw;v.z+=-Math.cos(yaw)*cp3*pw;v.y=Math.max(v.y,2.5);const s3=Math.hypot(v.x,v.z);if(s3>32){v.x*=32/s3;v.z*=32/s3}dashCd=hasGear('twin')?1.7:3.2;puff(2500,.15,.25);tone(240,.18,'sawtooth',.1,900);flow=Math.min(1,flow+.03);toast('Dash')}
       else toast('Dash recharging')}
-    else if(hasGear('wingsuit'))toast('Wingsuit: hold the jump key in the air to glide');
+    else if(hasGear('wingsuit')){
+      if(wingOn){wingOn=false;toast('Wingsuit stowed')}
+      else if(!ground&&!rope&&!hang&&!zip&&!lad&&!wallrun&&!vault){const s4=Math.hypot(v.x,v.y,v.z);if(s4<14){const cp4=Math.cos(pitch);v.x=-Math.sin(yaw)*cp4*14;v.y=Math.max(v.y,-2);v.z=-Math.cos(yaw)*cp4*14}wingOn=true;toast('Wingsuit deployed');tone(260,.2,'sawtooth',.08,520)}
+      else toast('Jump off something, then press the gear key')}
     else toast('No main gear equipped - open the inventory in the pause menu')}
   ropeCool-=dt;dashCd-=dt;airHookCd-=dt;if(ground&&hasGear('charge'))dashCd=Math.min(dashCd,0);aim=null;slideRun=slideT>0?slideRun+dt:0;wrRun=wallrun?wrRun+dt:0;clRun=(climbing&&!ground)?clRun+dt:0;
-  hookPt=null;hookAir=false;
   if(gearOn&&!rope&&!tut.on){
     const cp=Math.cos(pitch),fx3=-Math.sin(yaw)*cp,fy3=Math.sin(pitch),fz3=-Math.cos(yaw)*cp,rng=hasGear('winch')?85:65,cone=hasGear('quick')?.93:.955,cand=[];
     for(const a of anchors){const dx=a.x-p.x,dy=a.y-(p.y+1.5),dz=a.z-p.z;if(Math.abs(dx)>rng||Math.abs(dz)>rng||Math.abs(dy)>rng)continue;const dd=Math.hypot(dx,dy,dz);if(dd<6||dd>rng)continue;const dt2=(dx*fx3+dy*fy3+dz*fz3)/dd;if(dt2>cone)cand.push([dt2,a])}
     cand.sort((a,b)=>b[0]-a[0]);
     for(let k=0;k<Math.min(3,cand.length);k++){if(losClear(p.x,p.y+1.5,p.z,cand[k][1])){aim=cand[k][1];break}}
-    if(!aim){
-      const ex=p.x,ey=p.y+1.5,ez=p.z;let hit=null;
-      for(let d2=3;d2<=40;d2+=1.5){if(pointSolid(ex+fx3*d2,ey+fy3*d2,ez+fz3*d2)){hit=[ex+fx3*(d2-1.2),ey+fy3*(d2-1.2),ez+fz3*(d2-1.2)];break}}
-      if(hit)hookPt=hit;else if(!ground&&airHookCd<=0){hookPt=[ex+fx3*24,ey+fy3*24,ez+fz3*24];hookAir=true}
-    }
   }
   if(edge.rope&&gearOn&&!tut.on){
     if(rope){rope=null;ropeCool=.3}
-    else if(ropeCool<=0||hasGear('quick')){
-      const tg=aim||(hookPt?new THREE.Vector3(hookPt[0],hookPt[1],hookPt[2]):null);
-      if(tg){const L0=Math.hypot(tg.x-p.x,tg.y-(p.y+1.4),tg.z-p.z);rope={a:tg,L:L0,L0};ropeG=0;ropeLos=.15;slideT=rollT=0;if(hookAir)airHookCd=hasGear('quick')?.6:1.6;tone(700,.08,'sawtooth',.1,1600);puff(2200,.1,.15)}
-    }
+    else if(aim&&(ropeCool<=0||hasGear('quick'))){const L0=Math.hypot(aim.x-p.x,aim.y-(p.y+1.4),aim.z-p.z);rope={a:aim,L:L0,L0};ropeG=0;ropeLos=.15;slideT=rollT=0;tone(700,.08,'sawtooth',.1,1600);puff(2200,.1,.15)}
   }
   if(rope&&edge.jump){rope=null;ropeCool=hasGear('quick')?.1:.7;{const sc3=hasGear('sling')?1.3:1.06,sp9=Math.hypot(v.x,v.z);if(sp9>1){v.x*=sc3;v.z*=sc3}}v.y+=hasGear('sling')?7:4;edge.jump=false;flow=Math.min(1,flow+.06)}
   if(edge.respawn){const spx=tut.on?stagePos():null;p.copy(spx||start);respawn.copy(spx||start);safe.copy(spx||start);v.set(0,0,0);trial=null;toast('Back to the start roof')}
@@ -720,13 +715,19 @@ function step(dt){
   if(edge.jump)vaultBuf=.25; // jump into obstacles to vault / grab ledges
   // collisions
   glide=false;
-  if(!tut.on&&hasGear('wingsuit')&&!ground&&H('jump')&&airT>.3&&(hs0>6||v.y<-4)&&!rope&&!hang&&!zip&&!lad&&!wallrun&&!vault){
-    const cp2=Math.cos(pitch),wx2=-Math.sin(yaw)*cp2,wy2=Math.sin(pitch),wz2=-Math.cos(yaw)*cp2,aero=hasGear('aero'),stab=hasGear('stable'),brake=!!keys[set.binds.slide]&&hasGear('flare');
-    let spd=Math.max(9,Math.hypot(v.x,v.y,v.z));
-    spd+=(-wy2*(stab?10:15)-(stab?1.4:2.6)+(f>0&&hasGear('thrust')?9:0)-(brake?14:0))*dt;
-    spd=Math.min(hasGear('thrust')?40:32,Math.max(8,spd));
-    const kk=Math.min(1,dt*(aero?2.8:1.8)),ty=Math.max(-22,wy2*spd*.7-(brake?1.5:aero?1.4:2.4));
-    v.x+=(wx2*spd-v.x)*kk;v.y+=(ty-v.y)*kk;v.z+=(wz2*spd-v.z)*kk;glide=true;
+  if(wingOn&&(ground||rope||hang||zip||lad||wallrun||vault||tut.on))wingOn=false;
+  if(wingOn){
+    const aero=hasGear('aero'),stab=hasGear('stable'),brake=!!keys[set.binds.slide]&&hasGear('flare'),gam=Math.max(-1.1,Math.min(1,pitch));
+    let spd=Math.hypot(v.x,v.y,v.z);
+    const dirY=Math.sin(gam)-(aero?.09:.14),dxw=-Math.sin(yaw)*Math.cos(gam),dzw=-Math.cos(yaw)*Math.cos(gam),drag=(stab?.0055:.0085)*spd*spd;
+    spd+=(-dirY*22-drag+(f>0&&hasGear('thrust')?10:0)-(brake?18:0))*dt;
+    spd=Math.min(hasGear('thrust')?42:36,spd);
+    if(spd<9){wingOn=false;toast('Wingsuit stalled')}
+    else{
+      const turn=Math.min(1,dt*(aero?3.4:2.4)),cur=Math.hypot(v.x,v.y,v.z)||1;
+      const nx=v.x/cur+(dxw-v.x/cur)*turn,ny=v.y/cur+(dirY-v.y/cur)*turn,nz=v.z/cur+(dzw-v.z/cur)*turn,nl=Math.hypot(nx,ny,nz)||1;
+      v.x=nx/nl*spd;v.y=ny/nl*spd;v.z=nz/nl*spd;glide=true;
+    }
   }
   if(rope){
     ropeG=ground?ropeG+dt:0;if(ropeG>.5)rope=null;
@@ -974,6 +975,7 @@ function mkLeg(sx){
   ft.position.y=-.42;kn.add(ft);bx(ft,.15,.09,.3,0,-.03,-.08,mSh);bx(ft,.152,.03,.31,0,-.08,-.08,mSo);bodyRoot.add(hip);return{hip,kn};
 }
 const aL=mkArm(-1),aR=mkArm(1),lL=mkLeg(-1),lR=mkLeg(1);const armRoot=new THREE.Group();armRoot.add(aL.sh,aR.sh);FS.add(armRoot);const gadget=new THREE.Mesh(new THREE.BoxGeometry(.07,.05,.13),new THREE.MeshLambertMaterial({color:0x2aa8ff}));gadget.position.set(0,.045,-.05);aR.hd.add(gadget);gadget.visible=false;
+const mFab=fm(0x1d2a33),wingFab=[aL,aR].map((w,i)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(.5,.012,.8),mFab);m.position.set((i?1:-1)*.16,0,.18);m.visible=false;w.sh.add(m);return m}),zipBar=new THREE.Mesh(new THREE.BoxGeometry(.55,.035,.035),mGl);zipBar.position.set(0,.27,-.58);zipBar.visible=false;FS.add(zipBar);
 const AJ=['x','y','z','e','f','hx','hy','hz','g','p'],JK=[...AJ.map(k=>k+'L'),...AJ.map(k=>k+'R'),'hpL','knL','hpR','knR','lean','by','px','py'],J={};JK.forEach(k=>J[k]=0);J.px=.33;J.py=-.27;
 let lyaw=0,lpitch=0,swX=0,swY=0;
 function animFP(dt,sp,now){
@@ -1014,9 +1016,9 @@ function animFP(dt,sp,now){
   if(wallrun){const wl=roll<0,s2=wl?'L':'R',o=wl?'R':'L',m=o==='L'?1:-1;
     A(s2,{x:-.05+Math.sin(now*.04)*.03,out:1.3,e:.18,pi:-1.45,g:.1,p:.9,hx:.1});                              // wall-side hand pressed flat on the wall
     A(o,{x:-.5+m*sw*.8,e:1.3,pi:.9,g:.5})}
-  if(climbing&&!ground){const c=Math.sin(now*.009),u=(c+1)/2;                                                  // hand-over-hand, feet pushing
-    for(const[s2,uu]of[['L',u],['R',1-u]])A(s2,{x:.9+.55*uu,out:.12,e:1.6-1.4*uu,hx:.5,pi:.2,g:uu>.7?1:.3,p:.3});
-    T.hpL=.5+.5*u;T.hpR=.5+.5*(1-u);T.knL=-.4-.8*(1-u);T.knR=-.4-.8*u}
+  if(climbing&&!ground){const c=Math.sin(now*.011),u=(c+1)/2,sway=Math.sin(now*.0055)*.05;
+    for(const[s2,uu]of[['L',u],['R',1-u]])A(s2,{x:.3+.5*uu,out:.1+.06*(1-uu),e:1.75-1.4*uu,hx:.35+.3*uu,pi:.15,g:uu>.55?.25:1,p:.3+.4*uu,z:sway});
+    T.hpL=.7+.5*u;T.hpR=.7+.5*(1-u);T.knL=-.7-.7*(1-u);T.knR=-.7-.7*u;T.lean=.12+.06*c}
   if(hopT>0){const k=hopT;                                                                                    // wall hop: push off with the near hand and leg
     if(hopSide!==0){const s2=hopSide<0?'L':'R',o=hopSide<0?'R':'L';A(s2,{x:-.1,out:.3+.9*k,e:.5+.6*(1-k),pi:-1.3*k,g:.1,p:.8});A(o,{x:.2,out:-.4,e:.9,g:.3});
       T['hp'+s2]=k;T['kn'+s2]=-.1;T['hp'+o]=.9*k;T['kn'+o]=-1.3*k}
@@ -1024,16 +1026,17 @@ function animFP(dt,sp,now){
   if(vault){const q=vault.t/vault.dur,sq=Math.sin(Math.min(1,q*1.6)*Math.PI);                                  // plant hands, swing legs over
     if(q<.4)both({x:-.15,out:.1,e:.25,hx:-.5,g:0,p:.8,pi:0});else both({x:-.15-(q-.4)*1.4,out:.1,e:.5,hx:-.5,g:0,p:.8});
     T.hpL=1.25*sq;T.knL=-1.3*sq;T.hpR=.5*sq;T.knR=-.7*sq;T.lean=.2*sq}
-  if(glide){both({x:.2,out:.9,e:.2,g:0,p:1});T.hpL=T.hpR=.2;T.knL=T.knR=-.2}
+  wingFab.forEach(m=>m.visible=wingOn&&set.body);zipBar.visible=!!zip&&set.body;
+  if(wingOn){const fl=Math.sin(now*.02)*.03;both({x:.05+fl,out:1.25,e:.08,g:0,p:1});T.hpL=T.hpR=-.25;T.knL=T.knR=-.08}
   gadget.visible=gearOn;
   if(gearOn)A('R',{x:-.1,e:1.3,g:1,hx:.2});                                                                  // holding the rope gear
   if(rope){const rp=Math.max(-.2,Math.min(1.3,Math.atan2(rope.a.y-(p.y+1.4),Math.hypot(rope.a.x-p.x,rope.a.z-p.z))));A('R',{x:rp+.1,out:.1,e:.15,g:1,hx:.2});A('L',{x:-.55,out:.55,e:.9,g:.2,p:.8});T.hpL=.5;T.knL=-.7;T.hpR=.3;T.knR=-.9;T.lean=.1} // arm points at the anchor
-  if(lad){const o=lad.o,u=(Math.sin(lad.ph)+1)/2;
-    if(lad.mount<0){for(const[s2,uu]of[['L',u],['R',1-u]])A(s2,{x:(o.pipe?1.05:.95)+.5*uu,out:o.pipe?.04:.12,e:1.55-1.3*uu,hx:.45,pi:.1,g:o.pipe?1:(uu>.6?1:.25),p:.2});  // hand over hand, gripping the rungs / wrapped round the pipe
-      T.hpL=.45+.5*u;T.hpR=.45+.5*(1-u);T.knL=-.5-.8*(1-u);T.knR=-.5-.8*u;
-      if(keys[set.binds.slide]){both({x:.9,e:.4,g:.7});T.hpL=T.hpR=.2;T.knL=T.knR=-.3}}
-    else{const k=Math.min(1,lad.mount/.45),sk=Math.sin(k*Math.PI);both({x:1.2-k*1.7,e:.3+1.6*sk,g:k<.5?1:0,hx:k>.5?-.6:.4,pi:.2});T.hpL=.9*sk;T.knL=-1.3*sk;T.hpR=.2;T.knR=-.4*sk}} // top: pull over and push up
-  if(zip){both({x:1.57,out:.06,e:.05,g:1,hx:.3,pi:.1});T.hpL=.25+.1*Math.sin(now*.004);T.hpR=.15;T.knL=-.3;T.knR=-.15}
+  if(lad){const o=lad.o,u=(Math.sin(lad.ph)+1)/2,wob=Math.sin(lad.ph*.5)*.04;
+    if(lad.mount<0){for(const[s2,uu]of[['L',u],['R',1-u]])A(s2,{x:.3+.5*uu,out:o.pipe?.05:.14,e:1.7-1.35*uu,hx:.35+.3*uu,pi:.1,g:o.pipe?1:(uu>.55?.3:1),p:.2,z:wob});
+      T.hpL=.7+.45*u;T.hpR=.7+.45*(1-u);T.knL=-.8-.5*(1-u);T.knR=-.8-.5*u;T.lean=.1;
+      if(keys[set.binds.slide]){both({x:.5,e:.9,g:.9});T.hpL=T.hpR=.35;T.knL=T.knR=-.4}}
+    else{const k=Math.min(1,lad.mount/.45),sk=Math.sin(k*Math.PI);both({x:.8-k*1.3,e:.3+1.6*sk,g:k<.5?1:0,hx:k>.5?-.6:.4,pi:.2});T.hpL=.9*sk;T.knL=-1.3*sk;T.hpR=.2;T.knR=-.4*sk}} // top: pull over and push up
+  if(zip){const sw2=Math.sin(now*.0035);both({x:.78,out:.05,e:.3,g:1,hx:.55,pi:.1,z:sw2*.05});T.hpL=.5+.12*sw2;T.hpR=.38-.12*sw2;T.knL=-.25;T.knR=-.4;T.lean=-.15}
   if(hang){const g=hang;
     if(g.stage===0){both({x:1.52,out:.1,e:.1,g:1,hx:.5,pi:.1});T.hpL=.1+.05*Math.sin(now*.003);T.hpR=.1;T.knL=-.2;T.knR=-.15}
     else{const k=Math.min(1,g.t/.32);                                                                          // pull-up then press down
@@ -1130,7 +1133,7 @@ function drawCompass(){
 const ropeMesh=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,1,6),new THREE.MeshBasicMaterial({color:0x2aa8ff})),aimRing=new THREE.Mesh(new THREE.TorusGeometry(1.1,.07,6,20),new THREE.MeshBasicMaterial({color:0x2aa8ff,transparent:true,opacity:.9,depthTest:false})),upV=new THREE.Vector3(0,1,0),tmpD=new THREE.Vector3();
 ropeMesh.visible=false;aimRing.visible=false;aimRing.renderOrder=5;S.add(ropeMesh);S.add(aimRing);
 function gearTick(){
-  aimRing.visible=!!(gearOn&&(aim||hookPt)&&!rope&&playing);if(aimRing.visible){if(aim)aimRing.position.copy(aim);else aimRing.position.set(hookPt[0],hookPt[1],hookPt[2]);aimRing.material.opacity=aim?.9:.4;aimRing.lookAt(C.position)}
+  aimRing.visible=!!(gearOn&&aim&&!rope&&playing);if(aimRing.visible){aimRing.position.copy(aim);aimRing.lookAt(C.position)}
   ropeMesh.visible=!!(rope&&playing);
   if(rope){const hx=p.x+Math.cos(yaw)*.3,hy=p.y+1.15,hz=p.z-Math.sin(yaw)*.3,dx=rope.a.x-hx,dy=rope.a.y-hy,dz=rope.a.z-hz,L=Math.hypot(dx,dy,dz)||1;ropeMesh.position.set(hx+dx/2,hy+dy/2,hz+dz/2);ropeMesh.scale.set(1,L,1);tmpD.set(dx/L,dy/L,dz/L);ropeMesh.quaternion.setFromUnitVectors(upV,tmpD)}
   document.body.classList.toggle('geared',gearOn);
@@ -1143,19 +1146,19 @@ const TS=[
  ['gap',()=>'Jump the three gaps ('+K('jump')+'), then sprint straight through the glass pane to smash it'],
  ['spring',()=>'Vault a crate ('+K('jump')+' into it), then hold '+K('jump')+' while vaulting onto the orange pad'],
  ['slide',()=>'Slide: sprint, then press '+K('slide')+' to duck the bar and ride the slope'],
- ['turn',()=>'Quick turn: sprint at the tall wall and climb it, then press '+K('turn')+' to spin round and kick back onto the platform behind you'],
  ['wall',()=>'Wall-run along the wall at a shallow angle, then press '+K('jump')+' to wall-hop off it'],
  ['climb',()=>'Wall-climb the tall wall straight on, then pull up onto the ledge'],
+ ['turn',()=>'Quick turn: sprint at the tall wall and climb it, then press '+K('turn')+' to spin round and kick back onto the platform behind you'],
  ['ladder',()=>'Ladder or pipe: climb up either one (walk into the ladder, or jump at the pipe)'],
  ['roll',()=>'Roll: drop off the ledge and tap '+K('slide')+' just before you land'],
  ['pad',()=>'Landing pad: drop onto the teal pad for a soft landing'],
  ['zip',()=>'Zipline: jump into the cable to ride out to the city']
 ];
-const TIP={run:'Hold forward on the ramp. You do not need to jump yet.',gap:'Sprint first and jump at the very edge of each deck. The glass is on the last deck: run straight at it fast.',spring:'Jump into a crate and keep holding the jump key through the whole vault. The orange pad launches you up to the next deck.',slide:'Sprint across the deck, press the slide key once and let the slope carry you.',turn:'Run at the tall wall, jump into it and keep climbing, then press the quick-turn key while still on the wall.',wall:'Jump off the deck edge right beside the wall at a shallow angle and hold forward. Press jump while running on the wall.',climb:'Jump straight at the wall and hold forward. You pull up onto the ledge by yourself.',ladder:'Walk into the ladder and hold forward, or jump at the pipe.',roll:'Walk off the ledge and press the slide key just before you hit the ground.',pad:'Walk off the ledge onto the teal pad.',zip:'Jump up into the cable.'};
-const SG={run:[-80,62,0],gap:[-23,62,8],spring:[30,62,8],slide:[52,62,15],turn:[62,31.5,9],wall:[53.5,31,9],climb:[15,31,9],ladder:[-4,31,17.5],roll:[-4,21,34],pad:[9,21,26],zip:[24,21,16]};
+const TIP={run:'Hold forward on the ramp. You do not need to jump yet.',gap:'Sprint first and jump at the very edge of each deck. The glass is on the last deck: run straight at it fast.',spring:'Jump into a crate and keep holding the jump key through the whole vault. The orange pad launches you up to the next deck.',slide:'Sprint across the deck, press the slide key once and let the slope carry you.',turn:'On the ledge deck, sprint west at the tall wall, jump into it and keep climbing, then press the quick-turn key while still on the wall. You kick back onto the raised platform.',wall:'Jump off the deck edge right beside the wall at a shallow angle and hold forward. Press jump while running on the wall.',climb:'Jump straight at the wall and hold forward. You pull up onto the ledge by yourself.',ladder:'Walk into the ladder and hold forward, or jump at the pipe.',roll:'Walk off the ledge and press the slide key just before you hit the ground.',pad:'Walk off the ledge onto the teal pad.',zip:'Jump up into the cable.'};
+const SG={run:[-80,62,0],gap:[-23,62,8],spring:[30,62,8],slide:[52,62,15],wall:[53.5,31,9],climb:[15,31,9],turn:[-4,31,17.5],ladder:[-4,31,17.5],roll:[-4,21,34],pad:[9,21,26],zip:[24,21,16]};
 function stagePos(){const i=TS.findIndex(t=>!tut.done[t[0]]),g=i<0?null:SG[TS[i][0]];return g?new THREE.Vector3(TX+g[0],TY+g[2]+.02,TZ+g[1]):null}
-const WP={run:[-45,62,4.5],gap:[21,62,8],spring:[39,62,8],slide:[53.5,45,12],turn:[64,31.5,9],wall:[40,27.5,9],climb:[2,31,9],ladder:[-3,28,17.5],roll:[9,21,26],pad:[22,21,16],zip:[30,21,16]};
-const GATES=[[-11,-3,58,66,8,'run'],[2,10,58,66,8,'run'],[17,22.5,58,66,8,'run'],[22.5,37.5,58,66,8,'gap'],[37.5,42,58,66,8.5,'gap'],[47,60,57,67,15,'spring'],[48.5,58.5,26,37,9,'slide'],[58.8,67,26,37,9,'slide'],[48.5,49.6,26,37,9,'turn'],[3,32,26,36,9,'wall'],[-10,3,26,36,17.5,'climb'],[-10,3,16,26,34,'ladder'],[3,15,16,26,26,'roll'],[16,32,16,26,16.4,'pad']]; // you cannot stand on a stage before finishing the step that leads to it
+const WP={run:[-45,62,4.5],gap:[21,62,8],spring:[39,62,8],slide:[53.5,45,12],wall:[40,27.5,9],climb:[2,31,9],turn:[-17,31,17.5],ladder:[-3,28,17.5],roll:[9,21,26],pad:[22,21,16],zip:[30,21,16]};
+const GATES=[[-11,-3,58,66,8,'run'],[2,10,58,66,8,'run'],[17,22.5,58,66,8,'run'],[22.5,37.5,58,66,8,'gap'],[37.5,42,58,66,8.5,'gap'],[47,60,57,67,15,'spring'],[48.5,58.5,26,37,9,'slide'],[3,32,26,36,9,'wall'],[-27,3,26,36,17.5,'climb'],[-8,2,26,28.2,17.5,'turn'],[-10,3,16,26,34,'ladder'],[3,15,16,26,26,'roll'],[16,32,16,26,16.4,'pad']]; // you cannot stand on a stage before finishing the step that leads to it
 const tutBeam=new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.2,28,14,1,true),new THREE.MeshBasicMaterial({color:0x2aa8ff,transparent:true,opacity:.55,side:THREE.DoubleSide}));tutBeam.visible=false;S.add(tutBeam);
 let tutKey='';
 let tutHoldUntil=0;
@@ -1172,7 +1175,7 @@ function tutTick(sp){
   const now2=performance.now(),holding=now2<tutHoldUntil,cur=TS[i][0];
   if(i!==tutIdx){tutIdx=i;tutStepT=now2}
   const chk={run:()=>sp>10,wall:()=>{if(wrRun>.8)wrSeen=true;return wrSeen&&hopT>.95&&!lad},slide:()=>slideRun>.8,roll:()=>rollT>0,
-    turn:()=>ground&&Math.abs(p.y-(TY+15))<1.3&&p.x>TX+58.3&&p.x<TX+63.5&&p.z>TZ+26&&p.z<TZ+37};
+    turn:()=>ground&&Math.abs(p.y-(TY+22.5))<1.3&&p.x>TX-17.2&&p.x<TX-12.3&&p.z>TZ+26&&p.z<TZ+37};
   if(!holding&&((chk[cur]&&chk[cur]())||tut.ev[cur])){D[cur]=true;wrSeen=false;chime();tutHoldUntil=now2+1300}
   const n=TS.filter(t=>D[t[0]]).length,j=TS.findIndex(t=>!D[t[0]]);
   if(j<0){tutKey='';return}
@@ -1233,19 +1236,20 @@ function loop(now){
   if(live){const sub=Math.hypot(v.x,v.z)>16?2:1;for(let q=0;q<sub;q++)step(dt/sub)} // at high speed, two physics steps so you never tunnel through thin walls
   if(toastT>0){toastT-=dt;if(toastT<=0)document.getElementById('toast').style.opacity=0}
   const sp=Math.hypot(v.x,v.z);
-  fov+=((set.fov+Math.min(34,sp*1.2)+(slideT>0?4:0))-fov)*Math.min(1,dt*5);C.fov=fov;C.updateProjectionMatrix();
+  fov+=((set.fov+Math.min(34,sp*1.2)+(slideT>0?4:0)+(wingOn?10:0))-fov)*Math.min(1,dt*5);C.fov=fov;C.updateProjectionMatrix();
   bob+=sp*dt*((ground||wallrun)?1:0);shake*=1-Math.min(1,dt*9);
   const run2=Math.min(1,sp/9),ph2=bob*STR,stepOn=(ground||wallrun)&&slideT<=0&&rollT<=0;
   const bb=stepOn?-Math.abs(Math.sin(ph2))*.065*run2*set.bob:0,bsx=stepOn?Math.sin(ph2)*.014*run2*set.bob:0; // dip on every footfall, sway side to side
   const dk=dmgT>0?Math.min(1,dmgSev)*Math.min(1,dmgT/dmgDur/.35):0,eyeT=(rollT>0?(rollStill?.58:.7):slideT>0?.82:h-.15)-dk*.7-(padT>0?padSev*padT*.35:0);eyeH+=(eyeT-eyeH)*Math.min(1,dt*(slideT>0||rollT>0?14:9));
   const pr=rollT>0?1-rollT/.5:0,rollAng=rollT>0?(rollStill?Math.sin(pr*Math.PI)*1.2:Math.PI*2*(pr<.5?2*pr*pr:1-2*(1-pr)*(1-pr))):0;
-  C.position.set(p.x,p.y+eyeH+bb-shake,p.z);
-  C.rotation.order='YXZ';C.rotation.set(pitch-rollAng-dk*.3-(vault?Math.sin(Math.PI*vault.t/vault.dur)*.1:0)+(slideT>0?.06:0),yaw,roll+bsx+(slideT>0?.04:0)+(vault?Math.sin(Math.PI*vault.t/vault.dur)*.05:0));
+  const ydw=(yaw-wYaw)/Math.max(dt,.001);wYaw=yaw;bankW+=((wingOn?Math.max(-.45,Math.min(.45,ydw*.1)):0)-bankW)*Math.min(1,dt*6);
+  C.position.set(p.x,p.y+eyeH+bb-shake+(lad?Math.sin(lad.ph)*.03:(climbing&&!ground)?Math.sin(now*.011)*.03:0),p.z);
+  C.rotation.order='YXZ';C.rotation.set(pitch-rollAng-dk*.3-(vault?Math.sin(Math.PI*vault.t/vault.dur)*.1:0)+(slideT>0?.06:0),yaw,roll+bsx+(slideT>0?.04:0)+(zip?Math.sin(now*.0035)*.05:0)+bankW+(vault?Math.sin(Math.PI*vault.t/vault.dur)*.05:0));
   if(trial){const q=trial.t.pts[trial.i];target.visible=true;target.material.color.setHex(trial.i===trial.t.pts.length-1?0xc13cff:0x2aa8ff);target.position.set(q.x,q.y+30,q.z)}else target.visible=false;
   vig.style.opacity=Math.max(0,Math.min(.9,(sp-8)/6));
   hurtT=Math.max(0,hurtT-dt);document.getElementById('hurt').style.opacity=hurtT;
   if(AC){const n=AC.currentTime;
-    windG.gain.setTargetAtTime(Math.min(.08,sp/200)*(ground?.55:1)+wx.storm*.05+wx.rain*.02,n,.1);
+    windG.gain.setTargetAtTime(Math.min(.08,sp/200)*(ground?.55:1)+wx.storm*.05+wx.rain*.02+(wingOn?.05:0),n,.1);
     slideG.gain.setTargetAtTime(slideT>0&&live?.14:0,n,.05);
     wallG.gain.setTargetAtTime(wallrun&&live?.2:0,n,.05)}
   hud.innerHTML=(trial?'TRIAL '+trial.t.name+' · '+((now-trial.t0)/1000).toFixed(1)+'s · '+(trial.i-1)+'/'+(trial.t.pts.length-1)+' · '+Math.round(Math.hypot(p.x-trial.t.pts[trial.i].x,p.z-trial.t.pts[trial.i].z))+'m<br>':'')+sp.toFixed(1)+' m/s'+(flow>.05?' · FLOW '+Math.round(flow*100)+'%':'')+' · HP '+Math.round(hp)+' · BAGS '+bagCount+'/'+bags.length+(zip?' · ZIPLINE':hang?' · LEDGE':wallrun?' · WALL-RUN':climbing||(!ground&&keys[set.binds.fwd]&&climbT<1&&climbT>0&&v.y>4)?' · CLIMB':slideT>0?' · SLIDE':rollT>0?' · ROLL':'');
