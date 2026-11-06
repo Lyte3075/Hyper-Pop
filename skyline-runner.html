@@ -548,7 +548,7 @@ for(let i=0;i<N;i++)for(let j=0;j<N;j++){const b=bl[i][j];if(!b.tr&&!b.tw)facade
 for(let k=0;k<140;k++){const side=Math.floor(rnd()*4),dd=N*BP/2+110+rnd()*330,tt=(rnd()-.5)*(N*BP+700),hh=70+rnd()*150,wv=20+rnd()*30,fx=side<2?(side?-dd:dd):tt,fz=side<2?tt:(side===2?dd:-dd);farI.push([fx,hh/2-10,fz,wv,hh,wv])}   // distant skyline beyond the city limits
 instBox(spAcc,accM[0]);instBox(winL,winLitM);instBox(winD,winDarkM);instBox(ribs,ribM);instBox(farI,farM);accs.forEach((arr,k)=>instBox(arr,accM[k]));
 const WE=N*BP/2+40;add(0,0,-WE,2*WE+20,260,10,white,'roof',1);add(0,0,WE,2*WE+20,260,10,white,'roof',1);add(-WE,0,0,10,260,2*WE,white,'roof',1);add(WE,0,0,10,260,2*WE,white,'roof',1); // city limits
-flushBatches();gridBuild();
+flushBatches();gridBuild();const anchorSet=new Set(anchors);
 // ---------- player ----------
 const r=.35,G=22,cityStart=new THREE.Vector3(startB.x,startB.ht+.02,startB.z+startB.d*.38),trainStart=new THREE.Vector3(TX-80,TY+.02,TZ+62),start=(tut.on?trainStart:cityStart).clone(),p=start.clone(),v=new THREE.Vector3(),respawn=start.clone();
 let yaw=tut.on?-Math.PI/2:0,pitch=0,h=1.8,ground=false,coyote=0,mom=0,slideT=0,rollT=0,wallT=1.6,climbT=1,wcd=0,roll=0,wallrun=false,wasWall=false,climbing=false,
@@ -654,7 +654,7 @@ function step(dt){
   }
   if(edge.rope&&gearOn&&!tut.on){
     if(rope){rope=null;ropeCool=.3}
-    else if(aim&&(ropeCool<=0||hasGear('quick'))){const L0=Math.hypot(aim.x-p.x,aim.y-(p.y+1.4),aim.z-p.z);rope={a:aim,L:L0,L0};ropeG=0;ropeLos=.15;slideT=rollT=0;tone(700,.08,'sawtooth',.1,1600);puff(2200,.1,.15)}
+    else if(aim&&anchorSet.has(aim)&&(ropeCool<=0||hasGear('quick'))){const L0=Math.hypot(aim.x-p.x,aim.y-(p.y+1.4),aim.z-p.z);rope={a:aim,L:L0,L0};ropeG=0;ropeLos=.15;slideT=rollT=0;tone(700,.08,'sawtooth',.1,1600);puff(2200,.1,.15)}
   }
   if(rope&&edge.jump){rope=null;ropeCool=hasGear('quick')?.1:.7;{const sc3=hasGear('sling')?1.3:1.06,sp9=Math.hypot(v.x,v.z);if(sp9>1){v.x*=sc3;v.z*=sc3}}v.y+=hasGear('sling')?7:4;edge.jump=false;flow=Math.min(1,flow+.06)}
   if(edge.respawn){const spx=tut.on?stagePos():null;p.copy(spx||start);respawn.copy(spx||start);safe.copy(spx||start);v.set(0,0,0);trial=null;toast('Back to the start roof')}
@@ -729,6 +729,7 @@ function step(dt){
       v.x=nx/nl*spd;v.y=ny/nl*spd;v.z=nz/nl*spd;glide=true;
     }
   }
+  if(rope&&!anchorSet.has(rope.a))rope=null;
   if(rope){
     ropeG=ground?ropeG+dt:0;if(ropeG>.5)rope=null;
   }
@@ -860,6 +861,9 @@ function pause(){
 }
 function menu(view,msg){
   ovEl.style.display='flex';
+  if(view==='help'){
+    P.innerHTML='<h2>How to play</h2><p>'+(set.touch?'<b>Left side</b> drag to move, <b>right side</b> drag to look, and the <b>UP</b>, <b>DOWN</b> and <b>EXTRA</b> buttons.':ACT.map(([a,l])=>'<b>'+lbl(set.binds[a])+'</b> '+l).join(' &middot; '))+'</p><p>Hold forward to build momentum. Vault crates by jumping into them, wall-run along walls at a shallow angle, wall-climb by facing a tall wall, slide with Down, roll by tapping Down just before a hard landing, and quick turn with Extra. Chain tricks to build flow and run faster. Break glass by hitting it at speed. Ladders climb when you walk in, pipes need a jump to grab. Mag rope: equip it in the inventory, draw it with the gear key, aim at a blue anchor orb and fire. Runner vision highlights what your objective needs. Green beacons start time trials (Interact).</p><button id=hb>Back</button>';
+    P.querySelector('#hb').onclick=()=>menu('main');return}
   if(view==='inv'){
     const row=g=>'<div class=gr><div><b>'+g[1]+'</b><br><small>'+g[2]+'</small></div><button data-g="'+g[0]+'" class="'+(hasGear(g[0])?'':'alt')+'">'+(hasGear(g[0])?'Equipped':'Equip')+'</button></div>';
     P.innerHTML='<h2>Inventory</h2><p>One main gear at a time. Add-ons only appear and work with the gear they belong to. Other gear: one per category.</p><h3>Main gear</h3>'+GEARS.filter(g=>g[3]==='main').map(g=>row(g)+(hasGear(g[0])?GEARS.filter(a2=>a2[4]===g[0]).map(a2=>'<div style="margin-left:1.2rem">'+row(a2)+'</div>').join(''):'')).join('')+['hands','feet','legs','back','belt'].map(c=>'<h3>'+c+'</h3>'+GEARS.filter(g=>g[3]===c).map(row).join('')).join('')+'<button id=ua class=alt>Unequip all</button><button id=ib>Back</button>';
@@ -883,12 +887,10 @@ function menu(view,msg){
     P.querySelector('#rst').onclick=()=>{set.binds={...DEF};save();menu('set')};
     P.querySelector('#bk').onclick=()=>menu('main');
   }else{
-    P.innerHTML=`<h1>SKYLINE <span>//</span> RUNNER</h1><p><b>${msg||(started?'Paused':'Run the rooftops. Stand on a green beacon and press Interact to start a time trial; blue beacons are checkpoints and the purple one is the finish.')}</b></p>
-    <p>${set.touch?'<b>Left side</b> drag to move · <b>right side</b> drag to look · <b>UP</b>, <b>DOWN</b> and <b>EXTRA</b> buttons':ACT.map(([a,l])=>`<b>${lbl(set.binds[a])}</b> ${l}`).join(' · ')}</p>
-    <p>Runner vision highlights what you need for the current trial or tutorial step. Chain tricks (vaults, wall-runs, hops, slides, rolls, ziplines) to build FLOW: your top speed climbs past 25 m/s. Run through glass at speed to shatter it. Equip the mag rope with F, aim at a blue anchor orb and press X (or click) to swing; Up lets go, forward reels in. Walk into ladders to climb; jump at pipes to grab on, then forward/back climbs, Down slides, Up lets go. Hold forward to build momentum. Run alongside <b style="color:var(--red)">walls</b> at a shallow angle to wall-run (gravity still pulls you down). Face a tall wall head-on mid-jump to wall-climb. Jump into crates to vault smoothly; hold jump while vaulting onto an <b style="color:#ff8a1f">orange springboard</b> to launch. Tap jump at a ledge to grab it (climbing grabs automatically). Press jump near a zipline wire (yellow posts) to ride it, and slide down slopes to build speed. Towers have interiors: use the orange pads under each floor hole. Drops over ~5 m hurt: tap <b>slide</b> just before landing to roll. R returns you to the street and cancels a trial.</p>
-    <button id=pl>${started&&!done?'Resume':'Run'}</button><button id=iv class=alt>Inventory</button><button id=st class=alt>Settings</button><button id=tg class=alt>Training grounds</button><button id=cg class=alt>City start</button><button id=tu class=alt>Tutorial: ${tut.on?'on':'off'}</button>${tut.on?'<button id=ts class=alt>Skip tutorial step</button>':''}${trial?'<button id=tr class=alt>Restart trial</button><button id=te class=alt>End trial</button>':''}<button id=vs class=alt>Runner vision: ${set.vision?'on':'off'}</button><button id=rt class=alt>Return to start roof</button>${started?'<button id=rs class=alt>Restart</button>':''}
+    P.innerHTML=`<h1>SKYLINE <span>//</span> RUNNER</h1><p><b>${msg||(started?'Paused':'Ready to run')}</b></p>
+    <button id=pl>${started&&!done?'Resume':'Run'}</button><button id=hp class=alt>How to play</button><button id=iv class=alt>Inventory</button><button id=st class=alt>Settings</button><button id=tg class=alt>Training grounds</button><button id=cg class=alt>City start</button><button id=tu class=alt>Tutorial: ${tut.on?'on':'off'}</button>${tut.on?'<button id=ts class=alt>Skip tutorial step</button>':''}${trial?'<button id=tr class=alt>Restart trial</button><button id=te class=alt>End trial</button>':''}<button id=vs class=alt>Runner vision: ${set.vision?'on':'off'}</button><button id=rt class=alt>Return to start roof</button>${started?'<button id=rs class=alt>Restart</button>':''}
     <p><small>Runner bags ${bagCount}/${bags.length} · ${storageOK?'gear, bags and trial times are saved in this browser':'saving is blocked in this browser'}</small></p><h3>Time trials</h3><ol>${trials.map(t=>'<li>'+t.name+' · gold '+t.gold.toFixed(0)+'s · best '+(tb[t.name]?tb[t.name].toFixed(1)+'s':'--')+'</li>').join('')}</ol>`;
-    P.querySelector('#pl').onclick=play;P.querySelector('#st').onclick=()=>menu('set');P.querySelector('#iv').onclick=()=>menu('inv');
+    P.querySelector('#pl').onclick=play;P.querySelector('#st').onclick=()=>menu('set');P.querySelector('#iv').onclick=()=>menu('inv');P.querySelector('#hp').onclick=()=>menu('help');
     P.querySelector('#vs').onclick=()=>{set.vision=!set.vision;setVision();save();menu('main')};
     P.querySelector('#rt').onclick=()=>{p.copy(start);respawn.copy(start);safe.copy(start);v.set(0,0,0);trial=null;menu('main')};
     P.querySelector('#tu').onclick=()=>{tut.on=!tut.on;if(tut.on){tut.done={};tut.ev={}}else{try{localStorage.setItem('sr_tut','1')}catch(e){}}menu('main')};
@@ -1133,7 +1135,7 @@ function drawCompass(){
 const ropeMesh=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,1,6),new THREE.MeshBasicMaterial({color:0x2aa8ff})),aimRing=new THREE.Mesh(new THREE.TorusGeometry(1.1,.07,6,20),new THREE.MeshBasicMaterial({color:0x2aa8ff,transparent:true,opacity:.9,depthTest:false})),upV=new THREE.Vector3(0,1,0),tmpD=new THREE.Vector3();
 ropeMesh.visible=false;aimRing.visible=false;aimRing.renderOrder=5;S.add(ropeMesh);S.add(aimRing);
 function gearTick(){
-  aimRing.visible=!!(gearOn&&aim&&!rope&&playing);if(aimRing.visible){aimRing.position.copy(aim);aimRing.lookAt(C.position)}
+  aimRing.visible=!!(gearOn&&aim&&anchorSet.has(aim)&&!rope&&playing);if(aimRing.visible){aimRing.position.copy(aim);aimRing.lookAt(C.position)}
   ropeMesh.visible=!!(rope&&playing);
   if(rope){const hx=p.x+Math.cos(yaw)*.3,hy=p.y+1.15,hz=p.z-Math.sin(yaw)*.3,dx=rope.a.x-hx,dy=rope.a.y-hy,dz=rope.a.z-hz,L=Math.hypot(dx,dy,dz)||1;ropeMesh.position.set(hx+dx/2,hy+dy/2,hz+dz/2);ropeMesh.scale.set(1,L,1);tmpD.set(dx/L,dy/L,dz/L);ropeMesh.quaternion.setFromUnitVectors(upV,tmpD)}
   document.body.classList.toggle('geared',gearOn);
