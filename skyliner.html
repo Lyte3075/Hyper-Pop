@@ -871,7 +871,7 @@ function step(dt){
       if(campaignRun.step>=m.route.length){
         selectedCampaign=campaignRun.index;
         if(!completedCampaign.includes(campaignRun.index))completedCampaign.push(campaignRun.index);
-        saveCampaign();const last=campaignRun.index===CAMPAIGN.length-1;campaignRun=null;playing=false;touchUI.style.display='none';toast('MISSION COMPLETE');menu(last?'ending':'chapterComplete');
+        saveCampaign();const last=campaignRun.index===CAMPAIGN.length-1;campaignRun=null;playing=false;touchUI.style.display='none';mouseFallback=false;mouseArmed=false;mouseStickX=mouseStickY=0;mouseAim.style.display='none';document.body.classList.remove('mouse-look');toast('MISSION COMPLETE');menu(last?'ending':'chapterComplete');
       }else{const line=m.radio[Math.min(campaignRun.step-1,m.radio.length-1)];toast(line);toastT=4}
     }
   }
@@ -927,9 +927,9 @@ function menu(view,msg){
     P.innerHTML='<h2>Runner identity</h2><p>Customize your Runner. Appearance and presets save in this browser.</p><label>Runner name<input id="charName" maxlength="18" value="'+c.name.replace(/["&<>]/g,'')+'"></label><label>Outfit color<input id="outfitColor" type="color" value="'+c.outfit+'"></label><label>Accent color<input id="accentColor" type="color" value="'+c.accent+'"></label><label>Style<select id="charStyle"><option value="athletic" '+(c.style==='athletic'?'selected':'')+'>Athletic</option><option value="stealth" '+(c.style==='stealth'?'selected':'')+'>Stealth</option><option value="urban" '+(c.style==='urban'?'selected':'')+'>Urban</option><option value="tech" '+(c.style==='tech'?'selected':'')+'>Tech</option></select></label><button id="saveChar">Save appearance</button><h3>Presets</h3><label>Preset name<input id="presetName" maxlength="22" placeholder="My Runner"></label><button id="savePreset">Save preset</button><div id="presetList"></div><button id="charBack" class="alt">Back</button>';
     const sync=()=>{character={name:P.querySelector('#charName').value.trim().slice(0,18)||'R-17',outfit:P.querySelector('#outfitColor').value,accent:P.querySelector('#accentColor').value,style:P.querySelector('#charStyle').value};saveCharacter();applyCharacterLook()};
     P.querySelector('#saveChar').onclick=()=>{sync();menu('character')};
-    P.querySelector('#savePreset').onclick=()=>{sync();const n=P.querySelector('#presetName').value.trim();if(!n){toast('Name your preset');return}characterPresets=characterPresets.filter(x=>x.name!==n);characterPresets.push({name:n,...character});saveCharacter();menu('character')};
-    P.querySelector('#presetList').innerHTML=characterPresets.map((x,i)=>'<div class="gr"><div><b>'+x.name.replace(/[&<>]/g,'')+'</b><br><small>'+x.style.toUpperCase()+'</small></div><button data-load-preset="'+i+'">Load</button><button data-del-preset="'+i+'" class="alt">Delete</button></div>').join('')||'<p>No presets saved yet.</p>';
-    P.querySelectorAll('[data-load-preset]').forEach(b=>b.onclick=()=>{character={...character,...characterPresets[+b.dataset.loadPreset]};saveCharacter();applyCharacterLook();menu('character')});
+    P.querySelector('#savePreset').onclick=()=>{sync();const n=P.querySelector('#presetName').value.trim();if(!n){toast('Name your preset');return}characterPresets=characterPresets.filter(x=>x.label!==n);characterPresets.push({label:n,character:{...character}});saveCharacter();menu('character')};
+    P.querySelector('#presetList').innerHTML=characterPresets.map((x,i)=>'<div class="gr"><div><b>'+x.label.replace(/[&<>]/g,'')+'</b><br><small>'+x.character.style.toUpperCase()+'</small></div><button data-load-preset="'+i+'">Load</button><button data-del-preset="'+i+'" class="alt">Delete</button></div>').join('')||'<p>No presets saved yet.</p>';
+    P.querySelectorAll('[data-load-preset]').forEach(b=>b.onclick=()=>{character={...character,...characterPresets[+b.dataset.loadPreset].character};saveCharacter();applyCharacterLook();menu('character')});
     P.querySelectorAll('[data-del-preset]').forEach(b=>b.onclick=()=>{characterPresets.splice(+b.dataset.delPreset,1);saveCharacter();menu('character')});
     P.querySelector('#charBack').onclick=()=>menu('main');return
   }
@@ -1066,7 +1066,7 @@ function mkLeg(sx){
   ft.position.y=-.42;kn.add(ft);bx(ft,.15,.09,.3,0,-.03,-.08,mSh);bx(ft,.152,.03,.31,0,-.08,-.08,mSo);bodyRoot.add(hip);return{hip,kn};
 }
 const aL=mkArm(-1),aR=mkArm(1),lL=mkLeg(-1),lR=mkLeg(1);const armRoot=new THREE.Group();armRoot.add(aL.sh,aR.sh);FS.add(armRoot);const gadget=new THREE.Mesh(new THREE.BoxGeometry(.07,.05,.13),new THREE.MeshLambertMaterial({color:0x2aa8ff}));gadget.position.set(0,.045,-.05);aR.hd.add(gadget);gadget.visible=false;
-function applyCharacterLook(){mJa.color.set(character.outfit||'#252b32');mTr.color.set(character.accent||'#e5242b')}
+function applyCharacterLook(){mJa.color.set(character.outfit||'#252b32');mTr.color.set(character.accent||'#e5242b');mPa.color.set(({athletic:'#3a434a',stealth:'#151b22',urban:'#626b72',tech:'#1f4058'})[character.style]||'#3a434a')}
 applyCharacterLook();
 const mFab=fm(0x1d2a33),wingFab=[aL,aR].map((w,i)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(.5,.012,.8),mFab);m.position.set((i?1:-1)*.16,0,.18);m.visible=false;w.sh.add(m);return m}),zipBar=new THREE.Mesh(new THREE.BoxGeometry(.55,.035,.035),mGl);zipBar.position.set(0,.27,-.58);zipBar.visible=false;FS.add(zipBar);
 const AJ=['x','y','z','e','f','hx','hy','hz','g','p'],JK=[...AJ.map(k=>k+'L'),...AJ.map(k=>k+'R'),'hpL','knL','hpR','knR','lean','by','px','py'],J={};JK.forEach(k=>J[k]=0);J.px=.33;J.py=-.27;
