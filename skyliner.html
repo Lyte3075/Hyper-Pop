@@ -133,7 +133,7 @@ let completedCampaign=[];try{completedCampaign=JSON.parse(localStorage.getItem('
 let unlockedGear=[];try{unlockedGear=JSON.parse(localStorage.getItem('rr_gear_unlocked')||'[]')}catch(e){}
 let currency=0;try{currency=Math.max(0,+localStorage.getItem('rr_currency')||0)}catch(e){}
 let delivery=null,deliveryIndex=0,completedDeliveries=[];try{completedDeliveries=JSON.parse(localStorage.getItem('rr_deliveries')||'[]')}catch(e){}
-const GEAR_REWARDS=[['rope','gloves'],['dash','shoes','winch','quick'],['wingsuit','soles','thrust','stable'],['sling','flare','long','twin'],['charge','grips','cutter'],['boots','knees','turner','stride'],['patch','armor','band'],['magnet','cells','aero']];
+const GEAR_REWARDS=[['rope','gloves'],['winch','quick','dash','shoes'],['sling','wingsuit','aero','thrust','stable','flare','soles'],['twin','long','charge'],['grips','cutter','boots'],['knees','turner','stride'],['patch','armor','band'],['magnet','cells']];
 function syncProgressUnlocks(){const next=[];completedCampaign.forEach(i=>{(GEAR_REWARDS[i]||[]).forEach(k=>{if(!next.includes(k))next.push(k)})});unlockedGear=next;try{localStorage.setItem('rr_gear_unlocked',JSON.stringify(unlockedGear));localStorage.setItem('rr_trial_unlocked',String(Math.min(trials.length,3+completedCampaign.length*2)))}catch(e){}}
 function trialUnlocked(t){let n=3;try{n=Math.max(3,Math.min(trials.length,+localStorage.getItem('rr_trial_unlocked')||3))}catch(e){}return trials.indexOf(t)<n}
 function saveCurrency(){try{localStorage.setItem('rr_currency',String(currency));localStorage.setItem('rr_deliveries',JSON.stringify(completedDeliveries))}catch(e){toast('Currency saving unavailable')}}
@@ -519,6 +519,7 @@ function makeStoryActor(name,color,enemy){const g=new THREE.Group(),body=new THR
 STORY_CAST.forEach(a=>storyActors.push(makeStoryActor(a[0],a[1],false)));for(let i=0;i<5;i++)campaignEnemies.push(makeStoryActor('AETHER PURSUIT '+(i+1),0x252b32,true));
 function campaignActorsTick(dt){storyActors.forEach(a=>a.group.visible=false);campaignEnemies.forEach(a=>a.group.visible=false);if(!campaignRun)return;const ci=campaignRun.index,m=CAMPAIGN[ci],q=m.route[Math.max(0,campaignRun.step-1)],ally=storyActors.find(a=>a.name===({0:'Mara Voss',2:'Kade Mercer',3:'Dr. Imani Vale',5:'Elias Renn'}[ci]||'Mara Voss'));if(ally){ally.group.visible=true;ally.group.position.set(q.x+5,q.y,q.z+3)}const count=ci===0?1:ci<4?2:ci<7?3:5;for(let i=0;i<count;i++){const e=campaignEnemies[i];e.group.visible=true;if(!e.started){e.started=true;e.group.position.set(q.x+13+i*5,q.y,q.z+(i%2?12:-12))}const dx=p.x-e.group.position.x,dz=p.z-e.group.position.z,d=Math.hypot(dx,dz)||1;e.hit=Math.max(0,e.hit-dt);if(d>2){const speed=ci===0?3.4:5.2+i*.25;e.group.position.x+=dx/d*speed*dt;e.group.position.z+=dz/d*speed*dt;e.group.position.y+=(q.y-e.group.position.y)*Math.min(1,dt*2);e.group.rotation.y=Math.atan2(dx,dz)}if(d<1.6&&e.hit<=0){e.hit=2.5;hurt(ci>=4?12:7,false);v.x-=dx/d*4;v.z-=dz/d*4;toast('AETHER PURSUIT · BREAK LINE OF SIGHT')}}}
 const deliverySites=CAMPAIGN.map(m=>m.route[m.route.length-1].clone());
+const deliveryBeacons=deliverySites.map((q,i)=>{const g=new THREE.Group(),ring=new THREE.Mesh(new THREE.TorusGeometry(2.1,.16,8,28),new THREE.MeshBasicMaterial({color:0x1fd16b})),beam=new THREE.Mesh(new THREE.CylinderGeometry(.18,.55,5,8,1,true),new THREE.MeshBasicMaterial({color:0x1fd16b,transparent:true,opacity:.22,depthWrite:false}));ring.rotation.x=Math.PI/2;ring.position.y=1.1;beam.position.y=2.5;g.add(ring,beam);g.position.set(q.x,q.y,q.z);S.add(g);return g});
 function sideDeliveryInteract(){if(!playing||campaignRun||trial)return false;if(!delivery){const from=deliverySites[deliveryIndex%deliverySites.length],q=deliverySites[(deliveryIndex+1)%deliverySites.length];if(Math.hypot(p.x-from.x,p.z-from.z)<5){delivery={index:deliveryIndex%deliverySites.length,target:q.clone(),reward:120+deliveryIndex*20};toast('PACKAGE PICKED UP · RUN TO THE GREEN DROP BEACON');chime();return true}}return false}
 function deliveryTick(){if(!delivery)return;const q=delivery.target;if(Math.hypot(p.x-q.x,p.z-q.z)<4.5&&p.y>q.y-5&&p.y<q.y+40){currency+=delivery.reward;completedDeliveries.push(delivery.index);deliveryIndex++;saveCurrency();toast('DELIVERY COMPLETE · +'+delivery.reward+' CREDITS');delivery=null;chime()}}
 let campaignRun=null,campaignTutorialWasOn=null;
@@ -1231,7 +1232,7 @@ function objective(){
   if(campaignRun){const q=CAMPAIGN[campaignRun.index].route[campaignRun.step];if(q)return[q.x,q.z,'#e5242b']}
   if(trial){const q=trial.t.pts[trial.i];return[q.x,q.z,'#2aa8ff']}
   if(tut.on){const j=TS.findIndex(t=>!tut.done[t[0]]),q=j>=0?WP[TS[j][0]]:null;if(q)return[TX+q[0],TZ+q[1],'#2aa8ff']}
-  let best=null,bd=1e9;for(const t of trials){const q=t.pts[0],dd=Math.hypot(q.x-p.x,q.z-p.z);if(dd<bd){bd=dd;best=[q.x,q.z,'#1fd16b']}}return best;
+  if(!campaignRun&&!trial&&!tut.on&&deliverySites.length){const q=deliverySites[deliveryIndex%deliverySites.length];return[q.x,q.z,'#1fd16b']}\n  let best=null,bd=1e9;for(const t of trials){if(!trialUnlocked(t))continue;const q=t.pts[0],dd=Math.hypot(q.x-p.x,q.z-p.z);if(dd<bd){bd=dd;best=[q.x,q.z,'#1fd16b']}}return best;
 }
 function drawCompass(){
   const W=720,c=cmpX;c.clearRect(0,0,W,52);if(!playing)return;
@@ -1325,7 +1326,7 @@ function visionTick(dt,now){
       for(const b of boxesIn(p.x,p.z,96).concat(cbox)){if(b.tag!=='crate'&&b.tag!=='wall'&&b.tag!=='spring'&&b.tag!=='pad')continue;
         const cx=(b.min.x+b.max.x)/2,cz=(b.min.z+b.max.z)/2,t=Math.max(0,Math.min(1,((cx-sx)*dx+(cz-sz)*dz)/L2)),qx=sx+dx*t-cx,qz=sz+dz*t-cz,dd=qx*qx+qz*qz;
         if(dd<100&&Math.abs(cx-sx)<90&&Math.abs(cz-sz)<90&&Math.abs((b.min.y+b.max.y)/2-p.y)<30)list.push([dd,b])}
-    }else if(tut.on){ // tutorial: the props for the step you are on
+    }else if(campaignRun){ // campaign Runner's Vision guides through route hazards\n      const route=CAMPAIGN[campaignRun.index].route,q=route[Math.min(route.length-1,campaignRun.step)],sx=p.x,sz=p.z,dx=q.x-sx,dz=q.z-sz,L2=dx*dx+dz*dz||1;\n      for(const b of boxesIn(p.x,p.z,105).concat(cbox)){if(!['crate','wall','spring','pad','ladder','pipe'].includes(b.tag))continue;const cx=(b.min.x+b.max.x)/2,cz=(b.min.z+b.max.z)/2,t=Math.max(0,Math.min(1,((cx-sx)*dx+(cz-sz)*dz)/L2)),ox=sx+dx*t-cx,oz=sz+dz*t-cz,dd=ox*ox+oz*oz;if(dd<125&&Math.abs(cx-sx)<100&&Math.abs(cz-sz)<100&&Math.abs((b.min.y+b.max.y)/2-p.y)<35)list.push([dd,b])}\n    }else if(tut.on){ // tutorial: the props for the step you are on
       const i=TS.findIndex(t=>!tut.done[t[0]]),st=i>=0?ST[TS[i][0]]:null;
       if(st){const ax=TX+st[0],az=TZ+st[1];
         for(const b of boxesIn(ax,az,20).concat(cbox)){if(b.tag==='roof'||b.tag==='tfloor'||b.max.y<TY-.1)continue;const cx=(b.min.x+b.max.x)/2,cz=(b.min.z+b.max.z)/2,dd=(cx-ax)*(cx-ax)+(cz-az)*(cz-az);if(dd<225)list.push([dd,b])}}
