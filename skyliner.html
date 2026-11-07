@@ -1044,7 +1044,7 @@ function menu(view,msg){
   }
   if(view==='campaign'){
     const trainingDone=localStorage.getItem('sr_tut')==='1';
-    const trainingRow='<div class="chapter-row"><div><b>TUTORIAL · TRAINING</b><small>TRAINING TOWER · '+(trainingDone?'COMPLETED':'REQUIRED BEFORE CHAPTER 1')+'</small></div><button class="alt" id="campaignTut">'+(trainingDone?'REPLAY':'START TUTORIAL')+'</button></div>';
+    const trainingRow='<div class="chapter-row"><div><b>00 · TRAINING</b><small>TRAINING TOWER · '+(trainingDone?'COMPLETED':'REQUIRED BEFORE CHAPTER 1')+'</small></div><button class="alt" id="campaignTut">'+(trainingDone?'REPLAY':'START TUTORIAL')+'</button></div>';
     const rows=CAMPAIGN.map((m,i)=>{const unlocked=trainingDone&&(i===0||completedCampaign.includes(i-1)),done=completedCampaign.includes(i);return '<div class="chapter-row"><div><b>'+m.title+'</b><small>'+m.location+' · '+(done?'COMPLETED':unlocked?'AVAILABLE':'LOCKED')+'</small></div><button class="alt" data-chapter="'+i+'" '+(unlocked?'':'disabled')+'>'+(done?'REPLAY':unlocked?'BRIEFING':'LOCKED')+'</button></div>'}).join('');
     P.innerHTML='<h2>SKYLINER · CAMPAIGN</h2><p>2097 · VEYRA. The rooftops are the last place AETHER struggles to watch.</p><div class="chapter-list">'+trainingRow+rows+'</div><p><small>'+completedCampaign.length+'/'+CAMPAIGN.length+' CHAPTERS COMPLETE · '+(trainingDone?'TRAINING COMPLETE':'TRAINING NOT COMPLETE')+'</small></p><button id="campaignBack" class="alt">Back</button>';
     P.querySelector('#campaignTut').onclick=()=>{tut.on=true;tut.done={};tut.ev={};start.copy(trainStart);p.copy(trainStart);respawn.copy(trainStart);safe.copy(trainStart);v.set(0,0,0);mom=0;campaignRun=null;play()};
