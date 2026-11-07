@@ -194,7 +194,7 @@ function musicTick(dt,sp){
   if(mSwitchT<=0){mSwitchT=2;const w=wantDist();if(w!==mDist&&mBlock<=0&&!mSwap){mDist=w;mPl=0;mSwap=true;mGo(PL[w][0])}}
 }
 // ---------- scene ----------
-const mobileRender=matchMedia('(max-width: 800px), (pointer: coarse)').matches;const R=new THREE.WebGLRenderer({antialias:!mobileRender,powerPreference:'high-performance',alpha:false,stencil:false,depth:true});R.setSize(innerWidth,innerHeight);R.setPixelRatio(Math.min(devicePixelRatio,mobileRender?1.15:1.6));document.body.appendChild(R.domElement);
+const mobileRender=matchMedia('(max-width: 800px), (pointer: coarse)').matches;const R=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance',alpha:false,stencil:false,depth:true});R.setSize(innerWidth,innerHeight);R.setPixelRatio(Math.min(devicePixelRatio,2));document.body.appendChild(R.domElement);
 const S=new THREE.Scene();S.background=new THREE.Color(0xcfe3f2);S.fog=new THREE.Fog(0xcfe3f2,140,1200);
 const C=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,2200);
 const hemi=new THREE.HemisphereLight(0xffffff,0xb8c4cc,.95);S.add(hemi);
