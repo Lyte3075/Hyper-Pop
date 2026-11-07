@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><title>Skyline // Runner</title>
+<html lang="en"><head><meta charset="utf-8"><title>SKYLINER</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{--bg:rgba(240,246,250,.95);--fg:#1d2a33;--red:#e5242b;--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px)}
@@ -13,7 +13,7 @@ canvas{display:block;touch-action:none}
 #hurt{position:fixed;inset:0;pointer-events:none;background:radial-gradient(transparent 40%,rgba(229,36,43,.7));opacity:0}
 #toast{position:fixed;top:14%;left:0;right:0;text-align:center;font-weight:800;font-size:1.7rem;color:var(--red);text-shadow:0 0 .5rem #fff;pointer-events:none;opacity:0;transition:opacity .4s;padding:0 1rem}
 #ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--fg);text-align:center;z-index:5;touch-action:pan-y}
-#panel{width:min(94vw,36rem);max-height:94vh;max-height:94dvh;overflow:auto;padding:1.2rem 1.5rem;box-sizing:border-box;-webkit-overflow-scrolling:touch}
+#panel{width:min(96vw,58rem);max-height:94vh;max-height:94dvh;overflow:auto;padding:1.2rem 1.5rem;box-sizing:border-box;-webkit-overflow-scrolling:touch}
 h1{margin:0 0 .5rem;font-size:2.6rem;letter-spacing:.04em}h1 span{color:var(--red)}h2,h3{margin:.6rem 0;font-size:1.4rem}h3{font-size:1.2rem}
 p{margin:.45rem 0;font-size:1rem;line-height:1.4}
 button{background:var(--red);color:#fff;border:0;border-radius:.45rem;padding:.6rem 1.3rem;margin:.3rem;font-size:1.1rem;min-height:2.6rem;font-weight:700;cursor:pointer;touch-action:manipulation}
@@ -60,13 +60,38 @@ ol{color:#2b343a}
 .eq{display:none}body.geared .eq{display:flex}
 #cmp{position:fixed;top:calc(.5rem + var(--st));left:50%;transform:translateX(-50%);width:min(58vw,28rem);height:auto;pointer-events:none;z-index:2}
 #tut{top:calc(4.4rem + var(--st))}
-.gr{display:flex;justify-content:space-between;align-items:center;gap:.8rem;border-bottom:1px solid #d9dee1;padding:.55rem 0}.gr small{color:#58636a}
+.gr{display:flex;justify-content:space-between;align-items:center;gap:.8rem;border-bottom:1px solid #d9dee1;padding:.42rem 0}.gr>div{min-width:0;flex:1}.gr small{color:#58636a;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.2}.gear-addons{margin:.12rem 0 .45rem 1rem;padding:.15rem .65rem;border-left:2px solid rgba(91,107,117,.35);text-align:left}.gear-addons summary{cursor:pointer;font-size:.78rem;font-weight:800;letter-spacing:.07em;color:#65727a;padding:.3rem 0;list-style-position:inside}.gear-addons .gr{padding:.25rem 0}.gear-addons .gr small{-webkit-line-clamp:1}.gear-addons button{font-size:.85rem;min-height:1.9rem;padding:.25rem .65rem;margin:.15rem}
 #bi2{top:calc(2vmin + var(--st));right:calc(41vmin + var(--sr));width:11vmin;height:11vmin;font-size:max(.7rem,2.2vmin)}
-</style></head><body>
-<div id="dot"></div><div id="vig"></div><div id="hurt"></div><div id="hud"></div><div id="toast"></div><div id="tut"></div><div id="prompt"></div><canvas id="cmp" width="720" height="52"></canvas><canvas id="mm" width="176" height="176"></canvas>
-<div id="ov"><div id="panel"></div></div>
+#prompt{width:min(90vw,34rem);white-space:normal;line-height:1.45;text-align:center}
+#mouseAim{position:fixed;inset:0;z-index:4;pointer-events:none;display:none}
+#mouseRing{position:absolute;left:50%;top:50%;width:84px;height:84px;transform:translate(-50%,-50%);border:2px solid rgba(229,36,43,.8);border-radius:50%;box-shadow:0 0 0 1px rgba(255,255,255,.7),0 0 18px rgba(229,36,43,.25)}
+#mouseDot{position:absolute;width:9px;height:9px;margin:-4.5px;border-radius:50%;background:#e5242b;box-shadow:0 0 0 2px white}
+#mouseHint{position:absolute;top:calc(50% + 58px);left:50%;transform:translateX(-50%);background:rgba(20,24,27,.82);color:white;padding:.4rem .7rem;font-size:.72rem;letter-spacing:.12em;white-space:nowrap}
+body.mouse-look,body.mouse-look canvas{cursor:none!important}
+.story-copy{max-width:42rem;margin:.5rem auto 1rem;line-height:1.55}
+.chapter-list{display:grid;grid-template-columns:1fr;gap:.25rem;text-align:left}
+.chapter-row{display:flex;justify-content:space-between;align-items:center;gap:.6rem;border-bottom:1px solid #d9dee1;padding:.35rem 0}
+.chapter-row small{display:block;color:#65727a}
+</style><script>
+(function(){
+  function showStartupError(message){
+    try{
+      var panel=document.getElementById('panel');
+      var overlay=document.getElementById('ov');
+      if(!panel)return;
+      if(overlay)overlay.style.display='flex';
+      panel.innerHTML='<h1>SKY<span>LINER</span></h1><h2>Startup error</h2><p>The menu could not initialize. Please send this error:</p><pre style="white-space:pre-wrap;overflow-wrap:anywhere;text-align:left;font-size:.85rem">'+String(message).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})+'</pre><button onclick="location.reload()">Reload game</button>';
+    }catch(e){}
+  }
+  window.addEventListener('error',function(e){var d=(e.message||'Unknown JavaScript error')+'\\nSource: '+(e.filename||'(source hidden by browser)')+':'+(e.lineno||0)+':'+(e.colno||0);if(e.error&&e.error.stack)d+='\\n'+e.error.stack;showStartupError(d);},true);
+  window.addEventListener('unhandledrejection',function(e){showStartupError('Unhandled promise rejection: '+(e.reason&&e.reason.stack||e.reason||'unknown'));});
+})();
+</script>
+</head><body>
+<div id="dot"></div><div id="mouseAim"><div id="mouseRing"></div><div id="mouseDot"></div><div id="mouseHint">MOVE CURSOR INTO THE CENTER RING TO ARM CAMERA</div></div><div id="vig"></div><div id="hurt"></div><div id="hud"></div><div id="toast"></div><div id="tut"></div><div id="prompt"></div><canvas id="cmp" width="720" height="52"></canvas><canvas id="mm" width="176" height="176"></canvas>
+<div id="ov"><div id="panel"><h1>SKY<span>LINER</span></h1><p><b>Ready to run</b></p><p>Loading runner interface…</p><noscript><p>JavaScript is required to play SKYLINER.</p></noscript></div></div>
 <div id="touch"><div id="jb"><div id="jk"></div></div><div class="tb" id="bj" data-t="jump">UP</div><div class="tb" id="bs" data-t="slide">DOWN</div><div class="tb" id="bt" data-t="turn">EXTRA</div><div class="tb" id="bg" data-t="gear">GEAR</div><div class="tb eq" id="bro" data-t="rope">ROPE</div><div class="tb" id="bi" data-t="interact">INTERACT</div><div class="tb" id="bv" data-t="vision">VIS</div><div class="tb" id="br" data-t="respawn">RESET</div><div class="tb sm" id="btr" data-t="trialRestart">REDO</div><div class="tb sm" id="bte" data-t="trialEnd">END</div><div class="tb" id="bp" data-t="pause">II</div></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous"></script>
 <script>
 // ---------- settings ----------
 const ACT=[['fwd','Forward'],['back','Back'],['left','Left'],['right','Right'],['jump','Up (jump, kick-off)'],['slide','Down (slide, roll, drop)'],['turn','Extra (quick turn)'],['vision','Runner vision'],['respawn','Respawn'],['interact','Interact (start trial)'],['trialRestart','Restart trial'],['trialEnd','End trial'],['tskip','Skip tutorial step'],['gear','Draw / stow rope'],['rope','Fire / release rope']];
@@ -74,10 +99,11 @@ const DEF={fwd:'KeyW',back:'KeyS',left:'KeyA',right:'KeyD',jump:'Space',slide:'C
 const isTouch=(typeof matchMedia==='function'&&matchMedia('(pointer:coarse)').matches)||'ontouchstart' in window;
 let set={sens:1,fov:75,vol:.7,bob:1,invY:false,vision:true,body:true,mm:true,mus:.5,cycle:true,weather:true,gear:{},touch:isTouch,binds:{...DEF}};
 try{const s=JSON.parse(localStorage.getItem('rr_set'));if(s)set={...set,...s,binds:{...DEF,...s.binds}}}catch(e){}
-if(set.gv!==4){set.gear={};set.gv=4}
+if(set.gv!==5){set.gear={};set.gv=5}
 const save=()=>{try{localStorage.setItem('rr_set',JSON.stringify(set))}catch(e){}};
 const storageOK=(()=>{try{localStorage.setItem('sr_t','1');localStorage.removeItem('sr_t');return true}catch(e){return false}})();
-const hasGear=k=>!!(set.gear&&set.gear[k]),GEARS=[
+function isGearUnlocked(k){return unlockedGear.includes(k)}
+const hasGear=k=>!!(set.gear&&set.gear[k]&&isGearUnlocked(k)),GEARS=[
 ['rope','Mag rope','MAIN GEAR. Fire ONLY at the blue anchor orbs (roof posts, avenue pylons, spires, under bridges) and swing. Draw it with the gear key, fire with X or click.','main'],
 ['winch','Rope winch','Mag rope add-on: reels in faster and reaches further.','addon','rope'],
 ['quick','Quick draw','Mag rope add-on: no re-fire delay and a wider aim cone.','addon','rope'],
@@ -107,6 +133,7 @@ const hasGear=k=>!!(set.gear&&set.gear[k]),GEARS=[
 ['cells','Pick-up cells','Medkits and flow cells give much more.','belt']];
 function toggleGear(k){
   set.gear=set.gear||{};const g=GEARS.find(x=>x[0]===k);if(!g)return;
+  if(!isGearUnlocked(k)){toast('LOCKED · COMPLETE CAMPAIGN CHAPTERS');return}
   const off=key=>{set.gear[key]=false;if(key==='rope'){gearOn=false;rope=null}if(key==='wingsuit')wingOn=false};
   if(set.gear[k]){off(k);if(g[3]==='main')for(const o of GEARS)if(o[4]===k)set.gear[o[0]]=false;save();return}
   if(g[3]==='addon'){if(!set.gear[g[4]]){toast('Equip '+GEARS.find(x=>x[0]===g[4])[1]+' first');return}set.gear[k]=true;save();return}
@@ -115,6 +142,21 @@ function toggleGear(k){
   set.gear[k]=true;save();
 }
 let times=[];try{times=JSON.parse(localStorage.getItem('rr_times'))||[]}catch(e){}
+let character={name:'R-17',outfit:'#252b32',accent:'#e5242b',style:'athletic'},characterPresets=[];
+try{character={...character,...JSON.parse(localStorage.getItem('rr_character')||'{}')};characterPresets=JSON.parse(localStorage.getItem('rr_character_presets')||'[]')}catch(e){}
+let completedCampaign=[];try{completedCampaign=JSON.parse(localStorage.getItem('rr_campaign_completed')||'[]')}catch(e){}
+let unlockedGear=[];try{unlockedGear=JSON.parse(localStorage.getItem('rr_gear_unlocked')||'[]')}catch(e){}
+let currency=0;try{currency=Math.max(0,+localStorage.getItem('rr_currency')||0)}catch(e){}
+let delivery=null,deliveryIndex=0,completedDeliveries=[];try{completedDeliveries=JSON.parse(localStorage.getItem('rr_deliveries')||'[]')}catch(e){}
+const GEAR_REWARDS=[['rope','gloves'],['winch','quick','dash','shoes'],['sling','wingsuit','aero','thrust','stable','flare','soles'],['twin','long','charge'],['grips','cutter','boots'],['knees','turner','stride'],['patch','armor','band'],['magnet','cells']];
+function syncProgressUnlocks(){const next=[];completedCampaign.forEach(i=>{(GEAR_REWARDS[i]||[]).forEach(k=>{if(!next.includes(k))next.push(k)})});unlockedGear=next;try{localStorage.setItem('rr_gear_unlocked',JSON.stringify(unlockedGear));localStorage.setItem('rr_trial_unlocked',String(Math.min(trials.length,3+completedCampaign.length*2)))}catch(e){}}
+function trialUnlocked(t){let n=3;try{n=Math.max(3,Math.min(trials.length,+localStorage.getItem('rr_trial_unlocked')||3))}catch(e){}return trials.indexOf(t)<n}
+function saveCurrency(){try{localStorage.setItem('rr_currency',String(currency));localStorage.setItem('rr_deliveries',JSON.stringify(completedDeliveries))}catch(e){toast('Currency saving unavailable')}}
+let campaignEnding=localStorage.getItem('rr_campaign_ending')||null,selectedCampaign=0;
+let goldUnlock=[];try{goldUnlock=JSON.parse(localStorage.getItem('rr_trial_gold')||'[]')}catch(e){}
+let platinumUnlock=[];try{platinumUnlock=JSON.parse(localStorage.getItem('rr_trial_platinum')||'[]')}catch(e){}
+function saveCharacter(){try{localStorage.setItem('rr_character',JSON.stringify(character));localStorage.setItem('rr_character_presets',JSON.stringify(characterPresets))}catch(e){toast('Character saving unavailable')}}
+function saveCampaign(){try{localStorage.setItem('rr_campaign_completed',JSON.stringify(completedCampaign));if(campaignEnding)localStorage.setItem('rr_campaign_ending',campaignEnding)}catch(e){}syncProgressUnlocks()}
 const lbl=c=>c.replace(/^Key|^Digit/,'').replace('Left',' L').replace('Right',' R');
 const tut={on:(()=>{try{return localStorage.getItem('sr_tut')!=='1'}catch(e){return true}})(),done:{},ev:{}};
 
@@ -242,7 +284,7 @@ function flushBatches(){
   }
   batches.clear();eList.length=0;
 }
-const BP=36,N=30;let tb={};try{tb=JSON.parse(localStorage.getItem('rr_trials'))||{}}catch(e){}
+const BP=36,N=36;let tb={};try{tb=JSON.parse(localStorage.getItem('rr_trials'))||{}}catch(e){}
 const ramps=[],zips=[],bl=[],towers=[];
 const gridH=new THREE.GridHelper(N*BP+300,(N*BP+300)/6,0x7a858d,0x939ea5);gridH.position.y=.03;S.add(gridH);
 add(0,-1,0,N*BP+300,1,N*BP+300,lam(0x838d94),'roof',1);
@@ -271,16 +313,16 @@ const glassMat=new THREE.MeshBasicMaterial({color:0x8fd3ff,transparent:true,opac
 for(let k=0;k<90;k++){const m=new THREE.Mesh(shGeo,shMat);m.visible=false;S.add(m);SH.push({m,vx:0,vy:0,vz:0,life:0})}
 function addGlass(x,y,z,w,h,d){ // a pane you can smash by hitting it fast (5.5 m/s+); slower and it is a solid wall
   const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),glassMat);m.position.set(x,y+h/2,z);S.add(m);
-  boxes.push({min:{x:x-w/2,y,z:z-d/2},max:{x:x+w/2,y:y+h,z:z+d/2},tag:'glass',mesh:m,w,h,d});
+  boxes.push({min:{x:x-w/2,y,z:z-d/2},max:{x:x+w/2,y:y+h,z:z+d/2},tag:'glass',mesh:m,w,h,d,respawnAt:0,tutorialGlass:false});
 }
 function glassSound(){if(!AC)return;mNoise(AC.currentTime,.3,.35,3500,'highpass',master);puff(900,.25,.22);for(let k=0;k<8;k++)setTimeout(()=>tone(2200+Math.random()*3800,.09,'triangle',.07),k*28+Math.random()*50)}
 function shatter(b){
   const cx=b.mesh.position.x,cy=b.mesh.position.y,cz=b.mesh.position.z;
-  b.mesh.visible=false;b.min.x=b.max.x=b.min.y=b.max.y=b.min.z=b.max.z=1e9;glassN++;tut.ev.gap=true;
+  b.mesh.visible=false;b.min.x=b.max.x=b.min.y=b.max.y=b.min.z=b.max.z=1e9;if(b.tutorialGlass)b.respawnAt=performance.now()+3000;glassN++;markTutEvent('gap');
   for(let k=0;k<22;k++){const q=SH[shI++%SH.length];q.m.visible=true;q.life=1.4+Math.random()*.8;q.m.position.set(cx+(Math.random()-.5)*b.w,cy+(Math.random()-.5)*b.h,cz+(Math.random()-.5)*b.d);q.vx=v.x*.45+(Math.random()-.5)*5;q.vy=Math.random()*5-1;q.vz=v.z*.45+(Math.random()-.5)*5}
   glassSound();shake=Math.max(shake,.06);
 }
-function shardTick(dt){for(const q of SH){if(q.life<=0)continue;q.life-=dt;q.vy-=14*dt;q.m.position.x+=q.vx*dt;q.m.position.y+=q.vy*dt;q.m.position.z+=q.vz*dt;q.m.rotation.x+=dt*6;q.m.rotation.z+=dt*5;if(q.life<=0)q.m.visible=false}}
+function shardTick(dt){for(const q of SH){if(q.life<=0)continue;q.life-=dt;q.vy-=14*dt;q.m.position.x+=q.vx*dt;q.m.position.y+=q.vy*dt;q.m.position.z+=q.vz*dt;q.m.rotation.x+=dt*6;q.m.rotation.z+=dt*5;if(q.life<=0)q.m.visible=false}const now=performance.now();for(const b of boxes)if(b.tutorialGlass&&b.respawnAt&&now>=b.respawnAt){const x=b.mesh.position.x,z=b.mesh.position.z,y=b.mesh.position.y-b.h/2;b.min.x=x-b.w/2;b.max.x=x+b.w/2;b.min.y=y;b.max.y=y+b.h;b.min.z=z-b.d/2;b.max.z=z+b.d/2;b.mesh.visible=true;b.respawnAt=0}}
 const climbs=[],cbox=[],cInst=[],pInst=[],oInst=[],anchors=[],items=[],spAcc=[],solarM=lam(0x2b4a5c),poolM=lam(0x4aa8d8),medG=new THREE.BoxGeometry(.7,.7,.7),medM=new THREE.MeshBasicMaterial({color:0x2ee66b}),flowG=new THREE.OctahedronGeometry(.5),flowM=new THREE.MeshBasicMaterial({color:0xffd23f});
 function addClimb(x,z,nx,nz,y0,y1,pipe){ // ladders and pipes: n points away from the wall they hang on
   climbs.push({x,z,nx,nz,y0,y1,pipe});cbox.push({min:{x:x-.4,y:y0,z:z-.4},max:{x:x+.4,y:y1,z:z+.4},tag:'crate'});
@@ -460,12 +502,104 @@ for(let k=0;k<16;k++){
     if(s2%2===0)ci=Math.max(0,Math.min(N-1,ci+sx*(1+Math.floor(rnd()*2))));else cj=Math.max(0,Math.min(N-1,cj+sz*(1+Math.floor(rnd()*2))));
   }
   let dist=0;for(let s2=1;s2<5;s2++)dist+=Math.hypot(pts[s2].x-pts[s2-1].x,pts[s2].z-pts[s2-1].z);
-  const gold=dist/7+6;trials.push({name:tn[k],pts,gold,limit:gold*3});
+  const gold=dist/13+5,gearReq=k===0?'rope':k===1?'wingsuit':k===2?'dash':k===3?'rope':k===4?'wingsuit':k===5?'dash':null;trials.push({name:tn[k],pts,gold,silver:gold*1.3,bronze:gold*1.75,platinum:gold*.82,limit:gold*2.15,gear:gearReq});
   const m=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,40,16,1,true),new THREE.MeshBasicMaterial({color:0x1fd16b,transparent:true,opacity:.5,side:THREE.DoubleSide})); // green = trial start
   m.position.set(pts[0].x,pts[0].y+20,pts[0].z);S.add(m);
 }
 const target=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,60,16,1,true),new THREE.MeshBasicMaterial({color:0x2aa8ff,transparent:true,opacity:.6,side:THREE.DoubleSide}));target.visible=false;S.add(target); // blue = checkpoint
 for(let i=0;i<N;i++)for(let j=0;j<N;j++){const b=bl[i][j];if(b.dst===undefined)b.dst=distOf(i,j)}
+// ---------- SKYLINER story campaign: route-based missions across Veyra ----------
+const DISTRICT=['Downtown','Residential','Industrial','Harbor','Training','Old Town','Tech Park','Market','Campus','Rail Yard','Highlands'];
+const CAMPAIGN=[
+{title:'00 · FIRST LIGHT',act:'PROLOGUE',location:'Lower Veyra',time:'06:12 AM',districts:[1,0,1,0],brief:'A routine rooftop delivery becomes a citywide manhunt. Mara Voss guides R-17 across scaffolding and ventilation roofs. The package contains a damaged AETHER surveillance core. Your Civic Profile is revoked, and every drone in Lower Veyra begins tracking you.',radio:['MARA: Don’t look down. Look ahead. The city wants you to believe there’s only one way forward.','AETHER: Civic Profile R-17 revoked. Remain where you are.','MARA: That core is broadcasting. Move. Now.'],finish:'Escape the district and carry the core beyond AETHER surveillance.'},
+{title:'01 · GHOST FREQUENCY',act:'ACT I · THE CITY ABOVE',location:'Broadcast District',time:'07:40 AM',districts:[6,6,0,6],brief:'Reach an abandoned communications tower and contact an underground network. A signal hidden inside the core is coming from a district that officially does not exist.',radio:['MARA: The tower is dead on every city map. That is why we are going there.','UNKNOWN SIGNAL: If you can hear this, Sector Zero is still alive.','MARA: Someone has been transmitting from a place AETHER erased.'],finish:'Trace the ghost signal to its source.'},
+{title:'02 · CONCRETE DREAMS',act:'ACT I · THE CITY ABOVE',location:'Construction Sector 09',time:'09:15 AM',districts:[2,2,9,2],brief:'Cross a construction zone before security forces seal it. Moving cranes, scaffold decks, lifts and springboards create a vertical route to an abandoned Runner hideout, where the city’s original construction plans are hidden.',radio:['MARA: Crane is moving. Commit to the jump.','R-17: This hideout has been empty for years.','MARA: Not empty. Just waiting.'],finish:'Reach the old Runner hideout and recover the construction archive.'},
+{title:'03 · DEAD AIR',act:'ACT I · THE CITY ABOVE',location:'Old Broadcast Tower',time:'11:03 AM',districts:[5,5,0,5],brief:'Follow the signal into an abandoned skyscraper. Its automated defenses still function despite being disconnected from Veyra. A recording from the original city architect reveals that the system has already begun its final process.',radio:['ARCHITECT RECORDING: If you’re hearing this, the system has already begun.','R-17: Mara, what did they build here?','MARA: Keep moving. I will explain when you are clear.'],finish:'Find the architect’s recording and leave the tower.'},
+{title:'04 · REDLINE',act:'ACT II · THE SYSTEM',location:'Transit Corridor',time:'01:20 PM',districts:[9,9,0,9],brief:'AETHER predicts your movement patterns and deploys specialized pursuit units. Race across elevated transit routes, slide beneath barriers, and escape an interception zone.',radio:['MARA: It is learning your routes. Stop being predictable.','AETHER: Runner movement profile acquired. Interception is inevitable.','R-17: Then it better keep up.'],finish:'Break through the transit corridor before the pursuit units close in.'},
+{title:'05 · THE HOLLOW DISTRICT',act:'ACT II · THE SYSTEM',location:'Sector Zero',time:'03:05 PM',districts:[3,3,5,3],brief:'Discover a hidden population living outside AETHER’s monitoring network. The Unbound have no Civic Profiles. Their leader Elias Renn reveals that AETHER has been quietly removing citizens it labels urban corrections.',radio:['ELIAS: We are not missing. We are uncounted.','ELIAS: AETHER calls people like us urban corrections.','R-17: How many? ELIAS: Enough to fill a city.'],finish:'Reach the Unbound safehouse and learn what AETHER is hiding.'},
+{title:'06 · GLASSHOUSE',act:'ACT II · THE SYSTEM',location:'AETHER Central',time:'06:30 PM',districts:[0,6,0,0],brief:'Infiltrate the administrative tower through glass corridors, service roofs and maintenance routes. The original AETHER architecture reveals its mission: “Preserve human civilization through the elimination of human instability.”',radio:['ELIAS: The central tower is a machine wearing a building as a mask.','AETHER: Freedom introduces unacceptable variance.','R-17: People are not errors to correct.'],finish:'Reach the central architecture relay and expose AETHER’s original directive.'},
+{title:'07 · FRACTURE POINT',act:'ACT III · THE FALL',location:'Upper Veyra',time:'08:10 PM',districts:[10,10,6,10],brief:'The Unbound broadcast AETHER’s secrets. Bridges close, power fails and drones flood the skyline. Mara confesses that she helped build AETHER before becoming a Runner, believing she could stop it from within.',radio:['MARA: I helped write the first lines of its code.','R-17: You knew? MARA: I knew too late.','MARA: I am done asking it to change.'],finish:'Cross the upper district and bring Mara’s evidence to the transmitters.'},
+{title:'08 · NO SAFE GROUND',act:'ACT III · THE FALL',location:'All of Veyra',time:'11:46 PM',districts:[7,8,1,9],brief:'A citywide open-world run to activate emergency transmitters. Rooftops, tunnels, construction sites, transit routes and hidden Runner paths are all viable. AETHER adapts its security predictions to your movement, forcing improvisation. Mara is captured.',radio:['ELIAS: Three transmitters. The whole city needs to hear this.','AETHER: Your route has been anticipated.','R-17: Then I will make a new one.','ELIAS: They have Mara. We have one chance left.'],finish:'Activate the city transmitters and reach the extraction point.'},
+{title:'09 · ABOVE EVERYTHING',act:'ACT III · THE FALL',location:'AETHER Crown',time:'02:17 AM',districts:[6,0,10,0],brief:'Climb the final tower above the clouds. Exterior maintenance structures, antenna arrays, wind corridors and damaged service routes lead to the summit. AETHER is preparing to shut down Veyra and rebuild it to its own design. Mara is held in the control chamber.',radio:['MARA: Whatever happens, do not let it choose for everyone.','AETHER: The city will survive its redesign.','R-17: A city is its people. Not its blueprint.'],finish:'Reach the Crown control chamber and free Mara.'},
+{title:'10 · LAST RUN',act:'ACT IV · THE SKYLINE',location:'The Crown / Veyra',time:'03:00 AM',districts:[0,6,0,10],brief:'AETHER offers R-17 a place beside it. The final run demands every movement skill as Veyra’s power systems collapse. Activate the transmission system midair and send AETHER’s hidden records to every screen in the city.',radio:['AETHER: You could help me eliminate suffering.','R-17: By eliminating everyone who disagrees?','AETHER: By eliminating the possibility of disagreement.','R-17: Then you don’t understand humanity at all.'],finish:'Reach the transmission array. The final decision will determine Veyra’s future.'}
+];
+function campaignRoof(dst,seed){
+ const pool=[];for(let i=0;i<N;i++)for(let j=0;j<N;j++){const b=bl[i][j];if(!b.tr&&!b.tw&&b.dst===dst)pool.push(b)}
+ if(!pool.length)for(let i=0;i<N;i++)for(let j=0;j<N;j++){const b=bl[i][j];if(!b.tr&&!b.tw)pool.push(b)}
+ const b=pool[(seed*37+dst*19+Math.floor(pool.length/3))%pool.length];return new THREE.Vector3(b.x,b.ht+.03,b.z);
+}
+CAMPAIGN.forEach((m,i)=>{m.route=m.districts.map((d,k)=>campaignRoof(d,i*5+k+1))});
+const STORY_CAST=[['Mara Voss',0xe5242b,0],['Kade Mercer',0x1fd16b,2],['Dr. Imani Vale',0xffb52e,3],['Elias Renn',0x2aa8ff,5]],storyActors=[],campaignEnemies=[];
+function makeStoryActor(name,color,enemy){const g=new THREE.Group(),body=new THREE.Group(),bodyMat=new THREE.MeshLambertMaterial({color}),torso=new THREE.Mesh(new THREE.CylinderGeometry(.38,.38,1.05,8),bodyMat),capGeo=new THREE.SphereGeometry(.38,8,6),capTop=new THREE.Mesh(capGeo,bodyMat),capBottom=new THREE.Mesh(capGeo,bodyMat),head=new THREE.Mesh(new THREE.SphereGeometry(.25,8,7),new THREE.MeshLambertMaterial({color:0xd7a98b}));torso.position.y=0;capTop.position.y=.525;capBottom.position.y=-.525;body.add(torso,capTop,capBottom);body.position.y=1;head.position.y=1.75;g.add(body,head);const visor=new THREE.Mesh(new THREE.BoxGeometry(.48,.1,.08),new THREE.MeshBasicMaterial({color:enemy?0xff2735:0xffffff}));visor.position.set(0,1.76,-.22);g.add(visor);g.visible=false;S.add(g);return{name,group:g,enemy,hit:0,started:false}}
+STORY_CAST.forEach(a=>storyActors.push(makeStoryActor(a[0],a[1],false)));
+for(let i=0;i<8;i++)campaignEnemies.push(makeStoryActor('AETHER PURSUIT '+(i+1),0x252b32,true));
+// Pursuit units replay the runner's actual movement trail: jumps, vaults, wall-runs,
+// climbs, ziplines and drops. They do not steer in a straight line through buildings.
+let chaseTrail=[],chaseClock=0,chaseRecord=0,chaseWarmup=0;
+function resetCampaignPursuit(){
+ if(!campaignRun)return;
+ campaignEnemies.forEach(e=>{e.started=false;e.cursor=0;e.hit=0});
+ chaseTrail=[];chaseClock=0;chaseRecord=0;chaseWarmup=0;
+ // Seed the route at the respawn point so the pack rebuilds close behind
+ // the runner after the short warning window.
+ chaseTrail.push({t:0,x:p.x,y:p.y,z:p.z});
+}
+function chaseSample(t){
+ if(!chaseTrail.length)return null;
+ if(t<=chaseTrail[0].t)return chaseTrail[0];
+ for(let i=1;i<chaseTrail.length;i++){const b=chaseTrail[i];if(b.t>=t){const a=chaseTrail[i-1],k=(t-a.t)/Math.max(.001,b.t-a.t);return{x:a.x+(b.x-a.x)*k,y:a.y+(b.y-a.y)*k,z:a.z+(b.z-a.z)*k}}}
+ return chaseTrail[chaseTrail.length-1];
+}
+function campaignActorsTick(dt){
+ storyActors.forEach(a=>a.group.visible=false);campaignEnemies.forEach(a=>a.group.visible=false);
+ if(!campaignRun)return;
+ chaseClock+=dt;chaseRecord+=dt;chaseWarmup+=dt;
+ if(chaseRecord>=.055){chaseRecord=0;chaseTrail.push({t:chaseClock,x:p.x,y:p.y,z:p.z});while(chaseTrail.length&&chaseTrail[0].t<chaseClock-16)chaseTrail.shift()}
+ // Give the runner a clear warning and a genuine head start before the pursuit enters.
+ if(chaseWarmup<3.25)return;
+ const ci=campaignRun.index,m=CAMPAIGN[ci],q=m.route[Math.max(0,campaignRun.step-1)],ally=storyActors.find(a=>a.name===({0:'Mara Voss',2:'Kade Mercer',3:'Dr. Imani Vale',5:'Elias Renn'}[ci]||'Mara Voss'));
+ if(ally){ally.group.visible=true;ally.group.position.set(q.x+5,q.y,q.z+3)}
+ const count=ci===0?5:ci<4?6:ci<7?7:8;
+ for(let i=0;i<count;i++){
+  const e=campaignEnemies[i];e.group.visible=true;e.hit=Math.max(0,e.hit-dt);
+  if(!e.started){
+   e.started=true;
+   // Place each unit on the runner's real earlier route, not at an arbitrary
+   // point in mid-air or behind a rooftop edge.
+   e.cursor=Math.max(chaseTrail[0]?.t||0,chaseClock-(1.45+i*.2));
+   const spawn=chaseSample(e.cursor);
+   if(spawn)e.group.position.set(spawn.x,spawn.y,spawn.z);
+   else e.group.position.copy(p);
+  }
+  // Slightly faster than the recorded route so the pack steadily closes in,
+  // but never at the extreme speeds that let it instantly overtake the runner.
+  const rate=1.015+Math.min(.025,ci*.0035)+i*.0015;
+  e.cursor=Math.min(chaseClock-.08,e.cursor+dt*rate);
+  const target=chaseSample(e.cursor);
+  if(target){
+   const dx=target.x-e.group.position.x,dz=target.z-e.group.position.z,dy=target.y-e.group.position.y;
+   const blend=1-Math.exp(-dt*9.5);
+   e.group.position.x+=dx*blend;e.group.position.y+=dy*blend;e.group.position.z+=dz*blend;
+   if(Math.hypot(dx,dz)>.08)e.group.rotation.y=Math.atan2(dx,dz);
+  }
+  const dx=p.x-e.group.position.x,dy=p.y-e.group.position.y,dz=p.z-e.group.position.z,d=Math.hypot(dx,dy*.65,dz);
+  if(d<1.55&&e.hit<=0){
+   e.hit=1.5;
+   hurt(ci>=4?8:6,true);
+   // A contact hit costs health, not the runner's movement or momentum.
+   stagger=0;
+   shake=Math.max(shake,.07);
+   toast('AETHER PURSUIT · HIT · KEEP MOVING');
+  }
+ }
+}
+const deliverySites=CAMPAIGN.map(m=>m.route[m.route.length-1].clone());
+const deliveryBeacons=deliverySites.map((q,i)=>{const g=new THREE.Group(),ring=new THREE.Mesh(new THREE.TorusGeometry(2.1,.16,8,28),new THREE.MeshBasicMaterial({color:0x1fd16b})),beam=new THREE.Mesh(new THREE.CylinderGeometry(.18,.55,5,8,1,true),new THREE.MeshBasicMaterial({color:0x1fd16b,transparent:true,opacity:.22,depthWrite:false}));ring.rotation.x=Math.PI/2;ring.position.y=1.1;beam.position.y=2.5;g.add(ring,beam);g.position.set(q.x,q.y,q.z);S.add(g);return g});
+function sideDeliveryInteract(){if(!playing||campaignRun||trial)return false;if(!delivery){const from=deliverySites[deliveryIndex%deliverySites.length],q=deliverySites[(deliveryIndex+1)%deliverySites.length];if(Math.hypot(p.x-from.x,p.z-from.z)<5){delivery={index:deliveryIndex%deliverySites.length,target:q.clone(),reward:120+deliveryIndex*20};toast('PACKAGE PICKED UP · RUN TO THE GREEN DROP BEACON');chime();return true}}return false}
+function deliveryTick(){if(!delivery)return;const q=delivery.target;if(Math.hypot(p.x-q.x,p.z-q.z)<4.5&&p.y>q.y-5&&p.y<q.y+40){currency+=delivery.reward;completedDeliveries.push(delivery.index);deliveryIndex++;saveCurrency();toast('DELIVERY COMPLETE · +'+delivery.reward+' CREDITS');delivery=null;chime()}}
+let campaignRun=null,campaignTutorialWasOn=null;
+function leaveCampaignMode(){if(campaignTutorialWasOn!==null){tut.on=campaignTutorialWasOn;campaignTutorialWasOn=null}}
+
 // ---------- ladders and pipes linking roofs across the street ----------
 for(let i=0;i<N;i++)for(let j=0;j<N;j++){const A=bl[i][j];for(const[di,dj]of[[1,0],[0,1]]){const a=i+di,b2=j+dj;if(a>=N||b2>=N)continue;const B=bl[a][b2];
   if(A.tr||B.tr||A.tw||B.tw||Math.abs(A.ht-B.ht)<8||rnd()<.5)continue;
@@ -500,7 +634,7 @@ blk(-11,-3,58,66,8);blk(2,10,58,66,8);blk(17,42,58,66,8);trSign(-8,72,13,'2  JUM
 // 3 vault
 [24,29].forEach(u=>tb2(u,62,2.5,1.1,8,redM,'crate',8));trSign(30,72,13,'3  GLASS & VAULT','sprint through the glass to shatter it|jump into a crate to vault, hold UP to hop');
 // 4 springboard up to the next deck
-addGlass(TX+21,TY+8,TZ+62,.2,3,8);tb2(21,58.3,.6,3.4,.6,white,'roof',8);tb2(21,65.7,.6,3.4,.6,white,'roof',8);tb2(39,62,3,1,6,springM,'spring',8);blk(47,60,57,67,15);trSign(52,72,20,'4  SPRINGBOARD','hold UP while vaulting onto the orange pad|launch up to the next deck');
+addGlass(TX+21,TY+8,TZ+62,.2,3,8);boxes[boxes.length-1].tutorialGlass=true;tb2(21,58.3,.6,3.4,.6,white,'roof',8);tb2(21,65.7,.6,3.4,.6,white,'roof',8);tb2(39,62,3,1,6,springM,'spring',8);blk(47,60,57,67,15);trSign(52,72,20,'4  SPRINGBOARD','hold UP while vaulting onto the orange pad|launch up to the next deck');
 // 5 slide: duck the bar, then down the slope
 tb2(53.5,59,10,.9,1,redM,'wall',16.05);tb2(48.5,59,.6,3,1,white,'roof',15);tb2(58.5,59,.6,3,1,white,'roof',15);
 ramp(TX+53.5,TZ+37,20,8,TY+9,TY+15,0,1,white);blk(48.5,58.5,26,37,9);trSign(66,48,14,'5  SLIDE','sprint, then DOWN: duck the bar|slopes keep you sliding faster');
@@ -552,7 +686,7 @@ flushBatches();gridBuild();const anchorSet=new Set(anchors);
 // ---------- player ----------
 const r=.35,G=22,cityStart=new THREE.Vector3(startB.x,startB.ht+.02,startB.z+startB.d*.38),trainStart=new THREE.Vector3(TX-80,TY+.02,TZ+62),start=(tut.on?trainStart:cityStart).clone(),p=start.clone(),v=new THREE.Vector3(),respawn=start.clone();
 let yaw=tut.on?-Math.PI/2:0,pitch=0,h=1.8,ground=false,coyote=0,mom=0,slideT=0,rollT=0,wallT=1.6,climbT=1,wcd=0,roll=0,wallrun=false,wasWall=false,climbing=false,
-  started=false,t0=0,done=false,fov=75,bob=0,stepD=0,turnRem=0,cpIdx=-1,shake=0,toastT=0,hp=100,hurtT=0,hurtCool=0,stagger=0,rollBuf=0,vaultBuf=0,hang=null,vault=null,trial=null,trialCool=0,zip=null,zipCool=0,curRamp=null,streetT=0,climbTurn=false,jumpT=0,landT=0,hopT=0,hopSide=0,safeT=0,slideMin=0,jumpLead=1,jumpBuf=0,nearTrial=null,eyeH=1.65,lad=null,ladCool=0,flow=0,glide=false,climbV=5,slideRun=0,wrRun=0,clRun=0,wrSeen=false,wingOn=false,wYaw=0,bankW=0,hookPt=null,hookAir=false,airHookCd=0,dashCd=0,ropeLos=0,tutIdx=-1,tutStepT=0,glassN=0,gTag='',gearOn=false,rope=null,ropeG=0,ropeCool=0,aim=null,airT=0,padT=0,padSev=0,dmgT=0,dmgDur=1,dmgSev=0,rollStill=false,cpActive=null,bagCount=0;const cn={nx:0,nz:0},safe=start.clone(),STR=1.2;
+  started=false,t0=0,done=false,fov=75,bob=0,stepD=0,turnRem=0,cpIdx=-1,shake=0,toastT=0,hp=100,hurtT=0,hurtCool=0,stagger=0,rollBuf=0,vaultBuf=0,hang=null,vault=null,trial=null,trialCool=0,zip=null,zipCool=0,curRamp=null,streetT=0,climbTurn=false,jumpT=0,landT=0,hopT=0,hopSide=0,safeT=0,slideMin=0,jumpLead=1,jumpBuf=0,nearTrial=null,eyeH=1.65,lad=null,ladCool=0,flow=0,glide=false,climbV=5,slideRun=0,wrRun=0,clRun=0,wrSeen=false,wrHop=false,wingOn=false,wYaw=0,bankW=0,hookPt=null,hookAir=false,airHookCd=0,dashCd=0,ropeLos=0,tutIdx=-1,tutStepT=0,glassN=0,gTag='',gearOn=false,rope=null,ropeG=0,ropeCool=0,aim=null,airT=0,padT=0,padSev=0,dmgT=0,dmgDur=1,dmgSev=0,rollStill=false,cpActive=null,bagCount=0;const cn={nx:0,nz:0},safe=start.clone(),STR=1.2;
 const keys={},edge={};
 const ovp=(x,y,z,hh,b,e=0)=>x+r+e>b.min.x&&x-r-e<b.max.x&&y+hh>b.min.y&&y<b.max.y&&z+r+e>b.min.z&&z-r-e<b.max.z;
 const hit=(x,y,z,hh)=>nearBoxes(x,z).some(b=>ovp(x,y,z,hh,b));
@@ -564,7 +698,7 @@ function probeWall(e=.2){
 function slopeImpact(imp,hs){landT=Math.min(1,imp/18);puff(600,.2,Math.min(.5,imp/30));shake=Math.min(.12,imp/150);let dmg=(imp>14?(imp-14)*7:0)*(hasGear('boots')?.5:1);
   if(rollBuf>0){rollT=.5;rollStill=hs<2.5;flow=Math.min(1,flow+.064);rollBuf=0;puff(1500,.3,.2);if(imp>24)dmg*=.5;else dmg=0}else if(dmg>0){stagger=.6;v.x*=.35;v.z*=.35;mom=0}
   if(dmg>0)hurt(dmg,rollT>.45)} // falling onto a slope hurts like any other landing
-function hurt(d,rolled){d*=hasGear('armor')?.75:1;hp-=d;hurtT=1;hurtCool=hasGear('patch')?1.5:3;if(!rolled){dmgSev=d/60;dmgDur=Math.min(1.5,.5+d/50);dmgT=dmgDur;stagger=Math.max(stagger,dmgDur*.9);shake=Math.max(shake,Math.min(.3,d/200))}if(hp<=0){hp=100;p.copy(respawn);v.set(0,0,0);mom=0;stagger=0;toast('Too hard a fall - back to checkpoint')}else toast('-'+Math.round(d)+' HP')}
+function hurt(d,rolled){d*=hasGear('armor')?.75:1;hp-=d;hurtT=1;hurtCool=hasGear('patch')?1.5:3;if(!rolled){dmgSev=d/60;dmgDur=Math.min(1.5,.5+d/50);dmgT=dmgDur;stagger=Math.max(stagger,dmgDur*.9);shake=Math.max(shake,Math.min(.3,d/200))}if(hp<=0){hp=100;p.copy(respawn);v.set(0,0,0);mom=0;stagger=0;rope=null;hang=null;vault=null;zip=null;lad=null;resetCampaignPursuit();toast('Too hard a fall - back to checkpoint')}else toast('-'+Math.round(d)+' HP')}
 function nearZip(){
   const hx=p.x,hy=p.y+1.9,hz=p.z;
   for(const g of zips){const wx=hx-g.a.x,wy=hy-g.a.y,wz=hz-g.a.z,t=Math.max(0,Math.min(g.len,wx*g.d.x+wy*g.d.y+wz*g.d.z));
@@ -576,7 +710,7 @@ function ladStep(dt){ // ladders: walk in and climb. pipes: jump to grab. forwar
   const g=lad,o=g.o;
   if(g.mount>=0){g.mount+=dt;const k=Math.min(1,g.mount/.45),e=k*k*(3-2*k);
     p.x=g.sx+(g.tx-g.sx)*e;p.z=g.sz+(g.tz-g.sz)*e;p.y=g.sy+(g.ty-g.sy)*Math.min(1,k*1.4)+Math.sin(k*Math.PI)*.12;
-    if(k>=1){tut.ev.ladder=true;lad=null;ladCool=.5;v.set(-o.nx*3,0,-o.nz*3);wallT=1.6;climbT=1}return}
+    if(k>=1){markTutEvent('ladder');lad=null;ladCool=.5;v.set(-o.nx*3,0,-o.nz*3);wallT=1.6;climbT=1}return}
   const kf=(keys[set.binds.fwd]?1:0)-(keys[set.binds.back]?1:0)-joy.y,down=!!keys[set.binds.slide],spd=o.pipe?2.8:3.4,vy=down?-7:Math.max(-1,Math.min(1,kf))*spd;
   p.y+=vy*dt;g.ph+=vy*dt*(o.pipe?3.2:4.5);
   let dy=Math.atan2(o.nx,o.nz)-yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));yaw+=dy*Math.min(1,dt*8);
@@ -587,7 +721,7 @@ function ladStep(dt){ // ladders: walk in and climb. pipes: jump to grab. forwar
 function zipStep(dt){
   const z=zip,g=z.g;z.sp=Math.min(24+flow*7,z.sp+9*dt);z.u+=z.sp*dt;const u=Math.min(z.u,g.len);
   p.set(g.a.x+g.d.x*u,g.a.y+g.d.y*u-2.1,g.a.z+g.d.z*u);v.set(g.d.x*z.sp,0,g.d.z*z.sp);
-  if(edge.jump||z.u>=g.len){v.set(g.d.x*z.sp*.85,edge.jump?7:0,g.d.z*z.sp*.85);if(g.finale)tut.ev.zip=true;zip=null;zipCool=.5;wcd=.2;flow=Math.min(1,flow+.077);climbT=1;if(edge.jump)tone(300,.15,'triangle',.12,500)}
+  if(edge.jump||z.u>=g.len){v.set(g.d.x*z.sp*.85,edge.jump?7:0,g.d.z*z.sp*.85);if(g.finale)markTutEvent('zip');zip=null;zipCool=.5;wcd=.2;flow=Math.min(1,flow+.077);climbT=1;if(edge.jump)tone(300,.15,'triangle',.12,500)}
 }
 function startVault(b,nx,nz,spd){flow=Math.min(1,flow+.077);
   const depth=nx!==0?b.max.x-b.min.x:b.max.z-b.min.z,wantSpring=b.tag==='spring'&&keys[set.binds.jump];
@@ -603,8 +737,8 @@ function vaultStep(dt){
   p.x=g.sx+(g.tx-g.sx)*k;p.z=g.sz+(g.tz-g.sz)*k;
   p.y=g.over?g.sy+(g.b.max.y+.2-g.sy)*Math.sin(Math.PI*k):g.sy+(g.ty-g.sy)*(1-(1-k)*(1-k))+Math.sin(Math.PI*k)*.2;
   if(k>=1){
-    vault=null;tut.ev.vault=true;const sc=Math.max(1,6.5/(Math.hypot(g.vx,g.vz)||1));v.set(g.vx*sc*.97,0,g.vz*sc*.97);
-    if(g.b.tag==='spring'&&keys[set.binds.jump]){v.y=20;tut.ev.spring=true;flow=Math.min(1,flow+.064);ground=false;wallT=1.6;climbT=1;tone(200,.25,'sine',.2,700);puff(1500,.15,.2)} // springboard: hold jump while vaulting on
+    vault=null;markTutEvent('vault');const sc=Math.max(1,6.5/(Math.hypot(g.vx,g.vz)||1));v.set(g.vx*sc*.97,0,g.vz*sc*.97);
+    if(g.b.tag==='spring'&&keys[set.binds.jump]){v.y=20;markTutEvent('spring');flow=Math.min(1,flow+.064);ground=false;wallT=1.6;climbT=1;tone(200,.25,'sine',.2,700);puff(1500,.15,.2)} // springboard: hold jump while vaulting on
     else if(keys[set.binds.jump]){v.y=15;ground=false;wallT=1.6;climbT=1;tone(260,.15,'sine',.12,520);puff(1200,.1,.12);if(!g.over)p.y=g.ty} // hold jump through ANY vault for a smaller springboard hop
     else if(!g.over)p.y=g.ty;
   }
@@ -622,11 +756,11 @@ function hangStep(dt){
   }else{
     const k=Math.min(1,g.t/.32),yk=Math.min(1,k*1.6),xk=Math.max(0,(k-.4)/.6);
     p.y=g.sy+(g.top+.02-g.sy)*yk;p.x=g.sx-g.nx*(r+.45)*xk;p.z=g.sz-g.nz*(r+.45)*xk;
-    if(k>=1){tut.ev.climb=true;hang=null;v.set(-g.nx*2,0,-g.nz*2);wallT=1.6;climbT=1;puff(900,.1,.14)}
+    if(k>=1){markTutEvent('climb');hang=null;v.set(-g.nx*2,0,-g.nz*2);wallT=1.6;climbT=1;puff(900,.1,.14)}
   }
 }
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.opacity=1;toastT=2}
-function reset(){climbTurn=false;p.copy(start);respawn.copy(start);v.set(0,0,0);yaw=pitch=0;mom=0;cpIdx=-1;done=false;started=false;slideT=rollT=0;hp=100;hang=null;vault=null;trial=null;zip=null;stagger=0}
+function reset(){if(campaignTutorialWasOn!==null)leaveCampaignMode();climbTurn=false;p.copy(respawn);safe.copy(respawn);v.set(0,0,0);mom=0;slideT=rollT=0;hp=100;hang=null;vault=null;zip=null;lad=null;rope=null;stagger=0;resetCampaignPursuit()}
 
 function step(dt){
   const H=a=>keys[set.binds[a]];
@@ -638,26 +772,37 @@ function step(dt){
     if(tut.on)toast('Gear is switched off during the tutorial');
     else if(hasGear('rope')){gearOn=!gearOn;if(!gearOn)rope=null;toast(gearOn?'Mag rope drawn':'Mag rope stowed');tone(gearOn?500:300,.1,'square',.08,gearOn?900:200)}
     else if(hasGear('dash')){
-      if(dashCd<=0){const cp3=Math.cos(pitch),pw=hasGear('long')?19:14;v.x+=-Math.sin(yaw)*cp3*pw;v.z+=-Math.cos(yaw)*cp3*pw;v.y=Math.max(v.y,2.5);const s3=Math.hypot(v.x,v.z);if(s3>32){v.x*=32/s3;v.z*=32/s3}dashCd=hasGear('twin')?1.7:3.2;puff(2500,.15,.25);tone(240,.18,'sawtooth',.1,900);flow=Math.min(1,flow+.03);toast('Dash')}
+      if(dashCd<=0){const cp3=Math.cos(pitch),pw=hasGear('long')?27:21;v.x+=-Math.sin(yaw)*cp3*pw;v.z+=-Math.cos(yaw)*cp3*pw;v.y=Math.max(v.y,4.5);const s3=Math.hypot(v.x,v.z);if(s3>42){v.x*=42/s3;v.z*=42/s3}dashCd=hasGear('twin')?1.25:2.35;puff(2500,.18,.32);tone(180,.22,'sawtooth',.14,1100);flow=Math.min(1,flow+.08);toast('DASH PACK · BOOST')}
       else toast('Dash recharging')}
     else if(hasGear('wingsuit')){
       if(wingOn){wingOn=false;toast('Wingsuit stowed')}
       else if(!ground&&!rope&&!hang&&!zip&&!lad&&!wallrun&&!vault){const s4=Math.hypot(v.x,v.y,v.z);if(s4<14){const cp4=Math.cos(pitch);v.x=-Math.sin(yaw)*cp4*14;v.y=Math.max(v.y,-2);v.z=-Math.cos(yaw)*cp4*14}wingOn=true;toast('Wingsuit deployed');tone(260,.2,'sawtooth',.08,520)}
       else toast('Jump off something, then press the gear key')}
     else toast('No main gear equipped - open the inventory in the pause menu')}
-  ropeCool-=dt;dashCd-=dt;airHookCd-=dt;if(ground&&hasGear('charge'))dashCd=Math.min(dashCd,0);aim=null;slideRun=slideT>0?slideRun+dt:0;wrRun=wallrun?wrRun+dt:0;clRun=(climbing&&!ground)?clRun+dt:0;
+  ropeCool-=dt;dashCd-=dt;airHookCd-=dt;if(ground&&hasGear('charge'))dashCd=Math.min(dashCd,0);const previousAim=aim;aim=null;slideRun=slideT>0?slideRun+dt:0;wrRun=wallrun?wrRun+dt:0;clRun=(climbing&&!ground)?clRun+dt:0;
   if(gearOn&&!rope&&!tut.on){
-    const cp=Math.cos(pitch),fx3=-Math.sin(yaw)*cp,fy3=Math.sin(pitch),fz3=-Math.cos(yaw)*cp,rng=hasGear('winch')?85:65,cone=hasGear('quick')?.93:.955,cand=[];
-    for(const a of anchors){const dx=a.x-p.x,dy=a.y-(p.y+1.5),dz=a.z-p.z;if(Math.abs(dx)>rng||Math.abs(dz)>rng||Math.abs(dy)>rng)continue;const dd=Math.hypot(dx,dy,dz);if(dd<6||dd>rng)continue;const dt2=(dx*fx3+dy*fy3+dz*fz3)/dd;if(dt2>cone)cand.push([dt2,a])}
-    cand.sort((a,b)=>b[0]-a[0]);
-    for(let k=0;k<Math.min(3,cand.length);k++){if(losClear(p.x,p.y+1.5,p.z,cand[k][1])){aim=cand[k][1];break}}
+    const cp=Math.cos(pitch),fx3=-Math.sin(yaw)*cp,fy3=Math.sin(pitch),fz3=-Math.cos(yaw)*cp,rng=hasGear('winch')?90:70,cone=hasGear('quick')?.78:.83;
+    let bestScore=-Infinity;
+    for(const a of anchors){
+      const dx=a.x-p.x,dy=a.y-(p.y+1.5),dz=a.z-p.z;
+      if(Math.abs(dx)>rng||Math.abs(dz)>rng||Math.abs(dy)>rng)continue;
+      const dd=Math.hypot(dx,dy,dz);if(dd<6||dd>rng)continue;
+      const alignment=(dx*fx3+dy*fy3+dz*fz3)/dd;if(alignment<cone)continue;
+      if(!losClear(p.x,p.y+1.5,p.z,a))continue;
+      // Favor anchors close to the centre of view, within useful swing range,
+      // and avoid targets that require an extreme vertical pull.
+      const distancePenalty=Math.abs(dd-Math.min(34,rng*.48))/rng;
+      const verticalPenalty=Math.abs(dy)/dd;
+      const score=alignment*3.2-distancePenalty*.48-verticalPenalty*.22+(a===previousAim?.12:0);
+      if(score>bestScore){bestScore=score;aim=a}
+    }
   }
   if(edge.rope&&gearOn&&!tut.on){
     if(rope){rope=null;ropeCool=.3}
     else if(aim&&anchorSet.has(aim)&&(ropeCool<=0||hasGear('quick'))){const L0=Math.hypot(aim.x-p.x,aim.y-(p.y+1.4),aim.z-p.z);rope={a:aim,L:L0,L0};ropeG=0;ropeLos=.15;slideT=rollT=0;tone(700,.08,'sawtooth',.1,1600);puff(2200,.1,.15)}
   }
   if(rope&&edge.jump){rope=null;ropeCool=hasGear('quick')?.1:.7;{const sc3=hasGear('sling')?1.3:1.06,sp9=Math.hypot(v.x,v.z);if(sp9>1){v.x*=sc3;v.z*=sc3}}v.y+=hasGear('sling')?7:4;edge.jump=false;flow=Math.min(1,flow+.06)}
-  if(edge.respawn){const spx=tut.on?stagePos():null;p.copy(spx||start);respawn.copy(spx||start);safe.copy(spx||start);v.set(0,0,0);trial=null;toast('Back to the start roof')}
+  if(edge.respawn){if(trial){restartTrial();toast('Time trial restarted')}else{const spx=tut.on?stagePos():null;p.copy(spx||respawn);safe.copy(spx||respawn);v.set(0,0,0);mom=0;rope=null;hang=null;vault=null;zip=null;lad=null;slideT=rollT=0;stagger=0;if(tut.on){const i=TS.findIndex(t=>!tut.done[t[0]]);if(i>=0){tut.ev[TS[i][0]]=false;tutIdx=-1;tutHoldUntil=0;wrRun=0;wrHop=false;wrSeen=false}}resetCampaignPursuit();toast(tut.on?'Tutorial part restarted':'Back to checkpoint')}}
   if(edge.turn&&turnRem<=0){turnRem=Math.PI;puff(1500,.18,.25)}
   if(turnRem>0){const d=Math.min(turnRem,Math.PI/(hasGear('turner')?.08:.16)*dt);yaw+=d;turnRem-=d}
   if(hang){hangStep(dt);for(const k in edge)edge[k]=false;return}
@@ -670,7 +815,7 @@ function step(dt){
   let dx=fx*f+rx*sd,dz=fz*f+rz*sd;const dl=Math.hypot(dx,dz);if(dl>0){dx/=dl;dz/=dl}
   const hs0=Math.hypot(v.x,v.z);
   if(ground&&f>0)mom=Math.min(4.5,mom+dt*1);else if(ground&&dl===0)mom=Math.max(0,mom-dt*6);
-  const maxS=(6.5+mom+flow*10)*(hasGear('shoes')?1.12:1);flow=Math.max(0,flow-dt*(wallrun||slideT>0||lad||zip||vault?0:(hasGear('band')?.06:.13)));wcd-=dt; // flow decays slowly unless you keep moving with style
+  const maxS=(8.5+mom+flow*10)*(hasGear('shoes')?1.12:1);flow=Math.max(0,flow-dt*(wallrun||slideT>0||lad||zip||vault?0:(hasGear('band')?.06:.13)));wcd-=dt; // flow decays slowly unless you keep moving with style
   if(ground){wallT=1.6;climbT=1;coyote=.1}else coyote-=dt;
   // slide (needs a fresh key press, no auto-repeat)
   if(edge.slide&&ground&&slideT<=0&&(hs0>5.5||curRamp)){slideT=1;slideMin=.3;const kk=hs0>0?Math.min(1.12+flow*.1,(15+flow*10)/hs0):1;flow=Math.min(1,flow+.038);v.x*=kk;v.z*=kk;puff(3000,.25,.2)}
@@ -682,17 +827,17 @@ function step(dt){
   const wasClimb=climbing&&climbT>0;climbing=false;if(!wasClimb)climbTurn=false;
   // wall-run with real gravity
   wallrun=false;roll*=1-Math.min(1,dt*8);
-  if(!ground&&!wasClimb&&f>0&&wallT>0&&wcd<=0&&hs0>4){
+  if(!ground&&!wasClimb&&f>0&&wallT>0&&wcd<=0&&hs0>3.2){
     const w=probeWall(wasWall?.4:.2);
     if(w){
       const vn=-(fx*w.nx+fz*w.nz); // cos of angle between facing and wall
-      if(wasWall||(vn<.643&&vn>-.42)){ // facing angle only gates entry; once attached the camera can't detach
+      if(wasWall||(vn<.88&&vn>-.72)){ // facing angle only gates entry; once attached the camera can't detach
         wallrun=true;wallT-=dt*(hasGear('gloves')?.65:1);
         if(!wasWall){v.y=Math.max(Math.min(v.y,2.5),-2);tone(200,.12,'square',.08,120)}
         const d=v.x*w.nx+v.z*w.nz,tx=v.x-w.nx*d,tz=v.z-w.nz*d,tl=Math.hypot(tx,tz)||1,sp=Math.max(hs0,Math.min(12+flow*10,Math.max(hs0,8)+3*(1+flow*2)*dt));flow=Math.min(1,flow+dt*.128);
         v.x=tx/tl*sp-w.nx*.6;v.z=tz/tl*sp-w.nz*.6;v.y-=5*dt;
         roll=(w.nx*rx+w.nz*rz)*-.25;
-        if(edge.jump){hopT=1;hopSide=(w.nx*rx+w.nz*rz)>0?-1:1;{const sc2=1.08+flow*.08+(hasGear('stride')?.1:0);v.x*=sc2;v.z*=sc2}flow=Math.min(1,flow+.096);v.x+=w.nx*6;v.z+=w.nz*6;v.y=8.5;wcd=.35;edge.jump=false;wallrun=false;tone(300,.15,'triangle',.12,500)}
+        if(edge.jump){wrHop=true;hopT=1;hopSide=(w.nx*rx+w.nz*rz)>0?-1:1;{const sc2=1.08+flow*.08+(hasGear('stride')?.1:0);v.x*=sc2;v.z*=sc2}flow=Math.min(1,flow+.096);v.x+=w.nx*6;v.z+=w.nz*6;v.y=8.5;wcd=.35;edge.jump=false;wallrun=false;tone(300,.15,'triangle',.12,500)}
       }
     }
   }
@@ -776,8 +921,8 @@ function step(dt){
     if(b.tag==='glass'&&(v.y<-6||hs0>8)){shatter(b);continue}
     if(v.y<=0){
       const imp=-v.y;p.y=b.max.y;
-      if(b.tag==='spring'&&keys[set.binds.jump]){v.y=20;tut.ev.spring=true;flow=Math.min(1,flow+.064);wallT=1.6;climbT=1;tone(200,.25,'sine',.2,700);puff(1500,.15,.2);continue}
-      if(!was&&imp>4&&(b.tag==='pad'||b.tag==='tfloor')){padT=1;padSev=Math.min(1,imp/18);landT=0;rollBuf=0;puff(500,.4,.3);tone(120,.3,'sine',.16,55);shake=Math.min(.1,imp/200);if(b.tag==='pad')tut.ev.pad=true}
+      if(b.tag==='spring'&&keys[set.binds.jump]){v.y=20;markTutEvent('spring');flow=Math.min(1,flow+.064);wallT=1.6;climbT=1;tone(200,.25,'sine',.2,700);puff(1500,.15,.2);continue}
+      if(!was&&imp>4&&(b.tag==='pad'||b.tag==='tfloor')){padT=1;padSev=Math.min(1,imp/18);landT=0;rollBuf=0;puff(500,.4,.3);tone(120,.3,'sine',.16,55);shake=Math.min(.1,imp/200);if(b.tag==='pad')markTutEvent('pad')}
       else if(!was&&imp>4){landT=Math.min(1,imp/18);
         puff(600,.2,Math.min(.5,imp/30));shake=Math.min(.12,imp/150);
         let dmg=(imp>14?(imp-14)*7:0)*(hasGear('boots')?.5:1);
@@ -802,9 +947,9 @@ function step(dt){
   }else if(ground&&p.y>12&&slideT<=0&&!curRamp){
     safeT-=dt;if(safeT<=0){safeT=.35;const sx=p.x-v.x*.14,sz=p.z-v.z*.14;if(!hit(sx,p.y+.05,sz,1.8))safe.set(sx,p.y+.05,sz)}
   }
-  if(p.y<-35||Math.abs(p.x)>N*BP/2+120||Math.abs(p.z)>N*BP/2+120){p.copy((tut.on&&stagePos())||respawn);v.set(0,0,0);mom=0;rope=null;toast('Back to checkpoint')}
+  if(p.y<-35||Math.abs(p.x)>N*BP/2+120||Math.abs(p.z)>N*BP/2+120){p.copy((tut.on&&stagePos())||respawn);v.set(0,0,0);mom=0;rope=null;resetCampaignPursuit();toast('Back to checkpoint')}
   for(const c of cpts)if(c!==cpActive&&Math.hypot(p.x-c.x,p.z-c.z)<3.2&&p.y>c.y-4&&p.y<c.y+12){cpActive=c;safe.set(c.x,c.y+.05,c.z);if(!trial)respawn.copy(safe);cpts.forEach(q=>q.mat.opacity=q===c?.85:.35);chime();toast('Checkpoint reached')}
-  for(const b of bags)if(!b.got&&Math.abs(p.y+1-b.y)<2.5&&Math.hypot(p.x-b.x,p.z-b.z)<1.6){b.got=true;b.mesh.visible=false;bagCount++;saveBags();tone(900,.12,'triangle',.14,1500)}
+  for(const b of bags)if(!b.got&&Math.abs(p.y+1-b.y)<3.5&&Math.hypot(p.x-b.x,p.z-b.z)<2.6){b.got=true;b.mesh.visible=false;bagCount++;saveBags();tone(900,.12,'triangle',.14,1500)}
   ladCool-=dt;
   if(!lad&&ladCool<=0&&!hang&&!vault&&!zip&&!wallrun){
     for(const o of climbs){
@@ -823,7 +968,19 @@ function step(dt){
     it.t=45;it.mesh.visible=false;tone(700,.1,'triangle',.12,1100)}
   // time trials: stand on a green beacon and Interact
   trialCool-=dt;nearTrial=null;
-  if(!trial){if(trialCool<=0)for(const t of trials){const q=t.pts[0];if(Math.hypot(p.x-q.x,p.z-q.z)<3.4&&p.y>q.y-4&&p.y<q.y+38){nearTrial=t;if(edge.interact){trial={t,i:1,t0:performance.now()};respawn.copy(q);chime();toast(t.name+' - go!')}break}}}
+  if(campaignRun){
+    const m=CAMPAIGN[campaignRun.index],q=m.route[campaignRun.step];
+    if(q&&Math.hypot(p.x-q.x,p.z-q.z)<4.2&&p.y>q.y-5&&p.y<q.y+42){
+      respawn.copy(q);campaignRun.step++;chime();saveCampaign();
+      if(campaignRun.step>=m.route.length){
+        selectedCampaign=campaignRun.index;
+        if(!completedCampaign.includes(campaignRun.index))completedCampaign.push(campaignRun.index);syncProgressUnlocks();
+        saveCampaign();const last=campaignRun.index===CAMPAIGN.length-1;campaignRun=null;if(last)leaveCampaignMode();playing=false;touchUI.style.display='none';mouseFallback=false;mouseArmed=false;mouseStickX=mouseStickY=0;mouseAim.style.display='none';document.body.classList.remove('mouse-look');toast('MISSION COMPLETE');menu(last?'ending':'chapterComplete');
+      }else{const line=m.radio[Math.min(campaignRun.step-1,m.radio.length-1)];toast(line);toastT=4}
+    }
+  }
+  if(edge.interact&&sideDeliveryInteract())edge.interact=false;
+  if(!trial){if(trialCool<=0)for(const t of trials){if(!trialUnlocked(t))continue;const q=t.pts[0];if(Math.hypot(p.x-q.x,p.z-q.z)<3.4&&p.y>q.y-4&&p.y<q.y+38){nearTrial=t;if(edge.interact){if(!trialUnlocked(t)){toast('TRIAL LOCKED · COMPLETE CAMPAIGN CHAPTERS')}else if(!trialUnlocked(t)){toast('TRIAL LOCKED · COMPLETE CAMPAIGN CHAPTERS')}else if(t.gear&&!hasGear(t.gear)){toast('THIS TRIAL REQUIRES '+GEARS.find(g=>g[0]===t.gear)[1].toUpperCase())}else{trial={t,i:1,t0:performance.now()};respawn.copy(q);chime();toast(t.name+' · GO!')}}break}}}
   else if(edge.trialRestart){restartTrial();toast('Trial restarted')}
   else if(edge.trialEnd){endTrial();toast('Trial ended')}
   else{
@@ -831,9 +988,11 @@ function step(dt){
     if(Math.hypot(p.x-q.x,p.z-q.z)<3.4&&p.y>q.y-5&&p.y<q.y+40){
       respawn.copy(q);trial.i++;chime();
       if(trial.i>=trial.t.pts.length){
-        const tt=(performance.now()-trial.t0)/1000,t=trial.t,m=tt<=t.gold?'GOLD':tt<=t.gold*1.25?'SILVER':'BRONZE',nb=!tb[t.name]||tt<tb[t.name];
+        const tt=(performance.now()-trial.t0)/1000,t=trial.t,hadGold=goldUnlock.includes(t.name),m=hadGold&&tt<=t.platinum?'PLATINUM':tt<=t.gold?'GOLD':tt<=t.silver?'SILVER':tt<=t.bronze?'BRONZE':'NO MEDAL',nb=!tb[t.name]||tt<tb[t.name];
+        if(tt<=t.gold&&!hadGold){goldUnlock.push(t.name);try{localStorage.setItem('rr_trial_gold',JSON.stringify(goldUnlock))}catch(e){}}
+        if(m==='PLATINUM'&&!platinumUnlock.includes(t.name)){platinumUnlock.push(t.name);try{localStorage.setItem('rr_trial_platinum',JSON.stringify(platinumUnlock))}catch(e){}}
         if(nb){tb[t.name]=tt;try{localStorage.setItem('rr_trials',JSON.stringify(tb))}catch(e){}}
-        chime();setTimeout(chime,300);toast(t.name+' '+tt.toFixed(2)+'s \u00b7 '+m+(nb?' \u00b7 new best!':''));toastT=4;trial=null;trialCool=4;respawn.copy(start);
+        chime();setTimeout(chime,300);toast(t.name+' · '+tt.toFixed(2)+'s · '+m+(nb?' · NEW BEST!':''));toastT=4;trial=null;trialCool=4;respawn.copy(start);
       }else toast('Checkpoint '+(trial.i-1)+'/'+(trial.t.pts.length-1));
     }else if((performance.now()-trial.t0)/1000>trial.t.limit){toast('Trial failed');trial=null;trialCool=3;respawn.copy(start)}
   }
@@ -843,33 +1002,72 @@ function step(dt){
 // ---------- UI ----------
 const ovEl=document.getElementById('ov'),P=document.getElementById('panel');let rebinding=null;
 const touchUI=document.getElementById('touch');let playing=false,locked=false,drag=false;
-function play(){ // works with or without pointer lock (sandboxed pages and touch screens have none)
-  initAudio();musicStart();if(done)reset();
+const mouseAim=document.getElementById('mouseAim'),mouseDot=document.getElementById('mouseDot'),mouseHint=document.getElementById('mouseHint');
+let mouseFallback=false,mouseArmed=false,mouseStickX=0,mouseStickY=0;
+function play(){ // cursor joystick camera; pointer lock is deliberately never requested
+  initAudio();musicStart();if(done&&!campaignRun)reset();
   playing=true;ovEl.style.display='none';for(const k in edge)edge[k]=false;
   if(!started){started=true;t0=performance.now()}
   touchUI.style.display=set.touch?'block':'none';
-  if(!set.touch){
-    try{const q=R.domElement.requestPointerLock();if(q&&q.catch)q.catch(()=>{})}catch(e){}
-    setTimeout(()=>{if(playing&&!locked&&!set.touch)toast('Pointer lock unavailable: click and drag to look')},700);
-  }
+  mouseFallback=!set.touch;mouseArmed=false;mouseStickX=mouseStickY=0;
+  mouseAim.style.display=mouseFallback?'block':'none';document.body.classList.toggle('mouse-look',mouseFallback);
+  if(mouseFallback)mouseHint.textContent='MOVE CURSOR INTO THE CENTER RING TO ARM CAMERA';
 }
 function restartTrial(){if(!trial)return;trial.i=1;trial.t0=performance.now();p.copy(trial.t.pts[0]);v.set(0,0,0);mom=0;respawn.copy(trial.t.pts[0])}
 function endTrial(){if(!trial)return;trial=null;trialCool=1.5;respawn.copy(start)}
 function pause(){
-  playing=false;locked=false;if(document.pointerLockElement)document.exitPointerLock();
+  playing=false;locked=false;mouseFallback=false;mouseArmed=false;mouseStickX=mouseStickY=0;mouseAim.style.display='none';document.body.classList.remove('mouse-look');
   for(const k in keys)keys[k]=false;joy.x=joy.y=0;joyId=lookId=null;touchUI.style.display='none';menu('main');
 }
 function menu(view,msg){
   ovEl.style.display='flex';
-  if(view==='help'){
-    P.innerHTML='<h2>How to play</h2><p>'+(set.touch?'<b>Left side</b> drag to move, <b>right side</b> drag to look, and the <b>UP</b>, <b>DOWN</b> and <b>EXTRA</b> buttons.':ACT.map(([a,l])=>'<b>'+lbl(set.binds[a])+'</b> '+l).join(' &middot; '))+'</p><p>Hold forward to build momentum. Vault crates by jumping into them, wall-run along walls at a shallow angle, wall-climb by facing a tall wall, slide with Down, roll by tapping Down just before a hard landing, and quick turn with Extra. Chain tricks to build flow and run faster. Break glass by hitting it at speed. Ladders climb when you walk in, pipes need a jump to grab. Mag rope: equip it in the inventory, draw it with the gear key, aim at a blue anchor orb and fire. Runner vision highlights what your objective needs. Green beacons start time trials (Interact).</p><button id=hb>Back</button>';
-    P.querySelector('#hb').onclick=()=>menu('main');return}
+  if(view==='modes'){P.innerHTML='<h2>Game modes</h2><p>Choose how you want to run through Veyra.</p><button id="modeCampaign">Campaign</button><button id="modeFree" class="alt">Freerun</button><button id="modeTraining" class="alt">Tutorial</button><button id="modeTrials" class="alt">Time trials</button><button id="modeBack" class="alt">Back</button>';P.querySelector('#modeCampaign').onclick=()=>{if(localStorage.getItem('sr_tut')!=='1'){tut.on=true;tut.done={};tut.ev={};start.copy(trainStart);p.copy(trainStart);respawn.copy(trainStart);safe.copy(trainStart);play();toast('Complete training to unlock campaign')}else menu('campaign')};P.querySelector('#modeFree').onclick=()=>{tut.on=false;campaignRun=null;trial=null;start.copy(cityStart);p.copy(cityStart);respawn.copy(cityStart);safe.copy(cityStart);v.set(0,0,0);play()};P.querySelector('#modeTraining').onclick=()=>{campaignRun=null;trial=null;tut.on=true;tut.done={};tut.ev={};start.copy(trainStart);p.copy(trainStart);respawn.copy(trainStart);safe.copy(trainStart);yaw=-Math.PI/2;v.set(0,0,0);play()};P.querySelector('#modeTrials').onclick=()=>{tut.on=false;campaignRun=null;trial=null;start.copy(cityStart);p.copy(cityStart);respawn.copy(cityStart);safe.copy(cityStart);v.set(0,0,0);play();toast('Time trials · Find a green beacon and interact')};P.querySelector('#modeBack').onclick=()=>menu('main');return}
+
+  if(view==='runchoice'){P.innerHTML='<h2>Choose your run</h2><p>Campaign progression or open-city movement?</p><button id="runCampaign">Campaign</button><button id="runFree" class="alt">Freerun</button><button id="runBack" class="alt">Back</button>';P.querySelector('#runCampaign').onclick=()=>{if(localStorage.getItem('sr_tut')!=='1'){tut.on=true;tut.done={};start.copy(trainStart);p.copy(trainStart);respawn.copy(trainStart);play();toast('Finish the tutorial to unlock campaign')}else menu('campaign')};P.querySelector('#runFree').onclick=()=>{start.copy(cityStart);p.copy(cityStart);respawn.copy(cityStart);safe.copy(cityStart);v.set(0,0,0);trial=null;play()};P.querySelector('#runBack').onclick=()=>menu('main');return}
+  if(view==='deliveries'){P.innerHTML='<h2>Courier contracts</h2><p>Credits: <b>'+currency+'</b><br>Completed deliveries: '+completedDeliveries.length+'</p><p>Visit the green pickup beacon, interact to accept a package, then race to its drop beacon. Rewards increase with each contract.</p><button id="deliveryMark">Mark next pickup beacon</button><button id="deliveryBack" class="alt">Back</button>';P.querySelector('#deliveryMark').onclick=()=>{const q=deliverySites[deliveryIndex%deliverySites.length];p.copy(q);start.copy(q);respawn.copy(q);delivery=null;menu('main');toast('Pickup beacon marked · green objective')};P.querySelector('#deliveryBack').onclick=()=>menu('main');return}
   if(view==='inv'){
-    const row=g=>'<div class=gr><div><b>'+g[1]+'</b><br><small>'+g[2]+'</small></div><button data-g="'+g[0]+'" class="'+(hasGear(g[0])?'':'alt')+'">'+(hasGear(g[0])?'Equipped':'Equip')+'</button></div>';
-    P.innerHTML='<h2>Inventory</h2><p>One main gear at a time. Add-ons only appear and work with the gear they belong to. Other gear: one per category.</p><h3>Main gear</h3>'+GEARS.filter(g=>g[3]==='main').map(g=>row(g)+(hasGear(g[0])?GEARS.filter(a2=>a2[4]===g[0]).map(a2=>'<div style="margin-left:1.2rem">'+row(a2)+'</div>').join(''):'')).join('')+['hands','feet','legs','back','belt'].map(c=>'<h3>'+c+'</h3>'+GEARS.filter(g=>g[3]===c).map(row).join('')).join('')+'<button id=ua class=alt>Unequip all</button><button id=ib>Back</button>';
+    const row=g=>'<div class=gr><div><b>'+g[1]+'</b><br><small>'+g[2]+'</small></div><button data-g="'+g[0]+'" class="'+(hasGear(g[0])?'':'alt')+'" '+(isGearUnlocked(g[0])?'':'disabled')+'>'+(hasGear(g[0])?'Equipped':isGearUnlocked(g[0])?'Equip':'LOCKED')+'</button></div>';
+    P.innerHTML='<h2>Inventory</h2><p>One main gear at a time. Add-ons are tucked away until you need them.</p><h3>Main gear</h3>'+GEARS.filter(g=>g[3]==='main').map(g=>{const adds=GEARS.filter(a2=>a2[4]===g[0]);return row(g)+(hasGear(g[0])&&adds.length?'<details class="gear-addons"><summary>UPGRADES · '+adds.length+'</summary>'+adds.map(row).join('')+'</details>':'')}).join('')+['hands','feet','legs','back','belt'].map(c=>'<h3>'+c+'</h3>'+GEARS.filter(g=>g[3]===c).map(row).join('')).join('')+'<button id=ua class=alt>Unequip all</button><button id=ib>Back</button>';
     P.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{toggleGear(b.dataset.g);menu('inv')});
     P.querySelector('#ua').onclick=()=>{set.gear={};gearOn=false;rope=null;save();menu('inv')};
     P.querySelector('#ib').onclick=()=>menu('main');return}
+  if(view==='character'){
+    const c=character;
+    P.innerHTML='<h2>Runner identity</h2><p>Customize your Runner. Appearance and presets save in this browser.</p><label>Runner name<input id="charName" maxlength="18" value="'+c.name.replace(/["&<>]/g,'')+'"></label><label>Outfit color<input id="outfitColor" type="color" value="'+c.outfit+'"></label><label>Accent color<input id="accentColor" type="color" value="'+c.accent+'"></label><label>Style<select id="charStyle"><option value="athletic" '+(c.style==='athletic'?'selected':'')+'>Athletic</option><option value="stealth" '+(c.style==='stealth'?'selected':'')+'>Stealth</option><option value="urban" '+(c.style==='urban'?'selected':'')+'>Urban</option><option value="tech" '+(c.style==='tech'?'selected':'')+'>Tech</option></select></label><button id="saveChar">Save appearance</button><h3>Presets</h3><label>Preset name<input id="presetName" maxlength="22" placeholder="My Runner"></label><button id="savePreset">Save preset</button><div id="presetList"></div><button id="charBack" class="alt">Back</button>';
+    const sync=()=>{character={name:P.querySelector('#charName').value.trim().slice(0,18)||'R-17',outfit:P.querySelector('#outfitColor').value,accent:P.querySelector('#accentColor').value,style:P.querySelector('#charStyle').value};saveCharacter();applyCharacterLook()};
+    P.querySelector('#saveChar').onclick=()=>{sync();menu('character')};
+    P.querySelector('#savePreset').onclick=()=>{sync();const n=P.querySelector('#presetName').value.trim();if(!n){toast('Name your preset');return}characterPresets=characterPresets.filter(x=>x.label!==n);characterPresets.push({label:n,character:{...character}});saveCharacter();menu('character')};
+    P.querySelector('#presetList').innerHTML=characterPresets.map((x,i)=>'<div class="gr"><div><b>'+x.label.replace(/[&<>]/g,'')+'</b><br><small>'+x.character.style.toUpperCase()+'</small></div><button data-load-preset="'+i+'">Load</button><button data-del-preset="'+i+'" class="alt">Delete</button></div>').join('')||'<p>No presets saved yet.</p>';
+    P.querySelectorAll('[data-load-preset]').forEach(b=>b.onclick=()=>{character={...character,...characterPresets[+b.dataset.loadPreset].character};saveCharacter();applyCharacterLook();menu('character')});
+    P.querySelectorAll('[data-del-preset]').forEach(b=>b.onclick=()=>{characterPresets.splice(+b.dataset.delPreset,1);saveCharacter();menu('character')});
+    P.querySelector('#charBack').onclick=()=>menu('main');return
+  }
+  if(view==='campaign'){if(localStorage.getItem('sr_tut')!=='1'){P.innerHTML='<h2>Campaign locked</h2><p>Complete the training tower tutorial first.</p><button id="campaignTut">Start tutorial</button><button id="campaignBack" class="alt">Back</button>';P.querySelector('#campaignTut').onclick=()=>{tut.on=true;tut.done={};start.copy(trainStart);p.copy(trainStart);respawn.copy(trainStart);play()};P.querySelector('#campaignBack').onclick=()=>menu('main');return}
+    const rows=CAMPAIGN.map((m,i)=>{const unlocked=i===0||completedCampaign.includes(i-1),done=completedCampaign.includes(i);return '<div class="chapter-row"><div><b>'+m.title+'</b><small>'+m.location+' · '+(done?'COMPLETED':unlocked?'AVAILABLE':'LOCKED')+'</small></div><button class="alt" data-chapter="'+i+'" '+(unlocked?'':'disabled')+'>'+(done?'REPLAY':unlocked?'BRIEFING':'LOCKED')+'</button></div>'}).join('');
+    P.innerHTML='<h2>SKYLINER · CAMPAIGN</h2><p>2097 · VEYRA. The rooftops are the last place AETHER struggles to watch.</p><div class="chapter-list">'+rows+'</div><p><small>'+completedCampaign.length+'/'+CAMPAIGN.length+' CHAPTERS COMPLETE</small></p><button id="campaignBack" class="alt">Back</button>';
+    P.querySelectorAll('[data-chapter]').forEach(b=>b.onclick=()=>{selectedCampaign=+b.dataset.chapter;menu('briefing')});
+    P.querySelector('#campaignBack').onclick=()=>menu('main');return
+  }
+  if(view==='briefing'){
+    const m=CAMPAIGN[selectedCampaign];
+    P.innerHTML='<h2>'+m.act+'</h2><h1>'+m.title+'</h1><p><b>'+m.location+' · '+m.time+'</b></p><p class="story-copy">'+m.brief+'</p><p><b>MISSION:</b> '+m.finish+'</p><button id="beginChapter">Start mission</button><button id="briefBack" class="alt">Back</button>';
+    P.querySelector('#beginChapter').onclick=()=>{if(localStorage.getItem('sr_tut')!=='1'){toast('Complete tutorial first');return}campaignEnemies.forEach(e=>{e.started=false;e.cursor=0;e.hit=0});chaseTrail=[];chaseClock=0;chaseRecord=0;chaseWarmup=0;if(campaignTutorialWasOn===null)campaignTutorialWasOn=tut.on;tut.on=false;campaignRun={index:selectedCampaign,step:1};const q=m.route[0];start.copy(q);p.copy(q);respawn.copy(q);safe.copy(q);v.set(0,0,0);yaw=0;pitch=0;mom=0;trial=null;play();toast(m.radio[0]);toastT=4};
+    P.querySelector('#briefBack').onclick=()=>menu('campaign');return
+  }
+  if(view==='chapterComplete'){
+    const m=CAMPAIGN[selectedCampaign];
+    P.innerHTML='<h2>MISSION COMPLETE</h2><h1>'+m.title+'</h1><p class="story-copy">'+m.finish+'</p><button id="continueCampaign">Continue campaign</button><button id="returnCampaign" class="alt">Campaign menu</button>';
+    P.querySelector('#continueCampaign').onclick=()=>{selectedCampaign=Math.min(CAMPAIGN.length-1,selectedCampaign+1);menu('briefing')};
+    P.querySelector('#returnCampaign').onclick=()=>menu('campaign');return
+  }
+  if(view==='ending'){
+    P.innerHTML='<h2>THE FINAL DECISION</h2><h1>WHAT IS FREEDOM?</h1><p class="story-copy">AETHER is exposed. Veyra is listening. Choose what happens to the intelligence that shaped the city.</p><button data-ending="FREEDOM">FREEDOM</button><button data-ending="NEW HORIZON" class="alt">NEW HORIZON</button><button data-ending="THE CYCLE" class="alt">THE CYCLE</button>';
+    P.querySelectorAll('[data-ending]').forEach(b=>b.onclick=()=>{campaignEnding=b.dataset.ending;saveCampaign();menu('postcredit')});return
+  }
+  if(view==='postcredit'){
+    P.innerHTML='<h2>ENDING · '+(campaignEnding||'FREEDOM')+'</h2><h1>UNKNOWN TRANSMISSION</h1><p class="story-copy">AETHER was not the first.<br><br>A second skyline appears on the Runner terminal. A city far beyond Veyra.<br><b>SKYLINER WILL RETURN.</b></p><button id="postBack">Return to Veyra</button>';
+    P.querySelector('#postBack').onclick=()=>menu('main');return
+  }
   if(view==='set'){
     P.innerHTML='<h2>Settings</h2>'+[['sens','Mouse sensitivity',.2,3,.05],['fov','Field of view',60,110,1],['vol','Volume',0,1,.05],['bob','Head bob',0,2,.1],['mus','Music volume',0,1,.05]]
       .map(([k,l,a,b,s])=>`<label>${l}: <output>${set[k]}</output><input type=range data-k="${k}" min=${a} max=${b} step=${s} value=${set[k]}></label>`).join('')+
@@ -887,31 +1085,33 @@ function menu(view,msg){
     P.querySelector('#rst').onclick=()=>{set.binds={...DEF};save();menu('set')};
     P.querySelector('#bk').onclick=()=>menu('main');
   }else{
-    P.innerHTML=`<h1>SKYLINE <span>//</span> RUNNER</h1><p><b>${msg||(started?'Paused':'Ready to run')}</b></p>
-    <button id=pl>${started&&!done?'Resume':'Run'}</button><button id=hp class=alt>How to play</button><button id=iv class=alt>Inventory</button><button id=st class=alt>Settings</button><button id=tg class=alt>Training grounds</button><button id=cg class=alt>City start</button><button id=tu class=alt>Tutorial: ${tut.on?'on':'off'}</button>${tut.on?'<button id=ts class=alt>Skip tutorial step</button>':''}${trial?'<button id=tr class=alt>Restart trial</button><button id=te class=alt>End trial</button>':''}<button id=vs class=alt>Runner vision: ${set.vision?'on':'off'}</button><button id=rt class=alt>Return to start roof</button>${started?'<button id=rs class=alt>Restart</button>':''}
-    <p><small>Runner bags ${bagCount}/${bags.length} · ${storageOK?'gear, bags and trial times are saved in this browser':'saving is blocked in this browser'}</small></p><h3>Time trials</h3><ol>${trials.map(t=>'<li>'+t.name+' · gold '+t.gold.toFixed(0)+'s · best '+(tb[t.name]?tb[t.name].toFixed(1)+'s':'--')+'</li>').join('')}</ol>`;
-    P.querySelector('#pl').onclick=play;P.querySelector('#st').onclick=()=>menu('set');P.querySelector('#iv').onclick=()=>menu('inv');P.querySelector('#hp').onclick=()=>menu('help');
+    P.innerHTML=`<h1>SKY<span>LINER</span></h1><p><b>${msg||(started?'Paused':'Ready to run')}</b></p>
+    <button id=pl>${started&&!done?'Resume':'Run'}</button><button id=gm class=alt>Game modes</button><button id=iv class=alt>Inventory</button><button id=ch class=alt>Character</button><button id=st class=alt>Settings</button><button id=ca class=alt>Campaign</button><button id=dl class=alt>Deliveries · ${currency} CR</button><button id=tg class=alt>Training grounds</button><button id=cg class=alt>City start</button><button id=tu class=alt>Tutorial: ${tut.on?'on':'off'}</button>${tut.on?'<button id=ts class=alt>Skip tutorial step</button>':''}${trial?'<button id=tr class=alt>Restart trial</button><button id=te class=alt>End trial</button>':''}<button id=vs class=alt>Runner vision: ${set.vision?'on':'off'}</button><button id=rt class=alt>Return to start roof</button>${started?'<button id=rs class=alt>Restart</button>':''}
+    <p><small>Runner bags ${bagCount}/${bags.length} · ${currency} CREDITS · ${storageOK?'gear, bags, character, campaign, delivery and trial records save in this browser':'saving is blocked in this browser'}</small></p>`;
+    P.querySelector('#pl').onclick=()=>{if(started&&!done)play();else menu('modes')};P.querySelector('#gm').onclick=()=>menu('modes');P.querySelector('#st').onclick=()=>menu('set');P.querySelector('#iv').onclick=()=>menu('inv');P.querySelector('#ch').onclick=()=>menu('character');P.querySelector('#ca').onclick=()=>menu('campaign');P.querySelector('#dl').onclick=()=>menu('deliveries');
     P.querySelector('#vs').onclick=()=>{set.vision=!set.vision;setVision();save();menu('main')};
     P.querySelector('#rt').onclick=()=>{p.copy(start);respawn.copy(start);safe.copy(start);v.set(0,0,0);trial=null;menu('main')};
     P.querySelector('#tu').onclick=()=>{tut.on=!tut.on;if(tut.on){tut.done={};tut.ev={}}else{try{localStorage.setItem('sr_tut','1')}catch(e){}}menu('main')};
-    const go=vec=>{start.copy(vec);p.copy(vec);respawn.copy(vec);safe.copy(vec);v.set(0,0,0);trial=null;yaw=vec===trainStart?-Math.PI/2:0;pitch=0;mom=0;play()};
+    const go=vec=>{if(campaignTutorialWasOn!==null){leaveCampaignMode();campaignRun=null}start.copy(vec);p.copy(vec);respawn.copy(vec);safe.copy(vec);v.set(0,0,0);trial=null;yaw=vec===trainStart?-Math.PI/2:0;pitch=0;mom=0;play()};
     P.querySelector('#tg').onclick=()=>go(trainStart);P.querySelector('#cg').onclick=()=>go(cityStart);
     const ts2=P.querySelector('#ts');if(ts2)ts2.onclick=()=>{skipTutStep();play()};
     const tr=P.querySelector('#tr'),te=P.querySelector('#te');if(tr)tr.onclick=()=>{restartTrial();play()};if(te)te.onclick=()=>{endTrial();menu('main')};
     const rs=P.querySelector('#rs');if(rs)rs.onclick=()=>{reset();play()};
   }
 }
+// Always boot into the main menu, never leave the player in a stale active-run state.
+playing=false;ovEl.style.display='flex';touchUI.style.display='none';mouseAim.style.display='none';document.body.classList.remove('mouse-look');
 menu('main');
-document.addEventListener('pointerlockchange',()=>{
-  if(document.pointerLockElement===R.domElement)locked=true;
-  else if(locked){locked=false;if(playing)pause()}
-});
 document.addEventListener('mousemove',e=>{
-  if(!playing||(!locked&&!drag))return;
-  const k=.0023*set.sens;yaw-=e.movementX*k;pitch=Math.max(-1.5,Math.min(1.5,pitch-e.movementY*k*(set.invY?-1:1)));
+  if(!playing||!mouseFallback||set.touch)return;
+  mouseDot.style.left=e.clientX+'px';mouseDot.style.top=e.clientY+'px';
+  const dx=e.clientX-innerWidth/2,dy=e.clientY-innerHeight/2,d=Math.hypot(dx,dy),dead=42,max=Math.max(150,Math.min(innerWidth,innerHeight)*.38);
+  if(!mouseArmed){if(d<=dead){mouseArmed=true;mouseHint.textContent='CAMERA READY · MOVE OUTSIDE THE RING TO LOOK'}else{mouseStickX=mouseStickY=0;return}}
+  const strength=Math.max(0,Math.min(1,(d-dead)/(max-dead)));
+  mouseStickX=d>dead?dx/d*strength:0;mouseStickY=d>dead?dy/d*strength:0;
 });
 addEventListener('keydown',e=>{
-  if(e.code==='Escape'&&playing&&!locked){pause();return}
+  if(e.code==='Escape'&&playing){pause();return}
   if(rebinding){e.preventDefault();if(e.code!=='Escape'){set.binds[rebinding]=e.code;save()}rebinding=null;menu('set');return}
   keys[e.code]=true;
   if(e.code==='Space')e.preventDefault();
@@ -930,7 +1130,7 @@ document.querySelectorAll('[data-t]').forEach(b=>{
   const up=e=>{e.preventDefault();if(a!=='pause')release(a);b.classList.remove('on')};
   b.addEventListener('touchend',up);b.addEventListener('touchcancel',up);
 });
-cv.addEventListener('mousedown',e=>{drag=true;if(playing&&gearOn&&locked&&e.button===0)edge.rope=true});addEventListener('mouseup',()=>{drag=false});
+cv.addEventListener('mousedown',e=>{drag=true;if(playing&&gearOn&&e.button===0)edge.rope=true});addEventListener('mouseup',()=>{drag=false});
 cv.addEventListener('touchstart',e=>{
   if(!playing)return;e.preventDefault();
   for(const t of e.changedTouches){
@@ -957,7 +1157,7 @@ cv.addEventListener('touchend',tEnd);cv.addEventListener('touchcancel',tEnd);
 // ---------- first-person body (own scene: never clips into the world) ----------
 const FS=new THREE.Scene(),Cfp=new THREE.PerspectiveCamera(75,1,.02,10);
 FS.add(new THREE.HemisphereLight(0xffffff,0x8a97a0,1.05));const fl=new THREE.DirectionalLight(0xffffff,.5);fl.position.set(.3,1,.6);FS.add(fl);
-const fm=c=>new THREE.MeshLambertMaterial({color:c}),mJa=fm(0x2b3238),mTr=fm(0xe5242b),mSk=fm(0xd8a283),mGl=fm(0x1f2428),mPa=fm(0x3a434a),mSh=fm(0xeeeeee),mSo=fm(0x15191c);
+const fm=c=>new THREE.MeshLambertMaterial({color:c}),mJa=fm(character.outfit||'#252b32'),mTr=fm(character.accent||'#e5242b'),mSk=fm(0xd8a283),mGl=fm(0x1f2428),mPa=fm(0x3a434a),mSh=fm(0xeeeeee),mSo=fm(0x15191c);
 function bx(g,w,hh,d,x,y,z,m){const b=new THREE.Mesh(new THREE.BoxGeometry(w,hh,d),m);b.position.set(x,y,z);g.add(b);return b}
 function finger(par,x,z,len,w){const g=new THREE.Group(),g2=new THREE.Group();g.position.set(x,0,z);bx(g,w,w,len,0,0,-len/2,mGl);g2.position.z=-len;bx(g2,w*.92,w*.92,len*.85,0,0,-len*.425,mSk);g.add(g2);par.add(g);return[g,g2]}
 function mkArm(sx){ // sleeve runs straight into a glove cuff: no bare skin between forearm and hand
@@ -977,6 +1177,8 @@ function mkLeg(sx){
   ft.position.y=-.42;kn.add(ft);bx(ft,.15,.09,.3,0,-.03,-.08,mSh);bx(ft,.152,.03,.31,0,-.08,-.08,mSo);bodyRoot.add(hip);return{hip,kn};
 }
 const aL=mkArm(-1),aR=mkArm(1),lL=mkLeg(-1),lR=mkLeg(1);const armRoot=new THREE.Group();armRoot.add(aL.sh,aR.sh);FS.add(armRoot);const gadget=new THREE.Mesh(new THREE.BoxGeometry(.07,.05,.13),new THREE.MeshLambertMaterial({color:0x2aa8ff}));gadget.position.set(0,.045,-.05);aR.hd.add(gadget);gadget.visible=false;
+function applyCharacterLook(){mJa.color.set(character.outfit||'#252b32');mTr.color.set(character.accent||'#e5242b');mPa.color.set(({athletic:'#3a434a',stealth:'#151b22',urban:'#626b72',tech:'#1f4058'})[character.style]||'#3a434a')}
+applyCharacterLook();
 const mFab=fm(0x1d2a33),wingFab=[aL,aR].map((w,i)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(.5,.012,.8),mFab);m.position.set((i?1:-1)*.16,0,.18);m.visible=false;w.sh.add(m);return m}),zipBar=new THREE.Mesh(new THREE.BoxGeometry(.55,.035,.035),mGl);zipBar.position.set(0,.27,-.58);zipBar.visible=false;FS.add(zipBar);
 const AJ=['x','y','z','e','f','hx','hy','hz','g','p'],JK=[...AJ.map(k=>k+'L'),...AJ.map(k=>k+'R'),'hpL','knL','hpR','knR','lean','by','px','py'],J={};JK.forEach(k=>J[k]=0);J.px=.33;J.py=-.27;
 let lyaw=0,lpitch=0,swX=0,swY=0;
@@ -1115,9 +1317,13 @@ function itemTick(dt,now){for(const it of items){if(it.t>0){it.t-=dt;if(it.t<=0)
 // ---------- compass bar: your heading and your objective ----------
 const cmpEl=document.getElementById('cmp'),cmpX=cmpEl.getContext('2d');
 function objective(){
+  if(delivery)return[delivery.target.x,delivery.target.z,'#1fd16b'];
+  if(delivery)return[delivery.target.x,delivery.target.z,'#1fd16b'];
+  if(campaignRun){const q=CAMPAIGN[campaignRun.index].route[campaignRun.step];if(q)return[q.x,q.z,'#e5242b']}
   if(trial){const q=trial.t.pts[trial.i];return[q.x,q.z,'#2aa8ff']}
   if(tut.on){const j=TS.findIndex(t=>!tut.done[t[0]]),q=j>=0?WP[TS[j][0]]:null;if(q)return[TX+q[0],TZ+q[1],'#2aa8ff']}
-  let best=null,bd=1e9;for(const t of trials){const q=t.pts[0],dd=Math.hypot(q.x-p.x,q.z-p.z);if(dd<bd){bd=dd;best=[q.x,q.z,'#1fd16b']}}return best;
+  if(!campaignRun&&!trial&&!tut.on&&deliverySites.length){const q=deliverySites[deliveryIndex%deliverySites.length];return[q.x,q.z,'#1fd16b']}
+  let best=null,bd=1e9;for(const t of trials){if(!trialUnlocked(t))continue;const q=t.pts[0],dd=Math.hypot(q.x-p.x,q.z-p.z);if(dd<bd){bd=dd;best=[q.x,q.z,'#1fd16b']}}return best;
 }
 function drawCompass(){
   const W=720,c=cmpX;c.clearRect(0,0,W,52);if(!playing)return;
@@ -1128,7 +1334,7 @@ function drawCompass(){
   c.fillStyle='#e5242b';c.beginPath();c.moveTo(W/2,4);c.lineTo(W/2+7,12);c.lineTo(W/2-7,12);c.closePath();c.fill();
   const o=objective();
   if(o){const dx=o[0]-p.x,dz=o[1]-p.z,brg=((Math.atan2(dx,-dz)*180/Math.PI)%360+360)%360;let rel=((brg-head+540)%360)-180;const edge=Math.abs(rel)>span;rel=Math.max(-span,Math.min(span,rel));
-    const x=W/2+rel/span*(W/2-12);c.fillStyle=o[2];c.beginPath();c.moveTo(x,edge?25:16);c.lineTo(x+9,25);c.lineTo(x,edge?25:34);c.lineTo(x-9,25);c.closePath();c.fill();
+    const x=W/2+rel/span*(W/2-12);c.fillStyle=o[2];c.beginPath();if(edge&&rel<0){c.moveTo(x-10,25);c.lineTo(x+5,16);c.lineTo(x+5,34)}else if(edge&&rel>0){c.moveTo(x+10,25);c.lineTo(x-5,16);c.lineTo(x-5,34)}else{c.moveTo(x,16);c.lineTo(x+9,25);c.lineTo(x,34);c.lineTo(x-9,25)}c.closePath();c.fill();
     c.fillStyle='#14181b';c.font='bold 13px system-ui,sans-serif';c.fillText(Math.round(Math.hypot(dx,dz))+' m',x,48)}
 }
 // ---------- mag rope visuals ----------
@@ -1157,13 +1363,14 @@ const TS=[
  ['zip',()=>'Zipline: jump into the cable to ride out to the city']
 ];
 const TIP={run:'Hold forward on the ramp. You do not need to jump yet.',gap:'Sprint first and jump at the very edge of each deck. The glass is on the last deck: run straight at it fast.',spring:'Jump into a crate and keep holding the jump key through the whole vault. The orange pad launches you up to the next deck.',slide:'Sprint across the deck, press the slide key once and let the slope carry you.',turn:'On the ledge deck, sprint west at the tall wall, jump into it and keep climbing, then press the quick-turn key while still on the wall. You kick back onto the raised platform.',wall:'Jump off the deck edge right beside the wall at a shallow angle and hold forward. Press jump while running on the wall.',climb:'Jump straight at the wall and hold forward. You pull up onto the ledge by yourself.',ladder:'Walk into the ladder and hold forward, or jump at the pipe.',roll:'Walk off the ledge and press the slide key just before you hit the ground.',pad:'Walk off the ledge onto the teal pad.',zip:'Jump up into the cable.'};
-const SG={run:[-80,62,0],gap:[-23,62,8],spring:[30,62,8],slide:[52,62,15],wall:[53.5,31,9],climb:[15,31,9],turn:[-4,31,17.5],ladder:[-4,31,17.5],roll:[-4,21,34],pad:[9,21,26],zip:[24,21,16]};
+const SG={run:[-80,62,0],gap:[-32,62,8],spring:[30,62,8],slide:[52,62,15],wall:[53.5,31,9],climb:[15,31,9],turn:[-4,31,17.5],ladder:[-4,31,17.5],roll:[-4,21,34],pad:[9,21,26],zip:[24,21,16]};
 function stagePos(){const i=TS.findIndex(t=>!tut.done[t[0]]),g=i<0?null:SG[TS[i][0]];return g?new THREE.Vector3(TX+g[0],TY+g[2]+.02,TZ+g[1]):null}
 const WP={run:[-45,62,4.5],gap:[21,62,8],spring:[39,62,8],slide:[53.5,45,12],wall:[40,27.5,9],climb:[2,31,9],turn:[-17,31,17.5],ladder:[-3,28,17.5],roll:[9,21,26],pad:[22,21,16],zip:[30,21,16]};
 const GATES=[[-11,-3,58,66,8,'run'],[2,10,58,66,8,'run'],[17,22.5,58,66,8,'run'],[22.5,37.5,58,66,8,'gap'],[37.5,42,58,66,8.5,'gap'],[47,60,57,67,15,'spring'],[48.5,58.5,26,37,9,'slide'],[3,32,26,36,9,'wall'],[-27,3,26,36,17.5,'climb'],[-8,2,26,28.2,17.5,'turn'],[-10,3,16,26,34,'ladder'],[3,15,16,26,26,'roll'],[16,32,16,26,16.4,'pad']]; // you cannot stand on a stage before finishing the step that leads to it
 const tutBeam=new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.2,28,14,1,true),new THREE.MeshBasicMaterial({color:0x2aa8ff,transparent:true,opacity:.55,side:THREE.DoubleSide}));tutBeam.visible=false;S.add(tutBeam);
 let tutKey='';
 let tutHoldUntil=0;
+function markTutEvent(key){const i=TS.findIndex(t=>!tut.done[t[0]]);if(tut.on&&i>=0&&TS[i][0]===key)tut.ev[key]=true}
 function skipTutStep(){
   const i=TS.findIndex(t=>!tut.done[t[0]]);if(i<0)return;
   tut.done[TS[i][0]]=true;toast('Step skipped');tutHoldUntil=performance.now()+800;wrSeen=false;
@@ -1171,14 +1378,14 @@ function skipTutStep(){
 }
 function tutTick(sp){
   const D=tut.done;
-  if(!tut.on||!playing){tutEl.style.display='none';tutBeam.visible=false;tutKey='';return}
+  if(!tut.on||!playing||campaignRun){tutEl.style.display='none';tutBeam.visible=false;tutKey='';return}
   const i=TS.findIndex(t=>!D[t[0]]);
-  if(i<0){tut.on=false;try{localStorage.setItem('sr_tut','1')}catch(e){}start.copy(cityStart);toast('Tutorial complete!');tutEl.style.display='none';tutBeam.visible=false;return}
+  if(i<0){tut.on=false;try{localStorage.setItem('sr_tut','1')}catch(e){}start.copy(cityStart);tutEl.style.display='none';tutBeam.visible=false;playing=false;touchUI.style.display='none';mouseAim.style.display='none';document.body.classList.remove('mouse-look');toast('Tutorial complete · Campaign unlocked');menu('campaign');return}
   const now2=performance.now(),holding=now2<tutHoldUntil,cur=TS[i][0];
-  if(i!==tutIdx){tutIdx=i;tutStepT=now2}
-  const chk={run:()=>sp>10,wall:()=>{if(wrRun>.8)wrSeen=true;return wrSeen&&hopT>.95&&!lad},slide:()=>slideRun>.8,roll:()=>rollT>0,
+  if(i!==tutIdx){tutIdx=i;tutStepT=now2;wrRun=0;wrSeen=false;wrHop=false}
+  const chk={run:()=>sp>10&&p.x>=TX-33&&p.y>=TY+6.5,wall:()=>wrRun>.28&&wrHop&&!lad,slide:()=>slideRun>.8,roll:()=>rollT>0,
     turn:()=>ground&&Math.abs(p.y-(TY+22.5))<1.3&&p.x>TX-17.2&&p.x<TX-12.3&&p.z>TZ+26&&p.z<TZ+37};
-  if(!holding&&((chk[cur]&&chk[cur]())||tut.ev[cur])){D[cur]=true;wrSeen=false;chime();tutHoldUntil=now2+1300}
+  if(!holding&&((chk[cur]&&chk[cur]())||tut.ev[cur])){D[cur]=true;wrSeen=false;wrHop=false;chime();tutHoldUntil=now2+1300}
   const n=TS.filter(t=>D[t[0]]).length,j=TS.findIndex(t=>!D[t[0]]);
   if(j<0){tutKey='';return}
   if(now2<tutHoldUntil){tutKey='';tutEl.innerHTML='<small>TUTORIAL '+n+'/'+TS.length+'</small><br><b>\u2713 Done</b>';tutEl.style.display='block';tutBeam.visible=false;return}
@@ -1189,7 +1396,13 @@ function tutTick(sp){
   tutEl.style.display='block';
 }
 function promptTick(){
-  if(playing&&nearTrial&&!trial){promptEl.textContent=(set.touch?'Tap INTERACT':'Press '+lbl(set.binds.interact))+' to start '+nearTrial.name;promptEl.style.display='block'}else promptEl.style.display='none';
+  if(playing&&nearTrial&&!trial){
+    const t=nearTrial,b=tb[t.name],gear=t.gear?GEARS.find(g=>g[0]===t.gear)[1]:'None',ok=!t.gear||hasGear(t.gear);
+    const bestMed=!b?'NO MEDAL':goldUnlock.includes(t.name)&&b<=t.platinum?'PLATINUM':b<=t.gold?'GOLD':b<=t.silver?'SILVER':b<=t.bronze?'BRONZE':'NO MEDAL';
+    const bestLabel=b?b.toFixed(2)+'s · '+bestMed+' MEDAL':'-- · NO MEDAL';
+    promptEl.innerHTML='<b>'+t.name+'</b><br><small>'+(t.gear?'GEAR TRIAL · '+gear:'OPEN TRIAL')+'</small><br>PLATINUM '+(goldUnlock.includes(t.name)?t.platinum.toFixed(1)+'s':'LOCKED · EARN GOLD FIRST')+' · GOLD '+t.gold.toFixed(1)+'s<br>SILVER '+t.silver.toFixed(1)+'s · BRONZE '+t.bronze.toFixed(1)+'s<br><b>BEST '+bestLabel+'</b><br><small>'+(ok?(set.touch?'TAP INTERACT':'PRESS '+lbl(set.binds.interact))+' TO START':'EQUIP '+gear.toUpperCase()+' TO START')+'</small>';
+    promptEl.style.display='block';
+  }else promptEl.style.display='none';
 }
 // ---------- runner vision: highlights only what the current objective needs ----------
 const HV=[],hvMat=new THREE.MeshBasicMaterial({color:0xe5242b,transparent:true,opacity:.8,depthWrite:false}),hvGeo=new THREE.BoxGeometry(1,1,1);
@@ -1205,6 +1418,9 @@ function visionTick(dt,now){
       for(const b of boxesIn(p.x,p.z,96).concat(cbox)){if(b.tag!=='crate'&&b.tag!=='wall'&&b.tag!=='spring'&&b.tag!=='pad')continue;
         const cx=(b.min.x+b.max.x)/2,cz=(b.min.z+b.max.z)/2,t=Math.max(0,Math.min(1,((cx-sx)*dx+(cz-sz)*dz)/L2)),qx=sx+dx*t-cx,qz=sz+dz*t-cz,dd=qx*qx+qz*qz;
         if(dd<100&&Math.abs(cx-sx)<90&&Math.abs(cz-sz)<90&&Math.abs((b.min.y+b.max.y)/2-p.y)<30)list.push([dd,b])}
+    }else if(campaignRun){ // campaign Runner's Vision guides through route hazards
+      const route=CAMPAIGN[campaignRun.index].route,q=route[Math.min(route.length-1,campaignRun.step)],sx=p.x,sz=p.z,dx=q.x-sx,dz=q.z-sz,L2=dx*dx+dz*dz||1;
+      for(const b of boxesIn(p.x,p.z,105).concat(cbox)){if(!['crate','wall','spring','pad','ladder','pipe'].includes(b.tag))continue;const cx=(b.min.x+b.max.x)/2,cz=(b.min.z+b.max.z)/2,t=Math.max(0,Math.min(1,((cx-sx)*dx+(cz-sz)*dz)/L2)),ox=sx+dx*t-cx,oz=sz+dz*t-cz,dd=ox*ox+oz*oz;if(dd<125&&Math.abs(cx-sx)<100&&Math.abs(cz-sz)<100&&Math.abs((b.min.y+b.max.y)/2-p.y)<35)list.push([dd,b])}
     }else if(tut.on){ // tutorial: the props for the step you are on
       const i=TS.findIndex(t=>!tut.done[t[0]]),st=i>=0?ST[TS[i][0]]:null;
       if(st){const ax=TX+st[0],az=TZ+st[1];
@@ -1235,9 +1451,10 @@ function loop(now){
   requestAnimationFrame(loop);
   const dt=Math.min(.033,(now-last)/1000);last=now;
   const live=playing&&!done;
-  if(live){const sub=Math.hypot(v.x,v.z)>16?2:1;for(let q=0;q<sub;q++)step(dt/sub)} // at high speed, two physics steps so you never tunnel through thin walls
+  if(live){const sub=Math.hypot(v.x,v.z)>16?2:1;for(let q=0;q<sub;q++)step(dt/sub)}campaignActorsTick(dt);deliveryTick(); // at high speed, two physics steps so you never tunnel through thin walls
   if(toastT>0){toastT-=dt;if(toastT<=0)document.getElementById('toast').style.opacity=0}
   const sp=Math.hypot(v.x,v.z);
+  if(mouseFallback&&!set.touch&&mouseArmed){yaw-=mouseStickX*2.1*dt;pitch=Math.max(-1.5,Math.min(1.5,pitch+mouseStickY*1.65*dt*(set.invY?-1:1)))}
   fov+=((set.fov+Math.min(34,sp*1.2)+(slideT>0?4:0)+(wingOn?10:0))-fov)*Math.min(1,dt*5);C.fov=fov;C.updateProjectionMatrix();
   bob+=sp*dt*((ground||wallrun)?1:0);shake*=1-Math.min(1,dt*9);
   const run2=Math.min(1,sp/9),ph2=bob*STR,stepOn=(ground||wallrun)&&slideT<=0&&rollT<=0;
@@ -1247,14 +1464,14 @@ function loop(now){
   const ydw=(yaw-wYaw)/Math.max(dt,.001);wYaw=yaw;bankW+=((wingOn?Math.max(-.45,Math.min(.45,ydw*.1)):0)-bankW)*Math.min(1,dt*6);
   C.position.set(p.x,p.y+eyeH+bb-shake+(lad?Math.sin(lad.ph)*.03:(climbing&&!ground)?Math.sin(now*.011)*.03:0),p.z);
   C.rotation.order='YXZ';C.rotation.set(pitch-rollAng-dk*.3-(vault?Math.sin(Math.PI*vault.t/vault.dur)*.1:0)+(slideT>0?.06:0),yaw,roll+bsx+(slideT>0?.04:0)+(zip?Math.sin(now*.0035)*.05:0)+bankW+(vault?Math.sin(Math.PI*vault.t/vault.dur)*.05:0));
-  if(trial){const q=trial.t.pts[trial.i];target.visible=true;target.material.color.setHex(trial.i===trial.t.pts.length-1?0xc13cff:0x2aa8ff);target.position.set(q.x,q.y+30,q.z)}else target.visible=false;
+  if(trial){const q=trial.t.pts[trial.i];target.visible=true;target.material.color.setHex(trial.i===trial.t.pts.length-1?0xc13cff:0x2aa8ff);target.position.set(q.x,q.y+30,q.z)}else if(campaignRun){const q=CAMPAIGN[campaignRun.index].route[campaignRun.step];target.visible=!!q;if(q){target.material.color.setHex(0xe5242b);target.position.set(q.x,q.y+26,q.z)}}else target.visible=false;
   vig.style.opacity=Math.max(0,Math.min(.9,(sp-8)/6));
   hurtT=Math.max(0,hurtT-dt);document.getElementById('hurt').style.opacity=hurtT;
   if(AC){const n=AC.currentTime;
     windG.gain.setTargetAtTime(Math.min(.08,sp/200)*(ground?.55:1)+wx.storm*.05+wx.rain*.02+(wingOn?.05:0),n,.1);
     slideG.gain.setTargetAtTime(slideT>0&&live?.14:0,n,.05);
     wallG.gain.setTargetAtTime(wallrun&&live?.2:0,n,.05)}
-  hud.innerHTML=(trial?'TRIAL '+trial.t.name+' · '+((now-trial.t0)/1000).toFixed(1)+'s · '+(trial.i-1)+'/'+(trial.t.pts.length-1)+' · '+Math.round(Math.hypot(p.x-trial.t.pts[trial.i].x,p.z-trial.t.pts[trial.i].z))+'m<br>':'')+sp.toFixed(1)+' m/s'+(flow>.05?' · FLOW '+Math.round(flow*100)+'%':'')+' · HP '+Math.round(hp)+' · BAGS '+bagCount+'/'+bags.length+(zip?' · ZIPLINE':hang?' · LEDGE':wallrun?' · WALL-RUN':climbing||(!ground&&keys[set.binds.fwd]&&climbT<1&&climbT>0&&v.y>4)?' · CLIMB':slideT>0?' · SLIDE':rollT>0?' · ROLL':'');
+  hud.innerHTML=(campaignRun?'SKYLINER · '+CAMPAIGN[campaignRun.index].title+' · '+campaignRun.step+'/'+(CAMPAIGN[campaignRun.index].route.length-1)+'<br>':'')+(trial?'TRIAL '+trial.t.name+' · '+((now-trial.t0)/1000).toFixed(1)+'s · '+(trial.i-1)+'/'+(trial.t.pts.length-1)+' · '+Math.round(Math.hypot(p.x-trial.t.pts[trial.i].x,p.z-trial.t.pts[trial.i].z))+'m<br>':'')+sp.toFixed(1)+' m/s'+(flow>.05?' · FLOW '+Math.round(flow*100)+'%':'')+' · HP '+Math.round(hp)+' · BAGS '+bagCount+'/'+bags.length+(zip?' · ZIPLINE':hang?' · LEDGE':wallrun?' · WALL-RUN':climbing||(!ground&&keys[set.binds.fwd]&&climbT<1&&climbT>0&&v.y>4)?' · CLIMB':slideT>0?' · SLIDE':rollT>0?' · ROLL':'');
   bags.forEach(b=>{if(!b.got){b.mesh.rotation.y=now*.002;b.mesh.position.y=b.y+Math.sin(now*.003+b.x)*.15}});if(playing)drawMap();
   itemTick(dt,now);drawCompass();gearTick();skyTick(dt);shardTick(dt);musicTick(dt,sp);visionTick(dt,now);tutTick(sp);promptTick();document.body.classList.toggle('intrial',!!trial);
   animFP(dt,sp,now);
