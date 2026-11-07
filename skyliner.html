@@ -893,7 +893,7 @@ function step(dt){
     }
   }
   if(edge.interact&&sideDeliveryInteract())edge.interact=false;
-  if(!trial){if(trialCool<=0)for(const t of trials){const q=t.pts[0];if(Math.hypot(p.x-q.x,p.z-q.z)<3.4&&p.y>q.y-4&&p.y<q.y+38){nearTrial=t;if(edge.interact){if(!trialUnlocked(t)){toast('TRIAL LOCKED · COMPLETE CAMPAIGN CHAPTERS')}else if(t.gear&&!hasGear(t.gear)){toast('THIS TRIAL REQUIRES '+GEARS.find(g=>g[0]===t.gear)[1].toUpperCase())}else{trial={t,i:1,t0:performance.now()};respawn.copy(q);chime();toast(t.name+' · GO!')}}break}}}
+  if(!trial){if(trialCool<=0)for(const t of trials){if(!trialUnlocked(t))continue;const q=t.pts[0];if(Math.hypot(p.x-q.x,p.z-q.z)<3.4&&p.y>q.y-4&&p.y<q.y+38){nearTrial=t;if(edge.interact){if(!trialUnlocked(t)){toast('TRIAL LOCKED · COMPLETE CAMPAIGN CHAPTERS')}else if(!trialUnlocked(t)){toast('TRIAL LOCKED · COMPLETE CAMPAIGN CHAPTERS')}else if(t.gear&&!hasGear(t.gear)){toast('THIS TRIAL REQUIRES '+GEARS.find(g=>g[0]===t.gear)[1].toUpperCase())}else{trial={t,i:1,t0:performance.now()};respawn.copy(q);chime();toast(t.name+' · GO!')}}break}}}
   else if(edge.trialRestart){restartTrial();toast('Trial restarted')}
   else if(edge.trialEnd){endTrial();toast('Trial ended')}
   else{
@@ -962,7 +962,7 @@ function menu(view,msg){
   if(view==='briefing'){
     const m=CAMPAIGN[selectedCampaign];
     P.innerHTML='<h2>'+m.act+'</h2><h1>'+m.title+'</h1><p><b>'+m.location+' · '+m.time+'</b></p><p class="story-copy">'+m.brief+'</p><p><b>MISSION:</b> '+m.finish+'</p><button id="beginChapter">Start mission</button><button id="briefBack" class="alt">Back</button>';
-    P.querySelector('#beginChapter').onclick=()=>{if(campaignTutorialWasOn===null)campaignTutorialWasOn=tut.on;tut.on=false;campaignRun={index:selectedCampaign,step:1};const q=m.route[0];start.copy(q);p.copy(q);respawn.copy(q);safe.copy(q);v.set(0,0,0);yaw=0;pitch=0;mom=0;trial=null;play();toast(m.radio[0]);toastT=4};
+    P.querySelector('#beginChapter').onclick=()=>{if(localStorage.getItem('sr_tut')!=='1'){toast('Complete tutorial first');return}campaignEnemies.forEach(e=>e.started=false);if(campaignTutorialWasOn===null)campaignTutorialWasOn=tut.on;tut.on=false;campaignRun={index:selectedCampaign,step:1};const q=m.route[0];start.copy(q);p.copy(q);respawn.copy(q);safe.copy(q);v.set(0,0,0);yaw=0;pitch=0;mom=0;trial=null;play();toast(m.radio[0]);toastT=4};
     P.querySelector('#briefBack').onclick=()=>menu('campaign');return
   }
   if(view==='chapterComplete'){
@@ -1227,6 +1227,7 @@ function itemTick(dt,now){for(const it of items){if(it.t>0){it.t-=dt;if(it.t<=0)
 const cmpEl=document.getElementById('cmp'),cmpX=cmpEl.getContext('2d');
 function objective(){
   if(delivery)return[delivery.target.x,delivery.target.z,'#1fd16b'];
+  if(delivery)return[delivery.target.x,delivery.target.z,'#1fd16b'];
   if(campaignRun){const q=CAMPAIGN[campaignRun.index].route[campaignRun.step];if(q)return[q.x,q.z,'#e5242b']}
   if(trial){const q=trial.t.pts[trial.i];return[q.x,q.z,'#2aa8ff']}
   if(tut.on){const j=TS.findIndex(t=>!tut.done[t[0]]),q=j>=0?WP[TS[j][0]]:null;if(q)return[TX+q[0],TZ+q[1],'#2aa8ff']}
@@ -1241,7 +1242,7 @@ function drawCompass(){
   c.fillStyle='#e5242b';c.beginPath();c.moveTo(W/2,4);c.lineTo(W/2+7,12);c.lineTo(W/2-7,12);c.closePath();c.fill();
   const o=objective();
   if(o){const dx=o[0]-p.x,dz=o[1]-p.z,brg=((Math.atan2(dx,-dz)*180/Math.PI)%360+360)%360;let rel=((brg-head+540)%360)-180;const edge=Math.abs(rel)>span;rel=Math.max(-span,Math.min(span,rel));
-    const x=W/2+rel/span*(W/2-12);c.fillStyle=o[2];c.beginPath();c.moveTo(x,edge?25:16);c.lineTo(x+9,25);c.lineTo(x,edge?25:34);c.lineTo(x-9,25);c.closePath();c.fill();
+    const x=W/2+rel/span*(W/2-12);c.fillStyle=o[2];c.beginPath();if(edge&&rel<0){c.moveTo(x-10,25);c.lineTo(x+5,16);c.lineTo(x+5,34)}else if(edge&&rel>0){c.moveTo(x+10,25);c.lineTo(x-5,16);c.lineTo(x-5,34)}else{c.moveTo(x,16);c.lineTo(x+9,25);c.lineTo(x,34);c.lineTo(x-9,25)}c.closePath();c.fill();
     c.fillStyle='#14181b';c.font='bold 13px system-ui,sans-serif';c.fillText(Math.round(Math.hypot(dx,dz))+' m',x,48)}
 }
 // ---------- mag rope visuals ----------
@@ -1286,7 +1287,7 @@ function tutTick(sp){
   const D=tut.done;
   if(!tut.on||!playing||campaignRun){tutEl.style.display='none';tutBeam.visible=false;tutKey='';return}
   const i=TS.findIndex(t=>!D[t[0]]);
-  if(i<0){tut.on=false;try{localStorage.setItem('sr_tut','1')}catch(e){}start.copy(cityStart);toast('Tutorial complete!');tutEl.style.display='none';tutBeam.visible=false;return}
+  if(i<0){tut.on=false;try{localStorage.setItem('sr_tut','1')}catch(e){}start.copy(cityStart);tutEl.style.display='none';tutBeam.visible=false;playing=false;touchUI.style.display='none';mouseAim.style.display='none';document.body.classList.remove('mouse-look');toast('Tutorial complete · Campaign unlocked');menu('campaign');return}
   const now2=performance.now(),holding=now2<tutHoldUntil,cur=TS[i][0];
   if(i!==tutIdx){tutIdx=i;tutStepT=now2}
   const chk={run:()=>sp>10,wall:()=>{if(wrRun>.8)wrSeen=true;return wrSeen&&hopT>.95&&!lad},slide:()=>slideRun>.8,roll:()=>rollT>0,
