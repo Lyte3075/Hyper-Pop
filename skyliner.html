@@ -505,7 +505,8 @@ function campaignRoof(dst,seed){
  const b=pool[(seed*37+dst*19+Math.floor(pool.length/3))%pool.length];return new THREE.Vector3(b.x,b.ht+.03,b.z);
 }
 CAMPAIGN.forEach((m,i)=>{m.route=m.districts.map((d,k)=>campaignRoof(d,i*5+k+1))});
-let campaignRun=null;
+let campaignRun=null,campaignTutorialWasOn=null;
+function leaveCampaignMode(){if(campaignTutorialWasOn!==null){tut.on=campaignTutorialWasOn;campaignTutorialWasOn=null}}
 
 // ---------- ladders and pipes linking roofs across the street ----------
 for(let i=0;i<N;i++)for(let j=0;j<N;j++){const A=bl[i][j];for(const[di,dj]of[[1,0],[0,1]]){const a=i+di,b2=j+dj;if(a>=N||b2>=N)continue;const B=bl[a][b2];
@@ -667,7 +668,7 @@ function hangStep(dt){
   }
 }
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.opacity=1;toastT=2}
-function reset(){climbTurn=false;p.copy(start);respawn.copy(start);v.set(0,0,0);yaw=pitch=0;mom=0;cpIdx=-1;done=false;started=false;slideT=rollT=0;hp=100;hang=null;vault=null;trial=null;zip=null;stagger=0}
+function reset(){if(campaignTutorialWasOn!==null)leaveCampaignMode();climbTurn=false;p.copy(start);respawn.copy(start);v.set(0,0,0);yaw=pitch=0;mom=0;cpIdx=-1;done=false;started=false;slideT=rollT=0;hp=100;hang=null;vault=null;trial=null;campaignRun=null;zip=null;stagger=0}
 
 function step(dt){
   const H=a=>keys[set.binds[a]];
@@ -871,7 +872,7 @@ function step(dt){
       if(campaignRun.step>=m.route.length){
         selectedCampaign=campaignRun.index;
         if(!completedCampaign.includes(campaignRun.index))completedCampaign.push(campaignRun.index);
-        saveCampaign();const last=campaignRun.index===CAMPAIGN.length-1;campaignRun=null;playing=false;touchUI.style.display='none';mouseFallback=false;mouseArmed=false;mouseStickX=mouseStickY=0;mouseAim.style.display='none';document.body.classList.remove('mouse-look');toast('MISSION COMPLETE');menu(last?'ending':'chapterComplete');
+        saveCampaign();const last=campaignRun.index===CAMPAIGN.length-1;campaignRun=null;if(last)leaveCampaignMode();playing=false;touchUI.style.display='none';mouseFallback=false;mouseArmed=false;mouseStickX=mouseStickY=0;mouseAim.style.display='none';document.body.classList.remove('mouse-look');toast('MISSION COMPLETE');menu(last?'ending':'chapterComplete');
       }else{const line=m.radio[Math.min(campaignRun.step-1,m.radio.length-1)];toast(line);toastT=4}
     }
   }
@@ -900,7 +901,7 @@ const touchUI=document.getElementById('touch');let playing=false,locked=false,dr
 const mouseAim=document.getElementById('mouseAim'),mouseDot=document.getElementById('mouseDot'),mouseHint=document.getElementById('mouseHint');
 let mouseFallback=false,mouseArmed=false,mouseStickX=0,mouseStickY=0;
 function play(){ // cursor joystick camera; pointer lock is deliberately never requested
-  initAudio();musicStart();if(done)reset();
+  initAudio();musicStart();if(done&&!campaignRun)reset();
   playing=true;ovEl.style.display='none';for(const k in edge)edge[k]=false;
   if(!started){started=true;t0=performance.now()}
   touchUI.style.display=set.touch?'block':'none';
@@ -942,7 +943,7 @@ function menu(view,msg){
   if(view==='briefing'){
     const m=CAMPAIGN[selectedCampaign];
     P.innerHTML='<h2>'+m.act+'</h2><h1>'+m.title+'</h1><p><b>'+m.location+' · '+m.time+'</b></p><p class="story-copy">'+m.brief+'</p><p><b>MISSION:</b> '+m.finish+'</p><button id="beginChapter">Start mission</button><button id="briefBack" class="alt">Back</button>';
-    P.querySelector('#beginChapter').onclick=()=>{campaignRun={index:selectedCampaign,step:1};const q=m.route[0];start.copy(q);p.copy(q);respawn.copy(q);safe.copy(q);v.set(0,0,0);yaw=0;pitch=0;mom=0;trial=null;play();toast(m.radio[0]);toastT=4};
+    P.querySelector('#beginChapter').onclick=()=>{if(campaignTutorialWasOn===null)campaignTutorialWasOn=tut.on;tut.on=false;campaignRun={index:selectedCampaign,step:1};const q=m.route[0];start.copy(q);p.copy(q);respawn.copy(q);safe.copy(q);v.set(0,0,0);yaw=0;pitch=0;mom=0;trial=null;play();toast(m.radio[0]);toastT=4};
     P.querySelector('#briefBack').onclick=()=>menu('campaign');return
   }
   if(view==='chapterComplete'){
@@ -983,7 +984,7 @@ function menu(view,msg){
     P.querySelector('#vs').onclick=()=>{set.vision=!set.vision;setVision();save();menu('main')};
     P.querySelector('#rt').onclick=()=>{p.copy(start);respawn.copy(start);safe.copy(start);v.set(0,0,0);trial=null;menu('main')};
     P.querySelector('#tu').onclick=()=>{tut.on=!tut.on;if(tut.on){tut.done={};tut.ev={}}else{try{localStorage.setItem('sr_tut','1')}catch(e){}}menu('main')};
-    const go=vec=>{start.copy(vec);p.copy(vec);respawn.copy(vec);safe.copy(vec);v.set(0,0,0);trial=null;yaw=vec===trainStart?-Math.PI/2:0;pitch=0;mom=0;play()};
+    const go=vec=>{if(campaignTutorialWasOn!==null){leaveCampaignMode();campaignRun=null}start.copy(vec);p.copy(vec);respawn.copy(vec);safe.copy(vec);v.set(0,0,0);trial=null;yaw=vec===trainStart?-Math.PI/2:0;pitch=0;mom=0;play()};
     P.querySelector('#tg').onclick=()=>go(trainStart);P.querySelector('#cg').onclick=()=>go(cityStart);
     const ts2=P.querySelector('#ts');if(ts2)ts2.onclick=()=>{skipTutStep();play()};
     const tr=P.querySelector('#tr'),te=P.querySelector('#te');if(tr)tr.onclick=()=>{restartTrial();play()};if(te)te.onclick=()=>{endTrial();menu('main')};
