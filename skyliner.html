@@ -313,16 +313,16 @@ const glassMat=new THREE.MeshBasicMaterial({color:0x8fd3ff,transparent:true,opac
 for(let k=0;k<90;k++){const m=new THREE.Mesh(shGeo,shMat);m.visible=false;S.add(m);SH.push({m,vx:0,vy:0,vz:0,life:0})}
 function addGlass(x,y,z,w,h,d){ // a pane you can smash by hitting it fast (5.5 m/s+); slower and it is a solid wall
   const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),glassMat);m.position.set(x,y+h/2,z);S.add(m);
-  boxes.push({min:{x:x-w/2,y,z:z-d/2},max:{x:x+w/2,y:y+h,z:z+d/2},tag:'glass',mesh:m,w,h,d});
+  boxes.push({min:{x:x-w/2,y,z:z-d/2},max:{x:x+w/2,y:y+h,z:z+d/2},tag:'glass',mesh:m,w,h,d,respawnAt:0,tutorialGlass:false});
 }
 function glassSound(){if(!AC)return;mNoise(AC.currentTime,.3,.35,3500,'highpass',master);puff(900,.25,.22);for(let k=0;k<8;k++)setTimeout(()=>tone(2200+Math.random()*3800,.09,'triangle',.07),k*28+Math.random()*50)}
 function shatter(b){
   const cx=b.mesh.position.x,cy=b.mesh.position.y,cz=b.mesh.position.z;
-  b.mesh.visible=false;b.min.x=b.max.x=b.min.y=b.max.y=b.min.z=b.max.z=1e9;glassN++;markTutEvent('gap');
+  b.mesh.visible=false;b.min.x=b.max.x=b.min.y=b.max.y=b.min.z=b.max.z=1e9;if(b.tutorialGlass)b.respawnAt=performance.now()+3000;glassN++;markTutEvent('gap');
   for(let k=0;k<22;k++){const q=SH[shI++%SH.length];q.m.visible=true;q.life=1.4+Math.random()*.8;q.m.position.set(cx+(Math.random()-.5)*b.w,cy+(Math.random()-.5)*b.h,cz+(Math.random()-.5)*b.d);q.vx=v.x*.45+(Math.random()-.5)*5;q.vy=Math.random()*5-1;q.vz=v.z*.45+(Math.random()-.5)*5}
   glassSound();shake=Math.max(shake,.06);
 }
-function shardTick(dt){for(const q of SH){if(q.life<=0)continue;q.life-=dt;q.vy-=14*dt;q.m.position.x+=q.vx*dt;q.m.position.y+=q.vy*dt;q.m.position.z+=q.vz*dt;q.m.rotation.x+=dt*6;q.m.rotation.z+=dt*5;if(q.life<=0)q.m.visible=false}}
+function shardTick(dt){for(const q of SH){if(q.life<=0)continue;q.life-=dt;q.vy-=14*dt;q.m.position.x+=q.vx*dt;q.m.position.y+=q.vy*dt;q.m.position.z+=q.vz*dt;q.m.rotation.x+=dt*6;q.m.rotation.z+=dt*5;if(q.life<=0)q.m.visible=false}const now=performance.now();for(const b of boxes)if(b.tutorialGlass&&b.respawnAt&&now>=b.respawnAt){const x=b.mesh.position.x,z=b.mesh.position.z,y=b.mesh.position.y-b.h/2;b.min.x=x-b.w/2;b.max.x=x+b.w/2;b.min.y=y;b.max.y=y+b.h;b.min.z=z-b.d/2;b.max.z=z+b.d/2;b.mesh.visible=true;b.respawnAt=0}}
 const climbs=[],cbox=[],cInst=[],pInst=[],oInst=[],anchors=[],items=[],spAcc=[],solarM=lam(0x2b4a5c),poolM=lam(0x4aa8d8),medG=new THREE.BoxGeometry(.7,.7,.7),medM=new THREE.MeshBasicMaterial({color:0x2ee66b}),flowG=new THREE.OctahedronGeometry(.5),flowM=new THREE.MeshBasicMaterial({color:0xffd23f});
 function addClimb(x,z,nx,nz,y0,y1,pipe){ // ladders and pipes: n points away from the wall they hang on
   climbs.push({x,z,nx,nz,y0,y1,pipe});cbox.push({min:{x:x-.4,y:y0,z:z-.4},max:{x:x+.4,y:y1,z:z+.4},tag:'crate'});
@@ -634,7 +634,7 @@ blk(-11,-3,58,66,8);blk(2,10,58,66,8);blk(17,42,58,66,8);trSign(-8,72,13,'2  JUM
 // 3 vault
 [24,29].forEach(u=>tb2(u,62,2.5,1.1,8,redM,'crate',8));trSign(30,72,13,'3  GLASS & VAULT','sprint through the glass to shatter it|jump into a crate to vault, hold UP to hop');
 // 4 springboard up to the next deck
-addGlass(TX+21,TY+8,TZ+62,.2,3,8);tb2(21,58.3,.6,3.4,.6,white,'roof',8);tb2(21,65.7,.6,3.4,.6,white,'roof',8);tb2(39,62,3,1,6,springM,'spring',8);blk(47,60,57,67,15);trSign(52,72,20,'4  SPRINGBOARD','hold UP while vaulting onto the orange pad|launch up to the next deck');
+addGlass(TX+21,TY+8,TZ+62,.2,3,8);boxes[boxes.length-1].tutorialGlass=true;tb2(21,58.3,.6,3.4,.6,white,'roof',8);tb2(21,65.7,.6,3.4,.6,white,'roof',8);tb2(39,62,3,1,6,springM,'spring',8);blk(47,60,57,67,15);trSign(52,72,20,'4  SPRINGBOARD','hold UP while vaulting onto the orange pad|launch up to the next deck');
 // 5 slide: duck the bar, then down the slope
 tb2(53.5,59,10,.9,1,redM,'wall',16.05);tb2(48.5,59,.6,3,1,white,'roof',15);tb2(58.5,59,.6,3,1,white,'roof',15);
 ramp(TX+53.5,TZ+37,20,8,TY+9,TY+15,0,1,white);blk(48.5,58.5,26,37,9);trSign(66,48,14,'5  SLIDE','sprint, then DOWN: duck the bar|slopes keep you sliding faster');
