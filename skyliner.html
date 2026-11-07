@@ -535,7 +535,7 @@ STORY_CAST.forEach(a=>storyActors.push(makeStoryActor(a[0],a[1],false)));
 for(let i=0;i<8;i++)campaignEnemies.push(makeStoryActor('AETHER PURSUIT '+(i+1),0x252b32,true));
 // Pursuit units replay the runner's actual movement trail: jumps, vaults, wall-runs,
 // climbs, ziplines and drops. They do not steer in a straight line through buildings.
-let chaseTrail=[],chaseClock=0,chaseRecord=0;
+let chaseTrail=[],chaseClock=0,chaseRecord=0,chaseWarmup=0;
 function chaseSample(t){
  if(!chaseTrail.length)return null;
  if(t<=chaseTrail[0].t)return chaseTrail[0];
@@ -545,14 +545,16 @@ function chaseSample(t){
 function campaignActorsTick(dt){
  storyActors.forEach(a=>a.group.visible=false);campaignEnemies.forEach(a=>a.group.visible=false);
  if(!campaignRun)return;
- chaseClock+=dt;chaseRecord+=dt;
+ chaseClock+=dt;chaseRecord+=dt;chaseWarmup+=dt;
  if(chaseRecord>=.055){chaseRecord=0;chaseTrail.push({t:chaseClock,x:p.x,y:p.y,z:p.z});while(chaseTrail.length&&chaseTrail[0].t<chaseClock-16)chaseTrail.shift()}
+ // Give the runner a clear warning and a genuine head start before the pursuit enters.
+ if(chaseWarmup<3.25)return;
  const ci=campaignRun.index,m=CAMPAIGN[ci],q=m.route[Math.max(0,campaignRun.step-1)],ally=storyActors.find(a=>a.name===({0:'Mara Voss',2:'Kade Mercer',3:'Dr. Imani Vale',5:'Elias Renn'}[ci]||'Mara Voss'));
  if(ally){ally.group.visible=true;ally.group.position.set(q.x+5,q.y,q.z+3)}
  const count=ci===0?5:ci<4?6:ci<7?7:8;
  for(let i=0;i<count;i++){
   const e=campaignEnemies[i];e.group.visible=true;e.hit=Math.max(0,e.hit-dt);
-  if(!e.started){e.started=true;e.cursor=Math.max(0,chaseClock-(1.05+i*.48));e.group.position.set(q.x+13+i*3,q.y,q.z+(i%2?12:-12))}
+  if(!e.started){e.started=true;e.cursor=Math.max(0,chaseClock-(4.2+i*.42));const backX=Math.sin(yaw),backZ=Math.cos(yaw),sideX=Math.cos(yaw),sideZ=-Math.sin(yaw),lane=((i%3)-1)*5,behind=34+i*5;e.group.position.set(p.x+backX*behind+sideX*lane,p.y,p.z+backZ*behind+sideZ*lane);}
   const rate=1.19+Math.min(.24,ci*.025)+i*.012;
   e.cursor=Math.min(chaseClock-.12,e.cursor+dt*rate);
   const target=chaseSample(e.cursor);
@@ -1012,7 +1014,7 @@ function menu(view,msg){
   if(view==='briefing'){
     const m=CAMPAIGN[selectedCampaign];
     P.innerHTML='<h2>'+m.act+'</h2><h1>'+m.title+'</h1><p><b>'+m.location+' · '+m.time+'</b></p><p class="story-copy">'+m.brief+'</p><p><b>MISSION:</b> '+m.finish+'</p><button id="beginChapter">Start mission</button><button id="briefBack" class="alt">Back</button>';
-    P.querySelector('#beginChapter').onclick=()=>{if(localStorage.getItem('sr_tut')!=='1'){toast('Complete tutorial first');return}campaignEnemies.forEach(e=>{e.started=false;e.cursor=0;e.hit=0});chaseTrail=[];chaseClock=0;chaseRecord=0;if(campaignTutorialWasOn===null)campaignTutorialWasOn=tut.on;tut.on=false;campaignRun={index:selectedCampaign,step:1};const q=m.route[0];start.copy(q);p.copy(q);respawn.copy(q);safe.copy(q);v.set(0,0,0);yaw=0;pitch=0;mom=0;trial=null;play();toast(m.radio[0]);toastT=4};
+    P.querySelector('#beginChapter').onclick=()=>{if(localStorage.getItem('sr_tut')!=='1'){toast('Complete tutorial first');return}campaignEnemies.forEach(e=>{e.started=false;e.cursor=0;e.hit=0});chaseTrail=[];chaseClock=0;chaseRecord=0;chaseWarmup=0;if(campaignTutorialWasOn===null)campaignTutorialWasOn=tut.on;tut.on=false;campaignRun={index:selectedCampaign,step:1};const q=m.route[0];start.copy(q);p.copy(q);respawn.copy(q);safe.copy(q);v.set(0,0,0);yaw=0;pitch=0;mom=0;trial=null;play();toast(m.radio[0]);toastT=4};
     P.querySelector('#briefBack').onclick=()=>menu('campaign');return
   }
   if(view==='chapterComplete'){
