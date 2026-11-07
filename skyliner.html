@@ -566,14 +566,14 @@ function campaignActorsTick(dt){
    e.started=true;
    // Place each unit on the runner's real earlier route, not at an arbitrary
    // point in mid-air or behind a rooftop edge.
-   e.cursor=Math.max(chaseTrail[0]?.t||0,chaseClock-(1.05+i*.16));
+   e.cursor=Math.max(chaseTrail[0]?.t||0,chaseClock-(1.45+i*.2));
    const spawn=chaseSample(e.cursor);
    if(spawn)e.group.position.set(spawn.x,spawn.y,spawn.z);
    else e.group.position.copy(p);
   }
   // Slightly faster than the recorded route so the pack steadily closes in,
   // but never at the extreme speeds that let it instantly overtake the runner.
-  const rate=1.045+Math.min(.045,ci*.006)+i*.002;
+  const rate=.99+Math.min(.025,ci*.0035)+i*.0015;
   e.cursor=Math.min(chaseClock-.08,e.cursor+dt*rate);
   const target=chaseSample(e.cursor);
   if(target){
@@ -583,7 +583,7 @@ function campaignActorsTick(dt){
    if(Math.hypot(dx,dz)>.08)e.group.rotation.y=Math.atan2(dx,dz);
   }
   const dx=p.x-e.group.position.x,dy=p.y-e.group.position.y,dz=p.z-e.group.position.z,d=Math.hypot(dx,dy*.65,dz);
-  if(d<1.7&&e.hit<=0){
+  if(d<1.55&&e.hit<=0){
    e.hit=1.5;
    hurt(ci>=4?8:6,true);
    // A contact hit costs health, not the runner's movement or momentum.
