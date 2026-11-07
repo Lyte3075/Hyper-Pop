@@ -555,7 +555,7 @@ function campaignActorsTick(dt){
  for(let i=0;i<count;i++){
   const e=campaignEnemies[i];e.group.visible=true;e.hit=Math.max(0,e.hit-dt);
   if(!e.started){e.started=true;e.cursor=Math.max(0,chaseClock-(4.2+i*.42));const backX=Math.sin(yaw),backZ=Math.cos(yaw),sideX=Math.cos(yaw),sideZ=-Math.sin(yaw),lane=((i%3)-1)*5,behind=34+i*5;e.group.position.set(p.x+backX*behind+sideX*lane,p.y,p.z+backZ*behind+sideZ*lane);}
-  const rate=1.19+Math.min(.24,ci*.025)+i*.012;
+  const rate=.76+Math.min(.13,ci*.018)+i*.008;
   e.cursor=Math.min(chaseClock-.12,e.cursor+dt*rate);
   const target=chaseSample(e.cursor);
   if(target){
@@ -566,7 +566,7 @@ function campaignActorsTick(dt){
    const side=((i%3)-1)*.42;e.group.position.x+=Math.cos(e.group.rotation.y)*side*dt*2;e.group.position.z-=Math.sin(e.group.rotation.y)*side*dt*2;
   }
   const dx=p.x-e.group.position.x,dy=p.y-e.group.position.y,dz=p.z-e.group.position.z,d=Math.hypot(dx,dy*.65,dz);
-  if(d<2.05&&e.hit<=0){e.hit=1.15;hurt(ci>=4?13:10,false);const flat=Math.hypot(dx,dz)||1;v.x+=dx/flat*5.5;v.z+=dz/flat*5.5;shake=Math.max(shake,.18);toast('AETHER PURSUIT · THEY ARE ON YOUR LINE');}
+  if(d<1.85&&e.hit<=0){e.hit=1.35;hurt(ci>=4?9:7,true);const flat=Math.hypot(dx,dz)||1;v.x+=dx/flat*1.15;v.z+=dz/flat*1.15;shake=Math.max(shake,.09);toast('AETHER PURSUIT · HIT · KEEP MOVING');}
  }
 }
 const deliverySites=CAMPAIGN.map(m=>m.route[m.route.length-1].clone());
