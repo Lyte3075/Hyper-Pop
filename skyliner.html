@@ -1011,6 +1011,8 @@ function menu(view,msg){
     const rs=P.querySelector('#rs');if(rs)rs.onclick=()=>{reset();play()};
   }
 }
+// Always boot into the main menu, never leave the player in a stale active-run state.
+playing=false;ovEl.style.display='flex';touchUI.style.display='none';mouseAim.style.display='none';document.body.classList.remove('mouse-look');
 menu('main');
 document.addEventListener('mousemove',e=>{
   if(!playing||!mouseFallback||set.touch)return;
