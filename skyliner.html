@@ -60,7 +60,7 @@ ol{color:#2b343a}
 .eq{display:none}body.geared .eq{display:flex}
 #cmp{position:fixed;top:calc(.5rem + var(--st));left:50%;transform:translateX(-50%);width:min(58vw,28rem);height:auto;pointer-events:none;z-index:2}
 #tut{top:calc(4.4rem + var(--st))}
-.gr{display:flex;justify-content:space-between;align-items:center;gap:.8rem;border-bottom:1px solid #d9dee1;padding:.55rem 0}.gr small{color:#58636a}
+.gr{display:flex;justify-content:space-between;align-items:center;gap:.8rem;border-bottom:1px solid #d9dee1;padding:.42rem 0}.gr>div{min-width:0;flex:1}.gr small{color:#58636a;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.2}.gear-addons{margin:.12rem 0 .45rem 1rem;padding:.15rem .65rem;border-left:2px solid rgba(91,107,117,.35);text-align:left}.gear-addons summary{cursor:pointer;font-size:.78rem;font-weight:800;letter-spacing:.07em;color:#65727a;padding:.3rem 0;list-style-position:inside}.gear-addons .gr{padding:.25rem 0}.gear-addons .gr small{-webkit-line-clamp:1}.gear-addons button{font-size:.85rem;min-height:1.9rem;padding:.25rem .65rem;margin:.15rem}
 #bi2{top:calc(2vmin + var(--st));right:calc(41vmin + var(--sr));width:11vmin;height:11vmin;font-size:max(.7rem,2.2vmin)}
 #prompt{width:min(90vw,34rem);white-space:normal;line-height:1.45;text-align:center}
 #mouseAim{position:fixed;inset:0;z-index:4;pointer-events:none;display:none}
@@ -779,12 +779,23 @@ function step(dt){
       else if(!ground&&!rope&&!hang&&!zip&&!lad&&!wallrun&&!vault){const s4=Math.hypot(v.x,v.y,v.z);if(s4<14){const cp4=Math.cos(pitch);v.x=-Math.sin(yaw)*cp4*14;v.y=Math.max(v.y,-2);v.z=-Math.cos(yaw)*cp4*14}wingOn=true;toast('Wingsuit deployed');tone(260,.2,'sawtooth',.08,520)}
       else toast('Jump off something, then press the gear key')}
     else toast('No main gear equipped - open the inventory in the pause menu')}
-  ropeCool-=dt;dashCd-=dt;airHookCd-=dt;if(ground&&hasGear('charge'))dashCd=Math.min(dashCd,0);aim=null;slideRun=slideT>0?slideRun+dt:0;wrRun=wallrun?wrRun+dt:0;clRun=(climbing&&!ground)?clRun+dt:0;
+  ropeCool-=dt;dashCd-=dt;airHookCd-=dt;if(ground&&hasGear('charge'))dashCd=Math.min(dashCd,0);const previousAim=aim;aim=null;slideRun=slideT>0?slideRun+dt:0;wrRun=wallrun?wrRun+dt:0;clRun=(climbing&&!ground)?clRun+dt:0;
   if(gearOn&&!rope&&!tut.on){
-    const cp=Math.cos(pitch),fx3=-Math.sin(yaw)*cp,fy3=Math.sin(pitch),fz3=-Math.cos(yaw)*cp,rng=hasGear('winch')?85:65,cone=hasGear('quick')?.93:.955,cand=[];
-    for(const a of anchors){const dx=a.x-p.x,dy=a.y-(p.y+1.5),dz=a.z-p.z;if(Math.abs(dx)>rng||Math.abs(dz)>rng||Math.abs(dy)>rng)continue;const dd=Math.hypot(dx,dy,dz);if(dd<6||dd>rng)continue;const dt2=(dx*fx3+dy*fy3+dz*fz3)/dd;if(dt2>cone)cand.push([dt2,a])}
-    cand.sort((a,b)=>b[0]-a[0]);
-    for(let k=0;k<Math.min(3,cand.length);k++){if(losClear(p.x,p.y+1.5,p.z,cand[k][1])){aim=cand[k][1];break}}
+    const cp=Math.cos(pitch),fx3=-Math.sin(yaw)*cp,fy3=Math.sin(pitch),fz3=-Math.cos(yaw)*cp,rng=hasGear('winch')?90:70,cone=hasGear('quick')?.78:.83;
+    let bestScore=-Infinity;
+    for(const a of anchors){
+      const dx=a.x-p.x,dy=a.y-(p.y+1.5),dz=a.z-p.z;
+      if(Math.abs(dx)>rng||Math.abs(dz)>rng||Math.abs(dy)>rng)continue;
+      const dd=Math.hypot(dx,dy,dz);if(dd<6||dd>rng)continue;
+      const alignment=(dx*fx3+dy*fy3+dz*fz3)/dd;if(alignment<cone)continue;
+      if(!losClear(p.x,p.y+1.5,p.z,a))continue;
+      // Favor anchors close to the centre of view, within useful swing range,
+      // and avoid targets that require an extreme vertical pull.
+      const distancePenalty=Math.abs(dd-Math.min(34,rng*.48))/rng;
+      const verticalPenalty=Math.abs(dy)/dd;
+      const score=alignment*3.2-distancePenalty*.48-verticalPenalty*.22+(a===previousAim?.12:0);
+      if(score>bestScore){bestScore=score;aim=a}
+    }
   }
   if(edge.rope&&gearOn&&!tut.on){
     if(rope){rope=null;ropeCool=.3}
@@ -1016,7 +1027,7 @@ function menu(view,msg){
   if(view==='deliveries'){P.innerHTML='<h2>Courier contracts</h2><p>Credits: <b>'+currency+'</b><br>Completed deliveries: '+completedDeliveries.length+'</p><p>Visit the green pickup beacon, interact to accept a package, then race to its drop beacon. Rewards increase with each contract.</p><button id="deliveryMark">Mark next pickup beacon</button><button id="deliveryBack" class="alt">Back</button>';P.querySelector('#deliveryMark').onclick=()=>{const q=deliverySites[deliveryIndex%deliverySites.length];p.copy(q);start.copy(q);respawn.copy(q);delivery=null;menu('main');toast('Pickup beacon marked · green objective')};P.querySelector('#deliveryBack').onclick=()=>menu('main');return}
   if(view==='inv'){
     const row=g=>'<div class=gr><div><b>'+g[1]+'</b><br><small>'+g[2]+'</small></div><button data-g="'+g[0]+'" class="'+(hasGear(g[0])?'':'alt')+'" '+(isGearUnlocked(g[0])?'':'disabled')+'>'+(hasGear(g[0])?'Equipped':isGearUnlocked(g[0])?'Equip':'LOCKED')+'</button></div>';
-    P.innerHTML='<h2>Inventory</h2><p>One main gear at a time. Add-ons only appear and work with the gear they belong to. Other gear: one per category.</p><h3>Main gear</h3>'+GEARS.filter(g=>g[3]==='main').map(g=>row(g)+(hasGear(g[0])?GEARS.filter(a2=>a2[4]===g[0]).map(a2=>'<div style="margin-left:1.2rem">'+row(a2)+'</div>').join(''):'')).join('')+['hands','feet','legs','back','belt'].map(c=>'<h3>'+c+'</h3>'+GEARS.filter(g=>g[3]===c).map(row).join('')).join('')+'<button id=ua class=alt>Unequip all</button><button id=ib>Back</button>';
+    P.innerHTML='<h2>Inventory</h2><p>One main gear at a time. Add-ons are tucked away until you need them.</p><h3>Main gear</h3>'+GEARS.filter(g=>g[3]==='main').map(g=>{const adds=GEARS.filter(a2=>a2[4]===g[0]);return row(g)+(hasGear(g[0])&&adds.length?'<details class="gear-addons"><summary>UPGRADES · '+adds.length+'</summary>'+adds.map(row).join('')+'</details>':'')}).join('')+['hands','feet','legs','back','belt'].map(c=>'<h3>'+c+'</h3>'+GEARS.filter(g=>g[3]===c).map(row).join('')).join('')+'<button id=ua class=alt>Unequip all</button><button id=ib>Back</button>';
     P.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{toggleGear(b.dataset.g);menu('inv')});
     P.querySelector('#ua').onclick=()=>{set.gear={};gearOn=false;rope=null;save();menu('inv')};
     P.querySelector('#ib').onclick=()=>menu('main');return}
