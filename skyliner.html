@@ -1232,7 +1232,8 @@ function objective(){
   if(campaignRun){const q=CAMPAIGN[campaignRun.index].route[campaignRun.step];if(q)return[q.x,q.z,'#e5242b']}
   if(trial){const q=trial.t.pts[trial.i];return[q.x,q.z,'#2aa8ff']}
   if(tut.on){const j=TS.findIndex(t=>!tut.done[t[0]]),q=j>=0?WP[TS[j][0]]:null;if(q)return[TX+q[0],TZ+q[1],'#2aa8ff']}
-  if(!campaignRun&&!trial&&!tut.on&&deliverySites.length){const q=deliverySites[deliveryIndex%deliverySites.length];return[q.x,q.z,'#1fd16b']}\n  let best=null,bd=1e9;for(const t of trials){if(!trialUnlocked(t))continue;const q=t.pts[0],dd=Math.hypot(q.x-p.x,q.z-p.z);if(dd<bd){bd=dd;best=[q.x,q.z,'#1fd16b']}}return best;
+  if(!campaignRun&&!trial&&!tut.on&&deliverySites.length){const q=deliverySites[deliveryIndex%deliverySites.length];return[q.x,q.z,'#1fd16b']}
+  let best=null,bd=1e9;for(const t of trials){if(!trialUnlocked(t))continue;const q=t.pts[0],dd=Math.hypot(q.x-p.x,q.z-p.z);if(dd<bd){bd=dd;best=[q.x,q.z,'#1fd16b']}}return best;
 }
 function drawCompass(){
   const W=720,c=cmpX;c.clearRect(0,0,W,52);if(!playing)return;
@@ -1326,7 +1327,10 @@ function visionTick(dt,now){
       for(const b of boxesIn(p.x,p.z,96).concat(cbox)){if(b.tag!=='crate'&&b.tag!=='wall'&&b.tag!=='spring'&&b.tag!=='pad')continue;
         const cx=(b.min.x+b.max.x)/2,cz=(b.min.z+b.max.z)/2,t=Math.max(0,Math.min(1,((cx-sx)*dx+(cz-sz)*dz)/L2)),qx=sx+dx*t-cx,qz=sz+dz*t-cz,dd=qx*qx+qz*qz;
         if(dd<100&&Math.abs(cx-sx)<90&&Math.abs(cz-sz)<90&&Math.abs((b.min.y+b.max.y)/2-p.y)<30)list.push([dd,b])}
-    }else if(campaignRun){ // campaign Runner's Vision guides through route hazards\n      const route=CAMPAIGN[campaignRun.index].route,q=route[Math.min(route.length-1,campaignRun.step)],sx=p.x,sz=p.z,dx=q.x-sx,dz=q.z-sz,L2=dx*dx+dz*dz||1;\n      for(const b of boxesIn(p.x,p.z,105).concat(cbox)){if(!['crate','wall','spring','pad','ladder','pipe'].includes(b.tag))continue;const cx=(b.min.x+b.max.x)/2,cz=(b.min.z+b.max.z)/2,t=Math.max(0,Math.min(1,((cx-sx)*dx+(cz-sz)*dz)/L2)),ox=sx+dx*t-cx,oz=sz+dz*t-cz,dd=ox*ox+oz*oz;if(dd<125&&Math.abs(cx-sx)<100&&Math.abs(cz-sz)<100&&Math.abs((b.min.y+b.max.y)/2-p.y)<35)list.push([dd,b])}\n    }else if(tut.on){ // tutorial: the props for the step you are on
+    }else if(campaignRun){ // campaign Runner's Vision guides through route hazards
+      const route=CAMPAIGN[campaignRun.index].route,q=route[Math.min(route.length-1,campaignRun.step)],sx=p.x,sz=p.z,dx=q.x-sx,dz=q.z-sz,L2=dx*dx+dz*dz||1;
+      for(const b of boxesIn(p.x,p.z,105).concat(cbox)){if(!['crate','wall','spring','pad','ladder','pipe'].includes(b.tag))continue;const cx=(b.min.x+b.max.x)/2,cz=(b.min.z+b.max.z)/2,t=Math.max(0,Math.min(1,((cx-sx)*dx+(cz-sz)*dz)/L2)),ox=sx+dx*t-cx,oz=sz+dz*t-cz,dd=ox*ox+oz*oz;if(dd<125&&Math.abs(cx-sx)<100&&Math.abs(cz-sz)<100&&Math.abs((b.min.y+b.max.y)/2-p.y)<35)list.push([dd,b])}
+    }else if(tut.on){ // tutorial: the props for the step you are on
       const i=TS.findIndex(t=>!tut.done[t[0]]),st=i>=0?ST[TS[i][0]]:null;
       if(st){const ax=TX+st[0],az=TZ+st[1];
         for(const b of boxesIn(ax,az,20).concat(cbox)){if(b.tag==='roof'||b.tag==='tfloor'||b.max.y<TY-.1)continue;const cx=(b.min.x+b.max.x)/2,cz=(b.min.z+b.max.z)/2,dd=(cx-ax)*(cx-ax)+(cz-az)*(cz-az);if(dd<225)list.push([dd,b])}}
