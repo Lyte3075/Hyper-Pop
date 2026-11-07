@@ -679,7 +679,7 @@ function step(dt){
     if(tut.on)toast('Gear is switched off during the tutorial');
     else if(hasGear('rope')){gearOn=!gearOn;if(!gearOn)rope=null;toast(gearOn?'Mag rope drawn':'Mag rope stowed');tone(gearOn?500:300,.1,'square',.08,gearOn?900:200)}
     else if(hasGear('dash')){
-      if(dashCd<=0){const cp3=Math.cos(pitch),pw=hasGear('long')?19:14;v.x+=-Math.sin(yaw)*cp3*pw;v.z+=-Math.cos(yaw)*cp3*pw;v.y=Math.max(v.y,2.5);const s3=Math.hypot(v.x,v.z);if(s3>32){v.x*=32/s3;v.z*=32/s3}dashCd=hasGear('twin')?1.7:3.2;puff(2500,.15,.25);tone(240,.18,'sawtooth',.1,900);flow=Math.min(1,flow+.03);toast('Dash')}
+      if(dashCd<=0){const cp3=Math.cos(pitch),pw=hasGear('long')?27:21;v.x+=-Math.sin(yaw)*cp3*pw;v.z+=-Math.cos(yaw)*cp3*pw;v.y=Math.max(v.y,4.5);const s3=Math.hypot(v.x,v.z);if(s3>42){v.x*=42/s3;v.z*=42/s3}dashCd=hasGear('twin')?1.25:2.35;puff(2500,.18,.32);tone(180,.22,'sawtooth',.14,1100);flow=Math.min(1,flow+.08);toast('DASH PACK · BOOST')}
       else toast('Dash recharging')}
     else if(hasGear('wingsuit')){
       if(wingOn){wingOn=false;toast('Wingsuit stowed')}
@@ -845,7 +845,7 @@ function step(dt){
   }
   if(p.y<-35||Math.abs(p.x)>N*BP/2+120||Math.abs(p.z)>N*BP/2+120){p.copy((tut.on&&stagePos())||respawn);v.set(0,0,0);mom=0;rope=null;toast('Back to checkpoint')}
   for(const c of cpts)if(c!==cpActive&&Math.hypot(p.x-c.x,p.z-c.z)<3.2&&p.y>c.y-4&&p.y<c.y+12){cpActive=c;safe.set(c.x,c.y+.05,c.z);if(!trial)respawn.copy(safe);cpts.forEach(q=>q.mat.opacity=q===c?.85:.35);chime();toast('Checkpoint reached')}
-  for(const b of bags)if(!b.got&&Math.abs(p.y+1-b.y)<2.5&&Math.hypot(p.x-b.x,p.z-b.z)<1.6){b.got=true;b.mesh.visible=false;bagCount++;saveBags();tone(900,.12,'triangle',.14,1500)}
+  for(const b of bags)if(!b.got&&Math.abs(p.y+1-b.y)<3.5&&Math.hypot(p.x-b.x,p.z-b.z)<2.6){b.got=true;b.mesh.visible=false;bagCount++;saveBags();tone(900,.12,'triangle',.14,1500)}
   ladCool-=dt;
   if(!lad&&ladCool<=0&&!hang&&!vault&&!zip&&!wallrun){
     for(const o of climbs){
@@ -864,7 +864,18 @@ function step(dt){
     it.t=45;it.mesh.visible=false;tone(700,.1,'triangle',.12,1100)}
   // time trials: stand on a green beacon and Interact
   trialCool-=dt;nearTrial=null;
-  if(!trial){if(trialCool<=0)for(const t of trials){const q=t.pts[0];if(Math.hypot(p.x-q.x,p.z-q.z)<3.4&&p.y>q.y-4&&p.y<q.y+38){nearTrial=t;if(edge.interact){trial={t,i:1,t0:performance.now()};respawn.copy(q);chime();toast(t.name+' - go!')}break}}}
+  if(campaignRun){
+    const m=CAMPAIGN[campaignRun.index],q=m.route[campaignRun.step];
+    if(q&&Math.hypot(p.x-q.x,p.z-q.z)<4.2&&p.y>q.y-5&&p.y<q.y+42){
+      respawn.copy(q);campaignRun.step++;chime();saveCampaign();
+      if(campaignRun.step>=m.route.length){
+        selectedCampaign=campaignRun.index;
+        if(!completedCampaign.includes(campaignRun.index))completedCampaign.push(campaignRun.index);
+        saveCampaign();const last=campaignRun.index===CAMPAIGN.length-1;campaignRun=null;playing=false;touchUI.style.display='none';toast('MISSION COMPLETE');menu(last?'ending':'chapterComplete');
+      }else{const line=m.radio[Math.min(campaignRun.step-1,m.radio.length-1)];toast(line);toastT=4}
+    }
+  }
+  if(!trial){if(trialCool<=0)for(const t of trials){const q=t.pts[0];if(Math.hypot(p.x-q.x,p.z-q.z)<3.4&&p.y>q.y-4&&p.y<q.y+38){nearTrial=t;if(edge.interact){if(t.gear&&!hasGear(t.gear)){toast('THIS TRIAL REQUIRES '+GEARS.find(g=>g[0]===t.gear)[1].toUpperCase())}else{trial={t,i:1,t0:performance.now()};respawn.copy(q);chime();toast(t.name+' · GO!')}}break}}}
   else if(edge.trialRestart){restartTrial();toast('Trial restarted')}
   else if(edge.trialEnd){endTrial();toast('Trial ended')}
   else{
@@ -872,9 +883,11 @@ function step(dt){
     if(Math.hypot(p.x-q.x,p.z-q.z)<3.4&&p.y>q.y-5&&p.y<q.y+40){
       respawn.copy(q);trial.i++;chime();
       if(trial.i>=trial.t.pts.length){
-        const tt=(performance.now()-trial.t0)/1000,t=trial.t,m=tt<=t.gold?'GOLD':tt<=t.gold*1.25?'SILVER':'BRONZE',nb=!tb[t.name]||tt<tb[t.name];
+        const tt=(performance.now()-trial.t0)/1000,t=trial.t,hadGold=goldUnlock.includes(t.name),m=hadGold&&tt<=t.platinum?'PLATINUM':tt<=t.gold?'GOLD':tt<=t.silver?'SILVER':tt<=t.bronze?'BRONZE':'NO MEDAL',nb=!tb[t.name]||tt<tb[t.name];
+        if(tt<=t.gold&&!hadGold){goldUnlock.push(t.name);try{localStorage.setItem('rr_trial_gold',JSON.stringify(goldUnlock))}catch(e){}}
+        if(m==='PLATINUM'&&!platinumUnlock.includes(t.name)){platinumUnlock.push(t.name);try{localStorage.setItem('rr_trial_platinum',JSON.stringify(platinumUnlock))}catch(e){}}
         if(nb){tb[t.name]=tt;try{localStorage.setItem('rr_trials',JSON.stringify(tb))}catch(e){}}
-        chime();setTimeout(chime,300);toast(t.name+' '+tt.toFixed(2)+'s \u00b7 '+m+(nb?' \u00b7 new best!':''));toastT=4;trial=null;trialCool=4;respawn.copy(start);
+        chime();setTimeout(chime,300);toast(t.name+' · '+tt.toFixed(2)+'s · '+m+(nb?' · NEW BEST!':''));toastT=4;trial=null;trialCool=4;respawn.copy(start);
       }else toast('Checkpoint '+(trial.i-1)+'/'+(trial.t.pts.length-1));
     }else if((performance.now()-trial.t0)/1000>trial.t.limit){toast('Trial failed');trial=null;trialCool=3;respawn.copy(start)}
   }
@@ -1156,6 +1169,7 @@ function itemTick(dt,now){for(const it of items){if(it.t>0){it.t-=dt;if(it.t<=0)
 // ---------- compass bar: your heading and your objective ----------
 const cmpEl=document.getElementById('cmp'),cmpX=cmpEl.getContext('2d');
 function objective(){
+  if(campaignRun){const q=CAMPAIGN[campaignRun.index].route[campaignRun.step];if(q)return[q.x,q.z,'#e5242b']}
   if(trial){const q=trial.t.pts[trial.i];return[q.x,q.z,'#2aa8ff']}
   if(tut.on){const j=TS.findIndex(t=>!tut.done[t[0]]),q=j>=0?WP[TS[j][0]]:null;if(q)return[TX+q[0],TZ+q[1],'#2aa8ff']}
   let best=null,bd=1e9;for(const t of trials){const q=t.pts[0],dd=Math.hypot(q.x-p.x,q.z-p.z);if(dd<bd){bd=dd;best=[q.x,q.z,'#1fd16b']}}return best;
@@ -1230,7 +1244,11 @@ function tutTick(sp){
   tutEl.style.display='block';
 }
 function promptTick(){
-  if(playing&&nearTrial&&!trial){promptEl.textContent=(set.touch?'Tap INTERACT':'Press '+lbl(set.binds.interact))+' to start '+nearTrial.name;promptEl.style.display='block'}else promptEl.style.display='none';
+  if(playing&&nearTrial&&!trial){
+    const t=nearTrial,b=tb[t.name],gear=t.gear?GEARS.find(g=>g[0]===t.gear)[1]:'None',ok=!t.gear||hasGear(t.gear);
+    promptEl.innerHTML='<b>'+t.name+'</b><br><small>'+(t.gear?'GEAR TRIAL · '+gear:'OPEN TRIAL')+'</small><br>PLATINUM '+(goldUnlock.includes(t.name)?t.platinum.toFixed(1)+'s':'LOCKED · EARN GOLD FIRST')+' · GOLD '+t.gold.toFixed(1)+'s<br>SILVER '+t.silver.toFixed(1)+'s · BRONZE '+t.bronze.toFixed(1)+'s<br>BEST '+(b?b.toFixed(2)+'s':'--')+'<br><small>'+(ok?(set.touch?'TAP INTERACT':'PRESS '+lbl(set.binds.interact))+' TO START':'EQUIP '+gear.toUpperCase()+' TO START')+'</small>';
+    promptEl.style.display='block';
+  }else promptEl.style.display='none';
 }
 // ---------- runner vision: highlights only what the current objective needs ----------
 const HV=[],hvMat=new THREE.MeshBasicMaterial({color:0xe5242b,transparent:true,opacity:.8,depthWrite:false}),hvGeo=new THREE.BoxGeometry(1,1,1);
@@ -1288,14 +1306,14 @@ function loop(now){
   const ydw=(yaw-wYaw)/Math.max(dt,.001);wYaw=yaw;bankW+=((wingOn?Math.max(-.45,Math.min(.45,ydw*.1)):0)-bankW)*Math.min(1,dt*6);
   C.position.set(p.x,p.y+eyeH+bb-shake+(lad?Math.sin(lad.ph)*.03:(climbing&&!ground)?Math.sin(now*.011)*.03:0),p.z);
   C.rotation.order='YXZ';C.rotation.set(pitch-rollAng-dk*.3-(vault?Math.sin(Math.PI*vault.t/vault.dur)*.1:0)+(slideT>0?.06:0),yaw,roll+bsx+(slideT>0?.04:0)+(zip?Math.sin(now*.0035)*.05:0)+bankW+(vault?Math.sin(Math.PI*vault.t/vault.dur)*.05:0));
-  if(trial){const q=trial.t.pts[trial.i];target.visible=true;target.material.color.setHex(trial.i===trial.t.pts.length-1?0xc13cff:0x2aa8ff);target.position.set(q.x,q.y+30,q.z)}else target.visible=false;
+  if(trial){const q=trial.t.pts[trial.i];target.visible=true;target.material.color.setHex(trial.i===trial.t.pts.length-1?0xc13cff:0x2aa8ff);target.position.set(q.x,q.y+30,q.z)}else if(campaignRun){const q=CAMPAIGN[campaignRun.index].route[campaignRun.step];target.visible=!!q;if(q){target.material.color.setHex(0xe5242b);target.position.set(q.x,q.y+26,q.z)}}else target.visible=false;
   vig.style.opacity=Math.max(0,Math.min(.9,(sp-8)/6));
   hurtT=Math.max(0,hurtT-dt);document.getElementById('hurt').style.opacity=hurtT;
   if(AC){const n=AC.currentTime;
     windG.gain.setTargetAtTime(Math.min(.08,sp/200)*(ground?.55:1)+wx.storm*.05+wx.rain*.02+(wingOn?.05:0),n,.1);
     slideG.gain.setTargetAtTime(slideT>0&&live?.14:0,n,.05);
     wallG.gain.setTargetAtTime(wallrun&&live?.2:0,n,.05)}
-  hud.innerHTML=(trial?'TRIAL '+trial.t.name+' · '+((now-trial.t0)/1000).toFixed(1)+'s · '+(trial.i-1)+'/'+(trial.t.pts.length-1)+' · '+Math.round(Math.hypot(p.x-trial.t.pts[trial.i].x,p.z-trial.t.pts[trial.i].z))+'m<br>':'')+sp.toFixed(1)+' m/s'+(flow>.05?' · FLOW '+Math.round(flow*100)+'%':'')+' · HP '+Math.round(hp)+' · BAGS '+bagCount+'/'+bags.length+(zip?' · ZIPLINE':hang?' · LEDGE':wallrun?' · WALL-RUN':climbing||(!ground&&keys[set.binds.fwd]&&climbT<1&&climbT>0&&v.y>4)?' · CLIMB':slideT>0?' · SLIDE':rollT>0?' · ROLL':'');
+  hud.innerHTML=(campaignRun?'SKYLINER · '+CAMPAIGN[campaignRun.index].title+' · '+campaignRun.step+'/'+(CAMPAIGN[campaignRun.index].route.length-1)+'<br>':'')+(trial?'TRIAL '+trial.t.name+' · '+((now-trial.t0)/1000).toFixed(1)+'s · '+(trial.i-1)+'/'+(trial.t.pts.length-1)+' · '+Math.round(Math.hypot(p.x-trial.t.pts[trial.i].x,p.z-trial.t.pts[trial.i].z))+'m<br>':'')+sp.toFixed(1)+' m/s'+(flow>.05?' · FLOW '+Math.round(flow*100)+'%':'')+' · HP '+Math.round(hp)+' · BAGS '+bagCount+'/'+bags.length+(zip?' · ZIPLINE':hang?' · LEDGE':wallrun?' · WALL-RUN':climbing||(!ground&&keys[set.binds.fwd]&&climbT<1&&climbT>0&&v.y>4)?' · CLIMB':slideT>0?' · SLIDE':rollT>0?' · ROLL':'');
   bags.forEach(b=>{if(!b.got){b.mesh.rotation.y=now*.002;b.mesh.position.y=b.y+Math.sin(now*.003+b.x)*.15}});if(playing)drawMap();
   itemTick(dt,now);drawCompass();gearTick();skyTick(dt);shardTick(dt);musicTick(dt,sp);visionTick(dt,now);tutTick(sp);promptTick();document.body.classList.toggle('intrial',!!trial);
   animFP(dt,sp,now);
