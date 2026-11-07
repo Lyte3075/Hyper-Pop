@@ -1042,9 +1042,12 @@ function menu(view,msg){
     P.querySelectorAll('[data-del-preset]').forEach(b=>b.onclick=()=>{characterPresets.splice(+b.dataset.delPreset,1);saveCharacter();menu('character')});
     P.querySelector('#charBack').onclick=()=>menu('main');return
   }
-  if(view==='campaign'){if(localStorage.getItem('sr_tut')!=='1'){P.innerHTML='<h2>Campaign locked</h2><p>Complete the training tower tutorial first.</p><button id="campaignTut">Start tutorial</button><button id="campaignBack" class="alt">Back</button>';P.querySelector('#campaignTut').onclick=()=>{tut.on=true;tut.done={};start.copy(trainStart);p.copy(trainStart);respawn.copy(trainStart);play()};P.querySelector('#campaignBack').onclick=()=>menu('main');return}
-    const rows=CAMPAIGN.map((m,i)=>{const unlocked=i===0||completedCampaign.includes(i-1),done=completedCampaign.includes(i);return '<div class="chapter-row"><div><b>'+m.title+'</b><small>'+m.location+' · '+(done?'COMPLETED':unlocked?'AVAILABLE':'LOCKED')+'</small></div><button class="alt" data-chapter="'+i+'" '+(unlocked?'':'disabled')+'>'+(done?'REPLAY':unlocked?'BRIEFING':'LOCKED')+'</button></div>'}).join('');
-    P.innerHTML='<h2>SKYLINER · CAMPAIGN</h2><p>2097 · VEYRA. The rooftops are the last place AETHER struggles to watch.</p><div class="chapter-list">'+rows+'</div><p><small>'+completedCampaign.length+'/'+CAMPAIGN.length+' CHAPTERS COMPLETE</small></p><button id="campaignBack" class="alt">Back</button>';
+  if(view==='campaign'){
+    const trainingDone=localStorage.getItem('sr_tut')==='1';
+    const trainingRow='<div class="chapter-row"><div><b>00 · TRAINING</b><small>TRAINING TOWER · '+(trainingDone?'COMPLETED':'REQUIRED BEFORE CHAPTER 1')+'</small></div><button class="alt" id="campaignTut">'+(trainingDone?'REPLAY':'START TUTORIAL')+'</button></div>';
+    const rows=CAMPAIGN.map((m,i)=>{const unlocked=trainingDone&&(i===0||completedCampaign.includes(i-1)),done=completedCampaign.includes(i);return '<div class="chapter-row"><div><b>'+m.title+'</b><small>'+m.location+' · '+(done?'COMPLETED':unlocked?'AVAILABLE':'LOCKED')+'</small></div><button class="alt" data-chapter="'+i+'" '+(unlocked?'':'disabled')+'>'+(done?'REPLAY':unlocked?'BRIEFING':'LOCKED')+'</button></div>'}).join('');
+    P.innerHTML='<h2>SKYLINER · CAMPAIGN</h2><p>2097 · VEYRA. The rooftops are the last place AETHER struggles to watch.</p><div class="chapter-list">'+trainingRow+rows+'</div><p><small>'+completedCampaign.length+'/'+CAMPAIGN.length+' CHAPTERS COMPLETE · '+(trainingDone?'TRAINING COMPLETE':'TRAINING NOT COMPLETE')+'</small></p><button id="campaignBack" class="alt">Back</button>';
+    P.querySelector('#campaignTut').onclick=()=>{tut.on=true;tut.done={};tut.ev={};start.copy(trainStart);p.copy(trainStart);respawn.copy(trainStart);safe.copy(trainStart);v.set(0,0,0);mom=0;campaignRun=null;play()};
     P.querySelectorAll('[data-chapter]').forEach(b=>b.onclick=()=>{selectedCampaign=+b.dataset.chapter;menu('briefing')});
     P.querySelector('#campaignBack').onclick=()=>menu('main');return
   }
