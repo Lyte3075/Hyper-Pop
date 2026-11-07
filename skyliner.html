@@ -573,7 +573,7 @@ function campaignActorsTick(dt){
   }
   // Slightly faster than the recorded route so the pack steadily closes in,
   // but never at the extreme speeds that let it instantly overtake the runner.
-  const rate=.99+Math.min(.025,ci*.0035)+i*.0015;
+  const rate=1.015+Math.min(.025,ci*.0035)+i*.0015;
   e.cursor=Math.min(chaseClock-.08,e.cursor+dt*rate);
   const target=chaseSample(e.cursor);
   if(target){
