@@ -981,7 +981,7 @@ function menu(view,msg){
 }
 menu('main');
 document.addEventListener('pointerlockchange',()=>{
-  if(document.pointerLockElement===R.domElement)locked=true;
+  if(document.pointerLockElement===R.domElement){locked=true;mouseFallback=false;mouseArmed=false;mouseStickX=mouseStickY=0;mouseAim.style.display='none';document.body.classList.remove('mouse-look')}
   else if(locked){locked=false;if(playing)pause()}
 });
 document.addEventListener('mousemove',e=>{
