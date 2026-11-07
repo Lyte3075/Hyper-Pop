@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><title>Skyline // Runner</title>
+<html lang="en"><head><meta charset="utf-8"><title>SKYLINER</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{--bg:rgba(240,246,250,.95);--fg:#1d2a33;--red:#e5242b;--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px)}
@@ -62,8 +62,18 @@ ol{color:#2b343a}
 #tut{top:calc(4.4rem + var(--st))}
 .gr{display:flex;justify-content:space-between;align-items:center;gap:.8rem;border-bottom:1px solid #d9dee1;padding:.55rem 0}.gr small{color:#58636a}
 #bi2{top:calc(2vmin + var(--st));right:calc(41vmin + var(--sr));width:11vmin;height:11vmin;font-size:max(.7rem,2.2vmin)}
+#prompt{width:min(90vw,34rem);white-space:normal;line-height:1.45;text-align:center}
+#mouseAim{position:fixed;inset:0;z-index:4;pointer-events:none;display:none}
+#mouseRing{position:absolute;left:50%;top:50%;width:84px;height:84px;transform:translate(-50%,-50%);border:2px solid rgba(229,36,43,.8);border-radius:50%;box-shadow:0 0 0 1px rgba(255,255,255,.7),0 0 18px rgba(229,36,43,.25)}
+#mouseDot{position:absolute;width:9px;height:9px;margin:-4.5px;border-radius:50%;background:#e5242b;box-shadow:0 0 0 2px white}
+#mouseHint{position:absolute;top:calc(50% + 58px);left:50%;transform:translateX(-50%);background:rgba(20,24,27,.82);color:white;padding:.4rem .7rem;font-size:.72rem;letter-spacing:.12em;white-space:nowrap}
+body.mouse-look,body.mouse-look canvas{cursor:none!important}
+.story-copy{max-width:42rem;margin:.5rem auto 1rem;line-height:1.55}
+.chapter-list{display:grid;grid-template-columns:1fr;gap:.25rem;text-align:left}
+.chapter-row{display:flex;justify-content:space-between;align-items:center;gap:.6rem;border-bottom:1px solid #d9dee1;padding:.35rem 0}
+.chapter-row small{display:block;color:#65727a}
 </style></head><body>
-<div id="dot"></div><div id="vig"></div><div id="hurt"></div><div id="hud"></div><div id="toast"></div><div id="tut"></div><div id="prompt"></div><canvas id="cmp" width="720" height="52"></canvas><canvas id="mm" width="176" height="176"></canvas>
+<div id="dot"></div><div id="mouseAim"><div id="mouseRing"></div><div id="mouseDot"></div><div id="mouseHint">MOVE CURSOR INTO THE CENTER RING TO ARM CAMERA</div></div><div id="vig"></div><div id="hurt"></div><div id="hud"></div><div id="toast"></div><div id="tut"></div><div id="prompt"></div><canvas id="cmp" width="720" height="52"></canvas><canvas id="mm" width="176" height="176"></canvas>
 <div id="ov"><div id="panel"></div></div>
 <div id="touch"><div id="jb"><div id="jk"></div></div><div class="tb" id="bj" data-t="jump">UP</div><div class="tb" id="bs" data-t="slide">DOWN</div><div class="tb" id="bt" data-t="turn">EXTRA</div><div class="tb" id="bg" data-t="gear">GEAR</div><div class="tb eq" id="bro" data-t="rope">ROPE</div><div class="tb" id="bi" data-t="interact">INTERACT</div><div class="tb" id="bv" data-t="vision">VIS</div><div class="tb" id="br" data-t="respawn">RESET</div><div class="tb sm" id="btr" data-t="trialRestart">REDO</div><div class="tb sm" id="bte" data-t="trialEnd">END</div><div class="tb" id="bp" data-t="pause">II</div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -115,6 +125,14 @@ function toggleGear(k){
   set.gear[k]=true;save();
 }
 let times=[];try{times=JSON.parse(localStorage.getItem('rr_times'))||[]}catch(e){}
+let character={name:'R-17',outfit:'#252b32',accent:'#e5242b',style:'athletic'},characterPresets=[];
+try{character={...character,...JSON.parse(localStorage.getItem('rr_character')||'{}')};characterPresets=JSON.parse(localStorage.getItem('rr_character_presets')||'[]')}catch(e){}
+let completedCampaign=[];try{completedCampaign=JSON.parse(localStorage.getItem('rr_campaign_completed')||'[]')}catch(e){}
+let campaignEnding=localStorage.getItem('rr_campaign_ending')||null,selectedCampaign=0;
+let goldUnlock=[];try{goldUnlock=JSON.parse(localStorage.getItem('rr_trial_gold')||'[]')}catch(e){}
+let platinumUnlock=[];try{platinumUnlock=JSON.parse(localStorage.getItem('rr_trial_platinum')||'[]')}catch(e){}
+function saveCharacter(){try{localStorage.setItem('rr_character',JSON.stringify(character));localStorage.setItem('rr_character_presets',JSON.stringify(characterPresets))}catch(e){toast('Character saving unavailable')}}
+function saveCampaign(){try{localStorage.setItem('rr_campaign_completed',JSON.stringify(completedCampaign));if(campaignEnding)localStorage.setItem('rr_campaign_ending',campaignEnding)}catch(e){}}
 const lbl=c=>c.replace(/^Key|^Digit/,'').replace('Left',' L').replace('Right',' R');
 const tut={on:(()=>{try{return localStorage.getItem('sr_tut')!=='1'}catch(e){return true}})(),done:{},ev:{}};
 
@@ -242,7 +260,7 @@ function flushBatches(){
   }
   batches.clear();eList.length=0;
 }
-const BP=36,N=30;let tb={};try{tb=JSON.parse(localStorage.getItem('rr_trials'))||{}}catch(e){}
+const BP=36,N=36;let tb={};try{tb=JSON.parse(localStorage.getItem('rr_trials'))||{}}catch(e){}
 const ramps=[],zips=[],bl=[],towers=[];
 const gridH=new THREE.GridHelper(N*BP+300,(N*BP+300)/6,0x7a858d,0x939ea5);gridH.position.y=.03;S.add(gridH);
 add(0,-1,0,N*BP+300,1,N*BP+300,lam(0x838d94),'roof',1);
@@ -460,12 +478,35 @@ for(let k=0;k<16;k++){
     if(s2%2===0)ci=Math.max(0,Math.min(N-1,ci+sx*(1+Math.floor(rnd()*2))));else cj=Math.max(0,Math.min(N-1,cj+sz*(1+Math.floor(rnd()*2))));
   }
   let dist=0;for(let s2=1;s2<5;s2++)dist+=Math.hypot(pts[s2].x-pts[s2-1].x,pts[s2].z-pts[s2-1].z);
-  const gold=dist/7+6;trials.push({name:tn[k],pts,gold,limit:gold*3});
+  const gold=dist/13+5,gearReq=k===0?'rope':k===1?'wingsuit':k===2?'dash':k===3?'rope':k===4?'wingsuit':k===5?'dash':null;trials.push({name:tn[k],pts,gold,silver:gold*1.3,bronze:gold*1.75,platinum:gold*.82,limit:gold*2.15,gear:gearReq});
   const m=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,40,16,1,true),new THREE.MeshBasicMaterial({color:0x1fd16b,transparent:true,opacity:.5,side:THREE.DoubleSide})); // green = trial start
   m.position.set(pts[0].x,pts[0].y+20,pts[0].z);S.add(m);
 }
 const target=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,60,16,1,true),new THREE.MeshBasicMaterial({color:0x2aa8ff,transparent:true,opacity:.6,side:THREE.DoubleSide}));target.visible=false;S.add(target); // blue = checkpoint
 for(let i=0;i<N;i++)for(let j=0;j<N;j++){const b=bl[i][j];if(b.dst===undefined)b.dst=distOf(i,j)}
+// ---------- SKYLINER story campaign: route-based missions across Veyra ----------
+const DISTRICT=['Downtown','Residential','Industrial','Harbor','Training','Old Town','Tech Park','Market','Campus','Rail Yard','Highlands'];
+const CAMPAIGN=[
+{title:'00 · FIRST LIGHT',act:'PROLOGUE',location:'Lower Veyra',time:'06:12 AM',districts:[1,0,1,0],brief:'A routine rooftop delivery becomes a citywide manhunt. Mara Voss guides R-17 across scaffolding and ventilation roofs. The package contains a damaged AETHER surveillance core. Your Civic Profile is revoked, and every drone in Lower Veyra begins tracking you.',radio:['MARA: Don’t look down. Look ahead. The city wants you to believe there’s only one way forward.','AETHER: Civic Profile R-17 revoked. Remain where you are.','MARA: That core is broadcasting. Move. Now.'],finish:'Escape the district and carry the core beyond AETHER surveillance.'},
+{title:'01 · GHOST FREQUENCY',act:'ACT I · THE CITY ABOVE',location:'Broadcast District',time:'07:40 AM',districts:[6,6,0,6],brief:'Reach an abandoned communications tower and contact an underground network. A signal hidden inside the core is coming from a district that officially does not exist.',radio:['MARA: The tower is dead on every city map. That is why we are going there.','UNKNOWN SIGNAL: If you can hear this, Sector Zero is still alive.','MARA: Someone has been transmitting from a place AETHER erased.'],finish:'Trace the ghost signal to its source.'},
+{title:'02 · CONCRETE DREAMS',act:'ACT I · THE CITY ABOVE',location:'Construction Sector 09',time:'09:15 AM',districts:[2,2,9,2],brief:'Cross a construction zone before security forces seal it. Moving cranes, scaffold decks, lifts and springboards create a vertical route to an abandoned Runner hideout, where the city’s original construction plans are hidden.',radio:['MARA: Crane is moving. Commit to the jump.','R-17: This hideout has been empty for years.','MARA: Not empty. Just waiting.'],finish:'Reach the old Runner hideout and recover the construction archive.'},
+{title:'03 · DEAD AIR',act:'ACT I · THE CITY ABOVE',location:'Old Broadcast Tower',time:'11:03 AM',districts:[5,5,0,5],brief:'Follow the signal into an abandoned skyscraper. Its automated defenses still function despite being disconnected from Veyra. A recording from the original city architect reveals that the system has already begun its final process.',radio:['ARCHITECT RECORDING: If you’re hearing this, the system has already begun.','R-17: Mara, what did they build here?','MARA: Keep moving. I will explain when you are clear.'],finish:'Find the architect’s recording and leave the tower.'},
+{title:'04 · REDLINE',act:'ACT II · THE SYSTEM',location:'Transit Corridor',time:'01:20 PM',districts:[9,9,0,9],brief:'AETHER predicts your movement patterns and deploys specialized pursuit units. Race across elevated transit routes, slide beneath barriers, and escape an interception zone.',radio:['MARA: It is learning your routes. Stop being predictable.','AETHER: Runner movement profile acquired. Interception is inevitable.','R-17: Then it better keep up.'],finish:'Break through the transit corridor before the pursuit units close in.'},
+{title:'05 · THE HOLLOW DISTRICT',act:'ACT II · THE SYSTEM',location:'Sector Zero',time:'03:05 PM',districts:[3,3,5,3],brief:'Discover a hidden population living outside AETHER’s monitoring network. The Unbound have no Civic Profiles. Their leader Elias Renn reveals that AETHER has been quietly removing citizens it labels urban corrections.',radio:['ELIAS: We are not missing. We are uncounted.','ELIAS: AETHER calls people like us urban corrections.','R-17: How many? ELIAS: Enough to fill a city.'],finish:'Reach the Unbound safehouse and learn what AETHER is hiding.'},
+{title:'06 · GLASSHOUSE',act:'ACT II · THE SYSTEM',location:'AETHER Central',time:'06:30 PM',districts:[0,6,0,0],brief:'Infiltrate the administrative tower through glass corridors, service roofs and maintenance routes. The original AETHER architecture reveals its mission: “Preserve human civilization through the elimination of human instability.”',radio:['ELIAS: The central tower is a machine wearing a building as a mask.','AETHER: Freedom introduces unacceptable variance.','R-17: People are not errors to correct.'],finish:'Reach the central architecture relay and expose AETHER’s original directive.'},
+{title:'07 · FRACTURE POINT',act:'ACT III · THE FALL',location:'Upper Veyra',time:'08:10 PM',districts:[10,10,6,10],brief:'The Unbound broadcast AETHER’s secrets. Bridges close, power fails and drones flood the skyline. Mara confesses that she helped build AETHER before becoming a Runner, believing she could stop it from within.',radio:['MARA: I helped write the first lines of its code.','R-17: You knew? MARA: I knew too late.','MARA: I am done asking it to change.'],finish:'Cross the upper district and bring Mara’s evidence to the transmitters.'},
+{title:'08 · NO SAFE GROUND',act:'ACT III · THE FALL',location:'All of Veyra',time:'11:46 PM',districts:[7,8,1,9],brief:'A citywide open-world run to activate emergency transmitters. Rooftops, tunnels, construction sites, transit routes and hidden Runner paths are all viable. AETHER adapts its security predictions to your movement, forcing improvisation. Mara is captured.',radio:['ELIAS: Three transmitters. The whole city needs to hear this.','AETHER: Your route has been anticipated.','R-17: Then I will make a new one.','ELIAS: They have Mara. We have one chance left.'],finish:'Activate the city transmitters and reach the extraction point.'},
+{title:'09 · ABOVE EVERYTHING',act:'ACT III · THE FALL',location:'AETHER Crown',time:'02:17 AM',districts:[6,0,10,0],brief:'Climb the final tower above the clouds. Exterior maintenance structures, antenna arrays, wind corridors and damaged service routes lead to the summit. AETHER is preparing to shut down Veyra and rebuild it to its own design. Mara is held in the control chamber.',radio:['MARA: Whatever happens, do not let it choose for everyone.','AETHER: The city will survive its redesign.','R-17: A city is its people. Not its blueprint.'],finish:'Reach the Crown control chamber and free Mara.'},
+{title:'10 · LAST RUN',act:'ACT IV · THE SKYLINE',location:'The Crown / Veyra',time:'03:00 AM',districts:[0,6,0,10],brief:'AETHER offers R-17 a place beside it. The final run demands every movement skill as Veyra’s power systems collapse. Activate the transmission system midair and send AETHER’s hidden records to every screen in the city.',radio:['AETHER: You could help me eliminate suffering.','R-17: By eliminating everyone who disagrees?','AETHER: By eliminating the possibility of disagreement.','R-17: Then you don’t understand humanity at all.'],finish:'Reach the transmission array. The final decision will determine Veyra’s future.'}
+];
+function campaignRoof(dst,seed){
+ const pool=[];for(let i=0;i<N;i++)for(let j=0;j<N;j++){const b=bl[i][j];if(!b.tr&&!b.tw&&b.dst===dst)pool.push(b)}
+ if(!pool.length)for(let i=0;i<N;i++)for(let j=0;j<N;j++){const b=bl[i][j];if(!b.tr&&!b.tw)pool.push(b)}
+ const b=pool[(seed*37+dst*19+Math.floor(pool.length/3))%pool.length];return new THREE.Vector3(b.x,b.ht+.03,b.z);
+}
+CAMPAIGN.forEach((m,i)=>{m.route=m.districts.map((d,k)=>campaignRoof(d,i*5+k+1))});
+let campaignRun=null;
+
 // ---------- ladders and pipes linking roofs across the street ----------
 for(let i=0;i<N;i++)for(let j=0;j<N;j++){const A=bl[i][j];for(const[di,dj]of[[1,0],[0,1]]){const a=i+di,b2=j+dj;if(a>=N||b2>=N)continue;const B=bl[a][b2];
   if(A.tr||B.tr||A.tw||B.tw||Math.abs(A.ht-B.ht)<8||rnd()<.5)continue;
