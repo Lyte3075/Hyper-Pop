@@ -554,19 +554,35 @@ function campaignActorsTick(dt){
  const count=ci===0?5:ci<4?6:ci<7?7:8;
  for(let i=0;i<count;i++){
   const e=campaignEnemies[i];e.group.visible=true;e.hit=Math.max(0,e.hit-dt);
-  if(!e.started){e.started=true;e.cursor=Math.max(0,chaseClock-(4.2+i*.42));const backX=Math.sin(yaw),backZ=Math.cos(yaw),sideX=Math.cos(yaw),sideZ=-Math.sin(yaw),lane=((i%3)-1)*5,behind=34+i*5;e.group.position.set(p.x+backX*behind+sideX*lane,p.y,p.z+backZ*behind+sideZ*lane);}
-  const rate=.76+Math.min(.13,ci*.018)+i*.008;
-  e.cursor=Math.min(chaseClock-.12,e.cursor+dt*rate);
+  if(!e.started){
+   e.started=true;
+   // Place each unit on the runner's real earlier route, not at an arbitrary
+   // point in mid-air or behind a rooftop edge.
+   e.cursor=Math.max(chaseTrail[0]?.t||0,chaseClock-(2.9+i*.27));
+   const spawn=chaseSample(e.cursor);
+   if(spawn)e.group.position.set(spawn.x,spawn.y,spawn.z);
+   else e.group.position.copy(p);
+  }
+  // Slightly faster than the recorded route so the pack steadily closes in,
+  // but never at the extreme speeds that let it instantly overtake the runner.
+  const rate=1.045+Math.min(.045,ci*.006)+i*.002;
+  e.cursor=Math.min(chaseClock-.08,e.cursor+dt*rate);
   const target=chaseSample(e.cursor);
   if(target){
    const dx=target.x-e.group.position.x,dz=target.z-e.group.position.z,dy=target.y-e.group.position.y;
-   const blend=1-Math.exp(-dt*(13+i*.35));
+   const blend=1-Math.exp(-dt*9.5);
    e.group.position.x+=dx*blend;e.group.position.y+=dy*blend;e.group.position.z+=dz*blend;
    if(Math.hypot(dx,dz)>.08)e.group.rotation.y=Math.atan2(dx,dz);
-   const side=((i%3)-1)*.42;e.group.position.x+=Math.cos(e.group.rotation.y)*side*dt*2;e.group.position.z-=Math.sin(e.group.rotation.y)*side*dt*2;
   }
   const dx=p.x-e.group.position.x,dy=p.y-e.group.position.y,dz=p.z-e.group.position.z,d=Math.hypot(dx,dy*.65,dz);
-  if(d<1.85&&e.hit<=0){e.hit=1.35;hurt(ci>=4?9:7,true);const flat=Math.hypot(dx,dz)||1;v.x+=dx/flat*1.15;v.z+=dz/flat*1.15;shake=Math.max(shake,.09);toast('AETHER PURSUIT · HIT · KEEP MOVING');}
+  if(d<1.7&&e.hit<=0){
+   e.hit=1.5;
+   hurt(ci>=4?8:6,true);
+   // A contact hit costs health, not the runner's movement or momentum.
+   stagger=0;
+   shake=Math.max(shake,.07);
+   toast('AETHER PURSUIT · HIT · KEEP MOVING');
+  }
  }
 }
 const deliverySites=CAMPAIGN.map(m=>m.route[m.route.length-1].clone());
