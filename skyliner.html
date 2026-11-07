@@ -1264,7 +1264,7 @@ function skipTutStep(){
 }
 function tutTick(sp){
   const D=tut.done;
-  if(!tut.on||!playing){tutEl.style.display='none';tutBeam.visible=false;tutKey='';return}
+  if(!tut.on||!playing||campaignRun){tutEl.style.display='none';tutBeam.visible=false;tutKey='';return}
   const i=TS.findIndex(t=>!D[t[0]]);
   if(i<0){tut.on=false;try{localStorage.setItem('sr_tut','1')}catch(e){}start.copy(cityStart);toast('Tutorial complete!');tutEl.style.display='none';tutBeam.visible=false;return}
   const now2=performance.now(),holding=now2<tutHoldUntil,cur=TS[i][0];
