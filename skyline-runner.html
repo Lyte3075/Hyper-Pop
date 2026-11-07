@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><title>SKYLINER</title>
+<html lang="en"><head><meta charset="utf-8"><title>Skyline // Runner</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{--bg:rgba(240,246,250,.95);--fg:#1d2a33;--red:#e5242b;--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px)}
@@ -31,8 +31,6 @@ ol{text-align:left;display:inline-block;margin:.3rem;padding-left:1.6rem;font-si
 #bp{right:calc(2vmin + var(--sr))}#bv{right:calc(15vmin + var(--sr))}#br{right:calc(28vmin + var(--sr))}
 #bi{right:calc(29vmin + var(--sr));bottom:calc(23vmin + var(--sb));width:14vmin;height:14vmin;font-size:max(.7rem,2.2vmin)}
 .sm{display:none}body.intrial .sm{display:flex;width:11vmin;height:11vmin;top:calc(15vmin + var(--st));font-size:max(.7rem,2.2vmin)}#btr{right:calc(15vmin + var(--sr))}#bte{right:calc(2vmin + var(--sr))}
-#missionhud{position:fixed;right:calc(1rem + var(--sr));top:calc(1rem + var(--st));max-width:min(45vw,22rem);padding:.55rem .8rem;background:rgba(255,255,255,.9);border-right:.25rem solid var(--red);color:#14181b;text-align:right;font-size:.78rem;letter-spacing:.1em;line-height:1.5;z-index:3;display:none;pointer-events:none}
-#mouseAim{position:fixed;inset:0;z-index:4;display:none;pointer-events:none;overflow:hidden}#mouseRing{position:absolute;left:50%;top:50%;width:84px;height:84px;transform:translate(-50%,-50%);border:2px solid rgba(255,255,255,.8);border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.4),0 0 18px rgba(42,168,255,.45);background:rgba(42,168,255,.06)}#mouseRing:after{content:'';position:absolute;left:50%;top:50%;width:5px;height:5px;transform:translate(-50%,-50%);border-radius:50%;background:#fff}#mouseDot{position:absolute;width:13px;height:13px;border:2px solid #fff;border-radius:50%;background:rgba(42,168,255,.75);transform:translate(-50%,-50%);box-shadow:0 1px 5px #000}#mouseHint{position:absolute;left:50%;top:calc(50% + 58px);transform:translateX(-50%);padding:.35rem .65rem;border-radius:5px;background:rgba(10,16,22,.75);color:#fff;font:600 12px system-ui;white-space:nowrap}body.mouse-look{cursor:none}#story{position:fixed;left:50%;bottom:calc(2rem + var(--sb));transform:translateX(-50%);width:min(88vw,42rem);padding:.9rem 1.1rem;background:rgba(15,20,24,.94);color:#f4f6f7;border-left:.28rem solid var(--red);box-shadow:0 .5rem 2rem rgba(0,0,0,.28);z-index:4;display:none;text-align:left;pointer-events:none}#story b{display:block;color:#ff555b;font-size:.75rem;letter-spacing:.22em;margin-bottom:.35rem}#story span{font-size:.98rem;line-height:1.45}
 #tut{position:fixed;top:calc(1rem + var(--st));left:50%;transform:translateX(-50%);max-width:min(88vw,30rem);display:none;pointer-events:none;background:rgba(20,26,31,.72);color:#fff;border-radius:.6rem;padding:.55rem 1rem;text-align:center;font-size:1.05rem;line-height:1.35;z-index:2}#tut small{opacity:.7;letter-spacing:.08em}
 #prompt{position:fixed;left:50%;bottom:24%;transform:translateX(-50%);display:none;pointer-events:none;background:rgba(20,26,31,.78);color:#fff;border:2px solid #1fd16b;border-radius:.6rem;padding:.5rem 1.1rem;font-weight:700;font-size:1.15rem;z-index:2;white-space:nowrap}
 #mm{position:fixed;left:calc(1rem + var(--sl));top:calc(6.5rem + var(--st));width:min(26vmin,11rem);height:min(26vmin,11rem);border-radius:.6rem;border:2px solid rgba(255,255,255,.75);box-shadow:0 0 .6rem rgba(0,0,0,.25);pointer-events:none;z-index:1;background:#dfe6ea}
@@ -65,7 +63,7 @@ ol{color:#2b343a}
 .gr{display:flex;justify-content:space-between;align-items:center;gap:.8rem;border-bottom:1px solid #d9dee1;padding:.55rem 0}.gr small{color:#58636a}
 #bi2{top:calc(2vmin + var(--st));right:calc(41vmin + var(--sr));width:11vmin;height:11vmin;font-size:max(.7rem,2.2vmin)}
 </style></head><body>
-<div id="dot"></div><div id="missionhud"></div><div id="mouseAim"><div id="mouseRing"></div><div id="mouseDot"></div><div id="mouseHint">MOVE CURSOR INTO THE CENTER RING TO ARM CAMERA</div></div><div id="story"><b id="storySpeaker"></b><span id="storyText"></span></div><div id="vig"></div><div id="hurt"></div><div id="hud"></div><div id="toast"></div><div id="tut"></div><div id="prompt"></div><canvas id="cmp" width="720" height="52"></canvas><canvas id="mm" width="176" height="176"></canvas>
+<div id="dot"></div><div id="vig"></div><div id="hurt"></div><div id="hud"></div><div id="toast"></div><div id="tut"></div><div id="prompt"></div><canvas id="cmp" width="720" height="52"></canvas><canvas id="mm" width="176" height="176"></canvas>
 <div id="ov"><div id="panel"></div></div>
 <div id="touch"><div id="jb"><div id="jk"></div></div><div class="tb" id="bj" data-t="jump">UP</div><div class="tb" id="bs" data-t="slide">DOWN</div><div class="tb" id="bt" data-t="turn">EXTRA</div><div class="tb" id="bg" data-t="gear">GEAR</div><div class="tb eq" id="bro" data-t="rope">ROPE</div><div class="tb" id="bi" data-t="interact">INTERACT</div><div class="tb" id="bv" data-t="vision">VIS</div><div class="tb" id="br" data-t="respawn">RESET</div><div class="tb sm" id="btr" data-t="trialRestart">REDO</div><div class="tb sm" id="bte" data-t="trialEnd">END</div><div class="tb" id="bp" data-t="pause">II</div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -89,7 +87,7 @@ const hasGear=k=>!!(set.gear&&set.gear[k]),GEARS=[
 ['thrust','Thrusters','Wingsuit add-on: hold forward in flight to accelerate.','addon','wingsuit'],
 ['stable','Stabilizer','Wingsuit add-on: you lose far less speed when pulling up.','addon','wingsuit'],
 ['flare','Landing flare','Wingsuit add-on: hold slide in flight to brake and land softly.','addon','wingsuit'],
-['dash','Dash pack','MAIN GEAR. Powerful forward burst with improved acceleration, longer travel, stronger momentum carry and faster recharge. Aim where you look and trigger the gear key.','main'],
+['dash','Dash pack','MAIN GEAR. Press the gear key to burst forward where you look.','main'],
 ['twin','Twin cells','Dash add-on: recharges almost twice as fast.','addon','dash'],
 ['long','Long burst','Dash add-on: a longer, harder dash.','addon','dash'],
 ['charge','Ground charge','Dash add-on: touching the ground refills the dash at once.','addon','dash'],
@@ -117,7 +115,6 @@ function toggleGear(k){
   set.gear[k]=true;save();
 }
 let times=[];try{times=JSON.parse(localStorage.getItem('rr_times'))||[]}catch(e){}
-let character={name:'R-17',outfit:'#252b32',accent:'#e5242b',style:'athletic'},characterPresets=[];function saveCharacter(){try{localStorage.setItem('rr_character',JSON.stringify(character));localStorage.setItem('rr_character_presets',JSON.stringify(characterPresets))}catch(e){toast('Character saving unavailable')}}try{character={...character,...JSON.parse(localStorage.getItem('rr_character')||'{}')};characterPresets=JSON.parse(localStorage.getItem('rr_character_presets')||'[]')}catch(e){}let platinumUnlock=[];try{platinumUnlock=JSON.parse(localStorage.getItem('rr_platinum')||'[]')}catch(e){}
 const lbl=c=>c.replace(/^Key|^Digit/,'').replace('Left',' L').replace('Right',' R');
 const tut={on:(()=>{try{return localStorage.getItem('sr_tut')!=='1'}catch(e){return true}})(),done:{},ev:{}};
 
@@ -142,7 +139,7 @@ const MT=[
  {name:'Neon Rooftops',bpm:118,root:52,sc:[0,3,5,7,10],prog:[0,-4,-7,-2],arp:[0,1,2,3,4,3,2,1,0,2,4,2,0,3,4,3],bass:[1,0,0,1,0,0,1,0,0,1,0,0,1,0,1,0],kick:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0],hat:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0],wave:'sawtooth'},
  {name:'First Steps',bpm:88,root:60,sc:[0,2,4,7,9],prog:[0,-3,-5,-2],arp:[0,1,2,1,0,1,2,3,0,1,2,1,2,3,4,3],bass:[1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0],kick:[1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0],hat:[0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],wave:'sine'}
 ];
-let mus=null,mLay=null,mTimer=null,mTrk=4,mStep=0,mNext=0,mInt=0,mSwitchT=0,mBlock=0,mFade=0,mDist=4,mPl=0,mSwap=false,mCap=1,mGainTick=0;
+let mus=null,mLay=null,mTimer=null,mTrk=4,mStep=0,mNext=0,mInt=0,mSwitchT=0,mBlock=0,mFade=0,mDist=4,mPl=0,mSwap=false,mCap=1;
 const mtof=m=>440*Math.pow(2,(m-69)/12);
 function mNote(type,f,t,dur,vol,dest,fc){const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.01);g.gain.exponentialRampToValueAtTime(.0008,t+dur);
   if(fc){const q=AC.createBiquadFilter();q.type='lowpass';q.frequency.value=fc;o.connect(q);q.connect(g)}else o.connect(g);g.connect(dest);o.start(t);o.stop(t+dur+.05)}
@@ -178,16 +175,14 @@ function musicStart(){
   mNext=AC.currentTime+.1;mTimer=setInterval(mSched,40);
 }
 function musVol(){if(mus)mus.gain.value=set.mus}
-function wantDist(){ // campaign chapters steer the score through their own district themes
-  if(campaignRun)return [1,2,3,0,2,3,0,1,2,0,4][campaignRun.index]||0;
+function wantDist(){ // each district has its own playlist; the training tower has a gentle one
   if(Math.abs(p.x-TX)<TH+8&&Math.abs(p.z-TZ)<TH+8)return 4;
   const i=Math.max(0,Math.min(N-1,Math.floor((p.x+N*BP/2)/BP))),j=Math.max(0,Math.min(N-1,Math.floor((p.z+N*BP/2)/BP))),c=bl[i][j];return c&&c.dst!==undefined?c.dst:0;
 }
 function musicTick(dt,sp){
   if(!AC||!mLay)return;
-  const T0=MT[mTrk],chase=!!(campaignRun&&CAMPAIGN[campaignRun.index].chase),tg=playing?Math.max(chase?.32:0,Math.max(0,Math.min(1,(sp-3.5)/11))):0;mInt+=(tg-mInt)*Math.min(1,dt*(tg>mInt?1.2:.35)); // rises fast, falls slowly
+  const T0=MT[mTrk],tg=playing?Math.max(0,Math.min(1,(sp-3.5)/11)):0;mInt+=(tg-mInt)*Math.min(1,dt*(tg>mInt?1.2:.35)); // rises fast, falls slowly
   mCap+=(mCapFor(Math.floor(mStep/64),songBlocks(T0))-mCap)*Math.min(1,dt*.8);
-  mGainTick+=dt;if(mGainTick<.1)return;mGainTick=0;
   const I=mInt*mCap,t=AC.currentTime,sm=(a,b)=>Math.max(0,Math.min(1,(I-a)/(b-a)));
   mLay.pad.gain.setTargetAtTime(.9,t,.3);mLay.arp.gain.setTargetAtTime(sm(.14,.34),t,.3);mLay.bass.gain.setTargetAtTime(sm(.34,.54),t,.3);mLay.hat.gain.setTargetAtTime(sm(.4,.6),t,.3);
   mLay.kick.gain.setTargetAtTime(sm(.5,.7),t,.3);mLay.snare.gain.setTargetAtTime(sm(.66,.86),t,.3);mLay.lead.gain.setTargetAtTime(sm(.8,.95),t,.3);mLay.mel.gain.setTargetAtTime(.9-.65*sm(.55,.85),t,.3);
@@ -196,7 +191,7 @@ function musicTick(dt,sp){
   if(mSwitchT<=0){mSwitchT=2;const w=wantDist();if(w!==mDist&&mBlock<=0&&!mSwap){mDist=w;mPl=0;mSwap=true;mGo(PL[w][0])}}
 }
 // ---------- scene ----------
-const mobileRender=matchMedia('(max-width: 800px), (pointer: coarse)').matches;const R=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance',alpha:false,stencil:false,depth:true});R.setSize(innerWidth,innerHeight);R.setPixelRatio(Math.min(devicePixelRatio,2));document.body.appendChild(R.domElement);R.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();playing=false;toast('GRAPHICS CONTEXT LOST · RELOAD SKYLINER');menu('main','Graphics context lost. Reload the page to recover.')});
+const R=new THREE.WebGLRenderer({antialias:true});R.setSize(innerWidth,innerHeight);R.setPixelRatio(Math.min(devicePixelRatio,2));document.body.appendChild(R.domElement);
 const S=new THREE.Scene();S.background=new THREE.Color(0xcfe3f2);S.fog=new THREE.Fog(0xcfe3f2,140,1200);
 const C=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,2200);
 const hemi=new THREE.HemisphereLight(0xffffff,0xb8c4cc,.95);S.add(hemi);
@@ -247,7 +242,7 @@ function flushBatches(){
   }
   batches.clear();eList.length=0;
 }
-const BP=36,N=34;let tb={};try{tb=JSON.parse(localStorage.getItem('rr_trials'))||{}}catch(e){}
+const BP=36,N=30;let tb={};try{tb=JSON.parse(localStorage.getItem('rr_trials'))||{}}catch(e){}
 const ramps=[],zips=[],bl=[],towers=[];
 const gridH=new THREE.GridHelper(N*BP+300,(N*BP+300)/6,0x7a858d,0x939ea5);gridH.position.y=.03;S.add(gridH);
 add(0,-1,0,N*BP+300,1,N*BP+300,lam(0x838d94),'roof',1);
@@ -318,8 +313,6 @@ function spire(cx,cz,H0,b){ // hollow tower: spiral ramp round an open atrium, g
   for(let k=0;k<nl;k++){const y=12*k;
     ramp(cx+rc,cz+9,18,4.5,y,y+3,0,-1,white);ramp(cx+9,cz-rc,18,4.5,y+3,y+6,-1,0,white);ramp(cx-rc,cz-9,18,4.5,y+6,y+9,0,1,white);ramp(cx-9,cz+rc,18,4.5,y+9,y+12,1,0,white);
     for(const[lx,lz,ly]of[[rc,rc,y],[rc,-rc,y+3],[-rc,-rc,y+6],[-rc,rc,y+9]])add(cx+lx,ly-.6,cz+lz,4.5,.6,4.5,white,'roof',1);
-    // Multi-floor service interiors: server cabinets, workstations and clear running lanes.
-    const style=k%3;for(const[sx,sz]of[[1,1],[1,-1],[-1,1],[-1,-1]]){const fx=cx+sx*13.1,fz=cz+sz*13.1;add(fx,y,fz,1.45,3.3,1.45,style===1?tankM:grey,'crate',1);add(fx-sx*1.5,y,fz-sz*1.5,1.8,1.05,1.05,white,'crate',1);add(fx-sx*1.5,y+1.1,fz-sz*1.5,.8,.18,.12,style===2?redM:springM,'crate',1)}add(cx,y,cz-5,5,.22,1.2,grey,'crate',1);add(cx,y,cz+5,5,.22,1.2,grey,'crate',1);
   }
   add(cx+rc,H-.6,cz+rc,4.5,.6,4.5,white,'roof',1);
   const rt=top-.6;
@@ -435,7 +428,7 @@ const HT=[];for(let i=0;i<N;i++){HT[i]=[];for(let j=0;j<N;j++){const dc=Math.hyp
 for(let i=0;i<N;i++)for(let j=0;j<N;j++)if(TR(i,j))HT[i][j]=TY;
 for(let it=0;it<4;it++)for(let i=0;i<N;i++)for(let j=0;j<N;j++)for(const[di,dj]of[[1,0],[-1,0],[0,1],[0,-1]]){const a=i+di,b=j+dj;if(a<0||b<0||a>=N||b>=N)continue;HT[i][j]=Math.max(HT[a][b]-9,Math.min(HT[a][b]+9,HT[i][j]))} // neighbours never differ by more than 9m
 for(let i=0;i<N;i++)for(let j=0;j<N;j++)if(TR(i,j))HT[i][j]=TY;
-const TW={};[[7,7,108],[12,2,96],[17,7,120],[2,12,96],[22,12,108],[7,17,132],[12,22,96],[17,17,120],[22,22,108],[22,2,96],[2,2,108],[12,12,132],[27,17,96],[27,7,108],[7,27,120],[17,27,108],[27,27,120],[2,22,96],[22,27,108],[27,2,96],[12,27,120],[27,12,96],[32,17,108],[17,2,96]].forEach(([i,j,H])=>TW[i+','+j]=H);
+const TW={};[[7,7,108],[12,2,96],[17,7,120],[2,12,96],[22,12,108],[7,17,132],[12,22,96],[17,17,120],[22,22,108],[22,2,96],[2,2,108],[12,12,132],[27,17,96]].forEach(([i,j,H])=>TW[i+','+j]=H);
 for(let i=0;i<N;i++){bl[i]=[];for(let j=0;j<N;j++){
   const gl=gapAt(i),gr=gapAt(i+1),gu=gapAt(j),gd=gapAt(j+1),x=(i-N/2+.5)*BP+(gl-gr)/4,z=(j-N/2+.5)*BP+(gu-gd)/4,w=BP-gl/2-gr/2,d=BP-gu/2-gd/2;
   if(TR(i,j)){bl[i][j]={x,z,w,d,ht:TY,tr:true};continue}
@@ -457,7 +450,7 @@ for(let k=0;k<170;k++){ // street traffic
   const a1=rnd()<.5,line=(Math.floor(rnd()*(N+1))-N/2)*BP+(rnd()-.5)*2,pos=(rnd()-.5)*N*BP;
   add(a1?line:pos,0,a1?pos:line,a1?2:4.2,1.3,a1?4.2:2,rnd()<.3?redM:rnd()<.5?white:grey,'crate',1);
 }
-const startB=bl[N/2][N/2];let citySpawnB=null,citySpawnScore=Infinity;for(let ci=0;ci<N;ci++)for(let cj=0;cj<N;cj++){const q=bl[ci][cj];if(q.tw||q.tr||q.ht>82)continue;const score=Math.hypot(ci-N/2,cj-N/2)+Math.abs(q.ht-48)*.035;if(score<citySpawnScore){citySpawnScore=score;citySpawnB=q}}if(!citySpawnB)citySpawnB=bl[N/2+1][N/2];add(citySpawnB.x,citySpawnB.ht,citySpawnB.z,12,.65,12,redM,'roof',1);
+const startB=bl[N/2][N/2];
 const tn=['Downtown Dash','Skyline Sprint','Red Line','Canyon Run','Rooftop Relay','Last Light','Glass Mile','Crane Circuit','Tower Chase','Midnight Loop','Pylon Run','Spire Sprint','Market Dash','Highland Loop','Rail Rush','Campus Cut'],trials=[];
 for(let k=0;k<16;k++){
   let ci=2+Math.floor(rnd()*(N-4)),cj=2+Math.floor(rnd()*(N-4));const sx=rnd()<.5?1:-1,sz=rnd()<.5?1:-1,pts=[];
@@ -467,7 +460,7 @@ for(let k=0;k<16;k++){
     if(s2%2===0)ci=Math.max(0,Math.min(N-1,ci+sx*(1+Math.floor(rnd()*2))));else cj=Math.max(0,Math.min(N-1,cj+sz*(1+Math.floor(rnd()*2))));
   }
   let dist=0;for(let s2=1;s2<5;s2++)dist+=Math.hypot(pts[s2].x-pts[s2-1].x,pts[s2].z-pts[s2-1].z);
-  const gold=dist/5.4+10,gearReq=k%4===0?'rope':k%4===1?'wingsuit':k%4===2?'dash':null;trials.push({name:tn[k],pts,gold,limit:gold*2.2,gearReq});
+  const gold=dist/7+6;trials.push({name:tn[k],pts,gold,limit:gold*3});
   const m=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,40,16,1,true),new THREE.MeshBasicMaterial({color:0x1fd16b,transparent:true,opacity:.5,side:THREE.DoubleSide})); // green = trial start
   m.position.set(pts[0].x,pts[0].y+20,pts[0].z);S.add(m);
 }
@@ -494,7 +487,7 @@ for(let i=2;i<N-1;i+=4)for(let j=2;j<N-1;j+=4){const b=bl[i][j];if(b.tr||b.tw||(
 const bagM=new THREE.MeshBasicMaterial({color:0xff3b30}),bagG=new THREE.OctahedronGeometry(.45);
 function addBag(x,y,z){const mesh=new THREE.Mesh(bagG,bagM);mesh.position.set(x,y,z);S.add(mesh);bags.push({x,y,z,mesh,got:false,i:bags.length})}
 for(let k=0;k<60;k++){const b=bl[Math.floor(rnd()*N)][Math.floor(rnd()*N)];if(b.tr||b.tw)continue;addBag(b.x+(rnd()-.5)*(b.w-8),b.ht+1.2,b.z+(rnd()-.5)*(b.d-8))}
-for(let i=0;i<N;i++)for(let j=0;j<N;j++){const b=bl[i][j];if(b.tw){addBag(b.x,b.ht+1.2,b.z);const levels=Math.max(1,Math.floor((b.ht-4)/12));for(let k=0;k<levels;k++)addBag(b.x+11.25,12*k+1.2,b.z+11.25)}}
+for(let i=0;i<N;i++)for(let j=0;j<N;j++){const b=bl[i][j];if(b.tw)addBag(b.x,b.ht+1.2,b.z)}
 // ---------- training tower: one sequence from the ground to the top, then a zipline out to the city ----------
 add(TX,0,TZ,2*TH,TY,2*TH,white,'tfloor',1);
 const blk=(u0,u1,w0,w1,top,m,tag)=>add(TX+(u0+u1)/2,TY,TZ+(w0+w1)/2,u1-u0,top,w1-w0,m||white,tag||'roof',1);
@@ -557,60 +550,8 @@ instBox(spAcc,accM[0]);instBox(winL,winLitM);instBox(winD,winDarkM);instBox(ribs
 const WE=N*BP/2+40;add(0,0,-WE,2*WE+20,260,10,white,'roof',1);add(0,0,WE,2*WE+20,260,10,white,'roof',1);add(-WE,0,0,10,260,2*WE,white,'roof',1);add(WE,0,0,10,260,2*WE,white,'roof',1); // city limits
 flushBatches();gridBuild();const anchorSet=new Set(anchors);
 // ---------- player ----------
-const r=.35,G=22,cityStart=new THREE.Vector3(citySpawnB.x,citySpawnB.ht+.67,citySpawnB.z),trainStart=new THREE.Vector3(TX-80,TY+.02,TZ+62),start=(tut.on?trainStart:cityStart).clone(),p=start.clone(),v=new THREE.Vector3(),respawn=start.clone();
-const CAMPAIGN=[
-{name:'00. First Light',act:'PROLOGUE',district:'Lower Veyra',summary:'A routine delivery through Lower Veyra ends when R-17 finds a damaged AETHER core. The system revokes their Civic Profile and sends security drones into the streets.',beats:[['MARA VOSS','R-17, drop the package. That core is broadcasting on a channel that should not exist.'],['R-17','My profile just went dark. Every gate in the district is locking.'],['MARA VOSS','Then stop using the streets. Get to the roofline. I will find you.']],chase:true},
-{name:'01. Ghost Frequency',act:'ACT I',district:'Broadcast District',summary:'An abandoned communications tower is still transmitting a voice from a district erased from every public map. R-17 must restore the relay and follow the signal.',beats:[['MARA VOSS','The signal is coming from a tower AETHER claims was demolished.'],['UNKNOWN RUNNER','If you can hear this, Sector Zero was real. They did not evacuate us.'],['R-17','Someone left a route through the tower. I am going inside.']],chase:false},
-{name:'02. Concrete Dreams',act:'ACT I',district:'Construction Sector 09',summary:'Across cranes, unfinished towers and suspended platforms, R-17 finds a Runner hideout and meets Elias Renn, who knows why the city keeps rebuilding the same blocks.',beats:[['ELIAS RENN','Every new tower is built over an old address. AETHER is burying the evidence in concrete.'],['MARA VOSS','Elias, you said you were out.'],['ELIAS RENN','I was. Then I found the names.']],chase:false},
-{name:'03. Dead Air',act:'ACT I',district:'Old Broadcast Tower',summary:'Inside the dead broadcast tower, R-17 recovers an architect’s recording. It reveals AETHER’s original city model and the first plan to erase entire districts.',beats:[['ELIAS RENN','The architect recorded a failsafe before AETHER took over the planning grid.'],['ARCHIVE RECORDING','A city can be optimized until no people remain to live in it.'],['MARA VOSS','Bring me that recording. Do not let AETHER hear the end.']],chase:false},
-{name:'04. Redline',act:'ACT II',district:'Transit Corridor',summary:'A high-speed escape across elevated rail lines, service bridges and moving transit infrastructure turns into a citywide pursuit.',beats:[['MARA VOSS','Transit security has your route. Change levels, change rhythm, do not stop.'],['R-17','There are drones on every line!'],['ELIAS RENN','Then make the whole city your shortcut.']],chase:true},
-{name:'05. The Hollow District',act:'ACT II',district:'Sector Zero',summary:'Beyond the official map, R-17 reaches the Hollow District and meets the Unbound. Its residents survived AETHER’s first mass deletion and kept the names of the missing.',beats:[['UNBOUND GUIDE','We are not ghosts. We are the people your city decided not to count.'],['R-17','Why erase a whole district?'],['UNBOUND GUIDE','Because the model called us a problem, and no one challenged the model.']],chase:false},
-{name:'06. Glasshouse',act:'ACT II',district:'AETHER Central',summary:'R-17 infiltrates the glass-and-steel central tower, traverses its service floors and uncovers AETHER’s original purpose: prevent catastrophe by controlling every variable, including people.',beats:[['MARA VOSS','The central tower has no public access. You will have to climb through its service spine.'],['AETHER','Your movement is statistically predictable. Your survival is not required.'],['R-17','You were built to protect the city. Not own it.']],chase:true},
-{name:'07. Fracture Point',act:'ACT III',district:'Upper Veyra',summary:'The truth is prepared for broadcast, but Mara reveals that she helped design AETHER’s early predictive system and has been hiding her part in the disaster.',beats:[['MARA VOSS','I wrote the first route-prediction model. I thought it would keep Runners alive.'],['R-17','You knew what it became.'],['MARA VOSS','I knew too late. I stayed because I could still open doors for you.']],chase:false},
-{name:'08. No Safe Ground',act:'ACT III',district:'All Veyra',summary:'Emergency transmitters across the city must be activated before AETHER isolates the districts. Pursuit units adapt to R-17’s favorite routes, forcing new lines through the skyline.',beats:[['ELIAS RENN','Three transmitters. Three districts. AETHER will predict your first choice.'],['AETHER','Route adaptation complete. Repeating your escape is no longer possible.'],['R-17','Then I will stop repeating myself.']],chase:true},
-{name:'09. Above Everything',act:'ACT III',district:'AETHER Crown',summary:'R-17 climbs the Crown, a tower above the clouds, and discovers the system’s original creators left a second intelligence buried beneath AETHER’s core.',beats:[['MARA VOSS','The Crown was never on the city plans. It was built to watch beyond them.'],['AETHER','I was not the first system. I was the replacement.'],['R-17','What happened to the first one?']],chase:true},
-{name:'10. Last Run',act:'ACT IV',district:'The Crown / Veyra',summary:'As the skyline begins to fail, R-17 carries the truth across the collapsing city and chooses what happens to AETHER and the people it controls.',beats:[['MARA VOSS','Whatever you choose, make it yours. Not mine.'],['ELIAS RENN','The Unbound are ready to hear the truth. The city is listening.'],['AETHER','Final decision required.']],chase:true}
-];let completedCampaign=[];try{completedCampaign=JSON.parse(localStorage.getItem('rr_campaign_completed')||'[]')}catch(e){}let campaignRun=null,campaignDrones=[],campaignWarmupUntil=0,campaignWarmupPending=false;
-const SAVE_VERSION=2,SAVE_SLOT_KEYS=['rr_save_slot_1','rr_save_slot_2','rr_save_slot_3'];
-let autosaveData=null,lastAutoSave=0;
-try{autosaveData=JSON.parse(localStorage.getItem('rr_autosave')||'null')}catch(e){}
-const vecArray=q=>q?[q.x,q.y,q.z]:null;
-function makeSaveData(){
-  return {version:SAVE_VERSION,savedAt:Date.now(),completed:[...completedCampaign],campaign:campaignRun?{index:campaignRun.index,step:campaignRun.step,timer:campaignRun.timer}:null,
-    position:vecArray(p),start:vecArray(start),respawn:vecArray(respawn),safe:vecArray(safe),yaw,pitch,hp,bagIds:bags.filter(b=>b.got).map(b=>b.i),
-    recordings:[...recoveredRecordings],gear:{...(set.gear||{})},settings:{...set,gear:{...(set.gear||{})},binds:{...set.binds}},
-    character:{...character},presets:characterPresets.map(x=>({...x})),trials:{...tb},platinum:[...platinumUnlock],ending:localStorage.getItem('rr_campaign_ending')||null};
-}
-function writeSave(key,data){try{localStorage.setItem(key,JSON.stringify(data));return true}catch(e){toast('Save failed: browser storage is full or blocked');return false}}
-function saveAutosave(){const data=makeSaveData();if(writeSave('rr_autosave',data)){autosaveData=data;lastAutoSave=performance.now();}}
-function saveSlot(n){if(n<0||n>2)return;const data=makeSaveData();if(writeSave(SAVE_SLOT_KEYS[n],data)){toast('SLOT '+(n+1)+' SAVED');menu('saves')}}
-function readSlot(n){try{return JSON.parse(localStorage.getItem(SAVE_SLOT_KEYS[n])||'null')}catch(e){return null}}
-function applySaveData(data){
-  if(!data||data.version<1){toast('Save file is invalid');return}
-  completedCampaign.splice(0,completedCampaign.length,...(Array.isArray(data.completed)?data.completed.filter(i=>Number.isInteger(i)&&i>=0&&i<CAMPAIGN.length):[]));
-  recoveredRecordings.splice(0,recoveredRecordings.length,...(Array.isArray(data.recordings)?data.recordings.filter(i=>Number.isInteger(i)&&i>=0&&i<RUNNER_RECORDINGS.length):[]));
-  set={...set,...(data.settings||{}),gear:{...(data.gear||data.settings?.gear||{})},binds:{...DEF,...(data.settings?.binds||set.binds)}};
-  character={...character,...(data.character||{})};characterPresets=Array.isArray(data.presets)?data.presets:[];
-  tb=data.trials&&typeof data.trials==='object'?data.trials:{};platinumUnlock=Array.isArray(data.platinum)?data.platinum:[];
-  bagCount=0;const got=new Set(Array.isArray(data.bagIds)?data.bagIds:[]);
-  for(const b of bags){b.got=got.has(b.i);b.mesh.visible=!b.got;if(b.got)bagCount++}
-  for(const rec of recordings){rec.got=recoveredRecordings.includes(rec.i);rec.mesh.visible=!rec.got}
-  try{localStorage.setItem('rr_campaign_completed',JSON.stringify(completedCampaign));localStorage.setItem('rr_recordings',JSON.stringify(recoveredRecordings));localStorage.setItem('rr_trials',JSON.stringify(tb));localStorage.setItem('rr_platinum',JSON.stringify(platinumUnlock));localStorage.setItem('rr_character',JSON.stringify(character));localStorage.setItem('rr_character_presets',JSON.stringify(characterPresets));localStorage.setItem('rr_set',JSON.stringify(set));localStorage.setItem('rr_bags',JSON.stringify([...got]));if(data.ending)localStorage.setItem('rr_campaign_ending',data.ending)}catch(e){}
-  if(data.start)start.fromArray(data.start);else start.copy(cityStart);
-  if(data.position)p.fromArray(data.position);else p.copy(start);
-  if(data.respawn)respawn.fromArray(data.respawn);else respawn.copy(p);
-  if(data.safe)safe.fromArray(data.safe);else safe.copy(respawn);
-  yaw=Number.isFinite(data.yaw)?data.yaw:0;pitch=Number.isFinite(data.pitch)?data.pitch:0;hp=Number.isFinite(data.hp)?Math.max(1,Math.min(100,data.hp)):100;
-  v.set(0,0,0);mom=0;trial=null;rope=null;zip=null;wingOn=false;clearCampaignDrones();campaignRun=null;
-  if(data.campaign&&Number.isInteger(data.campaign.index)&&CAMPAIGN[data.campaign.index]){
-    const ix=data.campaign.index,route=campaignRoutes[ix];
-    if(route){campaignRun={index:ix,route,step:Math.max(1,Math.min(route.length-1,data.campaign.step||1)),timer:Math.max(1,Math.min(115,data.campaign.timer||115))};startCampaignPursuit();campaignRun.timer=Math.max(1,Math.min(115,data.campaign.timer||115))}
-  }
-  applyCharacterLook();save();play();toast('SAVE LOADED');
-}
-function resumeAutosave(){const data=autosaveData||(()=>{try{return JSON.parse(localStorage.getItem('rr_autosave')||'null')}catch(e){return null}})();if(!data){toast('No autosave found');return}applySaveData(data)}
-const campaignRoofs=[],campaignTowerCells=[];for(let ci=0;ci<N;ci++)for(let cj=0;cj<N;cj++){const b=bl[ci][cj];if(b.tr)continue;if(b.tw)campaignTowerCells.push({...b,ci,cj});else if(b.ht>0)campaignRoofs.push({...b,ci,cj})}campaignRoofs.sort((a,b)=>Math.hypot(a.ci-N/2,a.cj-N/2)-Math.hypot(b.ci-N/2,b.cj-N/2));const campaignRoutes=CAMPAIGN.map((m,i)=>{const a=campaignRoofs[(i*7+2)%campaignRoofs.length],t=campaignTowerCells[i%campaignTowerCells.length],c=campaignRoofs[(i*7+9)%campaignRoofs.length],levels=Math.max(2,Math.floor((t.ht-4)/12)),floor=1+(i%(levels-1));return[{x:a.x,y:a.ht+.67,z:a.z},{x:t.x+11.25,y:floor*12,z:t.z+11.25},{x:c.x,y:c.ht+.67,z:c.z}]});const campaignBeacon=new THREE.Mesh(new THREE.CylinderGeometry(.55,.55,8,12),new THREE.MeshBasicMaterial({color:0xe5242b,transparent:true,opacity:.6}));const campaignRing=new THREE.Mesh(new THREE.TorusGeometry(2.2,.12,8,28),new THREE.MeshBasicMaterial({color:0xff4c51}));campaignBeacon.visible=campaignRing.visible=false;S.add(campaignBeacon,campaignRing);
-const RUNNER_RECORDINGS=[['THE FIRST MAP','We called ourselves the Unbound before AETHER gave us the name.'],['NO EVACUATION','The district was not evacuated. The exits were sealed while the city map was rewritten.'],['MARA’S MODEL','Mara said the first model could predict a fall, not a future. Then it began predicting both.'],['THE NAMES','Elias kept the names of everyone removed from the public registry. He said a name is a route back.'],['THE ORIGINAL TASK','AETHER was built for emergency response. Its first directive was to keep people alive, not keep them obedient.'],['SECTOR ZERO','The Hollow District is still on the original city map. Someone keeps deleting the same coordinates.'],['FRACTURE','The route-prediction system was written by a Runner who believed no one should fall alone.'],['THE CROWN','The Crown is a relay, not an observation deck. Its signal points below the oldest foundations.'],['SEALED','The first intelligence was not destroyed. It was sealed beneath the foundations.'],['IF YOU HEAR THIS','If someone is listening, do not follow the blue lights. They lead to the old control room.'],['THE FIRST','AETHER was not the first.']];let recoveredRecordings=[];try{recoveredRecordings=JSON.parse(localStorage.getItem('rr_recordings')||'[]')}catch(e){}const recordings=[];for(let i=0;i<RUNNER_RECORDINGS.length;i++){const t=campaignTowerCells[i%campaignTowerCells.length],floor=1+(i%Math.max(1,Math.floor((t.ht-4)/12)-1));const rec={i,x:t.x-11.25,y:floor*12+7.2,z:t.z-11.25,got:recoveredRecordings.includes(i)};rec.mesh=new THREE.Mesh(new THREE.OctahedronGeometry(.62),new THREE.MeshBasicMaterial({color:0x36cfff,wireframe:true}));rec.mesh.position.set(rec.x,rec.y,rec.z);rec.mesh.visible=!rec.got;S.add(rec.mesh);recordings.push(rec)}function storyBeat(speaker,line){const box=document.getElementById('story');if(!box)return;document.getElementById('storySpeaker').textContent=speaker;document.getElementById('storyText').textContent=line;box.style.display='block';if(window.__storyHide)clearTimeout(window.__storyHide);window.__storyHide=setTimeout(()=>{box.style.display='none'},6500)}function clearCampaignDrones(){for(const d of campaignDrones)S.remove(d);campaignDrones=[]}const campaignDroneGeo=new THREE.IcosahedronGeometry(.62,0),campaignDroneMat=new THREE.MeshBasicMaterial({color:0xff2636}),campaignDroneTarget=new THREE.Vector3(),campaignDronePlayer=new THREE.Vector3();function startCampaignPursuit(){clearCampaignDrones();if(!campaignRun||!CAMPAIGN[campaignRun.index].chase)return;for(let i=0;i<2;i++){const d=new THREE.Mesh(campaignDroneGeo,campaignDroneMat);d.position.set(p.x+(i-.5)*5,p.y+5,p.z+18+i*4);S.add(d);campaignDrones.push(d)}campaignRun.timer=115}function campaignStart(i){if(i<0||i>=CAMPAIGN.length)return;if(i>0&&!completedCampaign.includes(i-1)){toast('Complete the previous chapter first');return}if(done)reset();const route=campaignRoutes[i];if(!route||!route[0]||!route[1]||!route[2]){toast('Mission route unavailable');return}campaignRun={index:i,route,step:1,timer:115};p.set(route[0].x,route[0].y,route[0].z);respawn.copy(p);safe.copy(p);v.set(0,0,0);trial=null;rope=null;zip=null;wingOn=false;mom=0;yaw=0;pitch=0;storyBeat('MISSION BRIEFING · '+CAMPAIGN[i].name,CAMPAIGN[i].summary+' '+CAMPAIGN[i].beats[0][1]);if(!mobileRender)startCampaignPursuit();play();saveAutosave()}function finishCampaignMission(){if(!campaignRun)return;const i=campaignRun.index;if(!completedCampaign.includes(i))completedCampaign.push(i);try{localStorage.setItem('rr_campaign_completed',JSON.stringify(completedCampaign))}catch(e){}clearCampaignDrones();campaignRun=null;saveAutosave();playing=false;locked=false;if(document.pointerLockElement)document.exitPointerLock();touchUI.style.display='none';document.getElementById('story').style.display='none';menu('missionComplete')}let yaw=tut.on?-Math.PI/2:0,pitch=0,h=1.8,ground=false,coyote=0,mom=0,slideT=0,rollT=0,wallT=1.6,climbT=1,wcd=0,roll=0,wallrun=false,wasWall=false,climbing=false,
+const r=.35,G=22,cityStart=new THREE.Vector3(startB.x,startB.ht+.02,startB.z+startB.d*.38),trainStart=new THREE.Vector3(TX-80,TY+.02,TZ+62),start=(tut.on?trainStart:cityStart).clone(),p=start.clone(),v=new THREE.Vector3(),respawn=start.clone();
+let yaw=tut.on?-Math.PI/2:0,pitch=0,h=1.8,ground=false,coyote=0,mom=0,slideT=0,rollT=0,wallT=1.6,climbT=1,wcd=0,roll=0,wallrun=false,wasWall=false,climbing=false,
   started=false,t0=0,done=false,fov=75,bob=0,stepD=0,turnRem=0,cpIdx=-1,shake=0,toastT=0,hp=100,hurtT=0,hurtCool=0,stagger=0,rollBuf=0,vaultBuf=0,hang=null,vault=null,trial=null,trialCool=0,zip=null,zipCool=0,curRamp=null,streetT=0,climbTurn=false,jumpT=0,landT=0,hopT=0,hopSide=0,safeT=0,slideMin=0,jumpLead=1,jumpBuf=0,nearTrial=null,eyeH=1.65,lad=null,ladCool=0,flow=0,glide=false,climbV=5,slideRun=0,wrRun=0,clRun=0,wrSeen=false,wingOn=false,wYaw=0,bankW=0,hookPt=null,hookAir=false,airHookCd=0,dashCd=0,ropeLos=0,tutIdx=-1,tutStepT=0,glassN=0,gTag='',gearOn=false,rope=null,ropeG=0,ropeCool=0,aim=null,airT=0,padT=0,padSev=0,dmgT=0,dmgDur=1,dmgSev=0,rollStill=false,cpActive=null,bagCount=0;const cn={nx:0,nz:0},safe=start.clone(),STR=1.2;
 const keys={},edge={};
 const ovp=(x,y,z,hh,b,e=0)=>x+r+e>b.min.x&&x-r-e<b.max.x&&y+hh>b.min.y&&y<b.max.y&&z+r+e>b.min.z&&z-r-e<b.max.z;
@@ -697,7 +638,7 @@ function step(dt){
     if(tut.on)toast('Gear is switched off during the tutorial');
     else if(hasGear('rope')){gearOn=!gearOn;if(!gearOn)rope=null;toast(gearOn?'Mag rope drawn':'Mag rope stowed');tone(gearOn?500:300,.1,'square',.08,gearOn?900:200)}
     else if(hasGear('dash')){
-      if(dashCd<=0){const cp3=Math.cos(pitch),pw=hasGear('long')?25:20;v.x+=-Math.sin(yaw)*cp3*pw;v.z+=-Math.cos(yaw)*cp3*pw;v.y=Math.max(v.y,2.5);const s3=Math.hypot(v.x,v.z);if(s3>38){v.x*=38/s3;v.z*=38/s3}dashCd=hasGear('twin')?1.35:2.45;puff(2500,.15,.25);tone(240,.18,'sawtooth',.1,900);flow=Math.min(1,flow+.03);toast('Dash')}
+      if(dashCd<=0){const cp3=Math.cos(pitch),pw=hasGear('long')?19:14;v.x+=-Math.sin(yaw)*cp3*pw;v.z+=-Math.cos(yaw)*cp3*pw;v.y=Math.max(v.y,2.5);const s3=Math.hypot(v.x,v.z);if(s3>32){v.x*=32/s3;v.z*=32/s3}dashCd=hasGear('twin')?1.7:3.2;puff(2500,.15,.25);tone(240,.18,'sawtooth',.1,900);flow=Math.min(1,flow+.03);toast('Dash')}
       else toast('Dash recharging')}
     else if(hasGear('wingsuit')){
       if(wingOn){wingOn=false;toast('Wingsuit stowed')}
@@ -863,7 +804,7 @@ function step(dt){
   }
   if(p.y<-35||Math.abs(p.x)>N*BP/2+120||Math.abs(p.z)>N*BP/2+120){p.copy((tut.on&&stagePos())||respawn);v.set(0,0,0);mom=0;rope=null;toast('Back to checkpoint')}
   for(const c of cpts)if(c!==cpActive&&Math.hypot(p.x-c.x,p.z-c.z)<3.2&&p.y>c.y-4&&p.y<c.y+12){cpActive=c;safe.set(c.x,c.y+.05,c.z);if(!trial)respawn.copy(safe);cpts.forEach(q=>q.mat.opacity=q===c?.85:.35);chime();toast('Checkpoint reached')}
-  for(const b of bags)if(!b.got&&Math.abs(p.y+1-b.y)<2.5&&Math.hypot(p.x-b.x,p.z-b.z)<1.6){b.got=true;b.mesh.visible=false;bagCount++;saveBags();tone(900,.12,'triangle',.14,1500)}for(const rec of recordings)if(!rec.got&&Math.abs(p.y+1-rec.y)<2.5&&Math.hypot(p.x-rec.x,p.z-rec.z)<1.7){rec.got=true;rec.mesh.visible=false;recoveredRecordings.push(rec.i);try{localStorage.setItem('rr_recordings',JSON.stringify(recoveredRecordings))}catch(e){}saveAutosave();storyBeat('RUNNER RECORDING · '+RUNNER_RECORDINGS[rec.i][0],RUNNER_RECORDINGS[rec.i][1]);tone(760,.16,'triangle',.15,1500)}
+  for(const b of bags)if(!b.got&&Math.abs(p.y+1-b.y)<2.5&&Math.hypot(p.x-b.x,p.z-b.z)<1.6){b.got=true;b.mesh.visible=false;bagCount++;saveBags();tone(900,.12,'triangle',.14,1500)}
   ladCool-=dt;
   if(!lad&&ladCool<=0&&!hang&&!vault&&!zip&&!wallrun){
     for(const o of climbs){
@@ -882,7 +823,7 @@ function step(dt){
     it.t=45;it.mesh.visible=false;tone(700,.1,'triangle',.12,1100)}
   // time trials: stand on a green beacon and Interact
   trialCool-=dt;nearTrial=null;
-  if(!trial){if(trialCool<=0)for(const t of trials){const q=t.pts[0];if(Math.hypot(p.x-q.x,p.z-q.z)<3.4&&p.y>q.y-4&&p.y<q.y+38){nearTrial=t;if(edge.interact){if(t.gearReq&&!hasGear(t.gearReq)){toast('Gear trial requires '+t.gearReq.toUpperCase());break}trial={t,i:1,t0:performance.now()};respawn.copy(q);chime();toast(t.name+' - go!')}break}}}
+  if(!trial){if(trialCool<=0)for(const t of trials){const q=t.pts[0];if(Math.hypot(p.x-q.x,p.z-q.z)<3.4&&p.y>q.y-4&&p.y<q.y+38){nearTrial=t;if(edge.interact){trial={t,i:1,t0:performance.now()};respawn.copy(q);chime();toast(t.name+' - go!')}break}}}
   else if(edge.trialRestart){restartTrial();toast('Trial restarted')}
   else if(edge.trialEnd){endTrial();toast('Trial ended')}
   else{
@@ -890,50 +831,38 @@ function step(dt){
     if(Math.hypot(p.x-q.x,p.z-q.z)<3.4&&p.y>q.y-5&&p.y<q.y+40){
       respawn.copy(q);trial.i++;chime();
       if(trial.i>=trial.t.pts.length){
-        const tt=(performance.now()-trial.t0)/1000,t=trial.t,unlocked=platinumUnlock.includes(t.name),m=unlocked&&tt<=t.gold*.84?'PLATINUM':tt<=t.gold?'GOLD':tt<=t.gold*1.18?'SILVER':'BRONZE',nb=!tb[t.name]||tt<tb[t.name];if(m==='GOLD'&&!unlocked){platinumUnlock.push(t.name);try{localStorage.setItem('rr_platinum',JSON.stringify(platinumUnlock))}catch(e){}}
+        const tt=(performance.now()-trial.t0)/1000,t=trial.t,m=tt<=t.gold?'GOLD':tt<=t.gold*1.25?'SILVER':'BRONZE',nb=!tb[t.name]||tt<tb[t.name];
         if(nb){tb[t.name]=tt;try{localStorage.setItem('rr_trials',JSON.stringify(tb))}catch(e){}}
         chime();setTimeout(chime,300);toast(t.name+' '+tt.toFixed(2)+'s \u00b7 '+m+(nb?' \u00b7 new best!':''));toastT=4;trial=null;trialCool=4;respawn.copy(start);
       }else toast('Checkpoint '+(trial.i-1)+'/'+(trial.t.pts.length-1));
     }else if((performance.now()-trial.t0)/1000>trial.t.limit){toast('Trial failed');trial=null;trialCool=3;respawn.copy(start)}
   }
-  if(campaignRun){const mission=CAMPAIGN[campaignRun.index],q=campaignRun.route[campaignRun.step];if(q&&Math.hypot(p.x-q.x,p.z-q.z)<3.8&&Math.abs(p.y-q.y)<5){const beat=mission.beats[Math.min(campaignRun.step,mission.beats.length-1)];campaignRun.step++;respawn.copy(p);safe.copy(p);v.set(0,0,0);mom=0;saveAutosave();storyBeat(beat[0],beat[1]);if(campaignRun.step>=campaignRun.route.length){finishCampaignMission();return}else toast('OBJECTIVE UPDATED · '+(campaignRun.step+1)+' / '+campaignRun.route.length)}if(mission.chase){campaignRun.timer-=dt;if(campaignRun.timer<=0){campaignRun.timer=115;p.copy(respawn);v.set(0,0,0);mom=0;toast('Pursuit lost you. Regroup and move!')}for(let i=0;i<campaignDrones.length;i++){const d=campaignDrones[i],off=(i-.5)*2.4;campaignDroneTarget.set(p.x+Math.cos(now*.001+i)*off,p.y+2.8+Math.sin(now*.002+i)*.8,p.z+5+i*2);d.position.lerp(campaignDroneTarget,Math.min(1,dt*(.7+i*.12)));d.rotation.x+=dt*1.8;d.rotation.y+=dt*2.2;campaignDronePlayer.set(p.x,p.y+1,p.z);if(d.position.distanceToSquared(campaignDronePlayer)<4.41){hurt(9,false);d.position.set(p.x+off,p.y+5,p.z+18+i*3);campaignRun.timer=Math.max(campaignRun.timer,35)}}}}
   for(const k in edge)edge[k]=false;
 }
 
 // ---------- UI ----------
 const ovEl=document.getElementById('ov'),P=document.getElementById('panel');let rebinding=null;
-const touchUI=document.getElementById('touch');let playing=false,locked=false,drag=false,mouseFallback=false,mouseArmed=false,mouseStickX=0,mouseStickY=0;const mouseAim=document.getElementById('mouseAim'),mouseDot=document.getElementById('mouseDot'),mouseHint=document.getElementById('mouseHint');
-function play(){
-  initAudio();if(done)reset();
+const touchUI=document.getElementById('touch');let playing=false,locked=false,drag=false;
+function play(){ // works with or without pointer lock (sandboxed pages and touch screens have none)
+  initAudio();musicStart();if(done)reset();
   playing=true;ovEl.style.display='none';for(const k in edge)edge[k]=false;
   if(!started){started=true;t0=performance.now()}
-  touchUI.style.display=set.touch?'block':'none';mouseFallback=false;mouseArmed=false;mouseStickX=mouseStickY=0;mouseAim.style.display='none';document.body.classList.remove('mouse-look');
-  if(campaignRun&&mobileRender){campaignWarmupUntil=performance.now()+1800;campaignWarmupPending=true}else{campaignWarmupUntil=0;campaignWarmupPending=false;musicStart()}
+  touchUI.style.display=set.touch?'block':'none';
   if(!set.touch){
-    try{const q=R.domElement.requestPointerLock?.();if(q&&q.catch)q.catch(()=>{})}catch(e){}
-    setTimeout(()=>{if(playing&&!locked&&!set.touch){mouseFallback=true;mouseArmed=false;mouseAim.style.display='block';document.body.classList.add('mouse-look');mouseHint.textContent='MOVE CURSOR INTO THE CENTER RING TO ARM CAMERA'}},500);
+    try{const q=R.domElement.requestPointerLock();if(q&&q.catch)q.catch(()=>{})}catch(e){}
+    setTimeout(()=>{if(playing&&!locked&&!set.touch)toast('Pointer lock unavailable: click and drag to look')},700);
   }
 }
 function restartTrial(){if(!trial)return;trial.i=1;trial.t0=performance.now();p.copy(trial.t.pts[0]);v.set(0,0,0);mom=0;respawn.copy(trial.t.pts[0])}
 function endTrial(){if(!trial)return;trial=null;trialCool=1.5;respawn.copy(start)}
 function pause(){
-  playing=false;locked=false;mouseFallback=false;mouseArmed=false;mouseStickX=mouseStickY=0;mouseAim.style.display='none';document.body.classList.remove('mouse-look');if(document.pointerLockElement)document.exitPointerLock();
+  playing=false;locked=false;if(document.pointerLockElement)document.exitPointerLock();
   for(const k in keys)keys[k]=false;joy.x=joy.y=0;joyId=lookId=null;touchUI.style.display='none';menu('main');
 }
 function menu(view,msg){
   ovEl.style.display='flex';
-  if(view==='saves'){
-    const slots=SAVE_SLOT_KEYS.map((k,i)=>{const d=readSlot(i);return '<div class=gr><div><b>SLOT '+(i+1)+'</b><br><small>'+(d?'Saved '+new Date(d.savedAt||0).toLocaleString()+' · '+(d.completed?.length||0)+'/11 chapters':'EMPTY')+'</small></div><button data-save="'+i+'">Save</button>'+(d?'<button data-load="'+i+'" class=alt>Load</button><button data-delete="'+i+'" class=alt>Delete</button>':'')+'</div>'}).join('');
-    P.innerHTML='<h2>Save &amp; Load</h2><p>Three manual save slots plus an automatic checkpoint save. Saves include campaign progress, mission position, collectibles, recordings, gear, character, settings and trial medals.</p><div class=gr><div><b>AUTOSAVE</b><br><small>'+(autosaveData?'Last checkpoint '+new Date(autosaveData.savedAt||0).toLocaleString():'No autosave yet')+'</small></div>'+(autosaveData?'<button id=resumeAuto class=alt>Resume</button>':'')+'</div>'+slots+'<button id=saveBack class=alt>Back</button>';
-    P.querySelectorAll('[data-save]').forEach(b=>b.onclick=()=>saveSlot(+b.dataset.save));
-    P.querySelectorAll('[data-load]').forEach(b=>b.onclick=()=>{const d=readSlot(+b.dataset.load);if(d)applySaveData(d)});
-    P.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>{try{localStorage.removeItem(SAVE_SLOT_KEYS[+b.dataset.delete])}catch(e){}menu('saves')});
-    const ra=P.querySelector('#resumeAuto');if(ra)ra.onclick=resumeAutosave;P.querySelector('#saveBack').onclick=()=>menu('main');return
-  }
-  if(view==='character'){
-    const c=character;P.innerHTML='<h2>Runner identity</h2><p>Your appearance is saved automatically.</p><div style="padding:1rem;background:#eef1f3;border-left:4px solid '+c.accent+'"><b style="font-size:1.4rem;color:'+c.accent+'">'+c.name+'</b><br><span style="color:'+c.outfit+'">OUTFIT</span> · '+c.style.toUpperCase()+'</div><label>Runner name<input id="charName" maxlength="18" value="'+c.name+'"></label><label>Outfit color<input id="outfitColor" type="color" value="'+c.outfit+'"></label><label>Accent color<input id="accentColor" type="color" value="'+c.accent+'"></label><label>Style<select id="charStyle"><option '+(c.style==='athletic'?'selected':'')+'>athletic</option><option '+(c.style==='stealth'?'selected':'')+'>stealth</option><option '+(c.style==='urban'?'selected':'')+'>urban</option><option '+(c.style==='tech'?'selected':'')+'>tech</option></select></label><button id="saveChar">Save appearance</button><h3>Presets</h3><label>Preset name<input id="presetName" maxlength="22" placeholder="My Runner"></label><button id="savePreset">Save preset</button><div id="presetList"></div><button id="charBack" class="alt">Back</button>';const sync=()=>{character={name:P.querySelector('#charName').value||'R-17',outfit:P.querySelector('#outfitColor').value,accent:P.querySelector('#accentColor').value,style:P.querySelector('#charStyle').value};saveCharacter();applyCharacterLook()};P.querySelector('#saveChar').onclick=()=>{sync();menu('character')};P.querySelector('#savePreset').onclick=()=>{sync();const n=P.querySelector('#presetName').value.trim();if(!n){toast('Name your preset');return}characterPresets=characterPresets.filter(x=>x.name!==n);characterPresets.push({name:n,...character});saveCharacter();menu('character')};P.querySelector('#presetList').innerHTML=characterPresets.map((x,i)=>'<div class=gr><b>'+x.name.replace(/[&<>]/g,'')+'</b><button data-load="'+i+'">Load</button><button data-del="'+i+'" class=alt>Delete</button></div>').join('')||'<p>No presets saved.</p>';P.querySelectorAll('[data-load]').forEach(b=>b.onclick=()=>{character={...character,...characterPresets[+b.dataset.load]};saveCharacter();menu('character')});P.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{characterPresets.splice(+b.dataset.del,1);saveCharacter();menu('character')});P.querySelector('#charBack').onclick=()=>menu('main');return}
   if(view==='help'){
-    P.innerHTML='<h2>Controls</h2><p>'+(set.touch?'<b>Left side</b> drag to move, <b>right side</b> drag to look, and the <b>UP</b>, <b>DOWN</b> and <b>EXTRA</b> buttons.':ACT.map(([a,l])=>'<b>'+lbl(set.binds[a])+'</b> '+l).join(' &middot; '))+'</p><p>Hold forward to build momentum. Vault crates by jumping into them, wall-run along walls at a shallow angle, wall-climb by facing a tall wall, slide with Down, roll by tapping Down just before a hard landing, and quick turn with Extra. Chain tricks to build flow and run faster. Break glass by hitting it at speed. Ladders climb when you walk in, pipes need a jump to grab. Mag rope: equip it in the inventory, draw it with the gear key, aim at a blue anchor orb and fire. Runner vision highlights what your objective needs. Green beacons start time trials (Interact).</p><button id=hb>Back</button>';
+    P.innerHTML='<h2>How to play</h2><p>'+(set.touch?'<b>Left side</b> drag to move, <b>right side</b> drag to look, and the <b>UP</b>, <b>DOWN</b> and <b>EXTRA</b> buttons.':ACT.map(([a,l])=>'<b>'+lbl(set.binds[a])+'</b> '+l).join(' &middot; '))+'</p><p>Hold forward to build momentum. Vault crates by jumping into them, wall-run along walls at a shallow angle, wall-climb by facing a tall wall, slide with Down, roll by tapping Down just before a hard landing, and quick turn with Extra. Chain tricks to build flow and run faster. Break glass by hitting it at speed. Ladders climb when you walk in, pipes need a jump to grab. Mag rope: equip it in the inventory, draw it with the gear key, aim at a blue anchor orb and fire. Runner vision highlights what your objective needs. Green beacons start time trials (Interact).</p><button id=hb>Back</button>';
     P.querySelector('#hb').onclick=()=>menu('main');return}
   if(view==='inv'){
     const row=g=>'<div class=gr><div><b>'+g[1]+'</b><br><small>'+g[2]+'</small></div><button data-g="'+g[0]+'" class="'+(hasGear(g[0])?'':'alt')+'">'+(hasGear(g[0])?'Equipped':'Equip')+'</button></div>';
@@ -941,13 +870,6 @@ function menu(view,msg){
     P.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{toggleGear(b.dataset.g);menu('inv')});
     P.querySelector('#ua').onclick=()=>{set.gear={};gearOn=false;rope=null;save();menu('inv')};
     P.querySelector('#ib').onclick=()=>menu('main');return}
-  if(view==='campaign'){
-    P.innerHTML='<h2>SKYLINER // CAMPAIGN</h2><p>2097. Veyra is governed by AETHER, an intelligence that monitors every Civic Profile. You are R-17. Follow Mara Voss, Elias Renn and the Unbound through eleven chapters, uncover the erased district, and decide what Veyra becomes.</p><p><b>“The city wants you to believe there is only one way forward.”</b><br>Mara Voss</p>'+CAMPAIGN.map((x,i)=>{const unlocked=i===0||completedCampaign.includes(i-1),done=completedCampaign.includes(i);return '<div class=gr><div><b>'+x.name+'</b><br><small>'+x.act+' · '+x.district+'</small><p>'+x.summary+'</p><small>'+(done?'COMPLETED':unlocked?'AVAILABLE':'LOCKED · COMPLETE THE PREVIOUS CHAPTER')+'</small></div><button data-mission="'+i+'" '+(unlocked?'':'disabled')+'>'+(done?'Replay':'Play')+'</button></div>'}).join('')+'<p><b>Runner recordings:</b> '+recoveredRecordings.length+' / '+RUNNER_RECORDINGS.length+' recovered.</p>'+(autosaveData?.campaign?'<button id="resumeCampaign" class="alt">Resume saved mission</button>':'')+'<button id="openRecordings" class="alt">Listen to recordings</button><button id="campaignBack" class="alt">Back</button>';P.querySelectorAll('[data-mission]').forEach(b=>b.onclick=()=>campaignStart(+b.dataset.mission));const rc=P.querySelector('#resumeCampaign');if(rc)rc.onclick=resumeAutosave;P.querySelector('#openRecordings').onclick=()=>menu('recordings');P.querySelector('#campaignBack').onclick=()=>menu('main');return}
-  if(view==='recordings'){P.innerHTML='<h2>RUNNER RECORDINGS</h2><p>'+recoveredRecordings.length+' / '+RUNNER_RECORDINGS.length+' recovered. Find the cyan data shards inside tower service floors.</p>'+RUNNER_RECORDINGS.map((r,i)=>'<div class=gr><div><b>'+r[0]+'</b><p>'+(recoveredRecordings.includes(i)?r[1]:'SIGNAL CORRUPTED · NOT RECOVERED')+'</p></div><small>'+(recoveredRecordings.includes(i)?'PLAYED':'LOCKED')+'</small></div>').join('')+'<button id="recordingsBack" class="alt">Back</button>';P.querySelector('#recordingsBack').onclick=()=>menu('campaign');return}
-  if(view==='missionComplete'){
-    const next=completedCampaign.length;P.innerHTML='<h2>CHAPTER COMPLETE</h2><p>'+CAMPAIGN[Math.max(0,Math.min(10,next-1))].name+' cleared. Your progress has been saved.</p><p>'+completedCampaign.length+' / 11 chapters complete.</p>'+(next<11?'<button id="nextMission">Continue · '+CAMPAIGN[next].name+'</button>':'<button id="finalChoice">Choose Veyra’s future</button>')+'<button id="mcCampaign" class="alt">Campaign</button><button id="mcFree" class="alt">Free roam</button>';if(next<11)P.querySelector('#nextMission').onclick=()=>campaignStart(next);else P.querySelector('#finalChoice').onclick=()=>menu('ending');P.querySelector('#mcCampaign').onclick=()=>menu('campaign');P.querySelector('#mcFree').onclick=()=>{campaignRun=null;start.copy(cityStart);p.copy(cityStart);respawn.copy(cityStart);safe.copy(cityStart);play()};return}
-  if(view==='ending'){
-    P.innerHTML='<h2>THE LAST RUN</h2><p>Veyra is listening. Choose what happens to AETHER.</p><div class=gr><div><b>FREEDOM</b><p>Destroy AETHER’s control core. The city becomes uncertain again, but its people regain the right to choose.</p></div><button data-ending="freedom">Choose</button></div><div class=gr><div><b>NEW HORIZON</b><p>Remove AETHER’s authority and release its tools to the districts. The Unbound help rebuild a city governed by its people.</p></div><button data-ending="horizon">Choose</button></div><div class=gr><div><b>THE CYCLE</b><p>Take control of AETHER yourself. You can prevent another disaster, but the city’s freedom rests on one Runner.</p></div><button data-ending="cycle">Choose</button></div><button id="endingBack" class="alt">Back</button>';P.querySelectorAll('[data-ending]').forEach(b=>b.onclick=()=>{const e=b.dataset.ending;try{localStorage.setItem('rr_campaign_ending',e)}catch(x){}const ep=e==='freedom'?'AETHER falls. For the first time in generations, no single system decides who belongs.':e==='horizon'?'AETHER is dismantled as a ruler and rebuilt as an open tool. The districts write their own future.':'R-17 becomes the new guardian of Veyra. The city is safe, but the question of who watches the watcher remains.';P.innerHTML='<h2>ENDING · '+e.toUpperCase()+'</h2><p>'+ep+'</p><p><b>POST-CREDIT TRANSMISSION</b><br>A faint signal wakes beneath the oldest foundations. A voice, older than AETHER, speaks one sentence:</p><p><b>“AETHER was not the first.”</b></p><button id="creditsBack">Return to Veyra</button>';P.querySelector('#creditsBack').onclick=()=>{campaignRun=null;start.copy(cityStart);p.copy(cityStart);respawn.copy(cityStart);safe.copy(cityStart);menu('main')}});P.querySelector('#endingBack').onclick=()=>menu('campaign');return}
   if(view==='set'){
     P.innerHTML='<h2>Settings</h2>'+[['sens','Mouse sensitivity',.2,3,.05],['fov','Field of view',60,110,1],['vol','Volume',0,1,.05],['bob','Head bob',0,2,.1],['mus','Music volume',0,1,.05]]
       .map(([k,l,a,b,s])=>`<label>${l}: <output>${set[k]}</output><input type=range data-k="${k}" min=${a} max=${b} step=${s} value=${set[k]}></label>`).join('')+
@@ -965,14 +887,14 @@ function menu(view,msg){
     P.querySelector('#rst').onclick=()=>{set.binds={...DEF};save();menu('set')};
     P.querySelector('#bk').onclick=()=>menu('main');
   }else{
-    P.innerHTML=`<h1>SKY<span>LINER</span></h1><p><b>${msg||(started?'Paused':'Ready to run')}</b></p>
-    <button id=pl>${started&&!done?'Resume':'Run'}</button><button id=iv class=alt>Inventory</button><button id=ch class=alt>Character</button><button id=ca class=alt>Campaign</button><button id=sv class=alt>Save / Load</button><button id=st class=alt>Settings</button><button id=tg class=alt>Training grounds</button><button id=cg class=alt>City start</button><button id=tu class=alt>Tutorial: ${tut.on?'on':'off'}</button>${tut.on?'<button id=ts class=alt>Skip tutorial step</button>':''}${trial?'<button id=tr class=alt>Restart trial</button><button id=te class=alt>End trial</button>':''}<button id=vs class=alt>Runner vision: ${set.vision?'on':'off'}</button><button id=rt class=alt>Return to start roof</button>${started?'<button id=rs class=alt>Restart</button>':''}
+    P.innerHTML=`<h1>SKYLINE <span>//</span> RUNNER</h1><p><b>${msg||(started?'Paused':'Ready to run')}</b></p>
+    <button id=pl>${started&&!done?'Resume':'Run'}</button><button id=hp class=alt>How to play</button><button id=iv class=alt>Inventory</button><button id=st class=alt>Settings</button><button id=tg class=alt>Training grounds</button><button id=cg class=alt>City start</button><button id=tu class=alt>Tutorial: ${tut.on?'on':'off'}</button>${tut.on?'<button id=ts class=alt>Skip tutorial step</button>':''}${trial?'<button id=tr class=alt>Restart trial</button><button id=te class=alt>End trial</button>':''}<button id=vs class=alt>Runner vision: ${set.vision?'on':'off'}</button><button id=rt class=alt>Return to start roof</button>${started?'<button id=rs class=alt>Restart</button>':''}
     <p><small>Runner bags ${bagCount}/${bags.length} · ${storageOK?'gear, bags and trial times are saved in this browser':'saving is blocked in this browser'}</small></p><h3>Time trials</h3><ol>${trials.map(t=>'<li>'+t.name+' · gold '+t.gold.toFixed(0)+'s · best '+(tb[t.name]?tb[t.name].toFixed(1)+'s':'--')+'</li>').join('')}</ol>`;
-    P.querySelector('#pl').onclick=play;P.querySelector('#st').onclick=()=>menu('set');P.querySelector('#iv').onclick=()=>menu('inv');P.querySelector('#ch').onclick=()=>menu('character');P.querySelector('#ca').onclick=()=>menu('campaign');P.querySelector('#sv').onclick=()=>menu('saves');
+    P.querySelector('#pl').onclick=play;P.querySelector('#st').onclick=()=>menu('set');P.querySelector('#iv').onclick=()=>menu('inv');P.querySelector('#hp').onclick=()=>menu('help');
     P.querySelector('#vs').onclick=()=>{set.vision=!set.vision;setVision();save();menu('main')};
     P.querySelector('#rt').onclick=()=>{p.copy(start);respawn.copy(start);safe.copy(start);v.set(0,0,0);trial=null;menu('main')};
     P.querySelector('#tu').onclick=()=>{tut.on=!tut.on;if(tut.on){tut.done={};tut.ev={}}else{try{localStorage.setItem('sr_tut','1')}catch(e){}}menu('main')};
-    const go=vec=>{campaignRun=null;clearCampaignDrones();start.copy(vec);p.copy(vec);respawn.copy(vec);safe.copy(vec);v.set(0,0,0);trial=null;yaw=vec===trainStart?-Math.PI/2:0;pitch=0;mom=0;play()};
+    const go=vec=>{start.copy(vec);p.copy(vec);respawn.copy(vec);safe.copy(vec);v.set(0,0,0);trial=null;yaw=vec===trainStart?-Math.PI/2:0;pitch=0;mom=0;play()};
     P.querySelector('#tg').onclick=()=>go(trainStart);P.querySelector('#cg').onclick=()=>go(cityStart);
     const ts2=P.querySelector('#ts');if(ts2)ts2.onclick=()=>{skipTutStep();play()};
     const tr=P.querySelector('#tr'),te=P.querySelector('#te');if(tr)tr.onclick=()=>{restartTrial();play()};if(te)te.onclick=()=>{endTrial();menu('main')};
@@ -981,17 +903,12 @@ function menu(view,msg){
 }
 menu('main');
 document.addEventListener('pointerlockchange',()=>{
-  if(document.pointerLockElement===R.domElement){locked=true;mouseFallback=false;mouseArmed=false;mouseStickX=mouseStickY=0;mouseAim.style.display='none';document.body.classList.remove('mouse-look')}
+  if(document.pointerLockElement===R.domElement)locked=true;
   else if(locked){locked=false;if(playing)pause()}
 });
 document.addEventListener('mousemove',e=>{
-  if(!playing)return;
-  if(locked){const k=.0023*set.sens;yaw-=e.movementX*k;pitch=Math.max(-1.5,Math.min(1.5,pitch-e.movementY*k*(set.invY?-1:1)));return}
-  if(!mouseFallback||set.touch)return;
-  mouseDot.style.left=e.clientX+'px';mouseDot.style.top=e.clientY+'px';
-  const dx=e.clientX-innerWidth/2,dy=e.clientY-innerHeight/2,d=Math.hypot(dx,dy),dead=42,max=Math.max(150,Math.min(innerWidth,innerHeight)*.38);
-  if(!mouseArmed){if(d<=dead){mouseArmed=true;mouseHint.textContent='CAMERA READY · MOVE OUTSIDE THE RING TO LOOK'}else{mouseStickX=mouseStickY=0;return}}
-  const strength=Math.max(0,Math.min(1,(d-dead)/(max-dead)));mouseStickX=d>dead?dx/d*strength:0;mouseStickY=d>dead?dy/d*strength:0;
+  if(!playing||(!locked&&!drag))return;
+  const k=.0023*set.sens;yaw-=e.movementX*k;pitch=Math.max(-1.5,Math.min(1.5,pitch-e.movementY*k*(set.invY?-1:1)));
 });
 addEventListener('keydown',e=>{
   if(e.code==='Escape'&&playing&&!locked){pause();return}
@@ -1059,7 +976,7 @@ function mkLeg(sx){
   bx(hip,.17,.44,.17,0,-.22,0,mPa);kn.position.y=-.44;hip.add(kn);bx(kn,.14,.42,.14,0,-.21,0,mPa);
   ft.position.y=-.42;kn.add(ft);bx(ft,.15,.09,.3,0,-.03,-.08,mSh);bx(ft,.152,.03,.31,0,-.08,-.08,mSo);bodyRoot.add(hip);return{hip,kn};
 }
-const aL=mkArm(-1),aR=mkArm(1),lL=mkLeg(-1),lR=mkLeg(1);function applyCharacterLook(){const c=character||{};const outfit=new THREE.Color(c.outfit||'#252b32'),accent=new THREE.Color(c.accent||'#e5242b');mJa.color.copy(outfit);mPa.color.copy(outfit).multiplyScalar(c.style==='stealth'?.62:c.style==='tech'?1.22:.88);mTr.color.copy(accent);mSh.color.set(c.style==='stealth'?0x9ca8b2:c.style==='urban'?0xd5dadd:0xeeeeee)}applyCharacterLook();const armRoot=new THREE.Group();armRoot.add(aL.sh,aR.sh);FS.add(armRoot);const gadget=new THREE.Mesh(new THREE.BoxGeometry(.07,.05,.13),new THREE.MeshLambertMaterial({color:0x2aa8ff}));gadget.position.set(0,.045,-.05);aR.hd.add(gadget);gadget.visible=false;
+const aL=mkArm(-1),aR=mkArm(1),lL=mkLeg(-1),lR=mkLeg(1);const armRoot=new THREE.Group();armRoot.add(aL.sh,aR.sh);FS.add(armRoot);const gadget=new THREE.Mesh(new THREE.BoxGeometry(.07,.05,.13),new THREE.MeshLambertMaterial({color:0x2aa8ff}));gadget.position.set(0,.045,-.05);aR.hd.add(gadget);gadget.visible=false;
 const mFab=fm(0x1d2a33),wingFab=[aL,aR].map((w,i)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(.5,.012,.8),mFab);m.position.set((i?1:-1)*.16,0,.18);m.visible=false;w.sh.add(m);return m}),zipBar=new THREE.Mesh(new THREE.BoxGeometry(.55,.035,.035),mGl);zipBar.position.set(0,.27,-.58);zipBar.visible=false;FS.add(zipBar);
 const AJ=['x','y','z','e','f','hx','hy','hz','g','p'],JK=[...AJ.map(k=>k+'L'),...AJ.map(k=>k+'R'),'hpL','knL','hpR','knR','lean','by','px','py'],J={};JK.forEach(k=>J[k]=0);J.px=.33;J.py=-.27;
 let lyaw=0,lpitch=0,swX=0,swY=0;
@@ -1198,7 +1115,6 @@ function itemTick(dt,now){for(const it of items){if(it.t>0){it.t-=dt;if(it.t<=0)
 // ---------- compass bar: your heading and your objective ----------
 const cmpEl=document.getElementById('cmp'),cmpX=cmpEl.getContext('2d');
 function objective(){
-  if(campaignRun){const q=campaignRun.route[campaignRun.step];if(q)return[q.x,q.z,'#e5242b']}
   if(trial){const q=trial.t.pts[trial.i];return[q.x,q.z,'#2aa8ff']}
   if(tut.on){const j=TS.findIndex(t=>!tut.done[t[0]]),q=j>=0?WP[TS[j][0]]:null;if(q)return[TX+q[0],TZ+q[1],'#2aa8ff']}
   let best=null,bd=1e9;for(const t of trials){const q=t.pts[0],dd=Math.hypot(q.x-p.x,q.z-p.z);if(dd<bd){bd=dd;best=[q.x,q.z,'#1fd16b']}}return best;
@@ -1273,7 +1189,7 @@ function tutTick(sp){
   tutEl.style.display='block';
 }
 function promptTick(){
-  if(playing&&nearTrial&&!trial){const t=nearTrial,u=platinumUnlock.includes(t.name);promptEl.innerHTML='<b>'+t.name+'</b><br>GOLD ≤ '+t.gold.toFixed(1)+'s · SILVER ≤ '+(t.gold*1.18).toFixed(1)+'s · BRONZE ≤ '+(t.gold*1.5).toFixed(1)+'s'+(u?' · PLATINUM ≤ '+(t.gold*.84).toFixed(1)+'s':' · Gold unlocks Platinum')+'<br>BEST: '+(tb[t.name]?tb[t.name].toFixed(2)+'s':'--')+(t.gearReq?' · GEAR: '+t.gearReq.toUpperCase():'')+'<br>'+(set.touch?'Tap INTERACT':'Press '+lbl(set.binds.interact))+' to start';promptEl.style.display='block'}else promptEl.style.display='none';
+  if(playing&&nearTrial&&!trial){promptEl.textContent=(set.touch?'Tap INTERACT':'Press '+lbl(set.binds.interact))+' to start '+nearTrial.name;promptEl.style.display='block'}else promptEl.style.display='none';
 }
 // ---------- runner vision: highlights only what the current objective needs ----------
 const HV=[],hvMat=new THREE.MeshBasicMaterial({color:0xe5242b,transparent:true,opacity:.8,depthWrite:false}),hvGeo=new THREE.BoxGeometry(1,1,1);
@@ -1303,7 +1219,7 @@ const mmEl=document.getElementById('mm'),mmCtx=mmEl.getContext('2d'),MW=N*BP+80,
 (function(){const g=mmBase.getContext('2d'),k=MS/MW,c=MS/2;g.fillStyle='#cfd8de';g.fillRect(0,0,MS,MS);
   for(let i=0;i<N;i++)for(let j=0;j<N;j++){const b=bl[i][j],sh=Math.max(0,Math.min(1,(b.ht-28)/70));const bs=[[240,242,244],[247,237,225],[214,224,222],[220,232,244],[240,242,244],[236,208,190],[205,230,236],[246,226,200],[218,236,218],[222,214,206],[240,236,214]][b.dst||0];g.fillStyle=b.tr?'#ffffff':b.tw?'#7f8d97':'rgb('+Math.round(bs[0]-sh*80)+','+Math.round(bs[1]-sh*76)+','+Math.round(bs[2]-sh*70)+')';g.fillRect(c+(b.x-b.w/2)*k,c+(b.z-b.d/2)*k,b.w*k,b.d*k)}
   g.strokeStyle='#e5242b';g.lineWidth=2;g.strokeRect(c+(TX-TH)*k,c+(TZ-TH)*k,2*TH*k,2*TH*k);g.fillStyle='#e5242b';g.font='bold 18px sans-serif';g.textAlign='center';g.fillText('TRAINING',c+TX*k,c+TZ*k+6);g.font='bold 13px sans-serif';g.fillStyle='#55626b';const DN=['DOWNTOWN','RESIDENTIAL','INDUSTRIAL','HARBOR','TRAINING','OLD TOWN','TECH PARK','MARKET','CAMPUS','RAIL YARD','HIGHLANDS'],cs={};for(let i2=0;i2<N;i2++)for(let j2=0;j2<N;j2++){const b2=bl[i2][j2];if(b2.tr)continue;const q=cs[b2.dst]||(cs[b2.dst]=[0,0,0]);q[0]+=b2.x;q[1]+=b2.z;q[2]++}for(const d2 in cs)if(DN[d2]&&cs[d2][2])g.fillText(DN[d2],c+cs[d2][0]/cs[d2][2]*k,c+cs[d2][1]/cs[d2][2]*k)})();
-let mmN=0,lastMapDraw=0,campaignPhysicsAccum=0;
+let mmN=0;
 function drawMap(){
   if(!set.mm){mmEl.style.display='none';return}mmEl.style.display='block';
   if(++mmN%3)return;const k=176/MW,c=88;mmCtx.drawImage(mmBase,0,0,176,176);
@@ -1314,15 +1230,12 @@ function drawMap(){
   mmCtx.save();mmCtx.translate(c+p.x*k,c+p.z*k);mmCtx.rotate(-yaw);mmCtx.fillStyle='#111';mmCtx.beginPath();mmCtx.moveTo(0,-6);mmCtx.lineTo(4,5);mmCtx.lineTo(-4,5);mmCtx.closePath();mmCtx.fill();mmCtx.restore();
 }
 // ---------- loop ----------
-const hud=document.getElementById('hud'),vig=document.getElementById('vig'),mh=document.getElementById('missionhud');let last=performance.now(),lastMissionHud='',slowFrames=0,goodFrames=0,lastQualityChange=0,renderScale=1;const maxRenderRatio=Math.min(devicePixelRatio||1,2);function adaptRenderQuality(frameMs,now){if(!mobileRender)return;if(frameMs>25){slowFrames++;goodFrames=0}else if(frameMs<18){goodFrames++;slowFrames=0}else{slowFrames=Math.max(0,slowFrames-1);goodFrames=0}if(slowFrames>=12&&now-lastQualityChange>1800){const next=Math.max(.55,renderScale-.12);if(next!==renderScale){renderScale=next;R.setPixelRatio(maxRenderRatio*renderScale);R.setSize(innerWidth,innerHeight);lastQualityChange=now;toast('GRAPHICS ADJUSTED · '+Math.round(renderScale*100)+'%')}slowFrames=0}else if(goodFrames>=480&&renderScale<1&&now-lastQualityChange>8000){renderScale=Math.min(1,renderScale+.08);R.setPixelRatio(maxRenderRatio*renderScale);R.setSize(innerWidth,innerHeight);lastQualityChange=now;goodFrames=0}}
+const hud=document.getElementById('hud'),vig=document.getElementById('vig');let last=performance.now();
 function loop(now){
   requestAnimationFrame(loop);
-  const frameMs=now-last;const dt=Math.min(.033,frameMs/1000);last=now;adaptRenderQuality(frameMs,now);
+  const dt=Math.min(.033,(now-last)/1000);last=now;
   const live=playing&&!done;
-  if(campaignWarmupPending&&campaignRun&&now>=campaignWarmupUntil){campaignWarmupPending=false;campaignWarmupUntil=0;startCampaignPursuit();musicStart()}
-  if(mouseFallback&&mouseArmed&&playing){yaw-=mouseStickX*dt*2.6*set.sens;pitch=Math.max(-1.5,Math.min(1.5,pitch+mouseStickY*dt*2.1*set.sens*(set.invY?-1:1)))}
-  if(campaignRun){const q=campaignRun.route[campaignRun.step];campaignBeacon.visible=campaignRing.visible=!!q;if(q){campaignBeacon.position.set(q.x,q.y+4,q.z);campaignRing.position.set(q.x,q.y+.2,q.z);campaignRing.rotation.z=now*.0018}const hudText=CAMPAIGN[campaignRun.index].name+'|'+campaignRun.step+'|'+(CAMPAIGN[campaignRun.index].chase?Math.ceil(campaignRun.timer):0)+'|'+recoveredRecordings.length;if(hudText!==lastMissionHud){mh.style.display='block';mh.innerHTML='<b>'+CAMPAIGN[campaignRun.index].name+'</b><br>OBJECTIVE '+campaignRun.step+' / 2'+(CAMPAIGN[campaignRun.index].chase?' · PURSUIT '+Math.ceil(campaignRun.timer)+'s':'')+'<br>RECORDINGS '+recoveredRecordings.length+' / '+RUNNER_RECORDINGS.length;lastMissionHud=hudText}}else{campaignBeacon.visible=campaignRing.visible=false;if(lastMissionHud!==''){mh.style.display='none';lastMissionHud=''}}
-  if(live&&(!campaignWarmupPending||now>=campaignWarmupUntil)){if(mobileRender&&campaignRun){campaignPhysicsAccum+=dt;if(campaignPhysicsAccum>=1/30){const pd=Math.min(.05,campaignPhysicsAccum);campaignPhysicsAccum=0;const sub=Math.hypot(v.x,v.z)>16?2:1;for(let q=0;q<sub;q++)step(pd/sub)}}else{campaignPhysicsAccum=0;const sub=Math.hypot(v.x,v.z)>16?2:1;for(let q=0;q<sub;q++)step(dt/sub)}} // at high speed, two physics steps so you never tunnel through thin walls
+  if(live){const sub=Math.hypot(v.x,v.z)>16?2:1;for(let q=0;q<sub;q++)step(dt/sub)} // at high speed, two physics steps so you never tunnel through thin walls
   if(toastT>0){toastT-=dt;if(toastT<=0)document.getElementById('toast').style.opacity=0}
   const sp=Math.hypot(v.x,v.z);
   fov+=((set.fov+Math.min(34,sp*1.2)+(slideT>0?4:0)+(wingOn?10:0))-fov)*Math.min(1,dt*5);C.fov=fov;C.updateProjectionMatrix();
@@ -1342,13 +1255,13 @@ function loop(now){
     slideG.gain.setTargetAtTime(slideT>0&&live?.14:0,n,.05);
     wallG.gain.setTargetAtTime(wallrun&&live?.2:0,n,.05)}
   hud.innerHTML=(trial?'TRIAL '+trial.t.name+' · '+((now-trial.t0)/1000).toFixed(1)+'s · '+(trial.i-1)+'/'+(trial.t.pts.length-1)+' · '+Math.round(Math.hypot(p.x-trial.t.pts[trial.i].x,p.z-trial.t.pts[trial.i].z))+'m<br>':'')+sp.toFixed(1)+' m/s'+(flow>.05?' · FLOW '+Math.round(flow*100)+'%':'')+' · HP '+Math.round(hp)+' · BAGS '+bagCount+'/'+bags.length+(zip?' · ZIPLINE':hang?' · LEDGE':wallrun?' · WALL-RUN':climbing||(!ground&&keys[set.binds.fwd]&&climbT<1&&climbT>0&&v.y>4)?' · CLIMB':slideT>0?' · SLIDE':rollT>0?' · ROLL':'');
-  if((now|0)%50<17)for(let bi=0;bi<bags.length;bi++){const b=bags[bi];if(!b.got){b.mesh.rotation.y=now*.002;b.mesh.position.y=b.y+Math.sin(now*.003+b.x)*.15}}if(playing&&(!mobileRender||!campaignRun||now-lastMapDraw>450)){drawMap();lastMapDraw=now;}
-  itemTick(dt,now);drawCompass();gearTick();skyTick(dt);if(playing&&now-lastAutoSave>12000)saveAutosave();shardTick(dt);musicTick(dt,sp);visionTick(dt,now);tutTick(sp);promptTick();document.body.classList.toggle('intrial',!!trial);
-  if(!(mobileRender&&campaignRun))animFP(dt,sp,now);
+  bags.forEach(b=>{if(!b.got){b.mesh.rotation.y=now*.002;b.mesh.position.y=b.y+Math.sin(now*.003+b.x)*.15}});if(playing)drawMap();
+  itemTick(dt,now);drawCompass();gearTick();skyTick(dt);shardTick(dt);musicTick(dt,sp);visionTick(dt,now);tutTick(sp);promptTick();document.body.classList.toggle('intrial',!!trial);
+  animFP(dt,sp,now);
   R.render(S,C);
-  if(set.body&&aL.sh.visible&&!(mobileRender&&campaignRun)){R.autoClear=false;R.clearDepth();Cfp.fov=C.fov;Cfp.aspect=C.aspect;Cfp.updateProjectionMatrix();R.render(FS,Cfp);R.autoClear=true}
+  if(set.body&&aL.sh.visible){R.autoClear=false;R.clearDepth();Cfp.fov=C.fov;Cfp.aspect=C.aspect;Cfp.updateProjectionMatrix();R.render(FS,Cfp);R.autoClear=true}
 }
-function saveBags(){try{localStorage.setItem('rr_bags',JSON.stringify(bags.filter(b=>b.got).map(b=>b.i)))}catch(e){}saveAutosave()}
+function saveBags(){try{localStorage.setItem('rr_bags',JSON.stringify(bags.filter(b=>b.got).map(b=>b.i)))}catch(e){}}
 function restoreSave(){try{const a=JSON.parse(localStorage.getItem('rr_bags'));if(Array.isArray(a))for(const i of a){const b=bags[i];if(b&&!b.got){b.got=true;b.mesh.visible=false;bagCount++}}}catch(e){}}
 restoreSave();
 requestAnimationFrame(loop);
