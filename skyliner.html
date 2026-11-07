@@ -83,7 +83,7 @@ body.mouse-look,body.mouse-look canvas{cursor:none!important}
       panel.innerHTML='<h1>SKY<span>LINER</span></h1><h2>Startup error</h2><p>The menu could not initialize. Please send this error:</p><pre style="white-space:pre-wrap;overflow-wrap:anywhere;text-align:left;font-size:.85rem">'+String(message).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})+'</pre><button onclick="location.reload()">Reload game</button>';
     }catch(e){}
   }
-  window.addEventListener('error',function(e){showStartupError((e.message||'Unknown JavaScript error')+'\\n'+(e.filename||'')+':'+(e.lineno||0)+':'+(e.colno||0));});
+  window.addEventListener('error',function(e){var d=(e.message||'Unknown JavaScript error')+'\\nSource: '+(e.filename||'(source hidden by browser)')+':'+(e.lineno||0)+':'+(e.colno||0);if(e.error&&e.error.stack)d+='\\n'+e.error.stack;showStartupError(d);},true);
   window.addEventListener('unhandledrejection',function(e){showStartupError('Unhandled promise rejection: '+(e.reason&&e.reason.stack||e.reason||'unknown'));});
 })();
 </script>
@@ -91,7 +91,7 @@ body.mouse-look,body.mouse-look canvas{cursor:none!important}
 <div id="dot"></div><div id="mouseAim"><div id="mouseRing"></div><div id="mouseDot"></div><div id="mouseHint">MOVE CURSOR INTO THE CENTER RING TO ARM CAMERA</div></div><div id="vig"></div><div id="hurt"></div><div id="hud"></div><div id="toast"></div><div id="tut"></div><div id="prompt"></div><canvas id="cmp" width="720" height="52"></canvas><canvas id="mm" width="176" height="176"></canvas>
 <div id="ov"><div id="panel"><h1>SKY<span>LINER</span></h1><p><b>Ready to run</b></p><p>Loading runner interface…</p><noscript><p>JavaScript is required to play SKYLINER.</p></noscript></div></div>
 <div id="touch"><div id="jb"><div id="jk"></div></div><div class="tb" id="bj" data-t="jump">UP</div><div class="tb" id="bs" data-t="slide">DOWN</div><div class="tb" id="bt" data-t="turn">EXTRA</div><div class="tb" id="bg" data-t="gear">GEAR</div><div class="tb eq" id="bro" data-t="rope">ROPE</div><div class="tb" id="bi" data-t="interact">INTERACT</div><div class="tb" id="bv" data-t="vision">VIS</div><div class="tb" id="br" data-t="respawn">RESET</div><div class="tb sm" id="btr" data-t="trialRestart">REDO</div><div class="tb sm" id="bte" data-t="trialEnd">END</div><div class="tb" id="bp" data-t="pause">II</div></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous"></script>
 <script>
 // ---------- settings ----------
 const ACT=[['fwd','Forward'],['back','Back'],['left','Left'],['right','Right'],['jump','Up (jump, kick-off)'],['slide','Down (slide, roll, drop)'],['turn','Extra (quick turn)'],['vision','Runner vision'],['respawn','Respawn'],['interact','Interact (start trial)'],['trialRestart','Restart trial'],['trialEnd','End trial'],['tskip','Skip tutorial step'],['gear','Draw / stow rope'],['rope','Fire / release rope']];
