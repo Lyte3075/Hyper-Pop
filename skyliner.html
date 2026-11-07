@@ -13,7 +13,7 @@ canvas{display:block;touch-action:none}
 #hurt{position:fixed;inset:0;pointer-events:none;background:radial-gradient(transparent 40%,rgba(229,36,43,.7));opacity:0}
 #toast{position:fixed;top:14%;left:0;right:0;text-align:center;font-weight:800;font-size:1.7rem;color:var(--red);text-shadow:0 0 .5rem #fff;pointer-events:none;opacity:0;transition:opacity .4s;padding:0 1rem}
 #ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--fg);text-align:center;z-index:5;touch-action:pan-y}
-#panel{width:min(94vw,36rem);max-height:94vh;max-height:94dvh;overflow:auto;padding:1.2rem 1.5rem;box-sizing:border-box;-webkit-overflow-scrolling:touch}
+#panel{width:min(96vw,58rem);max-height:94vh;max-height:94dvh;overflow:auto;padding:1.2rem 1.5rem;box-sizing:border-box;-webkit-overflow-scrolling:touch}
 h1{margin:0 0 .5rem;font-size:2.6rem;letter-spacing:.04em}h1 span{color:var(--red)}h2,h3{margin:.6rem 0;font-size:1.4rem}h3{font-size:1.2rem}
 p{margin:.45rem 0;font-size:1rem;line-height:1.4}
 button{background:var(--red);color:#fff;border:0;border-radius:.45rem;padding:.6rem 1.3rem;margin:.3rem;font-size:1.1rem;min-height:2.6rem;font-weight:700;cursor:pointer;touch-action:manipulation}
@@ -318,7 +318,7 @@ function addGlass(x,y,z,w,h,d){ // a pane you can smash by hitting it fast (5.5 
 function glassSound(){if(!AC)return;mNoise(AC.currentTime,.3,.35,3500,'highpass',master);puff(900,.25,.22);for(let k=0;k<8;k++)setTimeout(()=>tone(2200+Math.random()*3800,.09,'triangle',.07),k*28+Math.random()*50)}
 function shatter(b){
   const cx=b.mesh.position.x,cy=b.mesh.position.y,cz=b.mesh.position.z;
-  b.mesh.visible=false;b.min.x=b.max.x=b.min.y=b.max.y=b.min.z=b.max.z=1e9;glassN++;tut.ev.gap=true;
+  b.mesh.visible=false;b.min.x=b.max.x=b.min.y=b.max.y=b.min.z=b.max.z=1e9;glassN++;markTutEvent('gap');
   for(let k=0;k<22;k++){const q=SH[shI++%SH.length];q.m.visible=true;q.life=1.4+Math.random()*.8;q.m.position.set(cx+(Math.random()-.5)*b.w,cy+(Math.random()-.5)*b.h,cz+(Math.random()-.5)*b.d);q.vx=v.x*.45+(Math.random()-.5)*5;q.vy=Math.random()*5-1;q.vz=v.z*.45+(Math.random()-.5)*5}
   glassSound();shake=Math.max(shake,.06);
 }
@@ -686,7 +686,7 @@ flushBatches();gridBuild();const anchorSet=new Set(anchors);
 // ---------- player ----------
 const r=.35,G=22,cityStart=new THREE.Vector3(startB.x,startB.ht+.02,startB.z+startB.d*.38),trainStart=new THREE.Vector3(TX-80,TY+.02,TZ+62),start=(tut.on?trainStart:cityStart).clone(),p=start.clone(),v=new THREE.Vector3(),respawn=start.clone();
 let yaw=tut.on?-Math.PI/2:0,pitch=0,h=1.8,ground=false,coyote=0,mom=0,slideT=0,rollT=0,wallT=1.6,climbT=1,wcd=0,roll=0,wallrun=false,wasWall=false,climbing=false,
-  started=false,t0=0,done=false,fov=75,bob=0,stepD=0,turnRem=0,cpIdx=-1,shake=0,toastT=0,hp=100,hurtT=0,hurtCool=0,stagger=0,rollBuf=0,vaultBuf=0,hang=null,vault=null,trial=null,trialCool=0,zip=null,zipCool=0,curRamp=null,streetT=0,climbTurn=false,jumpT=0,landT=0,hopT=0,hopSide=0,safeT=0,slideMin=0,jumpLead=1,jumpBuf=0,nearTrial=null,eyeH=1.65,lad=null,ladCool=0,flow=0,glide=false,climbV=5,slideRun=0,wrRun=0,clRun=0,wrSeen=false,wingOn=false,wYaw=0,bankW=0,hookPt=null,hookAir=false,airHookCd=0,dashCd=0,ropeLos=0,tutIdx=-1,tutStepT=0,glassN=0,gTag='',gearOn=false,rope=null,ropeG=0,ropeCool=0,aim=null,airT=0,padT=0,padSev=0,dmgT=0,dmgDur=1,dmgSev=0,rollStill=false,cpActive=null,bagCount=0;const cn={nx:0,nz:0},safe=start.clone(),STR=1.2;
+  started=false,t0=0,done=false,fov=75,bob=0,stepD=0,turnRem=0,cpIdx=-1,shake=0,toastT=0,hp=100,hurtT=0,hurtCool=0,stagger=0,rollBuf=0,vaultBuf=0,hang=null,vault=null,trial=null,trialCool=0,zip=null,zipCool=0,curRamp=null,streetT=0,climbTurn=false,jumpT=0,landT=0,hopT=0,hopSide=0,safeT=0,slideMin=0,jumpLead=1,jumpBuf=0,nearTrial=null,eyeH=1.65,lad=null,ladCool=0,flow=0,glide=false,climbV=5,slideRun=0,wrRun=0,clRun=0,wrSeen=false,wrHop=false,wingOn=false,wYaw=0,bankW=0,hookPt=null,hookAir=false,airHookCd=0,dashCd=0,ropeLos=0,tutIdx=-1,tutStepT=0,glassN=0,gTag='',gearOn=false,rope=null,ropeG=0,ropeCool=0,aim=null,airT=0,padT=0,padSev=0,dmgT=0,dmgDur=1,dmgSev=0,rollStill=false,cpActive=null,bagCount=0;const cn={nx:0,nz:0},safe=start.clone(),STR=1.2;
 const keys={},edge={};
 const ovp=(x,y,z,hh,b,e=0)=>x+r+e>b.min.x&&x-r-e<b.max.x&&y+hh>b.min.y&&y<b.max.y&&z+r+e>b.min.z&&z-r-e<b.max.z;
 const hit=(x,y,z,hh)=>nearBoxes(x,z).some(b=>ovp(x,y,z,hh,b));
@@ -710,7 +710,7 @@ function ladStep(dt){ // ladders: walk in and climb. pipes: jump to grab. forwar
   const g=lad,o=g.o;
   if(g.mount>=0){g.mount+=dt;const k=Math.min(1,g.mount/.45),e=k*k*(3-2*k);
     p.x=g.sx+(g.tx-g.sx)*e;p.z=g.sz+(g.tz-g.sz)*e;p.y=g.sy+(g.ty-g.sy)*Math.min(1,k*1.4)+Math.sin(k*Math.PI)*.12;
-    if(k>=1){tut.ev.ladder=true;lad=null;ladCool=.5;v.set(-o.nx*3,0,-o.nz*3);wallT=1.6;climbT=1}return}
+    if(k>=1){markTutEvent('ladder');lad=null;ladCool=.5;v.set(-o.nx*3,0,-o.nz*3);wallT=1.6;climbT=1}return}
   const kf=(keys[set.binds.fwd]?1:0)-(keys[set.binds.back]?1:0)-joy.y,down=!!keys[set.binds.slide],spd=o.pipe?2.8:3.4,vy=down?-7:Math.max(-1,Math.min(1,kf))*spd;
   p.y+=vy*dt;g.ph+=vy*dt*(o.pipe?3.2:4.5);
   let dy=Math.atan2(o.nx,o.nz)-yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));yaw+=dy*Math.min(1,dt*8);
@@ -721,7 +721,7 @@ function ladStep(dt){ // ladders: walk in and climb. pipes: jump to grab. forwar
 function zipStep(dt){
   const z=zip,g=z.g;z.sp=Math.min(24+flow*7,z.sp+9*dt);z.u+=z.sp*dt;const u=Math.min(z.u,g.len);
   p.set(g.a.x+g.d.x*u,g.a.y+g.d.y*u-2.1,g.a.z+g.d.z*u);v.set(g.d.x*z.sp,0,g.d.z*z.sp);
-  if(edge.jump||z.u>=g.len){v.set(g.d.x*z.sp*.85,edge.jump?7:0,g.d.z*z.sp*.85);if(g.finale)tut.ev.zip=true;zip=null;zipCool=.5;wcd=.2;flow=Math.min(1,flow+.077);climbT=1;if(edge.jump)tone(300,.15,'triangle',.12,500)}
+  if(edge.jump||z.u>=g.len){v.set(g.d.x*z.sp*.85,edge.jump?7:0,g.d.z*z.sp*.85);if(g.finale)markTutEvent('zip');zip=null;zipCool=.5;wcd=.2;flow=Math.min(1,flow+.077);climbT=1;if(edge.jump)tone(300,.15,'triangle',.12,500)}
 }
 function startVault(b,nx,nz,spd){flow=Math.min(1,flow+.077);
   const depth=nx!==0?b.max.x-b.min.x:b.max.z-b.min.z,wantSpring=b.tag==='spring'&&keys[set.binds.jump];
@@ -737,8 +737,8 @@ function vaultStep(dt){
   p.x=g.sx+(g.tx-g.sx)*k;p.z=g.sz+(g.tz-g.sz)*k;
   p.y=g.over?g.sy+(g.b.max.y+.2-g.sy)*Math.sin(Math.PI*k):g.sy+(g.ty-g.sy)*(1-(1-k)*(1-k))+Math.sin(Math.PI*k)*.2;
   if(k>=1){
-    vault=null;tut.ev.vault=true;const sc=Math.max(1,6.5/(Math.hypot(g.vx,g.vz)||1));v.set(g.vx*sc*.97,0,g.vz*sc*.97);
-    if(g.b.tag==='spring'&&keys[set.binds.jump]){v.y=20;tut.ev.spring=true;flow=Math.min(1,flow+.064);ground=false;wallT=1.6;climbT=1;tone(200,.25,'sine',.2,700);puff(1500,.15,.2)} // springboard: hold jump while vaulting on
+    vault=null;markTutEvent('vault');const sc=Math.max(1,6.5/(Math.hypot(g.vx,g.vz)||1));v.set(g.vx*sc*.97,0,g.vz*sc*.97);
+    if(g.b.tag==='spring'&&keys[set.binds.jump]){v.y=20;markTutEvent('spring');flow=Math.min(1,flow+.064);ground=false;wallT=1.6;climbT=1;tone(200,.25,'sine',.2,700);puff(1500,.15,.2)} // springboard: hold jump while vaulting on
     else if(keys[set.binds.jump]){v.y=15;ground=false;wallT=1.6;climbT=1;tone(260,.15,'sine',.12,520);puff(1200,.1,.12);if(!g.over)p.y=g.ty} // hold jump through ANY vault for a smaller springboard hop
     else if(!g.over)p.y=g.ty;
   }
@@ -756,11 +756,11 @@ function hangStep(dt){
   }else{
     const k=Math.min(1,g.t/.32),yk=Math.min(1,k*1.6),xk=Math.max(0,(k-.4)/.6);
     p.y=g.sy+(g.top+.02-g.sy)*yk;p.x=g.sx-g.nx*(r+.45)*xk;p.z=g.sz-g.nz*(r+.45)*xk;
-    if(k>=1){tut.ev.climb=true;hang=null;v.set(-g.nx*2,0,-g.nz*2);wallT=1.6;climbT=1;puff(900,.1,.14)}
+    if(k>=1){markTutEvent('climb');hang=null;v.set(-g.nx*2,0,-g.nz*2);wallT=1.6;climbT=1;puff(900,.1,.14)}
   }
 }
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.opacity=1;toastT=2}
-function reset(){if(campaignTutorialWasOn!==null)leaveCampaignMode();climbTurn=false;p.copy(start);respawn.copy(start);v.set(0,0,0);yaw=pitch=0;mom=0;cpIdx=-1;done=false;started=false;slideT=rollT=0;hp=100;hang=null;vault=null;trial=null;campaignRun=null;zip=null;stagger=0}
+function reset(){if(campaignTutorialWasOn!==null)leaveCampaignMode();climbTurn=false;p.copy(respawn);safe.copy(respawn);v.set(0,0,0);mom=0;slideT=rollT=0;hp=100;hang=null;vault=null;zip=null;lad=null;rope=null;stagger=0;resetCampaignPursuit()}
 
 function step(dt){
   const H=a=>keys[set.binds[a]];
@@ -791,7 +791,7 @@ function step(dt){
     else if(aim&&anchorSet.has(aim)&&(ropeCool<=0||hasGear('quick'))){const L0=Math.hypot(aim.x-p.x,aim.y-(p.y+1.4),aim.z-p.z);rope={a:aim,L:L0,L0};ropeG=0;ropeLos=.15;slideT=rollT=0;tone(700,.08,'sawtooth',.1,1600);puff(2200,.1,.15)}
   }
   if(rope&&edge.jump){rope=null;ropeCool=hasGear('quick')?.1:.7;{const sc3=hasGear('sling')?1.3:1.06,sp9=Math.hypot(v.x,v.z);if(sp9>1){v.x*=sc3;v.z*=sc3}}v.y+=hasGear('sling')?7:4;edge.jump=false;flow=Math.min(1,flow+.06)}
-  if(edge.respawn){const spx=tut.on?stagePos():null;p.copy(spx||respawn);safe.copy(spx||respawn);v.set(0,0,0);mom=0;rope=null;hang=null;vault=null;zip=null;lad=null;trial=null;resetCampaignPursuit();toast('Back to checkpoint')}
+  if(edge.respawn){if(trial){restartTrial();toast('Time trial restarted')}else{const spx=tut.on?stagePos():null;p.copy(spx||respawn);safe.copy(spx||respawn);v.set(0,0,0);mom=0;rope=null;hang=null;vault=null;zip=null;lad=null;slideT=rollT=0;stagger=0;if(tut.on){const i=TS.findIndex(t=>!tut.done[t[0]]);if(i>=0){tut.ev[TS[i][0]]=false;tutIdx=-1;tutHoldUntil=0;wrRun=0;wrHop=false;wrSeen=false}}resetCampaignPursuit();toast(tut.on?'Tutorial part restarted':'Back to checkpoint')}}
   if(edge.turn&&turnRem<=0){turnRem=Math.PI;puff(1500,.18,.25)}
   if(turnRem>0){const d=Math.min(turnRem,Math.PI/(hasGear('turner')?.08:.16)*dt);yaw+=d;turnRem-=d}
   if(hang){hangStep(dt);for(const k in edge)edge[k]=false;return}
@@ -816,17 +816,17 @@ function step(dt){
   const wasClimb=climbing&&climbT>0;climbing=false;if(!wasClimb)climbTurn=false;
   // wall-run with real gravity
   wallrun=false;roll*=1-Math.min(1,dt*8);
-  if(!ground&&!wasClimb&&f>0&&wallT>0&&wcd<=0&&hs0>4){
+  if(!ground&&!wasClimb&&f>0&&wallT>0&&wcd<=0&&hs0>3.2){
     const w=probeWall(wasWall?.4:.2);
     if(w){
       const vn=-(fx*w.nx+fz*w.nz); // cos of angle between facing and wall
-      if(wasWall||(vn<.643&&vn>-.42)){ // facing angle only gates entry; once attached the camera can't detach
+      if(wasWall||(vn<.88&&vn>-.72)){ // facing angle only gates entry; once attached the camera can't detach
         wallrun=true;wallT-=dt*(hasGear('gloves')?.65:1);
         if(!wasWall){v.y=Math.max(Math.min(v.y,2.5),-2);tone(200,.12,'square',.08,120)}
         const d=v.x*w.nx+v.z*w.nz,tx=v.x-w.nx*d,tz=v.z-w.nz*d,tl=Math.hypot(tx,tz)||1,sp=Math.max(hs0,Math.min(12+flow*10,Math.max(hs0,8)+3*(1+flow*2)*dt));flow=Math.min(1,flow+dt*.128);
         v.x=tx/tl*sp-w.nx*.6;v.z=tz/tl*sp-w.nz*.6;v.y-=5*dt;
         roll=(w.nx*rx+w.nz*rz)*-.25;
-        if(edge.jump){hopT=1;hopSide=(w.nx*rx+w.nz*rz)>0?-1:1;{const sc2=1.08+flow*.08+(hasGear('stride')?.1:0);v.x*=sc2;v.z*=sc2}flow=Math.min(1,flow+.096);v.x+=w.nx*6;v.z+=w.nz*6;v.y=8.5;wcd=.35;edge.jump=false;wallrun=false;tone(300,.15,'triangle',.12,500)}
+        if(edge.jump){wrHop=true;hopT=1;hopSide=(w.nx*rx+w.nz*rz)>0?-1:1;{const sc2=1.08+flow*.08+(hasGear('stride')?.1:0);v.x*=sc2;v.z*=sc2}flow=Math.min(1,flow+.096);v.x+=w.nx*6;v.z+=w.nz*6;v.y=8.5;wcd=.35;edge.jump=false;wallrun=false;tone(300,.15,'triangle',.12,500)}
       }
     }
   }
@@ -911,7 +911,7 @@ function step(dt){
     if(v.y<=0){
       const imp=-v.y;p.y=b.max.y;
       if(b.tag==='spring'&&keys[set.binds.jump]){v.y=20;tut.ev.spring=true;flow=Math.min(1,flow+.064);wallT=1.6;climbT=1;tone(200,.25,'sine',.2,700);puff(1500,.15,.2);continue}
-      if(!was&&imp>4&&(b.tag==='pad'||b.tag==='tfloor')){padT=1;padSev=Math.min(1,imp/18);landT=0;rollBuf=0;puff(500,.4,.3);tone(120,.3,'sine',.16,55);shake=Math.min(.1,imp/200);if(b.tag==='pad')tut.ev.pad=true}
+      if(!was&&imp>4&&(b.tag==='pad'||b.tag==='tfloor')){padT=1;padSev=Math.min(1,imp/18);landT=0;rollBuf=0;puff(500,.4,.3);tone(120,.3,'sine',.16,55);shake=Math.min(.1,imp/200);if(b.tag==='pad')markTutEvent('pad')}
       else if(!was&&imp>4){landT=Math.min(1,imp/18);
         puff(600,.2,Math.min(.5,imp/30));shake=Math.min(.12,imp/150);
         let dmg=(imp>14?(imp-14)*7:0)*(hasGear('boots')?.5:1);
@@ -1010,6 +1010,8 @@ function pause(){
 }
 function menu(view,msg){
   ovEl.style.display='flex';
+  if(view==='modes'){P.innerHTML='<h2>Game modes</h2><p>Choose how you want to run through Veyra.</p><button id="modeCampaign">Campaign</button><button id="modeFree" class="alt">Freerun</button><button id="modeTraining" class="alt">Tutorial</button><button id="modeTrials" class="alt">Time trials</button><button id="modeBack" class="alt">Back</button>';P.querySelector('#modeCampaign').onclick=()=>{if(localStorage.getItem('sr_tut')!=='1'){tut.on=true;tut.done={};tut.ev={};start.copy(trainStart);p.copy(trainStart);respawn.copy(trainStart);safe.copy(trainStart);play();toast('Complete training to unlock campaign')}else menu('campaign')};P.querySelector('#modeFree').onclick=()=>{tut.on=false;campaignRun=null;trial=null;start.copy(cityStart);p.copy(cityStart);respawn.copy(cityStart);safe.copy(cityStart);v.set(0,0,0);play()};P.querySelector('#modeTraining').onclick=()=>{campaignRun=null;trial=null;tut.on=true;tut.done={};tut.ev={};start.copy(trainStart);p.copy(trainStart);respawn.copy(trainStart);safe.copy(trainStart);yaw=-Math.PI/2;v.set(0,0,0);play()};P.querySelector('#modeTrials').onclick=()=>{tut.on=false;campaignRun=null;trial=null;start.copy(cityStart);p.copy(cityStart);respawn.copy(cityStart);safe.copy(cityStart);v.set(0,0,0);play();toast('Time trials · Find a green beacon and interact')};P.querySelector('#modeBack').onclick=()=>menu('main');return}
+
   if(view==='runchoice'){P.innerHTML='<h2>Choose your run</h2><p>Campaign progression or open-city movement?</p><button id="runCampaign">Campaign</button><button id="runFree" class="alt">Freerun</button><button id="runBack" class="alt">Back</button>';P.querySelector('#runCampaign').onclick=()=>{if(localStorage.getItem('sr_tut')!=='1'){tut.on=true;tut.done={};start.copy(trainStart);p.copy(trainStart);respawn.copy(trainStart);play();toast('Finish the tutorial to unlock campaign')}else menu('campaign')};P.querySelector('#runFree').onclick=()=>{start.copy(cityStart);p.copy(cityStart);respawn.copy(cityStart);safe.copy(cityStart);v.set(0,0,0);trial=null;play()};P.querySelector('#runBack').onclick=()=>menu('main');return}
   if(view==='deliveries'){P.innerHTML='<h2>Courier contracts</h2><p>Credits: <b>'+currency+'</b><br>Completed deliveries: '+completedDeliveries.length+'</p><p>Visit the green pickup beacon, interact to accept a package, then race to its drop beacon. Rewards increase with each contract.</p><button id="deliveryMark">Mark next pickup beacon</button><button id="deliveryBack" class="alt">Back</button>';P.querySelector('#deliveryMark').onclick=()=>{const q=deliverySites[deliveryIndex%deliverySites.length];p.copy(q);start.copy(q);respawn.copy(q);delivery=null;menu('main');toast('Pickup beacon marked · green objective')};P.querySelector('#deliveryBack').onclick=()=>menu('main');return}
   if(view==='inv'){
@@ -1073,9 +1075,9 @@ function menu(view,msg){
     P.querySelector('#bk').onclick=()=>menu('main');
   }else{
     P.innerHTML=`<h1>SKY<span>LINER</span></h1><p><b>${msg||(started?'Paused':'Ready to run')}</b></p>
-    <button id=pl>${started&&!done?'Resume':'Run'}</button><button id=iv class=alt>Inventory</button><button id=ch class=alt>Character</button><button id=st class=alt>Settings</button><button id=ca class=alt>Campaign</button><button id=dl class=alt>Deliveries · ${currency} CR</button><button id=tg class=alt>Training grounds</button><button id=cg class=alt>City start</button><button id=tu class=alt>Tutorial: ${tut.on?'on':'off'}</button>${tut.on?'<button id=ts class=alt>Skip tutorial step</button>':''}${trial?'<button id=tr class=alt>Restart trial</button><button id=te class=alt>End trial</button>':''}<button id=vs class=alt>Runner vision: ${set.vision?'on':'off'}</button><button id=rt class=alt>Return to start roof</button>${started?'<button id=rs class=alt>Restart</button>':''}
+    <button id=pl>${started&&!done?'Resume':'Run'}</button><button id=gm class=alt>Game modes</button><button id=iv class=alt>Inventory</button><button id=ch class=alt>Character</button><button id=st class=alt>Settings</button><button id=ca class=alt>Campaign</button><button id=dl class=alt>Deliveries · ${currency} CR</button><button id=tg class=alt>Training grounds</button><button id=cg class=alt>City start</button><button id=tu class=alt>Tutorial: ${tut.on?'on':'off'}</button>${tut.on?'<button id=ts class=alt>Skip tutorial step</button>':''}${trial?'<button id=tr class=alt>Restart trial</button><button id=te class=alt>End trial</button>':''}<button id=vs class=alt>Runner vision: ${set.vision?'on':'off'}</button><button id=rt class=alt>Return to start roof</button>${started?'<button id=rs class=alt>Restart</button>':''}
     <p><small>Runner bags ${bagCount}/${bags.length} · ${currency} CREDITS · ${storageOK?'gear, bags, character, campaign, delivery and trial records save in this browser':'saving is blocked in this browser'}</small></p>`;
-    P.querySelector('#pl').onclick=()=>{if(started&&!done)play();else menu('runchoice')};P.querySelector('#st').onclick=()=>menu('set');P.querySelector('#iv').onclick=()=>menu('inv');P.querySelector('#ch').onclick=()=>menu('character');P.querySelector('#ca').onclick=()=>menu('campaign');P.querySelector('#dl').onclick=()=>menu('deliveries');
+    P.querySelector('#pl').onclick=()=>{if(started&&!done)play();else menu('modes')};P.querySelector('#gm').onclick=()=>menu('modes');P.querySelector('#st').onclick=()=>menu('set');P.querySelector('#iv').onclick=()=>menu('inv');P.querySelector('#ch').onclick=()=>menu('character');P.querySelector('#ca').onclick=()=>menu('campaign');P.querySelector('#dl').onclick=()=>menu('deliveries');
     P.querySelector('#vs').onclick=()=>{set.vision=!set.vision;setVision();save();menu('main')};
     P.querySelector('#rt').onclick=()=>{p.copy(start);respawn.copy(start);safe.copy(start);v.set(0,0,0);trial=null;menu('main')};
     P.querySelector('#tu').onclick=()=>{tut.on=!tut.on;if(tut.on){tut.done={};tut.ev={}}else{try{localStorage.setItem('sr_tut','1')}catch(e){}}menu('main')};
@@ -1357,6 +1359,7 @@ const GATES=[[-11,-3,58,66,8,'run'],[2,10,58,66,8,'run'],[17,22.5,58,66,8,'run']
 const tutBeam=new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.2,28,14,1,true),new THREE.MeshBasicMaterial({color:0x2aa8ff,transparent:true,opacity:.55,side:THREE.DoubleSide}));tutBeam.visible=false;S.add(tutBeam);
 let tutKey='';
 let tutHoldUntil=0;
+function markTutEvent(key){const i=TS.findIndex(t=>!tut.done[t[0]]);if(tut.on&&i>=0&&TS[i][0]===key)tut.ev[key]=true}
 function skipTutStep(){
   const i=TS.findIndex(t=>!tut.done[t[0]]);if(i<0)return;
   tut.done[TS[i][0]]=true;toast('Step skipped');tutHoldUntil=performance.now()+800;wrSeen=false;
@@ -1368,10 +1371,10 @@ function tutTick(sp){
   const i=TS.findIndex(t=>!D[t[0]]);
   if(i<0){tut.on=false;try{localStorage.setItem('sr_tut','1')}catch(e){}start.copy(cityStart);tutEl.style.display='none';tutBeam.visible=false;playing=false;touchUI.style.display='none';mouseAim.style.display='none';document.body.classList.remove('mouse-look');toast('Tutorial complete · Campaign unlocked');menu('campaign');return}
   const now2=performance.now(),holding=now2<tutHoldUntil,cur=TS[i][0];
-  if(i!==tutIdx){tutIdx=i;tutStepT=now2}
-  const chk={run:()=>sp>10,wall:()=>{if(wrRun>.8)wrSeen=true;return wrSeen&&hopT>.95&&!lad},slide:()=>slideRun>.8,roll:()=>rollT>0,
+  if(i!==tutIdx){tutIdx=i;tutStepT=now2;wrRun=0;wrSeen=false;wrHop=false}
+  const chk={run:()=>sp>10,wall:()=>wrRun>.28&&wrHop&&!lad,slide:()=>slideRun>.8,roll:()=>rollT>0,
     turn:()=>ground&&Math.abs(p.y-(TY+22.5))<1.3&&p.x>TX-17.2&&p.x<TX-12.3&&p.z>TZ+26&&p.z<TZ+37};
-  if(!holding&&((chk[cur]&&chk[cur]())||tut.ev[cur])){D[cur]=true;wrSeen=false;chime();tutHoldUntil=now2+1300}
+  if(!holding&&((chk[cur]&&chk[cur]())||tut.ev[cur])){D[cur]=true;wrSeen=false;wrHop=false;chime();tutHoldUntil=now2+1300}
   const n=TS.filter(t=>D[t[0]]).length,j=TS.findIndex(t=>!D[t[0]]);
   if(j<0){tutKey='';return}
   if(now2<tutHoldUntil){tutKey='';tutEl.innerHTML='<small>TUTORIAL '+n+'/'+TS.length+'</small><br><b>\u2713 Done</b>';tutEl.style.display='block';tutBeam.visible=false;return}
