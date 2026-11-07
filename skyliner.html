@@ -910,7 +910,7 @@ function step(dt){
     if(b.tag==='glass'&&(v.y<-6||hs0>8)){shatter(b);continue}
     if(v.y<=0){
       const imp=-v.y;p.y=b.max.y;
-      if(b.tag==='spring'&&keys[set.binds.jump]){v.y=20;tut.ev.spring=true;flow=Math.min(1,flow+.064);wallT=1.6;climbT=1;tone(200,.25,'sine',.2,700);puff(1500,.15,.2);continue}
+      if(b.tag==='spring'&&keys[set.binds.jump]){v.y=20;markTutEvent('spring');flow=Math.min(1,flow+.064);wallT=1.6;climbT=1;tone(200,.25,'sine',.2,700);puff(1500,.15,.2);continue}
       if(!was&&imp>4&&(b.tag==='pad'||b.tag==='tfloor')){padT=1;padSev=Math.min(1,imp/18);landT=0;rollBuf=0;puff(500,.4,.3);tone(120,.3,'sine',.16,55);shake=Math.min(.1,imp/200);if(b.tag==='pad')markTutEvent('pad')}
       else if(!was&&imp>4){landT=Math.min(1,imp/18);
         puff(600,.2,Math.min(.5,imp/30));shake=Math.min(.12,imp/150);
