@@ -1363,7 +1363,7 @@ const TS=[
  ['zip',()=>'Zipline: jump into the cable to ride out to the city']
 ];
 const TIP={run:'Hold forward on the ramp. You do not need to jump yet.',gap:'Sprint first and jump at the very edge of each deck. The glass is on the last deck: run straight at it fast.',spring:'Jump into a crate and keep holding the jump key through the whole vault. The orange pad launches you up to the next deck.',slide:'Sprint across the deck, press the slide key once and let the slope carry you.',turn:'On the ledge deck, sprint west at the tall wall, jump into it and keep climbing, then press the quick-turn key while still on the wall. You kick back onto the raised platform.',wall:'Jump off the deck edge right beside the wall at a shallow angle and hold forward. Press jump while running on the wall.',climb:'Jump straight at the wall and hold forward. You pull up onto the ledge by yourself.',ladder:'Walk into the ladder and hold forward, or jump at the pipe.',roll:'Walk off the ledge and press the slide key just before you hit the ground.',pad:'Walk off the ledge onto the teal pad.',zip:'Jump up into the cable.'};
-const SG={run:[-80,62,0],gap:[-23,62,8],spring:[30,62,8],slide:[52,62,15],wall:[53.5,31,9],climb:[15,31,9],turn:[-4,31,17.5],ladder:[-4,31,17.5],roll:[-4,21,34],pad:[9,21,26],zip:[24,21,16]};
+const SG={run:[-80,62,0],gap:[-32,62,8],spring:[30,62,8],slide:[52,62,15],wall:[53.5,31,9],climb:[15,31,9],turn:[-4,31,17.5],ladder:[-4,31,17.5],roll:[-4,21,34],pad:[9,21,26],zip:[24,21,16]};
 function stagePos(){const i=TS.findIndex(t=>!tut.done[t[0]]),g=i<0?null:SG[TS[i][0]];return g?new THREE.Vector3(TX+g[0],TY+g[2]+.02,TZ+g[1]):null}
 const WP={run:[-45,62,4.5],gap:[21,62,8],spring:[39,62,8],slide:[53.5,45,12],wall:[40,27.5,9],climb:[2,31,9],turn:[-17,31,17.5],ladder:[-3,28,17.5],roll:[9,21,26],pad:[22,21,16],zip:[30,21,16]};
 const GATES=[[-11,-3,58,66,8,'run'],[2,10,58,66,8,'run'],[17,22.5,58,66,8,'run'],[22.5,37.5,58,66,8,'gap'],[37.5,42,58,66,8.5,'gap'],[47,60,57,67,15,'spring'],[48.5,58.5,26,37,9,'slide'],[3,32,26,36,9,'wall'],[-27,3,26,36,17.5,'climb'],[-8,2,26,28.2,17.5,'turn'],[-10,3,16,26,34,'ladder'],[3,15,16,26,26,'roll'],[16,32,16,26,16.4,'pad']]; // you cannot stand on a stage before finishing the step that leads to it
@@ -1383,7 +1383,7 @@ function tutTick(sp){
   if(i<0){tut.on=false;try{localStorage.setItem('sr_tut','1')}catch(e){}start.copy(cityStart);tutEl.style.display='none';tutBeam.visible=false;playing=false;touchUI.style.display='none';mouseAim.style.display='none';document.body.classList.remove('mouse-look');toast('Tutorial complete · Campaign unlocked');menu('campaign');return}
   const now2=performance.now(),holding=now2<tutHoldUntil,cur=TS[i][0];
   if(i!==tutIdx){tutIdx=i;tutStepT=now2;wrRun=0;wrSeen=false;wrHop=false}
-  const chk={run:()=>sp>10,wall:()=>wrRun>.28&&wrHop&&!lad,slide:()=>slideRun>.8,roll:()=>rollT>0,
+  const chk={run:()=>sp>10&&p.x>=TX-33&&p.y>=TY+6.5,wall:()=>wrRun>.28&&wrHop&&!lad,slide:()=>slideRun>.8,roll:()=>rollT>0,
     turn:()=>ground&&Math.abs(p.y-(TY+22.5))<1.3&&p.x>TX-17.2&&p.x<TX-12.3&&p.z>TZ+26&&p.z<TZ+37};
   if(!holding&&((chk[cur]&&chk[cur]())||tut.ev[cur])){D[cur]=true;wrSeen=false;wrHop=false;chime();tutHoldUntil=now2+1300}
   const n=TS.filter(t=>D[t[0]]).length,j=TS.findIndex(t=>!D[t[0]]);
