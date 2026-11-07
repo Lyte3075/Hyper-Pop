@@ -1284,7 +1284,9 @@ function tutTick(sp){
 function promptTick(){
   if(playing&&nearTrial&&!trial){
     const t=nearTrial,b=tb[t.name],gear=t.gear?GEARS.find(g=>g[0]===t.gear)[1]:'None',ok=!t.gear||hasGear(t.gear);
-    promptEl.innerHTML='<b>'+t.name+'</b><br><small>'+(t.gear?'GEAR TRIAL · '+gear:'OPEN TRIAL')+'</small><br>PLATINUM '+(goldUnlock.includes(t.name)?t.platinum.toFixed(1)+'s':'LOCKED · EARN GOLD FIRST')+' · GOLD '+t.gold.toFixed(1)+'s<br>SILVER '+t.silver.toFixed(1)+'s · BRONZE '+t.bronze.toFixed(1)+'s<br>BEST '+(b?b.toFixed(2)+'s':'--')+'<br><small>'+(ok?(set.touch?'TAP INTERACT':'PRESS '+lbl(set.binds.interact))+' TO START':'EQUIP '+gear.toUpperCase()+' TO START')+'</small>';
+    const bestMed=!b?'NO MEDAL':goldUnlock.includes(t.name)&&b<=t.platinum?'PLATINUM':b<=t.gold?'GOLD':b<=t.silver?'SILVER':b<=t.bronze?'BRONZE':'NO MEDAL';
+    const bestLabel=b?b.toFixed(2)+'s · '+bestMed+' MEDAL':'-- · NO MEDAL';
+    promptEl.innerHTML='<b>'+t.name+'</b><br><small>'+(t.gear?'GEAR TRIAL · '+gear:'OPEN TRIAL')+'</small><br>PLATINUM '+(goldUnlock.includes(t.name)?t.platinum.toFixed(1)+'s':'LOCKED · EARN GOLD FIRST')+' · GOLD '+t.gold.toFixed(1)+'s<br>SILVER '+t.silver.toFixed(1)+'s · BRONZE '+t.bronze.toFixed(1)+'s<br><b>BEST '+bestLabel+'</b><br><small>'+(ok?(set.touch?'TAP INTERACT':'PRESS '+lbl(set.binds.interact))+' TO START':'EQUIP '+gear.toUpperCase()+' TO START')+'</small>';
     promptEl.style.display='block';
   }else promptEl.style.display='none';
 }
