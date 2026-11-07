@@ -531,8 +531,42 @@ function campaignRoof(dst,seed){
 CAMPAIGN.forEach((m,i)=>{m.route=m.districts.map((d,k)=>campaignRoof(d,i*5+k+1))});
 const STORY_CAST=[['Mara Voss',0xe5242b,0],['Kade Mercer',0x1fd16b,2],['Dr. Imani Vale',0xffb52e,3],['Elias Renn',0x2aa8ff,5]],storyActors=[],campaignEnemies=[];
 function makeStoryActor(name,color,enemy){const g=new THREE.Group(),body=new THREE.Group(),bodyMat=new THREE.MeshLambertMaterial({color}),torso=new THREE.Mesh(new THREE.CylinderGeometry(.38,.38,1.05,8),bodyMat),capGeo=new THREE.SphereGeometry(.38,8,6),capTop=new THREE.Mesh(capGeo,bodyMat),capBottom=new THREE.Mesh(capGeo,bodyMat),head=new THREE.Mesh(new THREE.SphereGeometry(.25,8,7),new THREE.MeshLambertMaterial({color:0xd7a98b}));torso.position.y=0;capTop.position.y=.525;capBottom.position.y=-.525;body.add(torso,capTop,capBottom);body.position.y=1;head.position.y=1.75;g.add(body,head);const visor=new THREE.Mesh(new THREE.BoxGeometry(.48,.1,.08),new THREE.MeshBasicMaterial({color:enemy?0xff2735:0xffffff}));visor.position.set(0,1.76,-.22);g.add(visor);g.visible=false;S.add(g);return{name,group:g,enemy,hit:0,started:false}}
-STORY_CAST.forEach(a=>storyActors.push(makeStoryActor(a[0],a[1],false)));for(let i=0;i<5;i++)campaignEnemies.push(makeStoryActor('AETHER PURSUIT '+(i+1),0x252b32,true));
-function campaignActorsTick(dt){storyActors.forEach(a=>a.group.visible=false);campaignEnemies.forEach(a=>a.group.visible=false);if(!campaignRun)return;const ci=campaignRun.index,m=CAMPAIGN[ci],q=m.route[Math.max(0,campaignRun.step-1)],ally=storyActors.find(a=>a.name===({0:'Mara Voss',2:'Kade Mercer',3:'Dr. Imani Vale',5:'Elias Renn'}[ci]||'Mara Voss'));if(ally){ally.group.visible=true;ally.group.position.set(q.x+5,q.y,q.z+3)}const count=ci===0?1:ci<4?2:ci<7?3:5;for(let i=0;i<count;i++){const e=campaignEnemies[i];e.group.visible=true;if(!e.started){e.started=true;e.group.position.set(q.x+13+i*5,q.y,q.z+(i%2?12:-12))}const dx=p.x-e.group.position.x,dz=p.z-e.group.position.z,d=Math.hypot(dx,dz)||1;e.hit=Math.max(0,e.hit-dt);if(d>2){const speed=ci===0?3.4:5.2+i*.25;e.group.position.x+=dx/d*speed*dt;e.group.position.z+=dz/d*speed*dt;e.group.position.y+=(q.y-e.group.position.y)*Math.min(1,dt*2);e.group.rotation.y=Math.atan2(dx,dz)}if(d<1.6&&e.hit<=0){e.hit=2.5;hurt(ci>=4?12:7,false);v.x-=dx/d*4;v.z-=dz/d*4;toast('AETHER PURSUIT · BREAK LINE OF SIGHT')}}}
+STORY_CAST.forEach(a=>storyActors.push(makeStoryActor(a[0],a[1],false)));
+for(let i=0;i<8;i++)campaignEnemies.push(makeStoryActor('AETHER PURSUIT '+(i+1),0x252b32,true));
+// Pursuit units replay the runner's actual movement trail: jumps, vaults, wall-runs,
+// climbs, ziplines and drops. They do not steer in a straight line through buildings.
+let chaseTrail=[],chaseClock=0,chaseRecord=0;
+function chaseSample(t){
+ if(!chaseTrail.length)return null;
+ if(t<=chaseTrail[0].t)return chaseTrail[0];
+ for(let i=1;i<chaseTrail.length;i++){const b=chaseTrail[i];if(b.t>=t){const a=chaseTrail[i-1],k=(t-a.t)/Math.max(.001,b.t-a.t);return{x:a.x+(b.x-a.x)*k,y:a.y+(b.y-a.y)*k,z:a.z+(b.z-a.z)*k}}}
+ return chaseTrail[chaseTrail.length-1];
+}
+function campaignActorsTick(dt){
+ storyActors.forEach(a=>a.group.visible=false);campaignEnemies.forEach(a=>a.group.visible=false);
+ if(!campaignRun)return;
+ chaseClock+=dt;chaseRecord+=dt;
+ if(chaseRecord>=.055){chaseRecord=0;chaseTrail.push({t:chaseClock,x:p.x,y:p.y,z:p.z});while(chaseTrail.length&&chaseTrail[0].t<chaseClock-16)chaseTrail.shift()}
+ const ci=campaignRun.index,m=CAMPAIGN[ci],q=m.route[Math.max(0,campaignRun.step-1)],ally=storyActors.find(a=>a.name===({0:'Mara Voss',2:'Kade Mercer',3:'Dr. Imani Vale',5:'Elias Renn'}[ci]||'Mara Voss'));
+ if(ally){ally.group.visible=true;ally.group.position.set(q.x+5,q.y,q.z+3)}
+ const count=ci===0?5:ci<4?6:ci<7?7:8;
+ for(let i=0;i<count;i++){
+  const e=campaignEnemies[i];e.group.visible=true;e.hit=Math.max(0,e.hit-dt);
+  if(!e.started){e.started=true;e.cursor=Math.max(0,chaseClock-(1.05+i*.48));e.group.position.set(q.x+13+i*3,q.y,q.z+(i%2?12:-12))}
+  const rate=1.19+Math.min(.24,ci*.025)+i*.012;
+  e.cursor=Math.min(chaseClock-.12,e.cursor+dt*rate);
+  const target=chaseSample(e.cursor);
+  if(target){
+   const dx=target.x-e.group.position.x,dz=target.z-e.group.position.z,dy=target.y-e.group.position.y;
+   const blend=1-Math.exp(-dt*(13+i*.35));
+   e.group.position.x+=dx*blend;e.group.position.y+=dy*blend;e.group.position.z+=dz*blend;
+   if(Math.hypot(dx,dz)>.08)e.group.rotation.y=Math.atan2(dx,dz);
+   const side=((i%3)-1)*.42;e.group.position.x+=Math.cos(e.group.rotation.y)*side*dt*2;e.group.position.z-=Math.sin(e.group.rotation.y)*side*dt*2;
+  }
+  const dx=p.x-e.group.position.x,dy=p.y-e.group.position.y,dz=p.z-e.group.position.z,d=Math.hypot(dx,dy*.65,dz);
+  if(d<2.05&&e.hit<=0){e.hit=1.15;hurt(ci>=4?13:10,false);const flat=Math.hypot(dx,dz)||1;v.x+=dx/flat*5.5;v.z+=dz/flat*5.5;shake=Math.max(shake,.18);toast('AETHER PURSUIT · THEY ARE ON YOUR LINE');}
+ }
+}
 const deliverySites=CAMPAIGN.map(m=>m.route[m.route.length-1].clone());
 const deliveryBeacons=deliverySites.map((q,i)=>{const g=new THREE.Group(),ring=new THREE.Mesh(new THREE.TorusGeometry(2.1,.16,8,28),new THREE.MeshBasicMaterial({color:0x1fd16b})),beam=new THREE.Mesh(new THREE.CylinderGeometry(.18,.55,5,8,1,true),new THREE.MeshBasicMaterial({color:0x1fd16b,transparent:true,opacity:.22,depthWrite:false}));ring.rotation.x=Math.PI/2;ring.position.y=1.1;beam.position.y=2.5;g.add(ring,beam);g.position.set(q.x,q.y,q.z);S.add(g);return g});
 function sideDeliveryInteract(){if(!playing||campaignRun||trial)return false;if(!delivery){const from=deliverySites[deliveryIndex%deliverySites.length],q=deliverySites[(deliveryIndex+1)%deliverySites.length];if(Math.hypot(p.x-from.x,p.z-from.z)<5){delivery={index:deliveryIndex%deliverySites.length,target:q.clone(),reward:120+deliveryIndex*20};toast('PACKAGE PICKED UP · RUN TO THE GREEN DROP BEACON');chime();return true}}return false}
@@ -978,7 +1012,7 @@ function menu(view,msg){
   if(view==='briefing'){
     const m=CAMPAIGN[selectedCampaign];
     P.innerHTML='<h2>'+m.act+'</h2><h1>'+m.title+'</h1><p><b>'+m.location+' · '+m.time+'</b></p><p class="story-copy">'+m.brief+'</p><p><b>MISSION:</b> '+m.finish+'</p><button id="beginChapter">Start mission</button><button id="briefBack" class="alt">Back</button>';
-    P.querySelector('#beginChapter').onclick=()=>{if(localStorage.getItem('sr_tut')!=='1'){toast('Complete tutorial first');return}campaignEnemies.forEach(e=>e.started=false);if(campaignTutorialWasOn===null)campaignTutorialWasOn=tut.on;tut.on=false;campaignRun={index:selectedCampaign,step:1};const q=m.route[0];start.copy(q);p.copy(q);respawn.copy(q);safe.copy(q);v.set(0,0,0);yaw=0;pitch=0;mom=0;trial=null;play();toast(m.radio[0]);toastT=4};
+    P.querySelector('#beginChapter').onclick=()=>{if(localStorage.getItem('sr_tut')!=='1'){toast('Complete tutorial first');return}campaignEnemies.forEach(e=>{e.started=false;e.cursor=0;e.hit=0});chaseTrail=[];chaseClock=0;chaseRecord=0;if(campaignTutorialWasOn===null)campaignTutorialWasOn=tut.on;tut.on=false;campaignRun={index:selectedCampaign,step:1};const q=m.route[0];start.copy(q);p.copy(q);respawn.copy(q);safe.copy(q);v.set(0,0,0);yaw=0;pitch=0;mom=0;trial=null;play();toast(m.radio[0]);toastT=4};
     P.querySelector('#briefBack').onclick=()=>menu('campaign');return
   }
   if(view==='chapterComplete'){
