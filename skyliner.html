@@ -536,6 +536,14 @@ for(let i=0;i<8;i++)campaignEnemies.push(makeStoryActor('AETHER PURSUIT '+(i+1),
 // Pursuit units replay the runner's actual movement trail: jumps, vaults, wall-runs,
 // climbs, ziplines and drops. They do not steer in a straight line through buildings.
 let chaseTrail=[],chaseClock=0,chaseRecord=0,chaseWarmup=0;
+function resetCampaignPursuit(){
+ if(!campaignRun)return;
+ campaignEnemies.forEach(e=>{e.started=false;e.cursor=0;e.hit=0});
+ chaseTrail=[];chaseClock=0;chaseRecord=0;chaseWarmup=0;
+ // Seed the route at the respawn point so the pack rebuilds close behind
+ // the runner after the short warning window.
+ chaseTrail.push({t:0,x:p.x,y:p.y,z:p.z});
+}
 function chaseSample(t){
  if(!chaseTrail.length)return null;
  if(t<=chaseTrail[0].t)return chaseTrail[0];
@@ -558,7 +566,7 @@ function campaignActorsTick(dt){
    e.started=true;
    // Place each unit on the runner's real earlier route, not at an arbitrary
    // point in mid-air or behind a rooftop edge.
-   e.cursor=Math.max(chaseTrail[0]?.t||0,chaseClock-(2.9+i*.27));
+   e.cursor=Math.max(chaseTrail[0]?.t||0,chaseClock-(1.05+i*.16));
    const spawn=chaseSample(e.cursor);
    if(spawn)e.group.position.set(spawn.x,spawn.y,spawn.z);
    else e.group.position.copy(p);
@@ -690,7 +698,7 @@ function probeWall(e=.2){
 function slopeImpact(imp,hs){landT=Math.min(1,imp/18);puff(600,.2,Math.min(.5,imp/30));shake=Math.min(.12,imp/150);let dmg=(imp>14?(imp-14)*7:0)*(hasGear('boots')?.5:1);
   if(rollBuf>0){rollT=.5;rollStill=hs<2.5;flow=Math.min(1,flow+.064);rollBuf=0;puff(1500,.3,.2);if(imp>24)dmg*=.5;else dmg=0}else if(dmg>0){stagger=.6;v.x*=.35;v.z*=.35;mom=0}
   if(dmg>0)hurt(dmg,rollT>.45)} // falling onto a slope hurts like any other landing
-function hurt(d,rolled){d*=hasGear('armor')?.75:1;hp-=d;hurtT=1;hurtCool=hasGear('patch')?1.5:3;if(!rolled){dmgSev=d/60;dmgDur=Math.min(1.5,.5+d/50);dmgT=dmgDur;stagger=Math.max(stagger,dmgDur*.9);shake=Math.max(shake,Math.min(.3,d/200))}if(hp<=0){hp=100;p.copy(respawn);v.set(0,0,0);mom=0;stagger=0;toast('Too hard a fall - back to checkpoint')}else toast('-'+Math.round(d)+' HP')}
+function hurt(d,rolled){d*=hasGear('armor')?.75:1;hp-=d;hurtT=1;hurtCool=hasGear('patch')?1.5:3;if(!rolled){dmgSev=d/60;dmgDur=Math.min(1.5,.5+d/50);dmgT=dmgDur;stagger=Math.max(stagger,dmgDur*.9);shake=Math.max(shake,Math.min(.3,d/200))}if(hp<=0){hp=100;p.copy(respawn);v.set(0,0,0);mom=0;stagger=0;rope=null;hang=null;vault=null;zip=null;lad=null;resetCampaignPursuit();toast('Too hard a fall - back to checkpoint')}else toast('-'+Math.round(d)+' HP')}
 function nearZip(){
   const hx=p.x,hy=p.y+1.9,hz=p.z;
   for(const g of zips){const wx=hx-g.a.x,wy=hy-g.a.y,wz=hz-g.a.z,t=Math.max(0,Math.min(g.len,wx*g.d.x+wy*g.d.y+wz*g.d.z));
@@ -783,7 +791,7 @@ function step(dt){
     else if(aim&&anchorSet.has(aim)&&(ropeCool<=0||hasGear('quick'))){const L0=Math.hypot(aim.x-p.x,aim.y-(p.y+1.4),aim.z-p.z);rope={a:aim,L:L0,L0};ropeG=0;ropeLos=.15;slideT=rollT=0;tone(700,.08,'sawtooth',.1,1600);puff(2200,.1,.15)}
   }
   if(rope&&edge.jump){rope=null;ropeCool=hasGear('quick')?.1:.7;{const sc3=hasGear('sling')?1.3:1.06,sp9=Math.hypot(v.x,v.z);if(sp9>1){v.x*=sc3;v.z*=sc3}}v.y+=hasGear('sling')?7:4;edge.jump=false;flow=Math.min(1,flow+.06)}
-  if(edge.respawn){const spx=tut.on?stagePos():null;p.copy(spx||start);respawn.copy(spx||start);safe.copy(spx||start);v.set(0,0,0);trial=null;toast('Back to the start roof')}
+  if(edge.respawn){const spx=tut.on?stagePos():null;p.copy(spx||respawn);safe.copy(spx||respawn);v.set(0,0,0);mom=0;rope=null;hang=null;vault=null;zip=null;lad=null;trial=null;resetCampaignPursuit();toast('Back to checkpoint')}
   if(edge.turn&&turnRem<=0){turnRem=Math.PI;puff(1500,.18,.25)}
   if(turnRem>0){const d=Math.min(turnRem,Math.PI/(hasGear('turner')?.08:.16)*dt);yaw+=d;turnRem-=d}
   if(hang){hangStep(dt);for(const k in edge)edge[k]=false;return}
@@ -796,7 +804,7 @@ function step(dt){
   let dx=fx*f+rx*sd,dz=fz*f+rz*sd;const dl=Math.hypot(dx,dz);if(dl>0){dx/=dl;dz/=dl}
   const hs0=Math.hypot(v.x,v.z);
   if(ground&&f>0)mom=Math.min(4.5,mom+dt*1);else if(ground&&dl===0)mom=Math.max(0,mom-dt*6);
-  const maxS=(6.5+mom+flow*10)*(hasGear('shoes')?1.12:1);flow=Math.max(0,flow-dt*(wallrun||slideT>0||lad||zip||vault?0:(hasGear('band')?.06:.13)));wcd-=dt; // flow decays slowly unless you keep moving with style
+  const maxS=(8.5+mom+flow*10)*(hasGear('shoes')?1.12:1);flow=Math.max(0,flow-dt*(wallrun||slideT>0||lad||zip||vault?0:(hasGear('band')?.06:.13)));wcd-=dt; // flow decays slowly unless you keep moving with style
   if(ground){wallT=1.6;climbT=1;coyote=.1}else coyote-=dt;
   // slide (needs a fresh key press, no auto-repeat)
   if(edge.slide&&ground&&slideT<=0&&(hs0>5.5||curRamp)){slideT=1;slideMin=.3;const kk=hs0>0?Math.min(1.12+flow*.1,(15+flow*10)/hs0):1;flow=Math.min(1,flow+.038);v.x*=kk;v.z*=kk;puff(3000,.25,.2)}
@@ -928,7 +936,7 @@ function step(dt){
   }else if(ground&&p.y>12&&slideT<=0&&!curRamp){
     safeT-=dt;if(safeT<=0){safeT=.35;const sx=p.x-v.x*.14,sz=p.z-v.z*.14;if(!hit(sx,p.y+.05,sz,1.8))safe.set(sx,p.y+.05,sz)}
   }
-  if(p.y<-35||Math.abs(p.x)>N*BP/2+120||Math.abs(p.z)>N*BP/2+120){p.copy((tut.on&&stagePos())||respawn);v.set(0,0,0);mom=0;rope=null;toast('Back to checkpoint')}
+  if(p.y<-35||Math.abs(p.x)>N*BP/2+120||Math.abs(p.z)>N*BP/2+120){p.copy((tut.on&&stagePos())||respawn);v.set(0,0,0);mom=0;rope=null;resetCampaignPursuit();toast('Back to checkpoint')}
   for(const c of cpts)if(c!==cpActive&&Math.hypot(p.x-c.x,p.z-c.z)<3.2&&p.y>c.y-4&&p.y<c.y+12){cpActive=c;safe.set(c.x,c.y+.05,c.z);if(!trial)respawn.copy(safe);cpts.forEach(q=>q.mat.opacity=q===c?.85:.35);chime();toast('Checkpoint reached')}
   for(const b of bags)if(!b.got&&Math.abs(p.y+1-b.y)<3.5&&Math.hypot(p.x-b.x,p.z-b.z)<2.6){b.got=true;b.mesh.visible=false;bagCount++;saveBags();tone(900,.12,'triangle',.14,1500)}
   ladCool-=dt;
