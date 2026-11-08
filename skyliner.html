@@ -420,21 +420,21 @@ function distProps(dst,x,z,w,d,ht){
   if(rnd()<.2){const H=5+Math.floor(rnd()*5),bx=px(),bz=pz();add(bx,ht,bz,7,H,7,grey,'roof',1);addClimb(bx+(rnd()-.5)*3,bz+3.5,0,1,ht,ht+H,rnd()<.3)} // pent-house with a ladder or pipe up its side
 }
 function spire(cx,cz,H0,b){ // hollow tower: spiral ramp round an open atrium, glass windows, ziplines and anchors inside, a roof reached by springboard
-  const S2=30,t=1.5,rc=11.25,nl=Math.floor(H0/12),H=12*nl,top=H+4,sides=[[1,0,0],[0,-1,3],[-1,0,6],[0,1,9]];
+  const S2=30,t=1.5,rc=11.25,nl=Math.floor(H0/12),H=12*nl,top=H+4,sides=[[1,0,0],[0,-1,3],[-1,0,6],[0,1,9]],isMeridian=H0>=250,shellMat=isMeridian?new THREE.MeshLambertMaterial({color:0x202c37}):white,rampMat=isMeridian?new THREE.MeshLambertMaterial({color:0x71818d}):white;
   b.ht=top;b.tw=true;
-  const wall=(sx,sz,off,len,y0,hh)=>{if(hh>.05)add(cx+sx*(S2/2-t/2)+(sx?0:off),y0,cz+sz*(S2/2-t/2)+(sx?off:0),sx?t:len,hh,sx?len:t,white,'roof',1)};
+  const wall=(sx,sz,off,len,y0,hh)=>{if(hh>.05)add(cx+sx*(S2/2-t/2)+(sx?0:off),y0,cz+sz*(S2/2-t/2)+(sx?off:0),sx?t:len,hh,sx?len:t,shellMat,'roof',1)};
   for(const[sx,sz,ro]of sides){
     wall(sx,sz,-9,12,0,top);wall(sx,sz,9,12,0,top);let prev=0;
     for(let k=2;k<nl;k+=2){const wb=12*k+ro+1.7;wall(sx,sz,0,6,prev,wb-prev);addGlass(cx+sx*(S2/2-t/2),wb,cz+sz*(S2/2-t/2),sx?.3:6,4,sx?6:.3);prev=wb+4}
     wall(sx,sz,0,6,prev,top-prev);
   }
   for(let k=0;k<nl;k++){const y=12*k;
-    ramp(cx+rc,cz+9,18,4.5,y,y+3,0,-1,white);ramp(cx+9,cz-rc,18,4.5,y+3,y+6,-1,0,white);ramp(cx-rc,cz-9,18,4.5,y+6,y+9,0,1,white);ramp(cx-9,cz+rc,18,4.5,y+9,y+12,1,0,white);
-    for(const[lx,lz,ly]of[[rc,rc,y],[rc,-rc,y+3],[-rc,-rc,y+6],[-rc,rc,y+9]])add(cx+lx,ly-.6,cz+lz,4.5,.6,4.5,white,'roof',1);
+    ramp(cx+rc,cz+9,18,4.5,y,y+3,0,-1,rampMat);ramp(cx+9,cz-rc,18,4.5,y+3,y+6,-1,0,rampMat);ramp(cx-rc,cz-9,18,4.5,y+6,y+9,0,1,rampMat);ramp(cx-9,cz+rc,18,4.5,y+9,y+12,1,0,rampMat);
+    for(const[lx,lz,ly]of[[rc,rc,y],[rc,-rc,y+3],[-rc,-rc,y+6],[-rc,rc,y+9]])add(cx+lx,ly-.6,cz+lz,4.5,.6,4.5,shellMat,'roof',1);
   }
-  add(cx+rc,H-.6,cz+rc,4.5,.6,4.5,white,'roof',1);
+  add(cx+rc,H-.6,cz+rc,4.5,.6,4.5,shellMat,'roof',1);
   const rt=top-.6;
-  add(cx,rt,cz-3,30,.6,24,white,'roof',1);add(cx-3,rt,cz+12,24,.6,6,white,'roof',1);add(cx+14.25,rt,cz+12,1.5,.6,6,white,'roof',1);add(cx+11.25,rt,cz+14.25,4.5,.6,1.5,white,'roof',1);
+  add(cx,rt,cz-3,30,.6,24,shellMat,'roof',1);add(cx-3,rt,cz+12,24,.6,6,shellMat,'roof',1);add(cx+14.25,rt,cz+12,1.5,.6,6,shellMat,'roof',1);add(cx+11.25,rt,cz+14.25,4.5,.6,1.5,shellMat,'roof',1);
   add(cx+rc,H,cz+rc,2.5,1,2.5,springM,'spring',1);
   for(const k of[1,3,5,7])if(k<nl)makeZip(new THREE.Vector3(cx-rc,12*k+12,cz+rc),new THREE.Vector3(cx+rc,12*k+6,cz-rc));
   for(let k=2;k<nl;k+=2)addAnchor(cx-rc,12*k+6,cz-rc,6);
