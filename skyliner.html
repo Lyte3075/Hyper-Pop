@@ -665,22 +665,105 @@ function animateStoryActor(a,dt,speed,faceX,faceZ,clock,mode){
  a.gesture=Math.max(0,a.gesture-dt);
  if(Math.hypot(faceX,faceZ)>.06)a.group.rotation.y=Math.atan2(faceX,faceZ)+Math.PI;
 }
+function navCellAt(x,z){
+ let best=null,bd=1e30;
+ for(let i=0;i<N;i++)for(let j=0;j<N;j++){const b=bl[i][j];if(!b||b.tr||b.tw)continue;const dx=x-b.x,dz=z-b.z,d=dx*dx+dz*dz;if(d<bd){bd=d;best={i,j,b}}}
+ return best;
+}
+function campaignNavPath(from,to){
+ const a=navCellAt(from.x,from.z),g=navCellAt(to.x,to.z);if(!a||!g)return[];
+ const key=(i,j)=>i*N+j,start=key(a.i,a.j),goal=key(g.i,g.j),open=[start],came=new Map(),cost=new Map([[start,0]]),closed=new Set();
+ const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+ while(open.length){
+  open.sort((u,v)=>(cost.get(u)+Math.hypot(u%N-g.i,Math.floor(u/N)-g.j)*1.05)-(cost.get(v)+Math.hypot(v%N-g.i,Math.floor(v/N)-g.j)*1.05));
+  const cur=open.shift();if(cur===goal)break;if(closed.has(cur))continue;closed.add(cur);
+  const i=Math.floor(cur/N),j=cur%N,A=bl[i][j];
+  for(const[di,dj]of dirs){const ni=i+di,nj=j+dj;if(ni<0||nj<0||ni>=N||nj>=N)continue;const B=bl[ni][nj];if(!B||B.tr||B.tw)continue;
+   const gap=di?(Math.abs(B.x-A.x)-(A.w+B.w)/2):(Math.abs(B.z-A.z)-(A.d+B.d)/2),dh=Math.abs(B.ht-A.ht);
+   if(gap>9.5||dh>9.25)continue;
+   const nk=key(ni,nj),nc=cost.get(cur)+Math.hypot(B.x-A.x,B.z-A.z)+dh*.72+Math.max(0,gap)*.5;
+   if(nc<(cost.get(nk)??Infinity)){cost.set(nk,nc);came.set(nk,cur);if(!closed.has(nk)&&!open.includes(nk))open.push(nk)}
+  }
+ }
+ if(start!==goal&&!came.has(goal))return[];
+ const ids=[goal];while(ids[0]!==start){const prev=came.get(ids[0]);if(prev===undefined)return[];ids.unshift(prev)}
+ return ids.slice(1).map(id=>{const b=bl[Math.floor(id/N)][id%N];return new THREE.Vector3(b.x,b.ht+.08,b.z)}).concat([new THREE.Vector3(to.x,to.y+.08,to.z)]);
+}
+function planActorRoute(actor,destination){
+ const path=campaignNavPath(actor.group.position,destination);
+ actor.navPath=path.length?path:[new THREE.Vector3(destination.x,destination.y+.08,destination.z)];
+ actor.navIndex=0;actor.navGoal=new THREE.Vector3(destination.x,destination.y,destination.z);actor.navRepath=1.5;
+}
+function actorObstacleAhead(pos,dir){
+ const ray=new THREE.Raycaster(new THREE.Vector3(pos.x,pos.y+.85,pos.z),new THREE.Vector3(dir.x,0,dir.z).normalize(),0,2.15);
+ const hits=ray.intersectObjects(S.children,true);
+ return hits.some(h=>h.object.visible&&h.object!==pursuitHeli&&!storyActors.some(a=>a.group===h.object)&&!campaignEnemies.some(a=>a.group===h.object)&&h.object!==target&&h.object.geometry&&h.object.geometry.type!=='PlaneGeometry');
+}
+function moveActorOnRoute(actor,dt,speed,clock){
+ if(!actor.navPath||!actor.navPath.length)return 0;
+ let wp=actor.navPath[Math.min(actor.navIndex,actor.navPath.length-1)],pos=actor.group.position;
+ let dx=wp.x-pos.x,dz=wp.z-pos.z,dist=Math.hypot(dx,dz);
+ if(dist<1.45&&actor.navIndex<actor.navPath.length-1){actor.navIndex++;wp=actor.navPath[actor.navIndex];dx=wp.x-pos.x;dz=wp.z-pos.z;dist=Math.hypot(dx,dz)}
+ let dir=new THREE.Vector3(dx,0,dz);if(dist>.01)dir.multiplyScalar(1/dist);
+ if(dist>.8&&actorObstacleAhead(pos,dir)){
+  const left=new THREE.Vector3(-dir.z,0,dir.x),right=new THREE.Vector3(dir.z,0,-dir.x);
+  const l=actorObstacleAhead(pos,left),r=actorObstacleAhead(pos,right);
+  if(l&&!r)dir.copy(right);else if(r&&!l)dir.copy(left);else if(l&&r){actor.navRepath=0;return 0}
+ }
+ const ox=pos.x,oz=pos.z,step=Math.min(dist,speed*dt);
+ pos.x+=dir.x*step;pos.z+=dir.z*step;
+ const dy=wp.y-pos.y;pos.y+=Math.max(-5*dt,Math.min(5*dt,dy));
+ const moved=Math.hypot(pos.x-ox,pos.z-oz);
+ const mode=Math.abs(dy)>1.05?(dy>0?'jump':'drop'):'run';
+ animateStoryActor(actor,dt,moved/Math.max(.001,dt),dir.x,dir.z,clock,mode);
+ return moved/Math.max(.001,dt);
+}
+function chooseAllyEscapeGoal(ally){
+ const here=navCellAt(ally.group.position.x,ally.group.position.z),runner=navCellAt(p.x,p.z);if(!here||!runner)return null;
+ let best=null,bestScore=-Infinity;
+ for(let i=0;i<N;i++)for(let j=0;j<N;j++){const b=bl[i][j];if(!b||b.tr||b.tw)continue;
+  const dx=b.x-p.x,dz=b.z-p.z,d=Math.hypot(dx,dz),travel=Math.hypot(b.x-ally.group.position.x,b.z-ally.group.position.z);
+  if(d<52||travel<38||travel>230)continue;
+  const score=d-travel*.24+Math.min(12,b.ht-ally.group.position.y)*.25;
+  if(score>bestScore){bestScore=score;best=b}
+ }
+ return best?new THREE.Vector3(best.x,best.ht+.08,best.z):null;
+}
+function tickDialogueActors(dt){
+ if(!dialogueCutscene)return;
+ const raw=dialogueCutscene.lines[dialogueCutscene.index]||'',split=raw.indexOf(':'),speaker=split>0?raw.slice(0,split).trim().toLowerCase():'';
+ const actor=storyActors.find(a=>a.name.toLowerCase()===speaker);
+ storyActors.forEach(a=>{
+  if(!a.group.visible)return;
+  const dx=p.x-a.group.position.x,dz=p.z-a.group.position.z,dist=Math.hypot(dx,dz);
+  if(dist>.01)a.group.rotation.y+=(Math.atan2(dx,dz)+Math.PI-a.group.rotation.y)*Math.min(1,dt*5);
+  a.phase+=dt*(a===actor?2.1:1.35);
+  const talk=a===actor,breath=Math.sin(a.phase*.8)*.025,gesture=Math.sin(a.phase*(talk?2.5:1.1));
+  a.armParts.forEach((m,i)=>{
+   const target=talk?(i===0?-.5+Math.max(0,gesture)*.9:i===1?-.42-Math.max(0,-gesture)*.75:0):Math.sin(a.phase*.7+i)*.045;
+   m.rotation.x+=(target-m.rotation.x)*Math.min(1,dt*(talk?5:2));
+   m.rotation.z+=(talk?(i===0?-.12:.12):0-m.rotation.z)*Math.min(1,dt*3);
+  });
+  a.legParts.forEach((m,i)=>{const target=Math.sin(a.phase*.55+i)*.035;m.rotation.x+=(target-m.rotation.x)*Math.min(1,dt*2.5)});
+  a.group.rotation.x+=(breath-a.group.rotation.x)*Math.min(1,dt*2);
+  a.group.position.y+=Math.sin(a.phase*.9)*.0015;
+ });
+}
 function tickCampaignAlly(ally,dt,mission){
- if(!ally)return;
- ally.group.visible=true;
- const start=mission.route[0],target=mission.route[Math.min(campaignRun.step,mission.route.length-1)];
- if(!ally.aiReady){ally.group.position.set(start.x+5,start.y,start.z+3);ally.aiReady=true}
- // Story contacts travel between campaign objectives on their own schedule.
- // They do not orbit the player or copy the player's position.
- const dx=target.x-ally.group.position.x,dz=target.z-ally.group.position.z,dy=target.y-ally.group.position.y,dist=Math.hypot(dx,dz);
- const maxStep=Math.min(dist,5.2*dt),nx=dist>.05?dx/dist:0,nz=dist>.05?dz/dist:0;
- const ox=ally.group.position.x,oz=ally.group.position.z;
- ally.group.position.x+=nx*maxStep;ally.group.position.z+=nz*maxStep;
- ally.group.position.y+=Math.max(-3*dt,Math.min(3*dt,dy));
- const speed=Math.hypot(ally.group.position.x-ox,ally.group.position.z-oz)/Math.max(.001,dt);
- const mode=Math.abs(dy)>1.1?'jump':'run';
- animateStoryActor(ally,dt,speed,nx,nz,chaseClock,mode);
- if(dist<3.8&&ally.gesture<=0&&Math.random()<dt*.035)ally.gesture=1.1;
+ if(!ally)return;ally.group.visible=true;
+ if(!ally.aiReady){const start=mission.route[0];ally.group.position.set(start.x+5,start.y,start.z+3);ally.aiReady=true;ally.navPath=[];ally.navRepath=0}
+ if(mission.chase){
+  // The contact breaks away from R-17 and chooses a distant rooftop, never copying the player's trail.
+  ally.navRepath-=dt;
+  if(ally.navRepath<=0||!ally.navPath||ally.navIndex>=ally.navPath.length){const escape=chooseAllyEscapeGoal(ally);if(escape)planActorRoute(ally,escape);else ally.navRepath=.8}
+  moveActorOnRoute(ally,dt,7.6,chaseClock);
+  return;
+ }
+ const target=mission.route[Math.min(campaignRun.step,mission.route.length-1)];
+ if(!ally.navGoal||ally.navGoal.distanceTo(target)>2||!ally.navPath||ally.navIndex>=ally.navPath.length)planActorRoute(ally,target);
+ ally.navRepath-=dt;
+ if(ally.navRepath<=0){planActorRoute(ally,target)}
+ moveActorOnRoute(ally,dt,5.4,chaseClock);
 }
 function campaignActorsTick(dt){
  storyActors.forEach(a=>a.group.visible=false);campaignEnemies.forEach(a=>a.group.visible=false);
@@ -914,6 +997,9 @@ function showDialogueLine(){
 function beginDialogue(lines){
  if(!Array.isArray(lines)||!lines.length)return;
  dialogueCutscene={lines,index:0};
+ // Freeze the conversation participants in place; the render loop gives them subtle
+ // breathing, listening and speaking gestures while they keep eye contact with R-17.
+ storyActors.forEach(a=>{a.dialogueStart=a.group.position.clone();a.navPath=[]});
  dialogueUI.classList.add('active');showDialogueLine();
 }
 function advanceDialogue(){
@@ -1632,6 +1718,7 @@ function loop(now){
   C.position.set(p.x,p.y+eyeH+bb-shake+(lad?Math.sin(lad.ph)*.03:(climbing&&!ground)?Math.sin(now*.011)*.03:0),p.z);
   C.rotation.order='YXZ';C.rotation.set(pitch-rollAng-dk*.3-(vault?Math.sin(Math.PI*vault.t/vault.dur)*.1:0)+(slideT>0?.06:0),yaw,roll+bsx+(slideT>0?.04:0)+(zip?Math.sin(now*.0035)*.05:0)+bankW+(vault?Math.sin(Math.PI*vault.t/vault.dur)*.05:0));
   if(dialogueCutscene){
+   tickDialogueActors(dt);
    const speakerName=(dialogueSpeaker.textContent||'').toLowerCase(),actor=storyActors.find(a=>a.name.toLowerCase()===speakerName);
    const focus=actor&&actor.group.visible?actor.group.position:new THREE.Vector3(p.x+Math.sin(yaw)*3,p.y+1,p.z+Math.cos(yaw)*3);
    const mid=new THREE.Vector3((p.x+focus.x)*.5,(p.y+1.15+focus.y+1.05)*.5,(p.z+focus.z)*.5);
