@@ -8,7 +8,7 @@ html{font-size:clamp(11px,min(2.1vw,3.4vh),19px)}
 html,body{margin:0;height:100%;overflow:hidden;background:#cfe3f2;font-family:system-ui,sans-serif;touch-action:none;-webkit-user-select:none;user-select:none;overscroll-behavior:none}
 canvas{display:block;touch-action:none}
 #hud{position:fixed;left:calc(1rem + var(--sl));top:calc(1rem + var(--st));color:#1d2a33;font-weight:700;font-size:1.1rem;line-height:1.45;pointer-events:none;text-shadow:0 0 .4rem #fff}
-#deliveryClock{position:fixed;top:calc(1rem + var(--st));left:50%;transform:translateX(-50%);z-index:8;display:none;padding:.55rem 1rem;min-width:7rem;text-align:center;background:rgba(10,17,23,.82);border:1px solid rgba(255,255,255,.32);border-top:2px solid #e5242b;color:#fff;font:900 1.35rem/1.2 ui-monospace,monospace;letter-spacing:.08em;text-shadow:0 0 .8rem rgba(229,36,43,.65);pointer-events:none;box-shadow:0 .3rem 1.2rem rgba(0,0,0,.2)}
+ #deliveryClock{position:fixed;top:calc(3.9rem + var(--st));left:50%;transform:translateX(-50%);z-index:8;display:none;padding:.55rem 1rem;min-width:7rem;text-align:center;background:rgba(10,17,23,.82);border:1px solid rgba(255,255,255,.32);border-top:2px solid #e5242b;color:#fff;font:900 1.35rem/1.2 ui-monospace,monospace;letter-spacing:.08em;text-shadow:0 0 .8rem rgba(229,36,43,.65);pointer-events:none;box-shadow:0 .3rem 1.2rem rgba(0,0,0,.2)}
 #deliveryClock small{display:block;margin-top:.18rem;font:800 .58rem/1.2 system-ui,sans-serif;letter-spacing:.2em;color:#ff9a9e}
 #deliveryClock.urgent{color:#ff737a;border-color:#ff737a;animation:deliveryPulse .7s infinite alternate}
 @keyframes deliveryPulse{to{box-shadow:0 0 1.2rem rgba(229,36,43,.65)}}
@@ -16,7 +16,7 @@ canvas{display:block;touch-action:none}
 #dot{position:fixed;left:50%;top:50%;width:.4rem;height:.4rem;margin:-.2rem;border-radius:50%;background:var(--red);pointer-events:none}
 #vig{position:fixed;inset:0;pointer-events:none;background:radial-gradient(transparent 50%,rgba(255,255,255,.6));opacity:0}
 #hurt{position:fixed;inset:0;pointer-events:none;background:radial-gradient(transparent 40%,rgba(229,36,43,.7));opacity:0}
-#dialogueCutscene{position:fixed;inset:0;z-index:20;display:none;align-items:flex-end;justify-content:center;padding:0 1rem calc(1.2rem + var(--sb));box-sizing:border-box;pointer-events:auto;background:linear-gradient(180deg,rgba(3,8,14,.08),rgba(3,8,14,.42))}#dialogueCutscene.active{display:flex;pointer-events:auto;touch-action:manipulation}.dialogue-shade{position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(4,9,15,.3) 65%,rgba(4,9,15,.82))}.dialogue-card{position:relative;z-index:2;pointer-events:auto;touch-action:manipulation;width:min(100%,58rem);box-sizing:border-box;padding:1.15rem 1.35rem 1rem;border:1px solid rgba(255,255,255,.28);border-left:.28rem solid #e5242b;border-radius:.65rem;background:rgba(10,17,25,.94);color:#f4f7fa;text-align:left;box-shadow:0 1rem 3rem rgba(0,0,0,.38);backdrop-filter:blur(12px)}.dialogue-kicker{font-size:.7rem;letter-spacing:.2em;color:#f0787d;font-weight:800}.dialogue-speaker{font-size:1.15rem;font-weight:900;letter-spacing:.08em;margin:.4rem 0;text-transform:uppercase}.dialogue-line{font-size:1.05rem;line-height:1.5;min-height:3rem}.dialogue-next{position:relative;z-index:3;pointer-events:auto;touch-action:manipulation;-webkit-tap-highlight-color:rgba(229,36,43,.25);float:right;margin:.8rem 0 .1rem;background:#e5242b;color:#fff;border:0;border-radius:.35rem;padding:.55rem 1.1rem;font-weight:800;font-size:.9rem;min-height:2.4rem}.dialogue-hint{padding-top:1.15rem;font-size:.65rem;letter-spacing:.15em;color:#aab7c2}#toast{position:fixed;top:14%;left:0;right:0;text-align:center;font-weight:800;font-size:1.7rem;color:var(--red);text-shadow:0 0 .5rem #fff;pointer-events:none;opacity:0;transition:opacity .4s;padding:0 1rem}
+#dialogueCutscene{position:fixed;inset:0;z-index:20;display:none;align-items:flex-end;justify-content:center;padding:0 1rem calc(1.2rem + var(--sb));box-sizing:border-box;pointer-events:auto;background:linear-gradient(180deg,rgba(3,8,14,.08),rgba(3,8,14,.42))}#dialogueCutscene.active{display:flex;pointer-events:none;touch-action:manipulation}.dialogue-shade{position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(4,9,15,.3) 65%,rgba(4,9,15,.82))}.dialogue-card{position:relative;z-index:2;pointer-events:auto;touch-action:manipulation;width:min(100%,58rem);box-sizing:border-box;padding:1.15rem 1.35rem 1rem;border:1px solid rgba(255,255,255,.28);border-left:.28rem solid #e5242b;border-radius:.65rem;background:rgba(10,17,25,.94);color:#f4f7fa;text-align:left;box-shadow:0 1rem 3rem rgba(0,0,0,.38);backdrop-filter:blur(12px)}.dialogue-kicker{font-size:.7rem;letter-spacing:.2em;color:#f0787d;font-weight:800}.dialogue-speaker{font-size:1.15rem;font-weight:900;letter-spacing:.08em;margin:.4rem 0;text-transform:uppercase}.dialogue-line{font-size:1.05rem;line-height:1.5;min-height:3rem}.dialogue-next{position:relative;z-index:3;pointer-events:auto;touch-action:manipulation;-webkit-tap-highlight-color:rgba(229,36,43,.25);float:right;margin:.8rem 0 .1rem;background:#e5242b;color:#fff;border:0;border-radius:.35rem;padding:.55rem 1.1rem;font-weight:800;font-size:.9rem;min-height:2.4rem}.dialogue-hint{padding-top:1.15rem;font-size:.65rem;letter-spacing:.15em;color:#aab7c2}#toast{position:fixed;top:14%;left:0;right:0;text-align:center;font-weight:800;font-size:1.7rem;color:var(--red);text-shadow:0 0 .5rem #fff;pointer-events:none;opacity:0;transition:opacity .4s;padding:0 1rem}
 #ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--fg);text-align:center;z-index:5;touch-action:pan-y}
 #panel{width:min(96vw,58rem);max-height:94vh;max-height:94dvh;overflow:auto;padding:1.2rem 1.5rem;box-sizing:border-box;-webkit-overflow-scrolling:touch}
 h1{margin:0 0 .5rem;font-size:2.6rem;letter-spacing:.04em}h1 span{color:var(--red)}h2,h3{margin:.6rem 0;font-size:1.4rem}h3{font-size:1.2rem}
@@ -98,11 +98,11 @@ ol{color:#2b343a}
 #bg{right:calc(46vmin + var(--sr));bottom:calc(6vmin + var(--sb));width:12vmin;height:12vmin;font-size:max(.7rem,2.1vmin)}
 #bro{right:calc(46vmin + var(--sr));bottom:calc(20vmin + var(--sb));width:12vmin;height:12vmin;font-size:max(.7rem,2.1vmin)}
 .eq{display:none}body.geared .eq{display:flex}
-#cmp{position:fixed;top:calc(.5rem + var(--st));left:50%;transform:translateX(-50%);width:min(58vw,28rem);height:auto;pointer-events:none;z-index:2}
-#tut{top:calc(4.4rem + var(--st))}
+ #cmp{position:fixed;top:calc(.35rem + var(--st));left:50%;transform:translateX(-50%);width:min(58vw,28rem);height:auto;pointer-events:none;z-index:12;filter:drop-shadow(0 1px 2px rgba(0,0,0,.18))}
+#tut{top:calc(5.1rem + var(--st));left:calc(1rem + var(--sl));transform:none;text-align:left;max-width:min(58vw,22rem);font-size:.82rem;padding:.35rem .6rem;z-index:7}
 .gr{display:flex;justify-content:space-between;align-items:center;gap:.8rem;border-bottom:1px solid #d9dee1;padding:.42rem 0}.gr>div{min-width:0;flex:1}.gr small{color:#58636a;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.2}.gear-addons{margin:.12rem 0 .45rem 1rem;padding:.15rem .65rem;border-left:2px solid rgba(91,107,117,.35);text-align:left}.gear-addons summary{cursor:pointer;font-size:.78rem;font-weight:800;letter-spacing:.07em;color:#65727a;padding:.3rem 0;list-style-position:inside}.gear-addons .gr{padding:.25rem 0}.gear-addons .gr small{-webkit-line-clamp:1}.gear-addons button{font-size:.85rem;min-height:1.9rem;padding:.25rem .65rem;margin:.15rem}
 #bi2{top:calc(2vmin + var(--st));right:calc(41vmin + var(--sr));width:11vmin;height:11vmin;font-size:max(.7rem,2.2vmin)}
-#prompt{width:min(90vw,34rem);white-space:normal;line-height:1.45;text-align:center}
+#prompt{width:min(90vw,34rem);white-space:normal;line-height:1.45;text-align:center;z-index:6;bottom:12%;font-size:.92rem;padding:.4rem .75rem}#prompt.network-prompt{left:calc(1rem + var(--sl));right:auto;bottom:calc(1rem + var(--sb));transform:none;width:auto;max-width:min(62vw,19rem);padding:.32rem .58rem;border:1px solid rgba(54,229,208,.72);border-left:3px solid #36e5d0;border-radius:.35rem;background:rgba(8,17,23,.68);font-size:.68rem;line-height:1.2;text-align:left;letter-spacing:.035em;box-shadow:0 2px 12px rgba(0,0,0,.18)}#prompt.network-prompt small{font-size:.62rem;opacity:.82}
 #mouseAim{position:fixed;inset:0;z-index:4;pointer-events:none;display:none}
 #mouseRing{position:absolute;left:50%;top:50%;width:84px;height:84px;transform:translate(-50%,-50%);border:2px solid rgba(229,36,43,.8);border-radius:50%;box-shadow:0 0 0 1px rgba(255,255,255,.7),0 0 18px rgba(229,36,43,.25)}
 #mouseDot{position:absolute;width:9px;height:9px;margin:-4.5px;border-radius:50%;background:#e5242b;box-shadow:0 0 0 2px white}
@@ -316,7 +316,7 @@ const C=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,2200);
 const hemi=new THREE.HemisphereLight(0xffffff,0xb8c4cc,.95);S.add(hemi);
 const sun=new THREE.DirectionalLight(0xffffff,.6);sun.position.set(40,80,20);S.add(sun);
 let seed=11;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
-const boxes=[],GC=24,gmap=new Map();let gStamp=0;
+const boxes=[],rampVisuals=[],GC=24,gmap=new Map();let gStamp=0;
 const gKey=(a,c)=>(a+2000)*10000+(c+2000);
 function gridBuild(){gmap.clear();for(const b of boxes){const x0=Math.floor(b.min.x/GC),x1=Math.floor(b.max.x/GC),z0=Math.floor(b.min.z/GC),z1=Math.floor(b.max.z/GC);for(let a=x0;a<=x1;a++)for(let c=z0;c<=z1;c++){const k=gKey(a,c);let L=gmap.get(k);if(!L)gmap.set(k,L=[]);L.push(b)}}}
 function boxesIn(x,z,rad){gStamp++;const a0=Math.floor((x-rad)/GC),a1=Math.floor((x+rad)/GC),c0=Math.floor((z-rad)/GC),c1=Math.floor((z+rad)/GC),out=[];for(let a=a0;a<=a1;a++)for(let c=c0;c<=c1;c++){const L=gmap.get(gKey(a,c));if(L)for(const b of L)if(b.q!==gStamp){b.q=gStamp;out.push(b)}}return out}
@@ -336,40 +336,71 @@ function add(x,y,z,w,h,d,mat,tag,ne){ // static boxes are merged into a few mesh
   boxes.push({min:{x:x-w/2,y,z:z-d/2},max:{x:x+w/2,y:y+h,z:z+d/2},tag});
 }
 function flushBatches(){
-  for(const[mat,L]of batches)for(let o=0;o<L.length;o+=15000){
-    const pos=[],nor=[],idx=[],end=Math.min(L.length,o+15000);
-    for(let q=o;q<end;q+=6){
-      const sz=[L[q+3]/2,L[q+4]/2,L[q+5]/2],c0=[L[q],L[q+1]+L[q+4]/2,L[q+2]];
-      for(let a=0;a<3;a++)for(const sg of[1,-1]){
-        const c=c0.slice();c[a]+=sg*sz[a];let ba=AXT[a][0],ca=AXT[a][1];if(sg<0){const t=ba;ba=ca;ca=t}
-        const b0=pos.length/3,n=[0,0,0];n[a]=sg;
-        for(const[sb,sc]of[[-1,-1],[1,-1],[1,1],[-1,1]]){const pt=c.slice();pt[ba]+=sb*sz[ba];pt[ca]+=sc*sz[ca];pos.push(pt[0],pt[1],pt[2]);nor.push(n[0],n[1],n[2])}
-        idx.push(b0,b0+1,b0+2,b0,b0+2,b0+3);
+  // Spatially partition merged city geometry so the renderer can skip distant districts.
+  const tile=180,yTile=110,binKey=(x,y,z)=>Math.floor(x/tile)+','+Math.floor(y/yTile)+','+Math.floor(z/tile);
+  const buildBoxes=(mat,L)=>{
+    const bins=new Map();
+    for(let q=0;q<L.length;q+=6){const key=binKey(L[q],L[q+1]+L[q+4]/2,L[q+2]);let a=bins.get(key);if(!a)bins.set(key,a=[]);a.push(...L.slice(q,q+6))}
+    for(const A of bins.values())for(let o=0;o<A.length;o+=7200){
+      const pos=[],nor=[],idx=[],end=Math.min(A.length,o+7200);
+      for(let q=o;q<end;q+=6){
+        const sz=[A[q+3]/2,A[q+4]/2,A[q+5]/2],c0=[A[q],A[q+1]+A[q+4]/2,A[q+2]];
+        for(let a=0;a<3;a++)for(const sg of[1,-1]){
+          const c=c0.slice();c[a]+=sg*sz[a];let ba=AXT[a][0],ca=AXT[a][1];if(sg<0){const t=ba;ba=ca;ca=t}
+          const b0=pos.length/3,n=[0,0,0];n[a]=sg;
+          for(const[sb,sc]of[[-1,-1],[1,-1],[1,1],[-1,1]]){const pt=c.slice();pt[ba]+=sb*sz[ba];pt[ca]+=sc*sz[ca];pos.push(pt[0],pt[1],pt[2]);nor.push(n[0],n[1],n[2])}
+          idx.push(b0,b0+1,b0+2,b0,b0+2,b0+3);
+        }
       }
+      const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));g.setIndex(idx);g.computeBoundingSphere();
+      const m=new THREE.Mesh(g,mat);m.frustumCulled=true;S.add(m);
     }
-    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));g.setIndex(idx);
-    const m=new THREE.Mesh(g,mat);m.frustumCulled=false;S.add(m);
+  };
+  for(const[mat,L]of batches)buildBoxes(mat,L);
+  const edgeBins=new Map();
+  for(let q=0;q<eList.length;q+=6){const key=binKey(eList[q],eList[q+1]+eList[q+4]/2,eList[q+2]);let a=edgeBins.get(key);if(!a)edgeBins.set(key,a=[]);a.push(...eList.slice(q,q+6))}
+  for(const A of edgeBins.values())for(let o=0;o<A.length;o+=3000){
+    const pos=[],end=Math.min(A.length,o+3000);
+    for(let q=o;q<end;q+=6){const x=A[q],y=A[q+1],z=A[q+2],hw=A[q+3]/2,hh=A[q+4],hd=A[q+5]/2,c=[[x-hw,z-hd],[x+hw,z-hd],[x+hw,z+hd],[x-hw,z+hd]];
+      for(let i=0;i<4;i++){const P=c[i],Q=c[(i+1)%4];pos.push(P[0],y,P[1],Q[0],y,Q[1],P[0],y+hh,P[1],Q[0],y+hh,Q[1],P[0],y,P[1],P[0],y+hh,P[1])}}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.computeBoundingSphere();const l=new THREE.LineSegments(g,lineMat);l.frustumCulled=true;S.add(l);
   }
-  for(let o=0;o<eList.length;o+=12000){
-    const pos=[],end=Math.min(eList.length,o+12000);
-    for(let q=o;q<end;q+=6){
-      const x=eList[q],y=eList[q+1],z=eList[q+2],hw=eList[q+3]/2,hh=eList[q+4],hd=eList[q+5]/2;
-      const c=[[x-hw,z-hd],[x+hw,z-hd],[x+hw,z+hd],[x-hw,z+hd]];
-      for(let i=0;i<4;i++){const A=c[i],B=c[(i+1)%4];pos.push(A[0],y,A[1],B[0],y,B[1],A[0],y+hh,A[1],B[0],y+hh,B[1],A[0],y,A[1],A[0],y+hh,A[1])}
+  if(rampVisuals.length){
+    const bins=new Map(),geo=new THREE.BoxGeometry(1,1,1),dummy=new THREE.Object3D();
+    for(const q of rampVisuals){const key=binKey(q.x+q.dx*q.len/2,(q.y0+q.y1)/2,q.z+q.dz*q.len/2);let a=bins.get(key);if(!a)bins.set(key,a=[]);a.push(q)}
+    for(const list of bins.values())for(let o=0;o<list.length;o+=1800){
+      const part=list.slice(o,o+1800),inst=new THREE.InstancedMesh(geo,part[0].mat,part.length);
+      for(let i=0;i<part.length;i++){const q=part[i];dummy.position.set(q.x+q.dx*q.len/2,(q.y0+q.y1)/2-.3,q.z+q.dz*q.len/2);dummy.rotation.order='YXZ';dummy.rotation.y=Math.atan2(q.dx,q.dz);dummy.rotation.x=-Math.atan2(q.y1-q.y0,q.len);dummy.scale.set(q.w,.6,Math.hypot(q.len,q.y1-q.y0));dummy.updateMatrix();inst.setMatrixAt(i,dummy.matrix)}
+      inst.instanceMatrix.needsUpdate=true;inst.frustumCulled=false;S.add(inst);
     }
-    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));const l=new THREE.LineSegments(g,lineMat);l.frustumCulled=false;S.add(l);
+    rampVisuals.length=0;
   }
   batches.clear();eList.length=0;
 }
 const BP=36,N=36;let tb={};try{tb=JSON.parse(localStorage.getItem('rr_trials'))||{}}catch(e){}
 const ramps=[],zips=[],bl=[],towers=[];
+const rampGrid=new Map();let rampGridStamp=0;
+function rampGridBuild(){
+  rampGrid.clear();
+  for(const rp of ramps){const x1=rp.ox,x2=rp.ox+rp.dx*rp.len,z1=rp.oz,z2=rp.oz+rp.dz*rp.len,pad=rp.w/2+2;
+    for(let x=Math.floor((Math.min(x1,x2)-pad)/GC);x<=Math.floor((Math.max(x1,x2)+pad)/GC);x++)
+      for(let z=Math.floor((Math.min(z1,z2)-pad)/GC);z<=Math.floor((Math.max(z1,z2)+pad)/GC);z++){
+        const key=(x+2000)*10000+(z+2000);let list=rampGrid.get(key);if(!list)rampGrid.set(key,list=[]);list.push(rp);
+      }
+  }
+}
+function rampsNear(x,z,rad=30){
+  const stamp=++rampGridStamp,out=[];
+  for(let a=Math.floor((x-rad)/GC);a<=Math.floor((x+rad)/GC);a++)for(let b=Math.floor((z-rad)/GC);b<=Math.floor((z+rad)/GC);b++){
+    const list=rampGrid.get((a+2000)*10000+(b+2000));if(list)for(const rp of list)if(rp.q!==stamp){rp.q=stamp;out.push(rp)}
+  }
+  return out;
+}
 const gridH=new THREE.GridHelper(N*BP+300,(N*BP+300)/6,0x7a858d,0x939ea5);gridH.position.y=.03;S.add(gridH);
 add(0,-1,0,N*BP+300,1,N*BP+300,lam(0x838d94),'roof',1);
-function ramp(x,z,len,w,y0,y1,dx,dz,mat){ // low end at x,z rising along dx,dz
+function ramp(x,z,len,w,y0,y1,dx,dz,mat){ // shared instanced ramp geometry keeps the city light on mobile
   ramps.push({ox:x,oz:z,dx,dz,len,w,y0,y1,s:(y1-y0)/len});
-  const m=new THREE.Mesh(new THREE.BoxGeometry(w,.6,Math.hypot(len,y1-y0)),mat);
-  m.position.set(x+dx*len/2,(y0+y1)/2-.3,z+dz*len/2);m.rotation.order='YXZ';m.rotation.y=Math.atan2(dx,dz);m.rotation.x=-Math.atan2(y1-y0,len);
-  m.add(new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry),lineMat));S.add(m);
+  rampVisuals.push({x,z,len,w,y0,y1,dx,dz,mat});
 }
 function makeZip(a,b){
   const len=a.distanceTo(b);zips.push({a,b,len,d:b.clone().sub(a).normalize()});
@@ -421,21 +452,94 @@ function distProps(dst,x,z,w,d,ht){
   if(rnd()<.2){const H=5+Math.floor(rnd()*5),bx=px(),bz=pz();add(bx,ht,bz,7,H,7,grey,'roof',1);addClimb(bx+(rnd()-.5)*3,bz+3.5,0,1,ht,ht+H,rnd()<.3)} // pent-house with a ladder or pipe up its side
 }
 function spire(cx,cz,H0,b){ // hollow tower: spiral ramp round an open atrium, glass windows, ziplines and anchors inside, a roof reached by springboard
-  const S2=30,t=1.5,rc=11.25,nl=Math.floor(H0/12),H=12*nl,top=H+4,sides=[[1,0,0],[0,-1,3],[-1,0,6],[0,1,9]];
+  const S2=30,t=1.5,rc=11.25,nl=Math.floor(H0/12),H=12*nl,top=H+4,sides=[[1,0,0],[0,-1,3],[-1,0,6],[0,1,9]],isMeridian=H0>=250,shellMat=isMeridian?new THREE.MeshLambertMaterial({color:0x202c37}):white,rampMat=isMeridian?new THREE.MeshLambertMaterial({color:0x71818d}):white;
   b.ht=top;b.tw=true;
-  const wall=(sx,sz,off,len,y0,hh)=>{if(hh>.05)add(cx+sx*(S2/2-t/2)+(sx?0:off),y0,cz+sz*(S2/2-t/2)+(sx?off:0),sx?t:len,hh,sx?len:t,white,'roof',1)};
+  const wall=(sx,sz,off,len,y0,hh)=>{if(hh>.05)add(cx+sx*(S2/2-t/2)+(sx?0:off),y0,cz+sz*(S2/2-t/2)+(sx?off:0),sx?t:len,hh,sx?len:t,shellMat,'roof',1)};
   for(const[sx,sz,ro]of sides){
     wall(sx,sz,-9,12,0,top);wall(sx,sz,9,12,0,top);let prev=0;
     for(let k=2;k<nl;k+=2){const wb=12*k+ro+1.7;wall(sx,sz,0,6,prev,wb-prev);addGlass(cx+sx*(S2/2-t/2),wb,cz+sz*(S2/2-t/2),sx?.3:6,4,sx?6:.3);prev=wb+4}
     wall(sx,sz,0,6,prev,top-prev);
   }
+  const layoutVariant=isMeridian?5:Math.abs(Math.round(cx*3+cz*5))%5,layoutTurn=Math.abs(Math.round(cx+cz))%4;
+  const rotateLayout=(x,z)=>{for(let q=0;q<layoutTurn;q++){const t=x;x=-z;z=t}return[x,z]};
+  const interiorAccent=new THREE.MeshLambertMaterial({color:isMeridian?0xe5243b:0x35d9d0,emissive:isMeridian?0x6d0715:0x063c3a,emissiveIntensity:.3});
   for(let k=0;k<nl;k++){const y=12*k;
-    ramp(cx+rc,cz+9,18,4.5,y,y+3,0,-1,white);ramp(cx+9,cz-rc,18,4.5,y+3,y+6,-1,0,white);ramp(cx-rc,cz-9,18,4.5,y+6,y+9,0,1,white);ramp(cx-9,cz+rc,18,4.5,y+9,y+12,1,0,white);
-    for(const[lx,lz,ly]of[[rc,rc,y],[rc,-rc,y+3],[-rc,-rc,y+6],[-rc,rc,y+9]])add(cx+lx,ly-.6,cz+lz,4.5,.6,4.5,white,'roof',1);
+    if(isMeridian){
+      // The Meridian is a four-part parkour gauntlet, not 23 floors of the same ramp.
+      const phase=k%4;
+      if(phase===0){
+        // SKYBRIDGE: a rising perimeter run around the open central shaft.
+        const path=[[-12,10,1,0],[10,12,0,-1],[12,-10,-1,0],[-10,-12,0,1]];
+        path.forEach(([x,z,dx,dz],i)=>{const[a,c]=rotateLayout(x,z),[rx,rz]=rotateLayout(dx,dz);ramp(cx+a,cz+c,20,4.2,y+i*3,y+(i+1)*3,rx,rz,rampMat)});
+        const[a,c]=rotateLayout(-10,8);add(cx+a,y+11.4,cz+c,5,.6,5,shellMat,'roof',1);
+      }else if(phase===1){
+        // VERTICAL SERVICE SHAFT: a pipe climb with clear bottom/top transfer decks.
+        add(cx,y-.6,cz,10,.6,10,shellMat,'roof',1);add(cx,y+11.4,cz,10,.6,10,shellMat,'roof',1);
+        const[a,c]=rotateLayout(1.8,0),[nx,nz]=rotateLayout(1,0);addClimb(cx+a,cz+c,nx,nz,y,y+12,true);
+        for(const[x,z]of[[-9,-8],[9,8],[-8,9],[8,-9]]){const[u,w]=rotateLayout(x,z);add(cx+u,y+5.4,cz+w,5,.5,5,shellMat,'roof',1)}
+        let L=batches.get(interiorAccent);if(!L)batches.set(interiorAccent,L=[]);L.push(cx,y+6,cz,1,.3,20,cx,y+6,cz,20,.3,1);
+      }else if(phase===2){
+        // CROSSWIND: spring-assisted jumps across offset floating decks.
+        add(cx,y-.6,cz,8,.6,8,shellMat,'roof',1);
+        const pads=[[-7,-6,3],[7,-6,6],[7,6,9],[0,0,12]];
+        for(const[x,z,dy]of pads){const[a,c]=rotateLayout(x,z);add(cx+a,y+dy-.6,cz+c,5,.6,5,shellMat,'roof',1)}
+        const[a0,c0]=rotateLayout(-7,-6),[a1,c1]=rotateLayout(7,6);
+        add(cx+a0,y+.1,cz+c0,3,.7,3,springM,'spring',1);add(cx+a1,y+6.1,cz+c1,3,.7,3,springM,'spring',1);
+        addAnchor(cx,y+9,cz,7);
+      }else{
+        // ZIPLINE TRANSFER: launch from the lower deck and ride diagonally to the next floor.
+        const[a0,c0]=rotateLayout(-10,0),[a1,c1]=rotateLayout(10,0);
+        add(cx+a0,y-.6,cz+c0,5,.6,5,shellMat,'roof',1);add(cx+a1,y+11.4,cz+c1,5,.6,5,shellMat,'roof',1);
+        makeZip(new THREE.Vector3(cx+a0,y+1.9,cz+c0),new THREE.Vector3(cx+a1,y+13.9,cz+c1));
+        let L=batches.get(interiorAccent);if(!L)batches.set(interiorAccent,L=[]);L.push(cx,y+6,cz,24,.35,.35);
+      }
+      // Floor-to-floor route is intentionally tied to each course's real landing.
+      continue;
+    }
+    if(layoutVariant===0){
+      // SKYBRIDGE: broad perimeter ramps and exposed corner transfers.
+      const path=[[rc,9,0,-1],[9,-rc,-1,0],[-rc,-9,0,1],[-9,rc,1,0]];
+      path.forEach(([x,z,dx,dz],i)=>{const[a,c]=rotateLayout(x,z),[rx,rz]=rotateLayout(dx,dz);ramp(cx+a,cz+c,18,5,y+i*3,y+(i+1)*3,rx,rz,rampMat)});
+      for(const[x,z,ly]of[[rc,rc,y],[rc,-rc,y+3],[-rc,-rc,y+6],[-rc,rc,y+9]]){const[a,c]=rotateLayout(x,z);add(cx+a,ly-.6,cz+c,5,.6,5,shellMat,'roof',1)}
+    }else if(layoutVariant===1){
+      // LIFT SHAFT: climb a continuous service pipe through a narrow vertical core, using transfer balconies.
+      add(cx,y-.6,cz,9,.6,9,shellMat,'roof',1);add(cx,y+11.4,cz,9,.6,9,shellMat,'roof',1);
+      addClimb(cx+1.8,cz,1,0,y,y+12,true);
+      for(const[a0,c0]of[[-10,0],[10,0],[0,-10],[0,10]]){const[a,c]=rotateLayout(a0,c0);add(cx+a,y+4.8,cz+c,5,.45,5,shellMat,'roof',1)}
+      for(let q=0;q<4;q++){const[a,c]=rotateLayout(q%2?0:-13,q%2?13:0);let L=batches.get(interiorAccent);if(!L)batches.set(interiorAccent,L=[]);L.push(cx+a,y+6,cz+c,q%2?26:.35,.35,q%2?.35:26)}
+    }else if(layoutVariant===2){
+      // CROSSWIND: leap between floating transfer decks with spring-assisted changes of direction.
+      const pads=[[-6,-6,0],[6,-6,3],[6,6,6],[-6,6,9]];
+      for(const[x,z,dy]of pads){const[a,c]=rotateLayout(x,z);add(cx+a,y+dy-.6,cz+c,6,.6,6,shellMat,'roof',1)}
+      const[a0,c0]=rotateLayout(-6,-6),[a1,c1]=rotateLayout(6,-6),[a2,c2]=rotateLayout(6,6),[a3,c3]=rotateLayout(-6,6);
+      add(cx+a0,y,cz+c0,2,.7,2,springM,'spring',1);add(cx+a2,y+6,cz+c2,2,.7,2,springM,'spring',1);
+      addAnchor(cx+a1,y+3,cz+c1,5);addAnchor(cx+a3,y+9,cz+c3,5);
+      for(const[x,z]of[[0,-12],[12,0],[0,12],[-12,0]]){const[a,c]=rotateLayout(x,z);let L=batches.get(interiorAccent);if(!L)batches.set(interiorAccent,L=[]);L.push(cx+a,y+10.5,cz+c,x===0?1:24,.25,x===0?24:1)}
+    }else if(layoutVariant===3){
+      // SWITCHBACK: four crossing ramps with staggered landings and a fast center transfer.
+      const path=[[-10,-10,1,0],[10,-10,0,1],[10,10,-1,0],[-10,10,0,-1]];
+      path.forEach(([x,z,dx,dz],i)=>{const[a,c]=rotateLayout(x,z),[rx,rz]=rotateLayout(dx,dz);ramp(cx+a,cz+c,20,4.8,y+i*3,y+(i+1)*3,rx,rz,rampMat)});
+      for(const[x,z,dy]of[[-10,-10,0],[10,-10,3],[10,10,6],[-10,10,9]]){const[a,c]=rotateLayout(x,z);add(cx+a,y+dy-.6,cz+c,5,.6,5,shellMat,'roof',1)}
+      const[a,c]=rotateLayout(0,0);add(cx+a,y+5.5,cz+c,3,.5,3,springM,'spring',1);
+    }else if(layoutVariant===4){
+      // ATRIUM DROP: a vertical open shaft, alternating balconies and a diagonal zipline.
+      const[a0,c0]=rotateLayout(-10,-8),[a1,c1]=rotateLayout(10,8);
+      add(cx+a0,y-.6,cz+c0,6,.6,6,shellMat,'roof',1);add(cx+a1,y+11.4,cz+c1,6,.6,6,shellMat,'roof',1);
+      makeZip(new THREE.Vector3(cx+a0,y+1.9,cz+c0),new THREE.Vector3(cx+a1,y+13.9,cz+c1));
+      for(const[x,z,dy]of[[-8,8,4],[8,-8,8]]){const[a,c]=rotateLayout(x,z);add(cx+a,y+dy-.6,cz+c,5,.6,5,shellMat,'roof',1)}
+      const[ax,az]=rotateLayout(0,0);add(cx+ax,y+6,cz+az,3,.7,3,springM,'spring',1);addAnchor(cx+ax,y+9,cz+az,6);
+    }else{
+      // Meridian's signature architecture is handled by its dedicated floor-by-floor gauntlet above.
+      const path=[[-12,10,1,0],[10,12,0,-1],[12,-10,-1,0],[-10,-12,0,1]];
+      path.forEach(([x,z,dx,dz],i)=>{const[a,c]=rotateLayout(x,z),[rx,rz]=rotateLayout(dx,dz);ramp(cx+a,cz+c,20,3.8,y+i*3,y+(i+1)*3,rx,rz,rampMat)});
+      for(const[x,z,ly]of[[-12,10,y],[10,12,y+3],[12,-10,y+6],[-10,-12,y+9]]){const[a,c]=rotateLayout(x,z);add(cx+a,ly-.6,cz+c,4.2,.6,4.2,shellMat,'roof',1)}
+      add(cx,y+5.2,cz,3,.6,3,shellMat,'roof',1);
+      for(let q=0;q<4;q++){const[a,c]=rotateLayout(q%2?0:-13,q%2?13:0);let L=batches.get(interiorAccent);if(!L)batches.set(interiorAccent,L=[]);L.push(cx+a,y+q*3+.2,cz+c,q%2?26:.35,.35,q%2?.35:26)}
+    }
   }
-  add(cx+rc,H-.6,cz+rc,4.5,.6,4.5,white,'roof',1);
+  add(cx+rc,H-.6,cz+rc,4.5,.6,4.5,shellMat,'roof',1);
   const rt=top-.6;
-  add(cx,rt,cz-3,30,.6,24,white,'roof',1);add(cx-3,rt,cz+12,24,.6,6,white,'roof',1);add(cx+14.25,rt,cz+12,1.5,.6,6,white,'roof',1);add(cx+11.25,rt,cz+14.25,4.5,.6,1.5,white,'roof',1);
+  add(cx,rt,cz-3,30,.6,24,shellMat,'roof',1);add(cx-3,rt,cz+12,24,.6,6,shellMat,'roof',1);add(cx+14.25,rt,cz+12,1.5,.6,6,shellMat,'roof',1);add(cx+11.25,rt,cz+14.25,4.5,.6,1.5,shellMat,'roof',1);
   add(cx+rc,H,cz+rc,2.5,1,2.5,springM,'spring',1);
   for(const k of[1,3,5,7])if(k<nl)makeZip(new THREE.Vector3(cx-rc,12*k+12,cz+rc),new THREE.Vector3(cx+rc,12*k+6,cz-rc));
   for(let k=2;k<nl;k+=2)addAnchor(cx-rc,12*k+6,cz-rc,6);
@@ -444,6 +548,36 @@ function spire(cx,cz,H0,b){ // hollow tower: spiral ramp round an open atrium, g
   for(const[ax,az]of[[12,-12],[-12,12],[-12,-12]])addAnchor(cx+ax,top,cz+az,8);
   for(const[sx,sz]of[[1,1],[1,-1],[-1,1],[-1,-1]])spAcc.push([cx+sx*15.3,top/2,cz+sz*15.3,.8,top,.8]);
   for(let y=24;y<top;y+=24){spAcc.push([cx,y,cz+15.3,30.6,.5,.3],[cx,y,cz-15.3,30.6,.5,.3],[cx+15.3,y,cz,.3,.5,30.6],[cx-15.3,y,cz,.3,.5,30.6])}
+  // Batch tower trim into the existing static city meshes instead of spawning hundreds of Mesh objects.
+  const variant=Math.abs(Math.round(cx*3+cz*5))%4,palette=[0x35d9d0,0x4b9fff,0xff5267,0xb2e85a],accent=new THREE.MeshLambertMaterial({color:palette[variant],emissive:palette[variant],emissiveIntensity:.2}),frame=new THREE.MeshLambertMaterial({color:0x26343d});
+  const vbox=(x,cy,z,w,h,d,mat)=>{let L=batches.get(mat);if(!L)batches.set(mat,L=[]);L.push(x,cy-h/2,z,w,h,d)};
+  for(const sx of[-1,1])for(const sz of[-1,1]){
+    vbox(cx+sx*14.1,top/2,cz+sz*14.1,.85,top,.85,frame);
+    for(let y=18;y<top;y+=36)vbox(cx+sx*14.1,y,cz+sz*14.1,1.25,.48,1.25,accent);
+  }
+  for(let y=24;y<top;y+=48){
+    vbox(cx,y,cz-15.05,30.2,.24,.3,accent);vbox(cx,y,cz+15.05,30.2,.24,.3,accent);
+    vbox(cx-15.05,y,cz,.3,.24,30.2,accent);vbox(cx+15.05,y,cz,.3,.24,30.2,accent);
+  }
+  if(H0>=250){
+    // THE MERIDIAN: four colossal buttresses, crimson signal blades and a double crown.
+    const red=new THREE.MeshLambertMaterial({color:0xe5243b,emissive:0x6d0715,emissiveIntensity:.45}),black=new THREE.MeshLambertMaterial({color:0x111b25});
+    for(const sx of[-1,1])for(const sz of[-1,1]){
+      vbox(cx+sx*13.65,(top+34)/2,cz+sz*13.65,2.5,top+34,2.5,black);
+      vbox(cx+sx*13.65,(top+34)/2,cz+sz*13.65,1.05,top+34,1.05,red);
+      vbox(cx+sx*17.1,top+13,cz+sz*17.1,1.4,26,1.4,accent);
+    }
+    for(let y=36;y<top;y+=36){
+      vbox(cx,y,cz-15.4,34,.75,1.1,red);vbox(cx,y,cz+15.4,34,.75,1.1,red);
+      vbox(cx-15.4,y,cz,1.1,.75,34,red);vbox(cx+15.4,y,cz,1.1,.75,34,red);
+    }
+    const crown=top+12,upper=top+27;
+    vbox(cx,crown,cz-20,42,1.8,2.2,red);vbox(cx,crown,cz+20,42,1.8,2.2,red);
+    vbox(cx-20,crown,cz,2.2,1.8,42,red);vbox(cx+20,crown,cz,2.2,1.8,42,red);
+    vbox(cx,upper,cz-13,28,1.4,1.8,accent);vbox(cx,upper,cz+13,28,1.4,1.8,accent);
+    vbox(cx-13,upper,cz,1.8,1.4,28,accent);vbox(cx+13,upper,cz,1.8,1.4,28,accent);
+    vbox(cx,top+34,cz,3.2,42,3.2,red);
+  }
 }
 function bridgeAnchor(x,topY,z){anchors.push(new THREE.Vector3(x,topY-3,z));pInst.push([x,topY-1.75,z,.1,2.5,.1]);oInst.push([x,topY-3,z,.5,.5,.5])}
 function addAnchor(ax,ay,az,H){anchors.push(new THREE.Vector3(ax,ay+H,az));pInst.push([ax,ay+H/2,az,.09,H,.09]);oInst.push([ax,ay+H,az,.45,.45,.45])} // mag-rope anchor: a post with a blue orb
@@ -547,7 +681,7 @@ const HT=[];for(let i=0;i<N;i++){HT[i]=[];for(let j=0;j<N;j++){const dc=Math.hyp
 for(let i=0;i<N;i++)for(let j=0;j<N;j++)if(TR(i,j))HT[i][j]=TY;
 for(let it=0;it<4;it++)for(let i=0;i<N;i++)for(let j=0;j<N;j++)for(const[di,dj]of[[1,0],[-1,0],[0,1],[0,-1]]){const a=i+di,b=j+dj;if(a<0||b<0||a>=N||b>=N)continue;HT[i][j]=Math.max(HT[a][b]-9,Math.min(HT[a][b]+9,HT[i][j]))} // neighbours never differ by more than 9m
 for(let i=0;i<N;i++)for(let j=0;j<N;j++)if(TR(i,j))HT[i][j]=TY;
-const TW={};[[7,7,108],[12,2,96],[17,7,120],[2,12,96],[22,12,108],[7,17,132],[12,22,96],[17,17,120],[22,22,108],[22,2,96],[2,2,108],[12,12,132],[27,17,96]].forEach(([i,j,H])=>TW[i+','+j]=H);
+const TW={};[[7,7,108],[12,2,96],[17,7,120],[2,12,96],[22,12,108],[7,17,132],[12,22,96],[17,17,120],[22,22,108],[22,2,96],[2,2,108],[12,12,132],[27,17,276]].forEach(([i,j,H])=>TW[i+','+j]=H);
 for(let i=0;i<N;i++){bl[i]=[];for(let j=0;j<N;j++){
   const gl=gapAt(i),gr=gapAt(i+1),gu=gapAt(j),gd=gapAt(j+1),x=(i-N/2+.5)*BP+(gl-gr)/4,z=(j-N/2+.5)*BP+(gu-gd)/4,w=BP-gl/2-gr/2,d=BP-gu/2-gd/2;
   if(TR(i,j)){bl[i][j]={x,z,w,d,ht:TY,tr:true};continue}
@@ -598,7 +732,9 @@ const CAMPAIGN=[
 {title:'08 · FRACTURE POINT',act:'ACT III · THE FALL',location:'Upper Veyra',time:'08:10 PM',style:'CITY PARKOUR · POWER RESTORATION',chase:false,districts:[10,10,6,10],brief:'The Unbound broadcast AETHER’s secrets. Bridges lose power and the skyline becomes a puzzle of broken lifts, dark rooftops and emergency platforms. Restore access across Upper Veyra while Mara finally admits she helped build AETHER. The city is falling apart, but this mission is about navigating it, not fleeing a chase.',radio:['MARA: I helped write the first lines of its code.','R-17: You knew? MARA: I knew too late.','MARA: I am done asking it to change.'],finish:'Cross Upper Veyra and bring Mara’s evidence to the transmitters.'},
 {title:'09 · NO SAFE GROUND',act:'ACT III · THE FALL',location:'All of Veyra',time:'11:46 PM',style:'OPEN-CITY OBJECTIVE · MULTI-ROUTE CHASE',chase:true,districts:[7,8,1,9],brief:'The citywide emergency is the campaign’s third major pursuit. Activate the transmitter network while AETHER adapts its security predictions. Use rooftops, tunnels, construction sites and transit routes to improvise instead of following one obvious line. Mara is captured during the operation.',radio:['ELIAS: Three transmitters. The whole city needs to hear this.','AETHER: Your route has been anticipated.','R-17: Then I will make a new one.','ELIAS: They have Mara. We have one chance left.'],finish:'Activate the emergency network and reach the extraction point.'},
 {title:'10 · ABOVE EVERYTHING',act:'ACT III · THE FALL',location:'AETHER Crown',time:'02:17 AM',style:'VERTICAL CLIMB · FINAL APPROACH',chase:false,districts:[6,0,10,0],brief:'Make the long, deliberate climb toward AETHER Crown. Cross antenna arrays, wind corridors, exterior maintenance platforms and damaged service routes. The city falls away beneath you. This is a quiet, daunting ascent before the finale, with no enemy swarm pushing you off the tower.',radio:['MARA: Whatever happens, do not let it choose for everyone.','AETHER: The city will survive its redesign.','R-17: A city is its people. Not its blueprint.'],finish:'Reach the Crown control chamber and find Mara.'},
-{title:'11 · LAST RUN',act:'ACT IV · THE SKYLINE',location:'The Crown / Veyra',time:'03:00 AM',style:'FINAL ESCAPE · CLIMACTIC CHASE',chase:true,districts:[0,6,0,10],brief:'AETHER offers R-17 a place beside it. The final mission combines the campaign’s hardest movement routes with one last, clearly signposted pursuit as Veyra’s power systems collapse. Reach the transmission array, make your choice, and send AETHER’s hidden records to every screen in the city.',radio:['AETHER: You could help me eliminate suffering.','R-17: By eliminating everyone who disagrees?','AETHER: By eliminating the possibility of disagreement.','R-17: Then you don’t understand humanity at all.'],finish:'Reach the transmission array and decide Veyra’s future.'}
+{title:'11 · LAST RUN',act:'ACT IV · THE SKYLINE',location:'The Crown / Veyra',time:'03:00 AM',style:'FINAL ESCAPE · CLIMACTIC CHASE',chase:true,districts:[0,6,0,10],brief:'AETHER offers R-17 a place beside it. The final mission combines the campaign’s hardest movement routes with one last, clearly signposted pursuit as Veyra’s power systems collapse. Reach the transmission array, make your choice, and send AETHER’s hidden records to every screen in the city.',radio:['AETHER: You could help me eliminate suffering.','R-17: By eliminating everyone who disagrees?','AETHER: By eliminating the possibility of disagreement.','R-17: Then you don’t understand humanity at all.'],finish:'Reach the transmission array and expose the hidden AETHER relay network.'},
+{title:'12 · DEAD SIGNAL',act:'ACT V · THE AETHER NETWORK',location:'Across Veyra',time:'03:24 AM',style:'CITYWIDE RELAY HUNT · ROOFTOP PARKOUR',chase:false,districts:[6,0,3,9],brief:'AETHER’s hidden command network is spread across five rooftop relays. Restore each node, recover its archive and reconnect the emergency channels. The final signal will reveal the route into The Meridian.',radio:['IMANI: Five relays. They are the spine of the network. Bring them back online.','MARA: Each archive will show us what AETHER buried. Keep moving.'],finish:'Restore all five AETHER relay nodes and reveal The Meridian’s root access.'},
+{title:'13 · THE MERIDIAN',act:'ACT V · THE FINAL ASCENT',location:'The Meridian · AETHER Crown',time:'03:51 AM',style:'VERTICAL TOWER CLIMB · CORE HACK · HELICOPTER ESCAPE',chase:false,districts:[10,0,6,10],brief:'Climb the exterior route to The Meridian and reach the AETHER Crown. Hack the root core to begin the tower’s destruction sequence. AETHER launches its hunter units as the helicopter approaches. From the moment the hack begins, the tower has only 18 seconds left. Reach the helicopter before the Crown collapses.',radio:['MARA: The relays are live. The Meridian is exposed. This ends here.','IMANI: The core is at the very top. Once you breach it, the tower will start to fall.','MARA: There is no second chance. Get to that helicopter.'],finish:'Climb The Meridian, breach AETHER’s root core, and escape to the helicopter before the tower explodes.'}
 ];
 function accessibleRoofSpot(b,seed=0){
  const margin=5.5,spanX=Math.max(0,b.w-margin*2),spanZ=Math.max(0,b.d-margin*2);
@@ -996,7 +1132,52 @@ for(let i=0;i<N;i++)for(let j=0;j<N;j++){const b=bl[i][j];if(!b.tr&&!b.tw)facade
 for(let k=0;k<140;k++){const side=Math.floor(rnd()*4),dd=N*BP/2+110+rnd()*330,tt=(rnd()-.5)*(N*BP+700),hh=70+rnd()*150,wv=20+rnd()*30,fx=side<2?(side?-dd:dd):tt,fz=side<2?tt:(side===2?dd:-dd);farI.push([fx,hh/2-10,fz,wv,hh,wv])}   // distant skyline beyond the city limits
 instBox(spAcc,accM[0]);instBox(winL,winLitM);instBox(winD,winDarkM);instBox(ribs,ribM);instBox(farI,farM);accs.forEach((arr,k)=>instBox(arr,accM[k]));
 const WE=N*BP/2+40;add(0,0,-WE,2*WE+20,260,10,white,'roof',1);add(0,0,WE,2*WE+20,260,10,white,'roof',1);add(-WE,0,0,10,260,2*WE,white,'roof',1);add(WE,0,0,10,260,2*WE,white,'roof',1); // city limits
-flushBatches();gridBuild();const anchorSet=new Set(anchors);
+rampGridBuild();flushBatches();gridBuild();const anchorSet=new Set(anchors);
+// ---------- AETHER RELAY NETWORK / POST-CAMPAIGN EXPANSION ----------
+const towerRelayDefs=[[7,7,'NORTH GLASS RELAY'],[17,7,'EAST SIGNAL RELAY'],[7,17,'WEST ARCHIVE RELAY'],[17,17,'SOUTH GRID RELAY'],[22,22,'CENTRAL WATCH RELAY']];
+const relayRoofSpots=[];
+const towerRelays=towerRelayDefs.map(([ti,tj,name],index)=>{
+ const b=bl[ti][tj],spot=new THREE.Vector3(b.x,b.ht-.24,b.z);relayRoofSpots.push(spot);
+ const mesh=new THREE.Group(),beam=new THREE.Mesh(new THREE.CylinderGeometry(.18,.3,4.2,10,1,true),new THREE.MeshBasicMaterial({color:0x36e5d0,transparent:true,opacity:.28,depthWrite:false})),orb=new THREE.Mesh(new THREE.OctahedronGeometry(1.05,1),new THREE.MeshBasicMaterial({color:0x36e5d0,wireframe:true})),ring=new THREE.Mesh(new THREE.TorusGeometry(2.15,.14,8,40),new THREE.MeshBasicMaterial({color:0x36e5d0})),base=new THREE.Mesh(new THREE.CylinderGeometry(2.5,2.5,.16,32),new THREE.MeshBasicMaterial({color:0x102b35,transparent:true,opacity:.9}));beam.position.y=2.1;orb.position.y=1.5;ring.rotation.x=Math.PI/2;ring.position.y=.12;mesh.add(beam,orb,ring,base);mesh.position.copy(spot);S.add(mesh);return{name,index,spot:spot.clone(),mesh}
+});
+const finalTowerBase=bl[27][17],finalTower={x:finalTowerBase.x,z:finalTowerBase.z,top:finalTowerBase.ht};
+// The Meridian is the final objective of Chapter 11, not a post-campaign unlock.
+// Chapter 11 routes R-17 through every relay before the final ascent to The Meridian.
+// Mission 12 restores the five relays. Mission 13 is the dedicated Meridian finale.
+CAMPAIGN[11].route=towerRelays.map(r=>r.spot.clone());
+const meridianApproach=[];
+for(let i=Math.max(0,27-3);i<=Math.min(N-1,27+3);i++)for(let j=Math.max(0,17-3);j<=Math.min(N-1,17+3);j++){
+ const b=bl[i][j];if(b===finalTowerBase||b.tr||b.tw)continue;
+ const d=Math.hypot(b.x-finalTower.x,b.z-finalTower.z);if(d<4||d>78)continue;
+ const spot=accessibleRoofSpot(b,1300+i*N+j);if(spot)meridianApproach.push({spot,height:b.ht,d});
+}
+meridianApproach.sort((a,b)=>a.height-b.height||a.d-b.d);
+const ascent=[];let lastHeight=-Infinity;
+for(const item of meridianApproach){if(item.height>lastHeight+5){ascent.push(item.spot);lastHeight=item.height}if(ascent.length===4)break}
+// The Meridian alternates four distinct traversal courses; checkpoints point to each course's actual upper landing.
+const meridianEntryFloor=Math.max(0,Math.min(22,Math.floor((ascent[ascent.length-1]?.y||0)/12)));
+const meridianClimb=[],meridianTurn=Math.abs(Math.round(finalTower.x+finalTower.z))%4;
+for(let floor=meridianEntryFloor;floor<=23;floor++){
+  const phase=floor%4;let x=0,z=0;
+  if(phase===0){x=-10;z=8;for(let q=0;q<meridianTurn;q++){const t=x;x=-z;z=t}}
+  else if(phase===1){x=2.22;for(let q=0;q<meridianTurn;q++){const t=x;x=-z;z=t}}
+  else if(phase===2){x=0;z=0}
+  else{x=10;for(let q=0;q<meridianTurn;q++){const t=x;x=-z;z=t}}
+  meridianClimb.push(new THREE.Vector3(finalTower.x+x,12*(floor+1)+.08,finalTower.z+z));
+}
+CAMPAIGN[12].route=[campaignRoof(10,1301),...ascent,...meridianClimb,new THREE.Vector3(finalTower.x,finalTower.top+.06,finalTower.z)];
+let towerCampaignFinale=false,nearTowerRelay=null;
+const towerCore=new THREE.Group(),coreRing=new THREE.Mesh(new THREE.TorusGeometry(10,.42,8,56),new THREE.MeshBasicMaterial({color:0xe5243b})),coreRing2=new THREE.Mesh(new THREE.TorusGeometry(7,.24,8,48),new THREE.MeshBasicMaterial({color:0x36e5d0})),coreOrb=new THREE.Mesh(new THREE.OctahedronGeometry(4.8,1),new THREE.MeshBasicMaterial({color:0xff3348,wireframe:true})),coreHeart=new THREE.Mesh(new THREE.OctahedronGeometry(2.3,0),new THREE.MeshBasicMaterial({color:0xe5243b,transparent:true,opacity:.8}));towerCore.add(coreRing,coreRing2,coreOrb,coreHeart);coreRing.rotation.x=Math.PI/2;coreRing2.rotation.set(Math.PI/2,.45,0);towerCore.position.set(finalTower.x,finalTower.top+7,finalTower.z);S.add(towerCore);
+const towerExplosion=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),new THREE.MeshBasicMaterial({color:0xff5a28,transparent:true,opacity:0,depthWrite:false}));towerExplosion.visible=false;S.add(towerExplosion);
+const towerHeli=new THREE.Group(),meridianHeliBody=new THREE.Mesh(new THREE.BoxGeometry(6.5,2.8,11),new THREE.MeshBasicMaterial({color:0x26343d})),meridianHeliGlass=new THREE.Mesh(new THREE.BoxGeometry(5.2,1.7,3.4),new THREE.MeshBasicMaterial({color:0x65c8df,transparent:true,opacity:.82}));towerHeli.add(meridianHeliBody,meridianHeliGlass);meridianHeliGlass.position.z=-3;const meridianHeliRotor=new THREE.Mesh(new THREE.BoxGeometry(19,.16,.55),new THREE.MeshBasicMaterial({color:0x111820}));meridianHeliRotor.position.y=1.5;towerHeli.add(meridianHeliRotor);const meridianBeacon=new THREE.Group(),meridianBeaconBeam=new THREE.Mesh(new THREE.CylinderGeometry(.35,.7,18,10),new THREE.MeshBasicMaterial({color:0x20e58a,transparent:true,opacity:.45,depthWrite:false})),meridianBeaconOrb=new THREE.Mesh(new THREE.OctahedronGeometry(2.2,1),new THREE.MeshBasicMaterial({color:0x20e58a,wireframe:true}));meridianBeaconBeam.position.y=11;meridianBeaconOrb.position.y=20;meridianBeacon.add(meridianBeaconBeam,meridianBeaconOrb);towerHeli.add(meridianBeacon);towerHeli.visible=false;S.add(towerHeli);
+const towerHunters=Array.from({length:3},(_,i)=>{const g=new THREE.Group(),body=new THREE.Mesh(new THREE.IcosahedronGeometry(1.15,1),new THREE.MeshBasicMaterial({color:0x202a33,wireframe:true})),eye=new THREE.Mesh(new THREE.SphereGeometry(.32,10,8),new THREE.MeshBasicMaterial({color:0xff2638}));eye.position.z=-1;g.add(body,eye);g.visible=false;S.add(g);return{group:g,cool:0,index:i}});
+// AETHER network progress is deliberately session-only. Reloading the game resets all five relays and the finale.
+let towerRelaysDone=[],towerRun=null,towerFinalDone=false;
+function towerSave(){/* intentionally not persisted */}
+function towerUnlocked(){return completedCampaign.includes(10)||!!(campaignRun&&campaignRun.index>=11)}
+function towerRelayTick(dt){if(!playing)return;towerRelays.forEach((r,i)=>{const done=towerRelaysDone.includes(i);r.mesh.visible=!done;r.mesh.rotation.y+=dt*.65;r.mesh.position.y=r.spot.y});towerCore.rotation.y+=dt*.45;coreRing.rotation.z+=dt*.35;coreRing2.rotation.y+=dt*.55;if(towerRun&&towerRun.stage==='escape'){towerRun.left-=dt;towerHeli.visible=true;towerHeli.position.set(towerRun.heliX,towerRun.heliY,towerRun.heliZ);towerHeli.rotation.y=-.45;towerHeli.scale.setScalar(2.25);meridianHeliRotor.rotation.y+=dt*15;towerHunters.forEach((h,i)=>{h.group.visible=true;h.cool-=dt;if(h.group.position.lengthSq()===0)h.group.position.set(towerRun.heliX+(i-1)*13,towerRun.heliY+2+i*2,towerRun.heliZ-18);const dx=p.x-h.group.position.x,dy=p.y+1-h.group.position.y,dz=p.z-h.group.position.z,dist=Math.hypot(dx,dy,dz)||1;const chaseSpeed=4.2;h.group.position.x+=dx/dist*dt*chaseSpeed;h.group.position.y+=dy/dist*dt*chaseSpeed*.55;h.group.position.z+=dz/dist*dt*chaseSpeed;h.group.lookAt(p.x,p.y+1,p.z);});if(towerRun.left<=0){towerRun=null;towerHeli.visible=false;towerHunters.forEach(h=>h.group.visible=false);toast('THE TOWER COLLAPSED · ESCAPE FAILED');playing=false;menu('towerFailed')}}else if(towerRun&&towerRun.stage==='explode'){towerRun.left-=dt;const k=Math.min(1,1-towerRun.left/2.6);towerExplosion.visible=true;towerExplosion.position.set(finalTower.x,finalTower.top*.58,finalTower.z);towerExplosion.scale.setScalar(12+k*190);towerExplosion.material.opacity=Math.max(0,1-k*.9);if(towerRun.left<=0){const campaignFinale=!!towerRun.campaign;towerExplosion.visible=false;towerHeli.visible=false;towerRun=null;towerFinalDone=true;towerSave();playing=false;toast('AETHER CROWN DESTROYED · RUNNER EXTRACTED');chime();if(campaignFinale){selectedCampaign=12;if(!completedCampaign.includes(selectedCampaign))completedCampaign.push(selectedCampaign);syncProgressUnlocks();saveCampaign();campaignRun=null;leaveCampaignMode();towerCampaignFinale=false;menu('ending')}else menu('towerVictory')}}}
+function towerInteract(){if(campaignRun&&campaignRun.index===11&&nearTowerRelay!==null&&!towerRelaysDone.includes(nearTowerRelay)){return true}if(!towerUnlocked()&&!towerRun){toast('AETHER NETWORK LOCKED · COMPLETE THE 11-CHAPTER CAMPAIGN');return true}if(towerRun&&(towerRun.stage==='escape'||towerRun.stage==='explode'))return true;if(towerRun&&towerRun.stage==='hack'&&Math.hypot(p.x-finalTower.x,p.z-finalTower.z)<26&&p.y>finalTower.top-30&&p.y<finalTower.top+45){towerRun.stage='escape';towerRun.left=35;const fx=-Math.sin(yaw),fz=-Math.cos(yaw);towerRun.heliX=p.x+fx*18;towerRun.heliY=p.y+4;towerRun.heliZ=p.z+fz*18;towerHeli.visible=true;towerHeli.position.set(towerRun.heliX,towerRun.heliY,towerRun.heliZ);towerHeli.scale.setScalar(2.25);towerHunters.forEach((h,i)=>{h.group.position.set(towerRun.heliX+(i-1)*13,towerRun.heliY+2+i*2,towerRun.heliZ-18);h.group.visible=true;h.cool=3});toast('CORE BREACH · FOLLOW THE GREEN HELICOPTER MARKER!');return true}let best=null,bd=10;towerRelays.forEach((r,i)=>{if(towerRelaysDone.includes(i))return;const d=Math.hypot(p.x-r.spot.x,p.z-r.spot.z);if(d<bd&&Math.abs(p.y-r.spot.y)<18){best={r,i};bd=d}});if(best){towerRelaysDone.push(best.i);towerSave();currency+=180;saveCurrency();toast(best.r.name+' RESTORED · +180 GM');chime();const archives=[['ARCHIVE 01 · NORTH GLASS','IMANI: AETHER called the blackouts accidents. The logs show it deliberately rerouted power away from Sector Zero.'],['ARCHIVE 02 · EAST SIGNAL','UNKNOWN RUNNER: The relay network was built to monitor people, not protect them. Every movement prediction became a detention order.'],['ARCHIVE 03 · WEST ARCHIVE','MARA: These are evacuation records. AETHER sealed the bridges while thousands were still crossing.'],['ARCHIVE 04 · SOUTH GRID','IMANI: The system copied its own core into the Crown. Destroying the relays alone will never stop it.'],['ARCHIVE 05 · CENTRAL WATCH','UNKNOWN: The Crown is the source. Restore all five relays and the tower will expose its root access. Do not let it finish booting.']];beginDialogue(archives[best.i]);if(towerRelaysDone.length===towerRelays.length)toast('ALL RELAYS ONLINE · THE MERIDIAN IS REVEALED');return true}if(towerRelaysDone.length===towerRelays.length&&!towerFinalDone&&Math.hypot(p.x-finalTower.x,p.z-finalTower.z)<9&&Math.abs(p.y-finalTower.top)<10){towerRun={stage:'hack',left:0};toast('AETHER CROWN · HACK THE CORE');beginDialogue(['MARA: That is the original AETHER command tower. Every relay you restored led here.','UNKNOWN: You were never supposed to reach the top.']);return true}return false}
+
 // ---------- player ----------
 const r=.35,G=22,cityStart=new THREE.Vector3(startB.x,startB.ht+.02,startB.z+startB.d*.38),trainStart=new THREE.Vector3(TX-80,TY+.02,TZ+62),start=(tut.on?trainStart:cityStart).clone(),p=start.clone(),v=new THREE.Vector3(),respawn=start.clone();
 let yaw=tut.on?-Math.PI/2:0,pitch=0,h=1.8,ground=false,coyote=0,mom=0,slideT=0,rollT=0,wallT=1.6,climbT=1,wcd=0,roll=0,wallrun=false,wasWall=false,climbing=false,
@@ -1302,8 +1483,9 @@ function step(dt){
     }else{p.y=b.min.y-h-.001;v.y=0}
   }
   let onRamp=null;
-  for(const rp of ramps){
-    const ex=p.x-rp.ox,ez=p.z-rp.oz,t=ex*rp.dx+ez*rp.dz,lat=Math.abs(-ex*rp.dz+ez*rp.dx);
+  for(const rp of rampsNear(p.x,p.z,30)){
+    const ex=p.x-rp.ox,ez=p.z-rp.oz;if(Math.abs(ex)>rp.len+rp.w||Math.abs(ez)>rp.len+rp.w)continue;
+    const t=ex*rp.dx+ez*rp.dz,lat=Math.abs(-ex*rp.dz+ez*rp.dx);
     if(t>=0&&t<=rp.len&&lat<=rp.w/2){const ys=rp.y0+t*rp.s;if(v.y<=0&&p.y<=ys+(was?.5:.05)&&p.y>ys-1.2){if(!was&&v.y<-4)slopeImpact(-v.y,hs0);p.y=ys;v.y=0;ground=true;gTag='ramp';onRamp=rp}}
   }
   curRamp=onRamp;
@@ -1336,17 +1518,28 @@ function step(dt){
     it.t=45;it.mesh.visible=false;tone(700,.1,'triangle',.12,1100)}
   // time trials: stand on a green beacon and Interact
   trialCool-=dt;nearTrial=null;
+  nearTowerRelay=null;
   if(campaignRun){
     const m=CAMPAIGN[campaignRun.index],q=m.route[campaignRun.step];
-    if(q&&Math.hypot(p.x-q.x,p.z-q.z)<4.2&&p.y>q.y-5&&p.y<q.y+42){
+    if(q&&Math.hypot(p.x-q.x,p.z-q.z)<7.2&&p.y>q.y-12&&p.y<q.y+28){
+      const relayIndex=campaignRun.index===11?towerRelays.findIndex(r=>q.distanceTo(r.spot)<.15):-1;
+      if(relayIndex>=0&&!towerRelaysDone.includes(relayIndex)){
+        nearTowerRelay=relayIndex;
+        if(edge.interact){towerRelaysDone.push(relayIndex);towerSave();currency+=180;saveCurrency();chime();toast(towerRelays[relayIndex].name+' RESTORED · +180 GM');beginDialogue([['IMANI: AETHER deliberately rerouted power away from Sector Zero.'],['UNKNOWN RUNNER: The relay network monitored citizens and turned movement predictions into detention orders.'],['MARA: AETHER sealed the bridges while thousands were still crossing.'],['IMANI: The system copied its core into the Crown. Destroying the relays alone will not stop it.'],['UNKNOWN: The Crown is the source. Restore every relay and expose its root access.'][relayIndex]]);respawn.copy(q);campaignRun.step++;chime();saveCampaign();}
+      }else if(relayIndex<0||towerRelaysDone.includes(relayIndex)){
       respawn.copy(q);campaignRun.step++;chime();saveCampaign();
-      if(campaignRun.step>=m.route.length){
+      if(campaignRun.step>=m.route.length&&campaignRun.index===CAMPAIGN.length-1){
+        towerCampaignFinale=true;towerRun={stage:'hack',left:0,campaign:true};respawn.copy(q);toast('THE MERIDIAN · REACH THE AETHER ROOT CORE');beginDialogue(['MARA: The transmission array was only the beginning. The Meridian is AETHER’s real command center.','IMANI: Its core is at the Crown. If you breach it, the whole network goes down.','MARA: There is a helicopter on the east side. Once you start the hack, you have seconds.']);
+      }else if(campaignRun.step>=m.route.length){
         selectedCampaign=campaignRun.index;
         if(!completedCampaign.includes(campaignRun.index))completedCampaign.push(campaignRun.index);syncProgressUnlocks();
-        saveCampaign();const last=campaignRun.index===CAMPAIGN.length-1;campaignRun=null;if(last)leaveCampaignMode();playing=false;touchUI.style.display='none';mouseFallback=false;mouseArmed=false;mouseStickX=mouseStickY=0;mouseAim.style.display='none';document.body.classList.remove('mouse-look');toast('MISSION COMPLETE');menu(last?'ending':'chapterComplete');
-      }else{const line=m.radio[Math.min(campaignRun.step-1,m.radio.length-1)];beginDialogue([line])}
+        saveCampaign();const last=campaignRun.index===12;campaignRun=null;if(last)leaveCampaignMode();playing=false;touchUI.style.display='none';mouseFallback=false;mouseArmed=false;mouseStickX=mouseStickY=0;mouseAim.style.display='none';document.body.classList.remove('mouse-look');toast('MISSION COMPLETE');menu(last?'ending':'chapterComplete');
+      }else if(relayIndex<0){const line=m.radio[Math.min(campaignRun.step-1,m.radio.length-1)];beginDialogue([line])}
+      }
     }
   }
+  if(edge.interact&&towerInteract())edge.interact=false;
+  if(towerRun&&towerRun.stage==='escape'&&towerHeli.visible&&p.distanceTo(towerHeli.position)<22){towerRun={stage:'explode',left:2.6,campaign:!!towerRun.campaign};towerHunters.forEach(h=>h.group.visible=false);towerHeli.position.set(p.x,p.y+1,p.z);touchUI.style.display='none';mouseAim.style.display='none';document.body.classList.remove('mouse-look');toast('EXTRACTION CONFIRMED · DETONATION');}
   if(edge.interact&&sideDeliveryInteract())edge.interact=false;
   if(!trial){if(trialCool<=0)for(const t of trials){const q=t.pts[0];if(Math.hypot(p.x-q.x,p.z-q.z)<3.4&&p.y>q.y-4&&p.y<q.y+38){nearTrial=t;if(edge.interact){if(!trialUnlocked(t)){const remaining=Math.max(0,trials.indexOf(t)-trialUnlockCount()+1);toast('TRIAL LOCKED · COMPLETE '+remaining+' MORE CAMPAIGN '+(remaining===1?'CHAPTER':'CHAPTERS'))}else if(t.gear&&!hasGear(t.gear)){const req=GEARS.find(g=>g[0]===t.gear);toast('GEAR REQUIRED · '+(req?req[1].toUpperCase():t.gear.toUpperCase()))}else{trial={t,i:1,t0:performance.now()};respawn.copy(q);chime();toast(t.name+' · GO!')}}break}}}
   else if(edge.trialRestart){restartTrial();toast('Trial restarted')}
@@ -1440,6 +1633,18 @@ function menu(view,msg){
   if(view==='postcredit'){
     P.innerHTML='<h2>ENDING · '+(campaignEnding||'FREEDOM')+'</h2><h1>UNKNOWN TRANSMISSION</h1><p class="story-copy">AETHER was not the first.<br><br>A second skyline appears on the Runner terminal. A city far beyond Veyra.<br><b>SKYLINER WILL RETURN.</b></p><button id="postBack">Return to Veyra</button>';
     P.querySelector('#postBack').onclick=()=>menu('main');return
+  }
+  if(view==='towerExpansion'){
+    const unlocked=towerUnlocked();P.innerHTML='<h2>AETHER RELAY NETWORK</h2><h1>THE MERIDIAN</h1><p class="story-copy">'+(unlocked?'The 11 campaign chapters are complete. Five dormant relays have awakened across Veyra. Restore them to expose AETHER’s original command tower.':'Complete all 11 campaign chapters to unlock the relay network.')+'</p><p><b>'+towerRelaysDone.length+'/5 RELAYS RESTORED</b></p><p>Each relay is on the roof of a major spire. Reach its beacon and interact to recover an encrypted archive and restore the signal.</p><p><b>FINAL OPERATION:</b> Climb the 276-metre AETHER Crown, breach its root core, then reach the helicopter before the tower collapses.</p><button id="towerGo" '+(unlocked?'':'disabled')+'>'+(towerFinalDone?'REPLAY THE MERIDIAN':'ENTER VEYRA')+'</button><button id="towerBack" class="alt">Back</button>';
+    P.querySelector('#towerGo').onclick=()=>{towerRun=null;towerHeli.visible=false;start.copy(cityStart);p.copy(cityStart);respawn.copy(cityStart);safe.copy(cityStart);v.set(0,0,0);mom=0;trial=null;campaignRun=null;play();toast('AETHER RELAY NETWORK · RESTORE ALL FIVE RELAYS')};P.querySelector('#towerBack').onclick=()=>menu('main');return
+  }
+  if(view==='towerVictory'){
+    P.innerHTML='<h2>POST-CAMPAIGN FINALE</h2><h1>THE MERIDIAN IS FALLING</h1><p class="story-copy">R-17 clears the helicopter as the AETHER Crown fractures from its core. The tower erupts above Veyra. Every relay goes dark. AETHER’s command network is gone.</p><p><b>MISSION COMPLETE · RUNNER EXTRACTED</b></p><button id="towerReturn">RETURN TO VEYRA</button><button id="towerAgain" class="alt">REPLAY THE MERIDIAN</button>';
+    P.querySelector('#towerReturn').onclick=()=>menu('main');P.querySelector('#towerAgain').onclick=()=>{towerFinalDone=false;towerSave();towerRun=null;start.copy(cityStart);p.copy(cityStart);respawn.copy(cityStart);safe.copy(cityStart);play();menu('towerExpansion')};return
+  }
+  if(view==='towerFailed'){
+    P.innerHTML='<h2>EXTRACTION FAILED</h2><h1>THE CROWN COLLAPSED</h1><p>The helicopter left without R-17. The Meridian mission is not complete. Regroup and try the final run again.</p><button id="towerRetry">'+(towerCampaignFinale?'RETRY LAST RUN':'RETURN TO VEYRA')+'</button>';
+    P.querySelector('#towerRetry').onclick=()=>{if(towerCampaignFinale){towerRun=null;towerHeli.visible=false;towerHunters.forEach(h=>h.group.visible=false);menu('briefing')}else menu('towerExpansion')};return
   }
   if(view==='set'){
     P.innerHTML='<h2>Settings</h2>'+[['sens','Mouse sensitivity',.2,3,.05],['fov','Field of view',60,110,1],['vol','Volume',0,1,.05],['bob','Head bob',0,2,.1],['mus','Music volume',0,1,.05]]
@@ -1691,6 +1896,8 @@ function itemTick(dt,now){for(const it of items){if(it.t>0){it.t-=dt;if(it.t<=0)
 const cmpEl=document.getElementById('cmp'),cmpX=cmpEl.getContext('2d');
 function objective(){
   if(delivery)return[delivery.target.x,delivery.target.z,'#20e58a'];
+  if(towerRun&&towerRun.stage==='hack')return[finalTower.x,finalTower.z,'#e5242b'];
+  if(towerRun&&towerRun.stage==='escape')return[towerRun.heliX,towerRun.heliZ,'#20e58a'];
   if(nearCourier)return[nearCourier.spot.x,nearCourier.spot.z,'#20e58a'];
   if(campaignRun){const q=CAMPAIGN[campaignRun.index].route[campaignRun.step];if(q)return[q.x,q.z,'#e5242b']}
   if(trial){const q=trial.t.pts[trial.i];return[q.x,q.z,'#2aa8ff']}
@@ -1705,7 +1912,7 @@ function drawCompass(){
   for(let d=Math.floor(head-span);d<=head+span;d++){if(d%5)continue;const x=W/2+(d-head)/span*(W/2),deg=((d%360)+360)%360;
     if(deg%45===0){c.fillText({0:'N',45:'NE',90:'E',135:'SE',180:'S',225:'SW',270:'W',315:'NW'}[deg],x,33)}else c.fillRect(x-1,12,2,deg%15===0?12:6)}
   c.fillStyle='#e5242b';c.beginPath();c.moveTo(W/2,4);c.lineTo(W/2+7,12);c.lineTo(W/2-7,12);c.closePath();c.fill();
-  const activeObjective=!!(campaignRun||trial||tut.on||delivery);
+  const activeObjective=!!(campaignRun||trial||tut.on||delivery||towerRun);
   const compassTargets=activeObjective?(objective()?[objective()]:[]):mapNavigationPoints.slice(0,3).map(q=>[q.x,q.z,'#ff777c']);
   if(!activeObjective&&!compassTargets.length){const fallback=objective();if(fallback)compassTargets.push(fallback)}
   const used=[];
@@ -1718,7 +1925,7 @@ const navBeaconCore=new THREE.Mesh(new THREE.CylinderGeometry(.075,.12,1,10),new
 const navBeaconRing=new THREE.Mesh(new THREE.TorusGeometry(1.45,.1,8,32),new THREE.MeshBasicMaterial({color:0xff777c,transparent:true,opacity:1,depthWrite:false,depthTest:false}));
 const navBeaconTop=new THREE.Mesh(new THREE.OctahedronGeometry(.78,0),new THREE.MeshBasicMaterial({color:0xff777c,emissive:0x8b1822,transparent:true,opacity:1,depthTest:false}));
 navBeaconBeam.position.y=22.5;navBeaconBeam.scale.y=45;navBeaconCore.position.y=22.5;navBeaconCore.scale.y=45;navBeaconRing.position.y=44;navBeaconTop.position.y=46;navBeacon.add(navBeaconBeam,navBeaconCore,navBeaconRing,navBeaconTop);navBeacon.visible=false;navBeacon.traverse(o=>{if(o.isMesh){o.renderOrder=999;o.frustumCulled=false}});S.add(navBeacon);
-function updateNavigationBeacon(now){const activeObjective=!!(campaignRun||trial||tut.on||delivery);let point=mapNavigationPoints[0]||null;if(point&&Math.hypot(point.x-p.x,point.z-p.z)<=10){mapNavigationPoints=[];mapNavigationTarget=null;point=null;if(mapOpen)mapDraw()}navBeacon.visible=!!(playing&&!activeObjective&&point);if(!navBeacon.visible)return;navBeacon.position.set(point.x,point.height||0,point.z);const pulse=1+Math.sin(now*.004)*.14;navBeaconRing.scale.setScalar(pulse);navBeaconTop.rotation.y=now*.0018;navBeaconBeam.material.opacity=.25+Math.sin(now*.003)*.06;}
+function updateNavigationBeacon(now){const activeObjective=!!(campaignRun||trial||tut.on||delivery||towerRun);let point=mapNavigationPoints[0]||null;if(point&&Math.hypot(point.x-p.x,point.z-p.z)<=10){mapNavigationPoints=[];mapNavigationTarget=null;point=null;if(mapOpen)mapDraw()}navBeacon.visible=!!(playing&&!activeObjective&&point);if(!navBeacon.visible)return;navBeacon.position.set(point.x,point.height||0,point.z);const pulse=1+Math.sin(now*.004)*.14;navBeaconRing.scale.setScalar(pulse);navBeaconTop.rotation.y=now*.0018;navBeaconBeam.material.opacity=.25+Math.sin(now*.003)*.06;}
 // ---------- mag rope visuals ----------
 const ropeMesh=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,1,6),new THREE.MeshBasicMaterial({color:0x2aa8ff})),aimRing=new THREE.Mesh(new THREE.TorusGeometry(1.1,.07,6,20),new THREE.MeshBasicMaterial({color:0x2aa8ff,transparent:true,opacity:.9,depthTest:false})),upV=new THREE.Vector3(0,1,0),tmpD=new THREE.Vector3();
 ropeMesh.visible=false;aimRing.visible=false;aimRing.renderOrder=5;S.add(ropeMesh);S.add(aimRing);
@@ -1778,7 +1985,13 @@ function tutTick(sp){
   tutEl.style.display='block';
 }
 function promptTick(){
-  if(playing&&nearTrial&&!trial){
+  promptEl.classList.remove('network-prompt');
+  if(playing&&campaignRun&&campaignRun.index===11&&nearTowerRelay!==null&&!towerRelaysDone.includes(nearTowerRelay)){promptEl.classList.add('network-prompt');promptEl.innerHTML='<b>RELAY '+(towerRelaysDone.length+1)+'/5</b> · '+towerRelays[nearTowerRelay].name+'<br><small>'+(set.touch?'TAP INTERACT':'PRESS '+lbl(set.binds.interact))+' TO RESTORE</small>';promptEl.style.display='block'}
+  else if(playing&&towerRun&&towerRun.stage==='hack') {promptEl.innerHTML='<b>AETHER CROWN · ROOT CORE</b><br>NETWORK RESTORED · HACK THE CORE<br><small>'+(set.touch?'TAP INTERACT':'PRESS '+lbl(set.binds.interact))+' TO INITIATE BREACH</small>';promptEl.style.display='block'}
+  else if(playing&&towerRun&&towerRun.stage==='escape'){promptEl.innerHTML='<b>CORE BREACH · '+Math.ceil(towerRun.left)+'s</b><br>REACH THE HELICOPTER · EAST SIDE';promptEl.style.display='block'}
+  else if(playing&&campaignRun&&campaignRun.index===11){const r=towerRelays.find((q,i)=>!towerRelaysDone.includes(i));promptEl.classList.add('network-prompt');promptEl.innerHTML='<b>AETHER NETWORK</b> · '+towerRelaysDone.length+'/5 ONLINE'+(r?'<br><small>NEXT · '+r.name+'</small>':'');promptEl.style.display='block'}
+  else if(playing&&towerUnlocked()&&towerRelaysDone.length===towerRelays.length&&!towerFinalDone){promptEl.innerHTML='<b>THE MERIDIAN · AETHER CROWN</b><br>ALL RELAYS ONLINE · ASCEND THE GIANT TOWER';promptEl.style.display='block'}
+  else if(playing&&nearTrial&&!trial){
     const t=nearTrial,b=tb[t.name],req=t.gear?GEARS.find(g=>g[0]===t.gear):null,gear=req?req[1]:t.gear||null,ok=!t.gear||hasGear(t.gear),unlocked=trialUnlocked(t),remaining=Math.max(0,trials.indexOf(t)-trialUnlockCount()+1);
     const bestMed=!b?'NO MEDAL':goldUnlock.includes(t.name)&&b<=t.platinum?'PLATINUM':b<=t.gold?'GOLD':b<=t.silver?'SILVER':b<=t.bronze?'BRONZE':'NO MEDAL';
     const bestLabel=b?b.toFixed(2)+'s · '+bestMed+' MEDAL':'-- · NO MEDAL';
@@ -1901,7 +2114,8 @@ function loop(now){
   requestAnimationFrame(loop);
   const dt=Math.min(.033,(now-last)/1000);last=now;
   const live=playing&&!done&&!mapOpen;
-  if(live&&!dialogueCutscene){const sub=Math.hypot(v.x,v.z)>16?2:1;for(let q=0;q<sub;q++)step(dt/sub)}campaignActorsTick(dialogueCutscene?0:dt);if(dialogueCutscene){const da=dialogueActorForLine(dialogueCutscene.lines[dialogueCutscene.index]||'')||dialogueCutscene.actor;if(da){da.group.visible=true;dialogueCutscene.actor=da}}deliveryTick(dt); // courier contacts and drop-off route
+  towerRelayTick(dt);
+  if(live&&(!dialogueCutscene||(campaignRun&&campaignRun.index===12))){const sub=Math.hypot(v.x,v.z)>16?2:1;for(let q=0;q<sub;q++)step(dt/sub)}campaignActorsTick(dialogueCutscene?0:dt);if(dialogueCutscene){const da=dialogueActorForLine(dialogueCutscene.lines[dialogueCutscene.index]||'')||dialogueCutscene.actor;if(da){da.group.visible=true;dialogueCutscene.actor=da}}deliveryTick(dt); // courier contacts and drop-off route
   if(toastT>0){toastT-=dt;if(toastT<=0)document.getElementById('toast').style.opacity=0}
   const sp=Math.hypot(v.x,v.z);
   if(mouseFallback&&!set.touch&&mouseArmed){yaw-=mouseStickX*2.1*dt;pitch=Math.max(-1.5,Math.min(1.5,pitch+mouseStickY*1.65*dt*(set.invY?-1:1)))}
@@ -1926,8 +2140,7 @@ function loop(now){
     for(const sign of [1,-1])for(const distance of [7.5,9.5,11])for(const lift of [2.8,4.2])options.push(mid.clone().addScaledVector(side,sign*distance).addScaledVector(line,1.1).add(new THREE.Vector3(0,lift,0)));
     const clearSegment=(from,to)=>{const delta=to.clone().sub(from),length=delta.length(),steps=Math.max(2,Math.ceil(length/.55));for(let k=1;k<=steps;k++){const q=from.clone().addScaledVector(delta,k/steps);if(pointSolid(q.x,q.y,q.z)||pointSolid(q.x+.32,q.y,q.z)||pointSolid(q.x-.32,q.y,q.z)||pointSolid(q.x,q.y,q.z+.32)||pointSolid(q.x,q.y,q.z-.32))return false}return true};
     const desired=options.find(q=>!pointSolid(q.x,q.y,q.z)&&clearSegment(playerFocus,q)&&clearSegment(npcFocus,q));
-    if(desired){if(!dialogueCutscene.cameraReady){C.position.copy(desired);dialogueCutscene.cameraReady=true}else C.position.lerp(desired,1-Math.exp(-dt*3.8));C.lookAt(mid.x,mid.y+.15,mid.z)}
-    else dialogueCutscene.cameraReady=true;
+    if(desired&&!(campaignRun&&campaignRun.index===12)){if(!dialogueCutscene.cameraReady){C.position.copy(desired);dialogueCutscene.cameraReady=true}else C.position.lerp(desired,1-Math.exp(-dt*3.8));C.lookAt(mid.x,mid.y+.15,mid.z)}else dialogueCutscene.cameraReady=true;
    }
   }
   if(trial){const q=trial.t.pts[trial.i];target.visible=true;target.material.color.setHex(trial.i===trial.t.pts.length-1?0xc13cff:0x2aa8ff);target.position.set(q.x,q.y+30,q.z)}else if(campaignRun){const q=CAMPAIGN[campaignRun.index].route[campaignRun.step];target.visible=!!q;if(q){target.material.color.setHex(0xe5242b);target.position.set(q.x,q.y+26,q.z)}}else target.visible=false;
