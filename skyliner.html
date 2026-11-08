@@ -533,7 +533,7 @@ const STORY_CAST=[['Mara Voss',0xe5242b,0],['Kade Mercer',0x1fd16b,2],['Dr. Iman
 function makeStoryActor(name,color,enemy){
  const g=new THREE.Group(),skinColors=[0xe2b895,0xc98f69,0x9b6548,0x704832],skin=new THREE.MeshLambertMaterial({color:skinColors[enemy?2:(name.length%skinColors.length)]}),shirt=new THREE.MeshLambertMaterial({color:enemy?0x252c35:color}),pants=new THREE.MeshLambertMaterial({color:enemy?0x171d25:[0x26384a,0x3b414b,0x59483d,0x243b38][name.length%4]}),boots=new THREE.MeshLambertMaterial({color:0x101318}),hair=new THREE.MeshLambertMaterial({color:enemy?0x111820:[0x25201c,0x39291f,0x171717,0x806044][name.length%4]}),trim=new THREE.MeshLambertMaterial({color:enemy?0xb92332:0xd9dce1}),eyeMat=new THREE.MeshBasicMaterial({color:0x17191d}),faceAccent=new THREE.MeshLambertMaterial({color:0x9b5548});
  const mesh=(geo,mat,x,y,z,scale)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);if(scale)m.scale.set(scale[0],scale[1],scale[2]);g.add(m);return m};
- const limb=(a,b,r1,r2,mat)=>{const d=new THREE.Vector3().subVectors(b,a),m=new THREE.Mesh(new THREE.CylinderGeometry(r2,r1,d.length(),8),mat);m.position.copy(a).add(b).multiplyScalar(.5);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());g.add(m);return m};
+ const armParts=[],legParts=[];const limb=(a,b,r1,r2,mat,kind)=>{const d=new THREE.Vector3().subVectors(b,a),m=new THREE.Mesh(new THREE.CylinderGeometry(r2,r1,d.length(),8),mat);m.position.copy(a).add(b).multiplyScalar(.5);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());g.add(m);if(kind==='arm')armParts.push(m);if(kind==='leg')legParts.push(m);return m};
  const V=(x,y,z)=>new THREE.Vector3(x,y,z);
  // Tailored body silhouette, with separate jacket, pelvis, limbs and footwear.
  mesh(new THREE.SphereGeometry(.22,10,8),pants,0,.91,0,[1.45,.72,1]);
@@ -543,13 +543,13 @@ function makeStoryActor(name,color,enemy){
  // Legs: articulated-looking thighs, tapered calves and boots.
  for(const side of [-1,1]){
   const x=side*.125;
-  limb(V(x,1.0,0),V(x*1.05,.59,.015),.115,.095,pants);
-  limb(V(x*1.05,.59,.015),V(x,.18,-.015),.085,.065,pants);
+  limb(V(x,1.0,0),V(x*1.05,.59,.015),.115,.095,pants,'leg');
+  limb(V(x*1.05,.59,.015),V(x,.18,-.015),.085,.065,pants,'leg');
   mesh(new THREE.BoxGeometry(.16,.13,.29),boots,x,.09,-.055);
   // Shoulder, upper arm and forearm, with visible cuffs.
   mesh(new THREE.SphereGeometry(.13,8,7),shirt,side*.31,1.43,0,[1,1,1]);
-  limb(V(side*.31,1.4,0),V(side*.39,1.12,-.015),.09,.075,shirt);
-  limb(V(side*.39,1.12,-.015),V(side*.34,.91,-.09),.07,.055,skin);
+  limb(V(side*.31,1.4,0),V(side*.39,1.12,-.015),.09,.075,shirt,'arm');
+  limb(V(side*.39,1.12,-.015),V(side*.34,.91,-.09),.07,.055,skin,'arm');
   mesh(new THREE.BoxGeometry(.14,.07,.13),trim,side*.34,.92,-.08);
   mesh(new THREE.SphereGeometry(.075,8,6),skin,side*.34,.86,-.09);
  }
@@ -592,7 +592,7 @@ function makeStoryActor(name,color,enemy){
    mesh(new THREE.BoxGeometry(.13,.11,.12),trim,.23,1.3,0);
   }
  }
- g.visible=false;S.add(g);return{name,group:g,enemy,hit:0,started:false}
+ g.visible=false;S.add(g);return{name,group:g,enemy,hit:0,started:false,armParts,legParts,phase:Math.random()*6.28,aiReady:false,gesture:0}
 }
 STORY_CAST.forEach(a=>storyActors.push(makeStoryActor(a[0],a[1],false)));
 
@@ -631,71 +631,81 @@ function chaseSample(t){
  for(let i=1;i<chaseTrail.length;i++){const b=chaseTrail[i];if(b.t>=t){const a=chaseTrail[i-1],k=(t-a.t)/Math.max(.001,b.t-a.t);return{x:a.x+(b.x-a.x)*k,y:a.y+(b.y-a.y)*k,z:a.z+(b.z-a.z)*k}}}
  return chaseTrail[chaseTrail.length-1];
 }
+function animateStoryActor(a,dt,speed,faceX,faceZ,clock){
+ const moving=speed>.35,weight=moving?Math.min(1,speed/5):0;
+ a.phase+=dt*(moving?7+speed*.55:1.8);
+ const swing=Math.sin(a.phase)*weight;
+ a.armParts.forEach((m,i)=>{const side=i<2?-1:1;m.rotation.x=swing*side*.72+(a.gesture>0?Math.sin(clock*5)*.42:0);});
+ a.legParts.forEach((m,i)=>{const side=i%2===0?-1:1;m.rotation.x=swing*side*.9;});
+ a.gesture=Math.max(0,a.gesture-dt);
+ if(Math.hypot(faceX,faceZ)>.06)a.group.rotation.y=Math.atan2(faceX,faceZ)+Math.PI;
+}
 function campaignActorsTick(dt){
  storyActors.forEach(a=>a.group.visible=false);campaignEnemies.forEach(a=>a.group.visible=false);
  if(!campaignRun)return;
- const mission=CAMPAIGN[campaignRun.index];
+ const ci=campaignRun.index,mission=CAMPAIGN[ci],allyName=({0:'Mara Voss',2:'Kade Mercer',3:'Dr. Imani Vale',5:'Elias Renn'}[ci]||'Mara Voss'),ally=storyActors.find(a=>a.name===allyName);
  if(!mission.chase){
-  const ally=storyActors.find(a=>a.name===({0:'Mara Voss',2:'Kade Mercer',3:'Dr. Imani Vale',5:'Elias Renn'}[campaignRun.index]||'Mara Voss'));
-  if(ally){const q=mission.route[Math.max(0,campaignRun.step-1)];ally.group.visible=true;ally.group.position.set(q.x+5,q.y,q.z+3)}
+  if(ally){
+   ally.group.visible=true;
+   const q=mission.route[Math.max(0,campaignRun.step-1)];
+   if(!ally.aiReady){ally.group.position.set(q.x+5,q.y,q.z+3);ally.aiReady=true}
+   const ox=ally.group.position.x,oz=ally.group.position.z,dx=p.x-ox,dz=p.z-oz,dist=Math.hypot(dx,dz);
+   // The named contact follows at a conversational distance, rather than remaining a static prop.
+   let tx=ox,tz=oz;
+   if(dist>6.5){tx=p.x-dx/Math.max(1,dist)*4.5;tz=p.z-dz/Math.max(1,dist)*4.5}
+   else if(dist<3.1){tx=p.x+Math.sin(yaw)*4.2;tz=p.z+Math.cos(yaw)*4.2}
+   const blend=1-Math.exp(-dt*1.35);
+   ally.group.position.x+=(tx-ox)*blend;ally.group.position.z+=(tz-oz)*blend;
+   ally.group.position.y+=(q.y-ally.group.position.y)*(1-Math.exp(-dt*1.8));
+   const speed=Math.hypot(ally.group.position.x-ox,ally.group.position.z-oz)/Math.max(.001,dt);
+   if(dist<9&&ally.gesture<=0&&Math.random()<dt*.07)ally.gesture=1.1;
+   animateStoryActor(ally,dt,speed,p.x-ally.group.position.x,p.z-ally.group.position.z,chaseClock);
+  }
   return;
  }
- chaseClock+=dt;chaseRecord+=dt;chaseWarmup+=dt;
- heliDropClock+=dt;
- const heliForward=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));
- const heliSide=new THREE.Vector3(heliForward.z,0,-heliForward.x);
+ chaseClock+=dt;chaseRecord+=dt;chaseWarmup+=dt;heliDropClock+=dt;
+ const heliForward=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw)),heliSide=new THREE.Vector3(heliForward.z,0,-heliForward.x);
  const heliPos=new THREE.Vector3(p.x+heliForward.x*20+heliSide.x*8,p.y+22+Math.sin(chaseClock*2)*.45,p.z+heliForward.z*20+heliSide.z*8);
  pursuitHeli.visible=chaseWarmup>=.8;
  if(pursuitHeli.visible){pursuitHeli.position.copy(heliPos);pursuitHeli.rotation.y=Math.atan2(heliForward.x,heliForward.z);heliRotor.rotation.y+=dt*28;heliTailRotor.rotation.x+=dt*24;}
-
  if(chaseRecord>=.055){chaseRecord=0;chaseTrail.push({t:chaseClock,x:p.x,y:p.y,z:p.z});while(chaseTrail.length&&chaseTrail[0].t<chaseClock-16)chaseTrail.shift()}
- // Give the runner a clear warning and a genuine head start before the pursuit enters.
+ if(ally){
+  ally.group.visible=true;
+  const q=mission.route[Math.max(0,campaignRun.step-1)];
+  if(!ally.aiReady){ally.group.position.set(q.x+5,q.y,q.z+3);ally.aiReady=true}
+  const ox=ally.group.position.x,oz=ally.group.position.z,dx=p.x-ox,dz=p.z-oz,dist=Math.hypot(dx,dz),tx=dist>6.5?p.x-dx/Math.max(1,dist)*4.5:p.x+Math.sin(yaw)*4.2,tz=dist>6.5?p.z-dz/Math.max(1,dist)*4.5:p.z+Math.cos(yaw)*4.2;
+  ally.group.position.x+=(tx-ox)*(1-Math.exp(-dt*1.35));ally.group.position.z+=(tz-oz)*(1-Math.exp(-dt*1.35));
+  const speed=Math.hypot(ally.group.position.x-ox,ally.group.position.z-oz)/Math.max(.001,dt);
+  animateStoryActor(ally,dt,speed,p.x-ally.group.position.x,p.z-ally.group.position.z,chaseClock);
+ }
  if(chaseWarmup<3.25)return;
- const ci=campaignRun.index,m=CAMPAIGN[ci],q=m.route[Math.max(0,campaignRun.step-1)],ally=storyActors.find(a=>a.name===({0:'Mara Voss',2:'Kade Mercer',3:'Dr. Imani Vale',5:'Elias Renn'}[ci]||'Mara Voss'));
- if(ally){ally.group.visible=true;ally.group.position.set(q.x+5,q.y,q.z+3)}
- const count=ci===0?5:ci<4?6:ci<7?7:8;
+ const m=mission,q=m.route[Math.max(0,campaignRun.step-1)],count=ci===0?5:ci<4?6:ci<7?7:8;
  for(let i=0;i<count;i++){
   const e=campaignEnemies[i];e.group.visible=true;e.hit=Math.max(0,e.hit-dt);
   if(!e.started){
-   e.started=true;e.dropping=true;e.dropT=0;
-   // Units rappel/drop from the helicopter before joining the pursuit trail.
-   e.cursor=Math.max(chaseTrail[0]?.t||0,chaseClock-(1.45+i*.2));
-   const spawn=chaseSample(e.cursor);
-   e.dropTo=spawn?new THREE.Vector3(spawn.x,spawn.y,spawn.z):p.clone();
-   e.dropFrom=heliPos.clone().add(new THREE.Vector3((i%3-1)*1.6,0,(Math.floor(i/3)-1)*1.5));
-   e.group.position.copy(e.dropFrom);
+   e.started=true;e.dropping=true;e.dropT=0;e.cursor=Math.max(chaseTrail[0]?.t||0,chaseClock-(1.45+i*.2));
+   const spawn=chaseSample(e.cursor);e.dropTo=spawn?new THREE.Vector3(spawn.x,spawn.y,spawn.z):p.clone();
+   e.dropFrom=heliPos.clone().add(new THREE.Vector3((i%3-1)*1.6,0,(Math.floor(i/3)-1)*1.5));e.group.position.copy(e.dropFrom);
   }
   if(e.dropping){
-   e.dropT+=dt;
-   const k=Math.min(1,e.dropT/1.65),ease=k*k*(3-2*k);
+   e.dropT+=dt;const k=Math.min(1,e.dropT/1.65),ease=k*k*(3-2*k);
    if(e.dropFrom&&e.dropTo)e.group.position.lerpVectors(e.dropFrom,e.dropTo,ease);
    e.group.position.y+=(1-k)*Math.sin(k*Math.PI)*.12;
+   animateStoryActor(e,dt,2,e.dropTo?e.dropTo.x-e.group.position.x:0,e.dropTo?e.dropTo.z-e.group.position.z:0,chaseClock);
    if(k>=1){e.dropping=false;e.cursor=Math.max(chaseTrail[0]?.t||0,chaseClock-1.8-i*.12)}
    continue;
   }
-  // Once on the rooftop, pursuers replay the runner's actual parkour route.
-  const rate=1.015+Math.min(.025,ci*.0035)+i*.0015;
-  e.cursor=Math.min(chaseClock-.08,e.cursor+dt*rate);
-  const target=chaseSample(e.cursor);
+  const rate=1.015+Math.min(.025,ci*.0035)+i*.0015;e.cursor=Math.min(chaseClock-.08,e.cursor+dt*rate);
+  const target=chaseSample(e.cursor);let dx=0,dz=0;
   if(target){
-   const dx=target.x-e.group.position.x,dz=target.z-e.group.position.z,dy=target.y-e.group.position.y;
-   const blend=1-Math.exp(-dt*9.5);
+   dx=target.x-e.group.position.x;dz=target.z-e.group.position.z;const dy=target.y-e.group.position.y,blend=1-Math.exp(-dt*9.5);
    e.group.position.x+=dx*blend;e.group.position.y+=dy*blend;e.group.position.z+=dz*blend;
-   if(Math.hypot(dx,dz)>.08)e.group.rotation.y=Math.atan2(dx,dz);
   }
-  const dx=p.x-e.group.position.x,dy=p.y-e.group.position.y,dz=p.z-e.group.position.z,d=Math.hypot(dx,dy*.65,dz);
-  if(d<1.55&&e.hit<=0){
-   e.hit=1.5;
-   hurt(ci>=4?8:6,true);
-   // A contact hit costs health, not the runner's movement or momentum.
-   stagger=0;
-   shake=Math.max(shake,.07);
-   toast('AETHER PURSUIT · HIT · KEEP MOVING');
-  }
+  const travel=Math.hypot(dx,dz);animateStoryActor(e,dt,travel/Math.max(.001,dt),dx,dz,chaseClock);
+  const px=p.x-e.group.position.x,py=p.y-e.group.position.y,pz=p.z-e.group.position.z,d=Math.hypot(px,py*.65,pz);
+  if(d<1.55&&e.hit<=0){e.hit=1.5;hurt(ci>=4?8:6,true);stagger=0;shake=Math.max(shake,.07);toast('AETHER PURSUIT · HIT · KEEP MOVING')}
  }
 }
-const deliverySites=CAMPAIGN.map(m=>m.route[m.route.length-1].clone());
-const deliveryBeacons=deliverySites.map((q,i)=>{const g=new THREE.Group(),ring=new THREE.Mesh(new THREE.TorusGeometry(2.1,.16,8,28),new THREE.MeshBasicMaterial({color:0x1fd16b})),beam=new THREE.Mesh(new THREE.CylinderGeometry(.18,.55,5,8,1,true),new THREE.MeshBasicMaterial({color:0x1fd16b,transparent:true,opacity:.22,depthWrite:false}));ring.rotation.x=Math.PI/2;ring.position.y=1.1;beam.position.y=2.5;g.add(ring,beam);g.position.set(q.x,q.y,q.z);S.add(g);return g});
 function sideDeliveryInteract(){if(!playing||campaignRun||trial)return false;if(!delivery){const from=deliverySites[deliveryIndex%deliverySites.length],q=deliverySites[(deliveryIndex+1)%deliverySites.length];if(Math.hypot(p.x-from.x,p.z-from.z)<5){delivery={index:deliveryIndex%deliverySites.length,target:q.clone(),reward:120+deliveryIndex*20};toast('PACKAGE PICKED UP · RUN TO THE GREEN DROP BEACON');chime();return true}}return false}
 function deliveryTick(){if(!delivery)return;const q=delivery.target;if(Math.hypot(p.x-q.x,p.z-q.z)<4.5&&p.y>q.y-5&&p.y<q.y+40){currency+=delivery.reward;completedDeliveries.push(delivery.index);deliveryIndex++;saveCurrency();toast('DELIVERY COMPLETE · +'+delivery.reward+' CREDITS');delivery=null;chime()}}
 let campaignRun=null,campaignTutorialWasOn=null;
