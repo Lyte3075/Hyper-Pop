@@ -37,6 +37,8 @@ ol{text-align:left;display:inline-block;margin:.3rem;padding-left:1.6rem;font-si
 
 #mm{pointer-events:auto;cursor:pointer;touch-action:manipulation;z-index:4}
 #mm:hover{border-color:#e5242b;box-shadow:0 0 0 2px rgba(229,36,43,.3)}
+/* Keep the gameplay minimap out of the full-screen map layer on mobile Safari. */
+body.map-open #mm{visibility:hidden!important;opacity:0!important;pointer-events:none!important}
 #mapScreen{position:fixed;inset:0;z-index:30;display:none;flex-direction:column;background:#edf1f3;color:#14181b;font-family:system-ui,sans-serif;touch-action:none;user-select:none;-webkit-user-select:none}
 #mapScreen.open{display:flex}
 #mapTop,#mapBottom{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:calc(.8rem + var(--st)) calc(1rem + var(--sr)) .8rem calc(1rem + var(--sl));background:#fff;border-bottom:1px solid #cbd2d6;flex-shrink:0}
@@ -1865,8 +1867,8 @@ function mapDraw(){
 }
 function mapResize(){const r=worldMap.getBoundingClientRect();mapDpr=Math.min(2,window.devicePixelRatio||1);worldMap.width=Math.max(1,Math.round(r.width*mapDpr));worldMap.height=Math.max(1,Math.round(r.height*mapDpr));wmCtx.setTransform(1,0,0,1,0,0);mapDraw()}
 function mapSelect(pin){mapSelected=pin.id;const b=mapBuildingAt({x:pin.x,z:pin.z});mapPickedPoint={x:b?b.x:pin.x,z:b?b.z:pin.z,name:pin.name,building:!!b};document.getElementById('mapNavigate').disabled=pin.type==='player';mapPlaceTitle.textContent=pin.name;mapPlaceDesc.textContent=pin.desc;mapRegion.textContent=mapRegionAt(pin.x,pin.z);const dist=Math.round(Math.hypot(pin.x-p.x,pin.z-p.z));mapStats.innerHTML='<div class="mapStat"><b>'+dist+' m</b><small>STRAIGHT-LINE DISTANCE</small></div><div class="mapStat"><b>'+mapRegionAt(pin.x,pin.z)+'</b><small>DISTRICT</small></div>';mapDraw()}
-function mapOpenMenu(){if(mapOpen)return;mapOpen=true;mapScreen.classList.add('open');mapScreen.setAttribute('aria-hidden','false');mapCenter={x:p.x,z:p.z};mapZoom=1;mapPickedPoint=null;buildMapPins();mapResize();mapSelect(mapPins[0]);}
-function mapCloseMenu(){mapOpen=false;mapScreen.classList.remove('open');mapScreen.setAttribute('aria-hidden','true');mapDrag=null}
+function mapOpenMenu(){if(mapOpen)return;mapOpen=true;document.body.classList.add('map-open');mapScreen.classList.add('open');mapScreen.setAttribute('aria-hidden','false');mapCenter={x:p.x,z:p.z};mapZoom=1;mapPickedPoint=null;buildMapPins();mapResize();mapSelect(mapPins[0]);}
+function mapCloseMenu(){mapOpen=false;document.body.classList.remove('map-open');mapScreen.classList.remove('open');mapScreen.setAttribute('aria-hidden','true');mapDrag=null}
 function mapZoomAt(factor,x=worldMap.width/2,y=worldMap.height/2){const before=mapScreenToWorld(x,y);mapZoom=Math.max(.35,Math.min(8,mapZoom*factor));const after=mapScreenToWorld(x,y);mapCenter.x+=before.x-after.x;mapCenter.z+=before.z-after.z;mapDraw()}
 mmEl.addEventListener('click',e=>{e.preventDefault();mapOpenMenu()});mmEl.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();mapOpenMenu()}});
 mmEl.setAttribute('tabindex','0');mmEl.setAttribute('role','button');mmEl.setAttribute('aria-label','Open full city map');
