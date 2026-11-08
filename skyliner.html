@@ -1698,6 +1698,14 @@ function drawCompass(){
     const x=W/2+rel/span*(W/2-12);c.fillStyle=o[2];c.beginPath();if(edge&&rel<0){c.moveTo(x-10,25);c.lineTo(x+5,16);c.lineTo(x+5,34)}else if(edge&&rel>0){c.moveTo(x+10,25);c.lineTo(x-5,16);c.lineTo(x-5,34)}else{c.moveTo(x,16);c.lineTo(x+9,25);c.lineTo(x,34);c.lineTo(x-9,25)}c.closePath();c.fill();
     c.fillStyle='#14181b';c.font='bold 13px system-ui,sans-serif';c.fillText(Math.round(Math.hypot(dx,dz))+' m',x,48)}
 }
+// ---------- custom navigation beacon ----------
+const navBeacon=new THREE.Group();
+const navBeaconBeam=new THREE.Mesh(new THREE.CylinderGeometry(.2,.42,1,10),new THREE.MeshBasicMaterial({color:0xff777c,transparent:true,opacity:.24,depthWrite:false}));
+const navBeaconCore=new THREE.Mesh(new THREE.CylinderGeometry(.055,.09,1,8),new THREE.MeshBasicMaterial({color:0xffa0a3,transparent:true,opacity:.88,depthWrite:false}));
+const navBeaconRing=new THREE.Mesh(new THREE.TorusGeometry(1.25,.075,8,28),new THREE.MeshBasicMaterial({color:0xff777c,transparent:true,opacity:.95,depthWrite:false}));
+const navBeaconTop=new THREE.Mesh(new THREE.OctahedronGeometry(.62,0),new THREE.MeshBasicMaterial({color:0xff777c,emissive:0x6b1018,transparent:true,opacity:.98}));
+navBeaconBeam.position.y=10;navBeaconBeam.scale.y=20;navBeaconCore.position.y=10;navBeaconCore.scale.y=20;navBeaconRing.position.y=19.5;navBeaconTop.position.y=21;navBeacon.add(navBeaconBeam,navBeaconCore,navBeaconRing,navBeaconTop);navBeacon.visible=false;navBeacon.traverse(o=>{if(o.isMesh)o.renderOrder=8});S.add(navBeacon);
+function updateNavigationBeacon(now){if(!mapNavigationTarget){navBeacon.visible=false;return}let h=0,bd=Infinity;for(let i=0;i<N;i++)for(let j=0;j<N;j++){const b=bl[i][j];if(!b||b.tr)continue;const dx=mapNavigationTarget.x-b.x,dz=mapNavigationTarget.z-b.z,ex=Math.max(0,Math.abs(dx)-b.w/2),ez=Math.max(0,Math.abs(dz)-b.d/2),d=ex*ex+ez*ez;if(d<bd){bd=d;h=b.ht||0}}navBeacon.visible=playing;navBeacon.position.set(mapNavigationTarget.x,h+.12,mapNavigationTarget.z);const pulse=1+Math.sin(now*.004)*.13;navBeaconRing.scale.setScalar(pulse);navBeaconTop.rotation.y=now*.0018;navBeaconBeam.material.opacity=.19+Math.sin(now*.003)*.045;}
 // ---------- mag rope visuals ----------
 const ropeMesh=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,1,6),new THREE.MeshBasicMaterial({color:0x2aa8ff})),aimRing=new THREE.Mesh(new THREE.TorusGeometry(1.1,.07,6,20),new THREE.MeshBasicMaterial({color:0x2aa8ff,transparent:true,opacity:.9,depthTest:false})),upV=new THREE.Vector3(0,1,0),tmpD=new THREE.Vector3();
 ropeMesh.visible=false;aimRing.visible=false;aimRing.renderOrder=5;S.add(ropeMesh);S.add(aimRing);
@@ -1837,7 +1845,7 @@ function mapDraw(){
  wmCtx.save();wmCtx.lineWidth=Math.max(1,scale*.035);wmCtx.strokeStyle='rgba(255,255,255,.62)';
  for(let di=0;di<N;di++)for(let dj=0;dj<N;dj++){const b=bl[di][dj];if(b.tr)continue;const q=mapWorldToScreen(b.x,b.z),bw=b.w*scale,bh=b.d*scale;if(q.x+bw/2<0||q.x-bw/2>w||q.z+bh/2<0||q.z-bh/2>h)continue;
    const shade=Math.max(0,Math.min(1,(b.ht-28)/70)),base=['#e9edf0','#eee3d6','#cbd8d5','#d1e0eb','#e9edf0','#dfc7b8','#c4e0e5','#e8d7bd','#d0e1d0','#d5cbc4','#e9dfcc'][b.dst||0];
-   wmCtx.fillStyle=b.tw?'#788792':base;wmCtx.globalAlpha=.78;wmCtx.fillRect(q.x-bw/2,q.z-bh/2,bw,bh);wmCtx.globalAlpha=1;wmCtx.strokeRect(q.x-bw/2,q.z-bh/2,bw,bh);
+   wmCtx.fillStyle=b.tw?'#788792':base;wmCtx.globalAlpha=.78;wmCtx.fillRect(q.x-bw/2,q.z-bh/2,bw,bh);wmCtx.globalAlpha=1;wmCtx.strokeRect(q.x-bw/2,q.z-bh/2,bw,bh);if(mapPickedPoint&&Math.abs(mapPickedPoint.x-b.x)<.1&&Math.abs(mapPickedPoint.z-b.z)<.1){wmCtx.save();wmCtx.shadowColor='#ff777c';wmCtx.shadowBlur=Math.max(5,scale*.12);wmCtx.strokeStyle='#ff777c';wmCtx.lineWidth=Math.max(2.5,scale*.075);wmCtx.strokeRect(q.x-bw/2-2,q.z-bh/2-2,bw+4,bh+4);wmCtx.restore()}
    if(mapZoom>=1.35){wmCtx.fillStyle='rgba(60,72,80,.24)';wmCtx.fillRect(q.x-bw*.32,q.z-bh*.32,bw*.64,bh*.64)}
  }
  wmCtx.globalAlpha=1;wmCtx.textAlign='center';wmCtx.textBaseline='middle';
@@ -1889,6 +1897,7 @@ function loop(now){
   const ydw=(yaw-wYaw)/Math.max(dt,.001);wYaw=yaw;bankW+=((wingOn?Math.max(-.45,Math.min(.45,ydw*.1)):0)-bankW)*Math.min(1,dt*6);
   C.position.set(p.x,p.y+eyeH+bb-shake+(lad?Math.sin(lad.ph)*.03:(climbing&&!ground)?Math.sin(now*.011)*.03:0),p.z);
   C.rotation.order='YXZ';C.rotation.set(pitch-rollAng-dk*.3-(vault?Math.sin(Math.PI*vault.t/vault.dur)*.1:0)+(slideT>0?.06:0),yaw,roll+bsx+(slideT>0?.04:0)+(zip?Math.sin(now*.0035)*.05:0)+bankW+(vault?Math.sin(Math.PI*vault.t/vault.dur)*.05:0));
+  updateNavigationBeacon(now);
   if(dialogueCutscene){
    tickDialogueActors(dt);
    const raw=dialogueCutscene.lines[dialogueCutscene.index]||'',actor=dialogueActorForLine(raw)||dialogueCutscene.actor;
