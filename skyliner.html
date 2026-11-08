@@ -147,8 +147,8 @@ try{character={...character,...JSON.parse(localStorage.getItem('rr_character')||
 let completedCampaign=[];try{completedCampaign=JSON.parse(localStorage.getItem('rr_campaign_completed')||'[]')}catch(e){}
 let unlockedGear=[];try{unlockedGear=JSON.parse(localStorage.getItem('rr_gear_unlocked')||'[]')}catch(e){}
 let currency=0;try{currency=Math.max(0,+localStorage.getItem('rr_currency')||0)}catch(e){}
-let delivery=null,deliveryIndex=0,completedDeliveries=[];try{completedDeliveries=JSON.parse(localStorage.getItem('rr_deliveries')||'[]')}catch(e){}
-const GEAR_REWARDS=[['rope','gloves'],['winch','quick','dash','shoes'],['sling','wingsuit','aero','thrust','stable','flare','soles'],['twin','long','charge'],['grips','cutter','boots'],['knees','turner','stride'],['patch','armor','band'],['magnet','cells']];
+let delivery=null,deliveryIndex=0,completedDeliveries=[],nearCourier=null,courierContacts=[];try{completedDeliveries=JSON.parse(localStorage.getItem('rr_deliveries')||'[]');deliveryIndex=completedDeliveries.length}catch(e){}
+const GEAR_REWARDS=[['gloves','boots'],['shoes','soles','knees','turner'],['rope','winch','quick','sling','grips','cutter'],['patch','armor','band'],['dash','twin','long','charge','stride'],['magnet','cells'],['wingsuit','aero','thrust','stable','flare'],[],[]];
 function syncProgressUnlocks(){const next=[];completedCampaign.forEach(i=>{(GEAR_REWARDS[i]||[]).forEach(k=>{if(!next.includes(k))next.push(k)})});unlockedGear=next;try{localStorage.setItem('rr_gear_unlocked',JSON.stringify(unlockedGear));localStorage.setItem('rr_trial_unlocked',String(Math.min(trials.length,3+completedCampaign.length*2)))}catch(e){}}
 function trialUnlockCount(){let n=3;try{n=Math.max(3,Math.min(trials.length,+localStorage.getItem('rr_trial_unlocked')||3))}catch(e){}return n}
 function trialUnlocked(t){return trials.indexOf(t)<trialUnlockCount()}
@@ -524,12 +524,18 @@ const CAMPAIGN=[
 {title:'10 · ABOVE EVERYTHING',act:'ACT III · THE FALL',location:'AETHER Crown',time:'02:17 AM',style:'VERTICAL CLIMB · FINAL APPROACH',chase:false,districts:[6,0,10,0],brief:'Make the long, deliberate climb toward AETHER Crown. Cross antenna arrays, wind corridors, exterior maintenance platforms and damaged service routes. The city falls away beneath you. This is a quiet, daunting ascent before the finale, with no enemy swarm pushing you off the tower.',radio:['MARA: Whatever happens, do not let it choose for everyone.','AETHER: The city will survive its redesign.','R-17: A city is its people. Not its blueprint.'],finish:'Reach the Crown control chamber and find Mara.'},
 {title:'11 · LAST RUN',act:'ACT IV · THE SKYLINE',location:'The Crown / Veyra',time:'03:00 AM',style:'FINAL ESCAPE · CLIMACTIC CHASE',chase:true,districts:[0,6,0,10],brief:'AETHER offers R-17 a place beside it. The final mission combines the campaign’s hardest movement routes with one last, clearly signposted pursuit as Veyra’s power systems collapse. Reach the transmission array, make your choice, and send AETHER’s hidden records to every screen in the city.',radio:['AETHER: You could help me eliminate suffering.','R-17: By eliminating everyone who disagrees?','AETHER: By eliminating the possibility of disagreement.','R-17: Then you don’t understand humanity at all.'],finish:'Reach the transmission array and decide Veyra’s future.'}
 ];
+function accessibleRoofSpot(b,seed=0){
+ const margin=5.5,spanX=Math.max(0,b.w-margin*2),spanZ=Math.max(0,b.d-margin*2);
+ for(let n=0;n<48;n++){const phase=seed*2.399+n*2.399,radius=n===0?0:.16+.78*((n%8)/8),x=b.x+Math.cos(phase)*spanX*.5*radius,z=b.z+Math.sin(phase)*spanZ*.5*radius,y=b.ht+.06;if(pointSolid(x,y+.48,z)||pointSolid(x,y+1.25,z)||pointSolid(x,y+2,z))continue;return new THREE.Vector3(x,y,z)}
+ const x=b.x,z=b.z,y=b.ht+.06;if(!pointSolid(x,y+.48,z)&&!pointSolid(x,y+1.25,z))return new THREE.Vector3(x,y,z);return null;
+}
 function campaignRoof(dst,seed){
  const pool=[];for(let i=0;i<N;i++)for(let j=0;j<N;j++){const b=bl[i][j];if(!b.tr&&!b.tw&&b.dst===dst)pool.push(b)}
  if(!pool.length)for(let i=0;i<N;i++)for(let j=0;j<N;j++){const b=bl[i][j];if(!b.tr&&!b.tw)pool.push(b)}
- const b=pool[(seed*37+dst*19+Math.floor(pool.length/3))%pool.length];return new THREE.Vector3(b.x,b.ht+.03,b.z);
+ const start=(seed*37+dst*19+Math.floor(pool.length/3))%pool.length;for(let n=0;n<pool.length;n++){const b=pool[(start+n)%pool.length],spot=accessibleRoofSpot(b,seed+n);if(spot)return spot}const b=pool[start];return new THREE.Vector3(b.x,b.ht+.06,b.z);
 }
 CAMPAIGN.forEach((m,i)=>{m.route=m.districts.map((d,k)=>campaignRoof(d,i*5+k+1))});
+syncProgressUnlocks(); // Rebuild gear unlocks using the slower campaign milestones, including existing saves.
 const STORY_CAST=[['Mara Voss',0xe5242b,0],['Kade Mercer',0x1fd16b,2],['Dr. Imani Vale',0xffb52e,3],['Elias Renn',0x2aa8ff,5]],storyActors=[],campaignEnemies=[];
 function makeStoryActor(name,color,enemy){
  const g=new THREE.Group(),skinColors=[0xe2b895,0xc98f69,0x9b6548,0x704832],skin=new THREE.MeshLambertMaterial({color:skinColors[enemy?2:(name.length%skinColors.length)]}),shirt=new THREE.MeshLambertMaterial({color:enemy?0x252c35:color}),pants=new THREE.MeshLambertMaterial({color:enemy?0x171d25:[0x26384a,0x3b414b,0x59483d,0x243b38][name.length%4]}),boots=new THREE.MeshLambertMaterial({color:0x101318}),hair=new THREE.MeshLambertMaterial({color:enemy?0x111820:[0x25201c,0x39291f,0x171717,0x806044][name.length%4]}),trim=new THREE.MeshLambertMaterial({color:enemy?0xb92332:0xd9dce1}),eyeMat=new THREE.MeshBasicMaterial({color:0x17191d}),faceAccent=new THREE.MeshLambertMaterial({color:0x9b5548});
@@ -821,8 +827,13 @@ function campaignActorsTick(dt){
   if(d<1.55&&e.hit<=0){e.hit=1.5;hurt(ci>=4?8:6,true);stagger=0;shake=Math.max(shake,.07);toast('AETHER PURSUIT · HIT · KEEP MOVING')}
  }
 }
-function sideDeliveryInteract(){if(!playing||campaignRun||trial||typeof deliverySites==='undefined'||!Array.isArray(deliverySites)||deliverySites.length<2)return false;if(!delivery){const from=deliverySites[deliveryIndex%deliverySites.length],q=deliverySites[(deliveryIndex+1)%deliverySites.length];if(Math.hypot(p.x-from.x,p.z-from.z)<5){delivery={index:deliveryIndex%deliverySites.length,target:q.clone(),reward:120+deliveryIndex*20};toast('PACKAGE PICKED UP · RUN TO THE GREEN DROP BEACON');chime();return true}}return false}
-function deliveryTick(){if(!delivery)return;const q=delivery.target;if(Math.hypot(p.x-q.x,p.z-q.z)<4.5&&p.y>q.y-5&&p.y<q.y+40){currency+=delivery.reward;completedDeliveries.push(delivery.index);deliveryIndex++;saveCurrency();toast('DELIVERY COMPLETE · +'+delivery.reward+' CREDITS');delivery=null;chime()}}
+const courierGreen=new THREE.MeshBasicMaterial({color:0x20e58a,transparent:true,opacity:.62,side:THREE.DoubleSide,depthWrite:false}),courierRingMat=new THREE.MeshBasicMaterial({color:0x20e58a}),dropGreen=new THREE.MeshBasicMaterial({color:0x35ff9a,transparent:true,opacity:.72,side:THREE.DoubleSide,depthWrite:false});
+const deliveryBeacon=new THREE.Group();deliveryBeacon.visible=false;S.add(deliveryBeacon);const dropBeam=new THREE.Mesh(new THREE.CylinderGeometry(.72,.72,18,12,1,true),dropGreen);dropBeam.position.y=9;deliveryBeacon.add(dropBeam);const dropRing=new THREE.Mesh(new THREE.TorusGeometry(2.05,.13,7,28),courierRingMat);dropRing.rotation.x=Math.PI/2;dropRing.position.y=.22;deliveryBeacon.add(dropRing);
+function randomCourierSpot(avoid){for(let n=0;n<180;n++){const i=2+Math.floor(rnd()*(N-4)),j=2+Math.floor(rnd()*(N-4)),b=bl[i][j];if(!b||b.tr||b.tw||b.w<14||b.d<14)continue;const q=accessibleRoofSpot(b,n+i*7+j*13);if(!q)continue;if(avoid&&Math.hypot(q.x-avoid.x,q.z-avoid.z)<75)continue;if(Math.hypot(q.x-startB.x,q.z-startB.z)<55)continue;return q}return accessibleRoofSpot(bl[N>>1][N>>1],1)||new THREE.Vector3(startB.x,startB.ht+.1,startB.z)}
+function makeCourierContact(i){const names=['Juno','Mika','Sol','Tariq','Nia','Ren','Cass','Ivo','Lena','Noah','Ari','Sage'],colors=[0x20a88a,0xe5a33b,0x477fd1,0xb45b9c,0x8b9c42,0xd16b4d,0x4f9aab,0x9a78c4],name=names[Math.floor(rnd()*names.length)]+' · Courier '+(i+1),actor=makeStoryActor(name,colors[Math.floor(rnd()*colors.length)],false),spot=randomCourierSpot(),marker=new THREE.Group(),beam=new THREE.Mesh(new THREE.CylinderGeometry(.34,.34,3.6,10,1,true),courierGreen),ring=new THREE.Mesh(new THREE.TorusGeometry(1.05,.09,6,20),courierRingMat);actor.group.position.copy(spot);actor.group.visible=false;beam.position.y=3.55;ring.rotation.x=Math.PI/2;ring.position.y=.35;marker.add(beam,ring);S.add(marker);marker.position.copy(spot);marker.visible=false;return{actor,marker,spot,active:true,respawn:0,turn:Math.random()*6.28}}
+for(let i=0;i<8;i++)courierContacts.push(makeCourierContact(i));
+function sideDeliveryInteract(){if(!playing||campaignRun||trial||tut.on||delivery)return false;let best=null,bd=5.2;for(const c of courierContacts){if(!c.active)continue;const d=Math.hypot(p.x-c.spot.x,p.z-c.spot.z);if(d<bd&&p.y>c.spot.y-3&&p.y<c.spot.y+7){best=c;bd=d}}if(!best)return false;const target=randomCourierSpot(best.spot);if(!target){toast('NO SAFE DROP POINT · TRY ANOTHER COURIER');return true}const dist=Math.hypot(target.x-best.spot.x,target.z-best.spot.z),reward=Math.round(90+dist*.9+Math.min(180,completedDeliveries.length*8));delivery={index:deliveryIndex++,target,reward,from:best.actor.name,distance:Math.round(dist)};best.active=false;best.actor.group.visible=false;best.marker.visible=false;best.respawn=58+Math.random()*42;toast('PACKAGE ACCEPTED · '+best.actor.name+' · FOLLOW THE GREEN DROP BEACON');chime();return true}
+function deliveryTick(dt){const free=playing&&!campaignRun&&!trial&&!tut.on;if(!free){nearCourier=null;courierContacts.forEach(c=>{c.actor.group.visible=false;c.marker.visible=false});deliveryBeacon.visible=false;return}let nearest=null,nd=18;for(const c of courierContacts){if(c.active){const d=Math.hypot(p.x-c.spot.x,p.z-c.spot.z);if(d<nd&&p.y>c.spot.y-3&&p.y<c.spot.y+8){nearest=c;nd=d}}}nearCourier=nearest;courierContacts.forEach((c,i)=>{if(c.active){c.actor.group.visible=true;c.marker.visible=true;c.marker.position.copy(c.spot);c.marker.position.y+=Math.sin(performance.now()*.002+i)*.18;c.turn+=dt*.22;const dx=p.x-c.spot.x,dz=p.z-c.spot.z;if(Math.hypot(dx,dz)<18)animateStoryActor(c.actor,dt,0,dx,dz,performance.now()*.001,'idle');else{c.actor.group.rotation.y=Math.sin(c.turn)*.22;animateStoryActor(c.actor,dt,0,0,0,performance.now()*.001,'idle')}}else{c.actor.group.visible=false;c.marker.visible=false;if(c.respawn>0){c.respawn-=dt;if(c.respawn<=0){c.spot=randomCourierSpot(delivery?delivery.target:null);c.actor.group.position.copy(c.spot);c.actor.animBob=0;c.active=true}}}});deliveryBeacon.visible=!!delivery;if(delivery){deliveryBeacon.position.copy(delivery.target);deliveryBeacon.position.y+=.04;deliveryBeacon.rotation.y+=dt*.5;const q=delivery.target;if(Math.hypot(p.x-q.x,p.z-q.z)<4.8&&p.y>q.y-3&&p.y<q.y+8){currency+=delivery.reward;completedDeliveries.push({id:delivery.index,from:delivery.from,reward:delivery.reward});const reward=delivery.reward;delivery=null;saveCurrency();toast('DELIVERY COMPLETE · +'+reward+' CREDITS');chime()}}}
 let campaignRun=null,campaignTutorialWasOn=null;
 function leaveCampaignMode(){if(campaignTutorialWasOn!==null){tut.on=campaignTutorialWasOn;campaignTutorialWasOn=null}}
 
@@ -839,15 +850,14 @@ for(let i=0;i<N;i++)for(let j=0;j<N;j++){const A=bl[i][j];for(const[di,dj]of[[1,
   const lo=A.ht<B.ht?A:B,hi=lo===A?B:A,px=lo.x+Math.sign(hi.x-lo.x)*(lo.w/2-6),pz=lo.z+Math.sign(hi.z-lo.z)*(lo.d/2-6);
   add(px,lo.ht,pz,8,.8,8,padM,'pad',1);pads.push({x:px,z:pz})}}
 // ---------- checkpoints around the map ----------
-for(let i=2;i<N-1;i+=4)for(let j=2;j<N-1;j+=4){const b=bl[i][j];if(b.tr||b.tw||(i===N/2&&j===N/2))continue;
+for(let i=2;i<N-1;i+=4)for(let j=2;j<N-1;j+=4){const b=bl[i][j];if(b.tr||b.tw||(i===N/2&&j===N/2))continue;const spot=accessibleRoofSpot(b,i*N+j);if(!spot)continue;
   const mat=new THREE.MeshBasicMaterial({color:0xffa726,transparent:true,opacity:.35,side:THREE.DoubleSide}),m=new THREE.Mesh(new THREE.CylinderGeometry(.8,.8,12,12,1,true),mat);
-  m.position.set(b.x,b.ht+6,b.z);S.add(m);const ring=new THREE.Mesh(new THREE.TorusGeometry(1.8,.12,6,24),new THREE.MeshBasicMaterial({color:0xffa726}));ring.rotation.x=Math.PI/2;ring.position.set(b.x,b.ht+.3,b.z);S.add(ring);
-  cpts.push({x:b.x,y:b.ht,z:b.z,mat})}
+  m.position.set(spot.x,spot.y+6,spot.z);S.add(m);const ring=new THREE.Mesh(new THREE.TorusGeometry(1.8,.12,6,24),new THREE.MeshBasicMaterial({color:0xffa726}));ring.rotation.x=Math.PI/2;ring.position.set(spot.x,spot.y+.24,spot.z);S.add(ring);
+  cpts.push({x:spot.x,y:spot.y,z:spot.z,mat})}
 // ---------- runner bags to collect ----------
 const bagM=new THREE.MeshBasicMaterial({color:0xff3b30}),bagG=new THREE.OctahedronGeometry(.45);
 function addBag(x,y,z){const mesh=new THREE.Mesh(bagG,bagM);mesh.position.set(x,y,z);S.add(mesh);bags.push({x,y,z,mesh,got:false,i:bags.length})}
-for(let k=0;k<60;k++){const b=bl[Math.floor(rnd()*N)][Math.floor(rnd()*N)];if(b.tr||b.tw)continue;addBag(b.x+(rnd()-.5)*(b.w-8),b.ht+1.2,b.z+(rnd()-.5)*(b.d-8))}
-for(let i=0;i<N;i++)for(let j=0;j<N;j++){const b=bl[i][j];if(b.tw)addBag(b.x,b.ht+1.2,b.z)}
+for(let k=0;k<60;k++){let placed=false;for(let tries=0;tries<18&&!placed;tries++){const b=bl[Math.floor(rnd()*N)][Math.floor(rnd()*N)];if(b.tr||b.tw||b.w<13||b.d<13)continue;const spot=accessibleRoofSpot(b,k+tries);if(spot){addBag(spot.x,spot.y+1.05,spot.z);placed=true}}}
 // ---------- training tower: one sequence from the ground to the top, then a zipline out to the city ----------
 add(TX,0,TZ,2*TH,TY,2*TH,white,'tfloor',1);
 const blk=(u0,u1,w0,w1,top,m,tag)=>add(TX+(u0+u1)/2,TY,TZ+(w0+w1)/2,u1-u0,top,w1-w0,m||white,tag||'roof',1);
@@ -1297,15 +1307,17 @@ function pause(){
   playing=false;locked=false;mouseFallback=false;mouseArmed=false;mouseStickX=mouseStickY=0;mouseAim.style.display='none';document.body.classList.remove('mouse-look');
   for(const k in keys)keys[k]=false;joy.x=joy.y=0;joyId=lookId=null;touchUI.style.display='none';menu('main');
 }
+const openGearAddons=new Set();
 function menu(view,msg){
   ovEl.style.display='flex';
-  if(view==='modes'){P.innerHTML='<h2>Game modes</h2><p>Choose how you want to run through Veyra.</p><button id="modeCampaign">Campaign</button><button id="modeFree" class="alt">Freerun</button><button id="modeTraining" class="alt">Tutorial</button><button id="modeBack" class="alt">Back</button>';P.querySelector('#modeCampaign').onclick=()=>{if(localStorage.getItem('sr_tut')!=='1'){tut.on=true;tut.done={};tut.ev={};start.copy(trainStart);p.copy(trainStart);respawn.copy(trainStart);safe.copy(trainStart);play();toast('Complete training to unlock campaign')}else menu('campaign')};P.querySelector('#modeFree').onclick=()=>{dialogueCutscene=null;dialogueUI.classList.remove('active');done=false;tut.on=false;campaignRun=null;trial=null;start.copy(cityStart);p.copy(cityStart);respawn.copy(cityStart);safe.copy(cityStart);v.set(0,0,0);mom=0;yaw=0;pitch=0;play();toast('Freerun · Find green beacons to start time trials')};P.querySelector('#modeTraining').onclick=()=>{campaignRun=null;trial=null;tut.on=true;tut.done={};tut.ev={};start.copy(trainStart);p.copy(trainStart);respawn.copy(trainStart);safe.copy(trainStart);yaw=-Math.PI/2;v.set(0,0,0);play()};P.querySelector('#modeBack').onclick=()=>menu('main');return}
+  if(view==='modes'){P.innerHTML='<h2>Game modes</h2><p>Choose how you want to run through Veyra.</p><button id="modeCampaign">Campaign</button><button id="modeFree" class="alt">Freerun</button><button id="modeTraining" class="alt">Tutorial</button><button id="modeBack" class="alt">Back</button>';P.querySelector('#modeCampaign').onclick=()=>{if(localStorage.getItem('sr_tut')!=='1'){tut.on=true;tut.done={};tut.ev={};start.copy(trainStart);p.copy(trainStart);respawn.copy(trainStart);safe.copy(trainStart);play();toast('Complete training to unlock campaign')}else menu('campaign')};P.querySelector('#modeFree').onclick=()=>{dialogueCutscene=null;dialogueUI.classList.remove('active');done=false;tut.on=false;campaignRun=null;trial=null;start.copy(cityStart);p.copy(cityStart);respawn.copy(cityStart);safe.copy(cityStart);v.set(0,0,0);mom=0;yaw=0;pitch=0;play();toast('Freerun · Find green courier beacons or time-trial beacons')};P.querySelector('#modeTraining').onclick=()=>{campaignRun=null;trial=null;tut.on=true;tut.done={};tut.ev={};start.copy(trainStart);p.copy(trainStart);respawn.copy(trainStart);safe.copy(trainStart);yaw=-Math.PI/2;v.set(0,0,0);play()};P.querySelector('#modeBack').onclick=()=>menu('main');return}
 
   if(view==='runchoice'){P.innerHTML='<h2>Choose your run</h2><p>Campaign progression or open-city movement?</p><button id="runCampaign">Campaign</button><button id="runFree" class="alt">Freerun</button><button id="runBack" class="alt">Back</button>';P.querySelector('#runCampaign').onclick=()=>{if(localStorage.getItem('sr_tut')!=='1'){tut.on=true;tut.done={};start.copy(trainStart);p.copy(trainStart);respawn.copy(trainStart);play();toast('Finish the tutorial to unlock campaign')}else menu('campaign')};P.querySelector('#runFree').onclick=()=>{start.copy(cityStart);p.copy(cityStart);respawn.copy(cityStart);safe.copy(cityStart);v.set(0,0,0);trial=null;play()};P.querySelector('#runBack').onclick=()=>menu('main');return}
-  if(view==='deliveries'){P.innerHTML='<h2>Courier contracts</h2><p>Credits: <b>'+currency+'</b><br>Completed deliveries: '+completedDeliveries.length+'</p><p>Visit the green pickup beacon, interact to accept a package, then race to its drop beacon. Rewards increase with each contract.</p><button id="deliveryMark">Mark next pickup beacon</button><button id="deliveryBack" class="alt">Back</button>';P.querySelector('#deliveryMark').onclick=()=>{if(typeof deliverySites==='undefined'||!Array.isArray(deliverySites)||!deliverySites.length){toast('Courier contracts are unavailable in this build');return}const q=deliverySites[deliveryIndex%deliverySites.length];p.copy(q);start.copy(q);respawn.copy(q);delivery=null;menu('main');toast('Pickup beacon marked · green objective')};P.querySelector('#deliveryBack').onclick=()=>menu('main');return}
+  if(view==='deliveries'){P.innerHTML='<h2>Veyra courier network</h2><p><b>'+currency+' CR</b> · '+completedDeliveries.length+' completed deliveries</p><p>Find a civilian courier marked by a green beacon on a rooftop. Approach and interact to accept their package, then race across the skyline to the green drop beacon. Longer routes pay more. Couriers return in new locations after a short cooldown.</p>'+(delivery?'<p><b>ACTIVE DELIVERY</b><br>'+delivery.from+' · '+delivery.distance+' m route · '+delivery.reward+' CR reward</p>':'<p>ACTIVE CONTRACTS · 0<br>Look for a green courier beacon in Freerun.</p>')+'<button id="deliveryBack" class="alt">Back</button>';P.querySelector('#deliveryBack').onclick=()=>menu('main');return}
   if(view==='inv'){
     const row=g=>'<div class=gr><div><b>'+g[1]+'</b><br><small>'+g[2]+'</small></div><button data-g="'+g[0]+'" class="'+(hasGear(g[0])?'':'alt')+'" '+(isGearUnlocked(g[0])?'':'disabled')+'>'+(hasGear(g[0])?'Equipped':isGearUnlocked(g[0])?'Equip':'LOCKED')+'</button></div>';
-    P.innerHTML='<h2>Inventory</h2><p>One main gear at a time. Add-ons are tucked away until you need them.</p><h3>Main gear</h3>'+GEARS.filter(g=>g[3]==='main').map(g=>{const adds=GEARS.filter(a2=>a2[4]===g[0]);return row(g)+(hasGear(g[0])&&adds.length?'<details class="gear-addons"><summary>UPGRADES · '+adds.length+'</summary>'+adds.map(row).join('')+'</details>':'')}).join('')+['hands','feet','legs','back','belt'].map(c=>'<h3>'+c+'</h3>'+GEARS.filter(g=>g[3]===c).map(row).join('')).join('')+'<button id=ua class=alt>Unequip all</button><button id=ib>Back</button>';
+    P.innerHTML='<h2>Inventory</h2><p>One main gear at a time. Add-ons stay expanded while you equip or unequip gear.</p><h3>Main gear</h3>'+GEARS.filter(g=>g[3]==='main').map(g=>{const adds=GEARS.filter(a2=>a2[4]===g[0]);return row(g)+(isGearUnlocked(g[0])&&adds.length?'<details class="gear-addons" data-addon-parent="'+g[0]+'" '+(openGearAddons.has(g[0])?'open':'')+'><summary>UPGRADES · '+adds.length+'</summary>'+adds.map(row).join('')+'</details>':'')}).join('')+['hands','feet','legs','back','belt'].map(c=>'<h3>'+c+'</h3>'+GEARS.filter(g=>g[3]===c).map(row).join('')).join('')+'<button id=ua class=alt>Unequip all</button><button id=ib>Back</button>';
+    P.querySelectorAll('details[data-addon-parent]').forEach(d=>d.addEventListener('toggle',()=>{if(d.open)openGearAddons.add(d.dataset.addonParent);else openGearAddons.delete(d.dataset.addonParent)}));
     P.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{toggleGear(b.dataset.g);menu('inv')});
     P.querySelector('#ua').onclick=()=>{set.gear={};gearOn=false;rope=null;save();menu('inv')};
     P.querySelector('#ib').onclick=()=>menu('main');return}
@@ -1598,12 +1610,12 @@ function itemTick(dt,now){for(const it of items){if(it.t>0){it.t-=dt;if(it.t<=0)
 // ---------- compass bar: your heading and your objective ----------
 const cmpEl=document.getElementById('cmp'),cmpX=cmpEl.getContext('2d');
 function objective(){
-  if(delivery)return[delivery.target.x,delivery.target.z,'#1fd16b'];
-  if(delivery)return[delivery.target.x,delivery.target.z,'#1fd16b'];
+  if(delivery)return[delivery.target.x,delivery.target.z,'#20e58a'];
+  if(nearCourier)return[nearCourier.spot.x,nearCourier.spot.z,'#20e58a'];
   if(campaignRun){const q=CAMPAIGN[campaignRun.index].route[campaignRun.step];if(q)return[q.x,q.z,'#e5242b']}
   if(trial){const q=trial.t.pts[trial.i];return[q.x,q.z,'#2aa8ff']}
   if(tut.on){const j=TS.findIndex(t=>!tut.done[t[0]]),q=j>=0?WP[TS[j][0]]:null;if(q)return[TX+q[0],TZ+q[1],'#2aa8ff']}
-  if(!campaignRun&&!trial&&!tut.on&&typeof deliverySites!=='undefined'&&Array.isArray(deliverySites)&&deliverySites.length){const q=deliverySites[deliveryIndex%deliverySites.length];return[q.x,q.z,'#1fd16b']}
+  if(!campaignRun&&!trial&&!tut.on){const c=courierContacts.find(q=>q.active);if(c)return[c.spot.x,c.spot.z,'#20e58a']}
   let best=null,bd=1e9;for(const t of trials){if(!trialUnlocked(t))continue;const q=t.pts[0],dd=Math.hypot(q.x-p.x,q.z-p.z);if(dd<bd){bd=dd;best=[q.x,q.z,'#1fd16b']}}return best;
 }
 function drawCompass(){
@@ -1684,7 +1696,9 @@ function promptTick(){
     const access=!unlocked?'LOCKED · COMPLETE '+remaining+' MORE CAMPAIGN '+(remaining===1?'CHAPTER':'CHAPTERS'):!ok?'REQUIRES GEAR · '+String(gear).toUpperCase():(set.touch?'TAP INTERACT':'PRESS '+lbl(set.binds.interact))+' TO START';
     promptEl.innerHTML='<b>'+t.name+'</b><br><small>'+(unlocked?(t.gear?'GEAR TRIAL':'OPEN TRIAL'):'<b>TRIAL LOCKED</b>')+'</small><br><small>'+(t.gear?'REQUIRED GEAR · '+String(gear).toUpperCase():'GEAR · NONE')+'</small><br>PLATINUM '+(goldUnlock.includes(t.name)?t.platinum.toFixed(1)+'s':'LOCKED · EARN GOLD FIRST')+' · GOLD '+t.gold.toFixed(1)+'s<br>SILVER '+t.silver.toFixed(1)+'s · BRONZE '+t.bronze.toFixed(1)+'s<br><b>BEST '+bestLabel+'</b><br><small>'+access+'</small>';
     promptEl.style.display='block';
-  }else promptEl.style.display='none';
+  }else if(playing&&delivery){promptEl.innerHTML='<b>COURIER DELIVERY ACTIVE</b><br><small>'+delivery.from+'</small><br>DROP POINT · '+delivery.distance+' m<br><b>REWARD · '+delivery.reward+' CR</b><br><small>Follow the green beacon and land near the marker</small>';promptEl.style.display='block'}
+  else if(playing&&nearCourier&&!campaignRun&&!trial&&!tut.on){promptEl.innerHTML='<b>COURIER CONTACT</b><br><small>'+nearCourier.actor.name+'</small><br>PACKAGE AVAILABLE<br><small>'+(set.touch?'TAP INTERACT':'PRESS '+lbl(set.binds.interact))+' TO ACCEPT DELIVERY</small>';promptEl.style.display='block'}
+  else promptEl.style.display='none';
 }
 // ---------- runner vision: highlights only what the current objective needs ----------
 const HV=[],hvMat=new THREE.MeshBasicMaterial({color:0xe5242b,transparent:true,opacity:.8,depthWrite:false}),hvGeo=new THREE.BoxGeometry(1,1,1);
@@ -1723,7 +1737,7 @@ function drawMap(){
   if(++mmN%3)return;const k=176/MW,c=88;mmCtx.drawImage(mmBase,0,0,176,176);
   const dot=(x,z,col,r2)=>{mmCtx.fillStyle=col;mmCtx.beginPath();mmCtx.arc(c+x*k,c+z*k,r2,0,6.3);mmCtx.fill()};
   pads.forEach(q=>dot(q.x,q.z,'#2fd3c4',2));trials.forEach(t=>dot(t.pts[0].x,t.pts[0].z,'#1fd16b',3));
-  cpts.forEach(q=>dot(q.x,q.z,q===cpActive?'#ffffff':'#ffa726',3));bags.forEach(q=>{if(!q.got)dot(q.x,q.z,'#ff3b30',1.5)});
+  cpts.forEach(q=>dot(q.x,q.z,q===cpActive?'#ffffff':'#ffa726',3));bags.forEach(q=>{if(!q.got)dot(q.x,q.z,'#ff3b30',1.5)});if(playing&&!campaignRun&&!trial&&!tut.on)courierContacts.forEach(q=>{if(q.active)dot(q.spot.x,q.spot.z,'#20e58a',2.8)});if(delivery)dot(delivery.target.x,delivery.target.z,'#35ff9a',4);
   if(trial){const q=trial.t.pts[trial.i];dot(q.x,q.z,'#2aa8ff',4)}
   mmCtx.save();mmCtx.translate(c+p.x*k,c+p.z*k);mmCtx.rotate(-yaw);mmCtx.fillStyle='#111';mmCtx.beginPath();mmCtx.moveTo(0,-6);mmCtx.lineTo(4,5);mmCtx.lineTo(-4,5);mmCtx.closePath();mmCtx.fill();mmCtx.restore();
 }
@@ -1733,7 +1747,7 @@ function loop(now){
   requestAnimationFrame(loop);
   const dt=Math.min(.033,(now-last)/1000);last=now;
   const live=playing&&!done;
-  if(live&&!dialogueCutscene){const sub=Math.hypot(v.x,v.z)>16?2:1;for(let q=0;q<sub;q++)step(dt/sub)}campaignActorsTick(dialogueCutscene?0:dt);if(dialogueCutscene){const da=dialogueActorForLine(dialogueCutscene.lines[dialogueCutscene.index]||'')||dialogueCutscene.actor;if(da){da.group.visible=true;dialogueCutscene.actor=da}}deliveryTick(); // at high speed, two physics steps so you never tunnel through thin walls
+  if(live&&!dialogueCutscene){const sub=Math.hypot(v.x,v.z)>16?2:1;for(let q=0;q<sub;q++)step(dt/sub)}campaignActorsTick(dialogueCutscene?0:dt);if(dialogueCutscene){const da=dialogueActorForLine(dialogueCutscene.lines[dialogueCutscene.index]||'')||dialogueCutscene.actor;if(da){da.group.visible=true;dialogueCutscene.actor=da}}deliveryTick(dt); // courier contacts and drop-off route
   if(toastT>0){toastT-=dt;if(toastT<=0)document.getElementById('toast').style.opacity=0}
   const sp=Math.hypot(v.x,v.z);
   if(mouseFallback&&!set.touch&&mouseArmed){yaw-=mouseStickX*2.1*dt;pitch=Math.max(-1.5,Math.min(1.5,pitch+mouseStickY*1.65*dt*(set.invY?-1:1)))}
