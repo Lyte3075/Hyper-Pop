@@ -11,7 +11,7 @@ canvas{display:block;touch-action:none}
 #dot{position:fixed;left:50%;top:50%;width:.4rem;height:.4rem;margin:-.2rem;border-radius:50%;background:var(--red);pointer-events:none}
 #vig{position:fixed;inset:0;pointer-events:none;background:radial-gradient(transparent 50%,rgba(255,255,255,.6));opacity:0}
 #hurt{position:fixed;inset:0;pointer-events:none;background:radial-gradient(transparent 40%,rgba(229,36,43,.7));opacity:0}
-#dialogueCutscene{position:fixed;inset:0;z-index:4;display:none;align-items:flex-end;justify-content:center;padding:0 1rem calc(1.2rem + var(--sb));box-sizing:border-box;pointer-events:auto;background:linear-gradient(180deg,rgba(3,8,14,.08),rgba(3,8,14,.42))}#dialogueCutscene.active{display:flex}.dialogue-shade{position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(4,9,15,.3) 65%,rgba(4,9,15,.82))}.dialogue-card{position:relative;width:min(100%,58rem);box-sizing:border-box;padding:1.15rem 1.35rem 1rem;border:1px solid rgba(255,255,255,.28);border-left:.28rem solid #e5242b;border-radius:.65rem;background:rgba(10,17,25,.94);color:#f4f7fa;text-align:left;box-shadow:0 1rem 3rem rgba(0,0,0,.38);backdrop-filter:blur(12px)}.dialogue-kicker{font-size:.7rem;letter-spacing:.2em;color:#f0787d;font-weight:800}.dialogue-speaker{font-size:1.15rem;font-weight:900;letter-spacing:.08em;margin:.4rem 0;text-transform:uppercase}.dialogue-line{font-size:1.05rem;line-height:1.5;min-height:3rem}.dialogue-next{float:right;margin:.8rem 0 .1rem;background:#e5242b;color:#fff;border:0;border-radius:.35rem;padding:.55rem 1.1rem;font-weight:800;font-size:.9rem;min-height:2.4rem}.dialogue-hint{padding-top:1.15rem;font-size:.65rem;letter-spacing:.15em;color:#aab7c2}#toast{position:fixed;top:14%;left:0;right:0;text-align:center;font-weight:800;font-size:1.7rem;color:var(--red);text-shadow:0 0 .5rem #fff;pointer-events:none;opacity:0;transition:opacity .4s;padding:0 1rem}
+#dialogueCutscene{position:fixed;inset:0;z-index:20;display:none;align-items:flex-end;justify-content:center;padding:0 1rem calc(1.2rem + var(--sb));box-sizing:border-box;pointer-events:auto;background:linear-gradient(180deg,rgba(3,8,14,.08),rgba(3,8,14,.42))}#dialogueCutscene.active{display:flex;pointer-events:auto;touch-action:manipulation}.dialogue-shade{position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(4,9,15,.3) 65%,rgba(4,9,15,.82))}.dialogue-card{position:relative;z-index:2;pointer-events:auto;touch-action:manipulation;width:min(100%,58rem);box-sizing:border-box;padding:1.15rem 1.35rem 1rem;border:1px solid rgba(255,255,255,.28);border-left:.28rem solid #e5242b;border-radius:.65rem;background:rgba(10,17,25,.94);color:#f4f7fa;text-align:left;box-shadow:0 1rem 3rem rgba(0,0,0,.38);backdrop-filter:blur(12px)}.dialogue-kicker{font-size:.7rem;letter-spacing:.2em;color:#f0787d;font-weight:800}.dialogue-speaker{font-size:1.15rem;font-weight:900;letter-spacing:.08em;margin:.4rem 0;text-transform:uppercase}.dialogue-line{font-size:1.05rem;line-height:1.5;min-height:3rem}.dialogue-next{position:relative;z-index:3;pointer-events:auto;touch-action:manipulation;-webkit-tap-highlight-color:rgba(229,36,43,.25);float:right;margin:.8rem 0 .1rem;background:#e5242b;color:#fff;border:0;border-radius:.35rem;padding:.55rem 1.1rem;font-weight:800;font-size:.9rem;min-height:2.4rem}.dialogue-hint{padding-top:1.15rem;font-size:.65rem;letter-spacing:.15em;color:#aab7c2}#toast{position:fixed;top:14%;left:0;right:0;text-align:center;font-weight:800;font-size:1.7rem;color:var(--red);text-shadow:0 0 .5rem #fff;pointer-events:none;opacity:0;transition:opacity .4s;padding:0 1rem}
 #ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--fg);text-align:center;z-index:5;touch-action:pan-y}
 #panel{width:min(96vw,58rem);max-height:94vh;max-height:94dvh;overflow:auto;padding:1.2rem 1.5rem;box-sizing:border-box;-webkit-overflow-scrolling:touch}
 h1{margin:0 0 .5rem;font-size:2.6rem;letter-spacing:.04em}h1 span{color:var(--red)}h2,h3{margin:.6rem 0;font-size:1.4rem}h3{font-size:1.2rem}
@@ -993,10 +993,12 @@ document.body.appendChild(dialogueUI);
 const dialogueSpeaker=dialogueUI.querySelector('.dialogue-speaker'),dialogueLine=dialogueUI.querySelector('.dialogue-line'),dialogueNext=dialogueUI.querySelector('.dialogue-next');
 function dialogueActorForLine(raw){
  const split=raw.indexOf(':'),name=(split>0?raw.slice(0,split).trim():'').toLowerCase();
- if(!name)return null;
- return storyActors.find(a=>a.name.toLowerCase()===name)||
-  storyActors.find(a=>a.name.toLowerCase().startsWith(name)||name.startsWith(a.name.toLowerCase()))||
-  storyActors.find(a=>a.name.toLowerCase().split(' ').some(part=>part.length>2&&name.includes(part)))||null;
+ if(name){
+  const exact=storyActors.find(a=>a.name.toLowerCase()===name);if(exact)return exact;
+  const partial=storyActors.find(a=>a.name.toLowerCase().startsWith(name)||name.startsWith(a.name.toLowerCase())||a.name.toLowerCase().split(' ').some(part=>part.length>2&&name.includes(part)));if(partial)return partial;
+ }
+ if(campaignRun){const allyName=({0:'Mara Voss',2:'Kade Mercer',3:'Dr. Imani Vale',5:'Elias Renn'}[campaignRun.index]||'Mara Voss');const ally=storyActors.find(a=>a.name===allyName);if(ally)return ally}
+ return storyActors.slice().sort((a,b)=>a.group.position.distanceTo(p)-b.group.position.distanceTo(p))[0]||null;
 }
 function showDialogueLine(){
  if(!dialogueCutscene)return;
@@ -1006,39 +1008,35 @@ function showDialogueLine(){
  dialogueNext.textContent=dialogueCutscene.index>=dialogueCutscene.lines.length-1?'END CONVERSATION':'CONTINUE';
  dialogueCutscene.cameraReady=false;
 }
-function findDialogueSpot(actor){
+function findDialogueSpot(){
  const candidates=[];
- for(let i=0;i<N;i++)for(let j=0;j<N;j++){
-  const b=bl[i][j];if(!b||b.tr||b.tw)continue;
-  const dx=b.x-p.x,dz=b.z-p.z,d=Math.hypot(dx,dz);
-  if(d<3.5||d>15||Math.abs((b.ht+.12)-p.y)>5.5)continue;
-  const x=b.x,y=b.ht+1.05,z=b.z;
-  if(pointSolid(x,y,z)||!losClear(p.x,p.y+1.1,p.z,x,y,z))continue;
-  candidates.push({x:b.x,y:b.ht+.08,z:b.z,score:Math.abs(d-7)+Math.abs((b.ht+.08)-p.y)*.8});
+ for(let ring=4;ring<=9;ring+=1.25)for(let a=0;a<16;a++){
+  const ang=a*Math.PI/8,x=p.x+Math.cos(ang)*ring,z=p.z+Math.sin(ang)*ring,y=p.y;
+  if(pointSolid(x,y+.85,z)||pointSolid(x,y+1.65,z))continue;
+  if(!losClear(p.x,p.y+1.1,p.z,x,y+1.1,z))continue;
+  candidates.push({x,y,z,score:Math.abs(ring-6)+Math.abs(Math.atan2(z-p.z,x-p.x)-yaw)*.04});
  }
- candidates.sort((a,b)=>a.score-b.score);
- return candidates[0]||null;
+ candidates.sort((a,b)=>a.score-b.score);return candidates[0]||null;
 }
 function beginDialogue(lines){
  if(!Array.isArray(lines)||!lines.length)return;
- dialogueCutscene={lines,index:0,cameraReady:false};
+ dialogueCutscene={lines,index:0,cameraReady:false,actor:null};
  storyActors.forEach(a=>{a.dialogueStart=a.group.position.clone();a.navPath=[]});
- const first=dialogueActorForLine(lines[0]);
- if(first){
-  const spot=findDialogueSpot(first);
-  if(spot)first.group.position.set(spot.x,spot.y,spot.z);
-  first.group.visible=true;first.navPath=[];first.navIndex=0;
- }
+ const actor=dialogueActorForLine(lines[0]);
+ if(actor){dialogueCutscene.actor=actor;const spot=findDialogueSpot();if(spot)actor.group.position.set(spot.x,spot.y,spot.z);actor.group.visible=true;actor.navPath=[];actor.navIndex=0;actor.aiReady=true;actor.navGoal=null}
  dialogueUI.classList.add('active');showDialogueLine();
 }
+let dialogueAdvanceStamp=0;
 function advanceDialogue(){
- if(!dialogueCutscene)return;
- if(dialogueCutscene.index<dialogueCutscene.lines.length-1){dialogueCutscene.index++;showDialogueLine()}
+ if(!dialogueCutscene)return;const now=performance.now();if(now-dialogueAdvanceStamp<220)return;dialogueAdvanceStamp=now;
+ if(dialogueCutscene.index<dialogueCutscene.lines.length-1){dialogueCutscene.index++;const actor=dialogueActorForLine(dialogueCutscene.lines[dialogueCutscene.index]||'');if(actor){dialogueCutscene.actor=actor;actor.group.visible=true}showDialogueLine()}
  else{dialogueCutscene=null;dialogueUI.classList.remove('active')}
 }
-dialogueNext.addEventListener('click',advanceDialogue);
+dialogueNext.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();advanceDialogue()});
+dialogueNext.addEventListener('pointerup',e=>{e.preventDefault();e.stopPropagation();advanceDialogue()});
+dialogueNext.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();advanceDialogue()},{passive:false});
 dialogueUI.addEventListener('click',e=>{if(e.target===dialogueUI||e.target.classList.contains('dialogue-shade'))advanceDialogue()});
-
+dialogueUI.addEventListener('pointerup',e=>{if(e.target===dialogueUI||e.target.classList.contains('dialogue-shade'))advanceDialogue()});
 function reset(){if(campaignTutorialWasOn!==null)leaveCampaignMode();climbTurn=false;p.copy(respawn);safe.copy(respawn);v.set(0,0,0);mom=0;slideT=rollT=0;hp=100;hang=null;vault=null;zip=null;lad=null;rope=null;stagger=0;resetCampaignPursuit()}
 
 function step(dt){
@@ -1748,31 +1746,17 @@ function loop(now){
   C.rotation.order='YXZ';C.rotation.set(pitch-rollAng-dk*.3-(vault?Math.sin(Math.PI*vault.t/vault.dur)*.1:0)+(slideT>0?.06:0),yaw,roll+bsx+(slideT>0?.04:0)+(zip?Math.sin(now*.0035)*.05:0)+bankW+(vault?Math.sin(Math.PI*vault.t/vault.dur)*.05:0));
   if(dialogueCutscene){
    tickDialogueActors(dt);
-   const raw=dialogueCutscene.lines[dialogueCutscene.index]||'';
-   const actor=dialogueActorForLine(raw)||dialogueCutscene.actor||storyActors.find(a=>a.group.visible&&a.group.position.distanceTo(p)<45);
+   const raw=dialogueCutscene.lines[dialogueCutscene.index]||'',actor=dialogueActorForLine(raw)||dialogueCutscene.actor;
    if(actor){
     dialogueCutscene.actor=actor;actor.group.visible=true;
-    const npc=actor.group.position;
-    const playerFocus=new THREE.Vector3(p.x,p.y+1.05,p.z),npcFocus=new THREE.Vector3(npc.x,npc.y+1.05,npc.z);
-    const mid=playerFocus.clone().add(npcFocus).multiplyScalar(.5);
-    const line=npcFocus.clone().sub(playerFocus);line.y=0;
-    if(line.lengthSq()<.01)line.set(-Math.sin(yaw),0,-Math.cos(yaw));
-    line.normalize();
-    const side=new THREE.Vector3(-line.z,0,line.x);
-    const options=[
-     mid.clone().addScaledVector(side,6.2).addScaledVector(line,1.2).add(new THREE.Vector3(0,3.2,0)),
-     mid.clone().addScaledVector(side,-6.2).addScaledVector(line,1.2).add(new THREE.Vector3(0,3.2,0)),
-     mid.clone().add(new THREE.Vector3(0,9,0))
-    ];
-    let desired=options.find(q=>!pointSolid(q.x,q.y,q.z)&&losClear(mid.x,mid.y,mid.z,q.x,q.y,q.z));
-    if(!desired)desired=options[2];
-    if(pointSolid(desired.x,desired.y,desired.z)){
-     desired.set(p.x,p.y+8,p.z);
-     if(pointSolid(desired.x,desired.y,desired.z))desired.set(npc.x,npc.y+8,npc.z);
-    }
-    if(!dialogueCutscene.cameraReady){C.position.copy(desired);dialogueCutscene.cameraReady=true}
-    else C.position.lerp(desired,1-Math.exp(-dt*3.8));
-    C.lookAt(mid.x,mid.y+.15,mid.z);
+    const npc=actor.group.position,playerFocus=new THREE.Vector3(p.x,p.y+1.05,p.z),npcFocus=new THREE.Vector3(npc.x,npc.y+1.05,npc.z),mid=playerFocus.clone().add(npcFocus).multiplyScalar(.5);
+    const line=npcFocus.clone().sub(playerFocus);line.y=0;if(line.lengthSq()<.01)line.set(-Math.sin(yaw),0,-Math.cos(yaw));line.normalize();
+    const side=new THREE.Vector3(-line.z,0,line.x),options=[];
+    for(const sign of [1,-1])for(const distance of [7.5,9.5,11])for(const lift of [2.8,4.2])options.push(mid.clone().addScaledVector(side,sign*distance).addScaledVector(line,1.1).add(new THREE.Vector3(0,lift,0)));
+    const clearSegment=(from,to)=>{const delta=to.clone().sub(from),length=delta.length(),steps=Math.max(2,Math.ceil(length/.55));for(let k=1;k<=steps;k++){const q=from.clone().addScaledVector(delta,k/steps);if(pointSolid(q.x,q.y,q.z)||pointSolid(q.x+.32,q.y,q.z)||pointSolid(q.x-.32,q.y,q.z)||pointSolid(q.x,q.y,q.z+.32)||pointSolid(q.x,q.y,q.z-.32))return false}return true};
+    const desired=options.find(q=>!pointSolid(q.x,q.y,q.z)&&clearSegment(playerFocus,q)&&clearSegment(npcFocus,q));
+    if(desired){if(!dialogueCutscene.cameraReady){C.position.copy(desired);dialogueCutscene.cameraReady=true}else C.position.lerp(desired,1-Math.exp(-dt*3.8));C.lookAt(mid.x,mid.y+.15,mid.z)}
+    else dialogueCutscene.cameraReady=true;
    }
   }
   if(trial){const q=trial.t.pts[trial.i];target.visible=true;target.material.color.setHex(trial.i===trial.t.pts.length-1?0xc13cff:0x2aa8ff);target.position.set(q.x,q.y+30,q.z)}else if(campaignRun){const q=CAMPAIGN[campaignRun.index].route[campaignRun.step];target.visible=!!q;if(q){target.material.color.setHex(0xe5242b);target.position.set(q.x,q.y+26,q.z)}}else target.visible=false;
