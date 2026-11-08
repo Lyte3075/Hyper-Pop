@@ -623,20 +623,45 @@ function resetCampaignPursuit(){
  chaseTrail=[];chaseClock=0;chaseRecord=0;chaseWarmup=0;
  // Seed the route at the respawn point so the pack rebuilds close behind
  // the runner after the short warning window.
- chaseTrail.push({t:0,x:p.x,y:p.y,z:p.z});
+ chaseTrail.push({t:0,x:p.x,y:p.y,z:p.z,action:'run'});
 }
 function chaseSample(t){
  if(!chaseTrail.length)return null;
  if(t<=chaseTrail[0].t)return chaseTrail[0];
- for(let i=1;i<chaseTrail.length;i++){const b=chaseTrail[i];if(b.t>=t){const a=chaseTrail[i-1],k=(t-a.t)/Math.max(.001,b.t-a.t);return{x:a.x+(b.x-a.x)*k,y:a.y+(b.y-a.y)*k,z:a.z+(b.z-a.z)*k}}}
+ for(let i=1;i<chaseTrail.length;i++){const b=chaseTrail[i];if(b.t>=t){const a=chaseTrail[i-1],k=(t-a.t)/Math.max(.001,b.t-a.t);return{x:a.x+(b.x-a.x)*k,y:a.y+(b.y-a.y)*k,z:a.z+(b.z-a.z)*k,action:k<.5?(a.action||'run'):(b.action||'run')}}}
  return chaseTrail[chaseTrail.length-1];
 }
-function animateStoryActor(a,dt,speed,faceX,faceZ,clock){
+function actorMovementMode(){
+ if(vault)return'vault';
+ if(hang)return'climb';
+ if(lad)return'climb';
+ if(wallrun)return'wallrun';
+ if(climbing&&!ground)return'climb';
+ if(!ground&&!zip&&!rope)return'jump';
+ return'run';
+}
+function animateStoryActor(a,dt,speed,faceX,faceZ,clock,mode){
  const moving=speed>.35,weight=moving?Math.min(1,speed/5):0;
  a.phase+=dt*(moving?7+speed*.55:1.8);
- const swing=Math.sin(a.phase)*weight;
- a.armParts.forEach((m,i)=>{const side=i<2?-1:1;m.rotation.x=swing*side*.72+(a.gesture>0?Math.sin(clock*5)*.42:0);});
- a.legParts.forEach((m,i)=>{const side=i%2===0?-1:1;m.rotation.x=swing*side*.9;});
+ const swing=Math.sin(a.phase)*weight,breath=Math.sin(a.phase*.42)*.035;
+ let armL=swing*.72,armR=-swing*.72,legL=-swing*.9,legR=swing*.9,lean=0,roll=0,bob=0;
+ // Distinct parkour silhouettes, blended procedurally from the same character rig.
+ if(mode==='jump'){
+  const airt=Math.max(0,Math.min(1,Math.abs(Math.sin(a.phase*.36))));armL=-1.65;armR=-1.45;legL=.85;legR=-.65;lean=-.18;bob=.025;
+ }else if(mode==='vault'){
+  armL=-2.25;armR=-2.05;legL=1.25;legR=.72;lean=-.62;bob=.06;
+ }else if(mode==='climb'){
+  const reach=Math.sin(clock*8+a.phase)*.45;armL=-2.15+reach;armR=-.55-reach;legL=.75+reach*.35;legR=-.35-reach*.35;lean=-.22;bob=Math.sin(clock*9)*.035;
+ }else if(mode==='wallrun'){
+  armL=-1.75;armR=.45;legL=-.95;legR=1.2;lean=-.18;roll=Math.sin(a.phase)*.12;
+ }else if(mode==='drop'){
+  armL=-1.25;armR=-1.25;legL=.65;legR=.65;lean=.18;
+ }
+ a.armParts.forEach((m,i)=>{m.rotation.x=i<2?(i===0?armL:armR):(i===2?armL*.35:armR*.35);m.rotation.z=mode==='wallrun'?(i%2===0?-.35:.35):0;});
+ a.legParts.forEach((m,i)=>{m.rotation.x=i%2===0?legL:legR;});
+ a.group.rotation.x+=(lean-a.group.rotation.x)*(1-Math.exp(-dt*12));
+ a.group.rotation.z+=(roll-a.group.rotation.z)*(1-Math.exp(-dt*12));
+ a.group.position.y+=breath+bob;
  a.gesture=Math.max(0,a.gesture-dt);
  if(Math.hypot(faceX,faceZ)>.06)a.group.rotation.y=Math.atan2(faceX,faceZ)+Math.PI;
 }
@@ -659,7 +684,7 @@ function campaignActorsTick(dt){
    ally.group.position.y+=(q.y-ally.group.position.y)*(1-Math.exp(-dt*1.8));
    const speed=Math.hypot(ally.group.position.x-ox,ally.group.position.z-oz)/Math.max(.001,dt);
    if(dist<9&&ally.gesture<=0&&Math.random()<dt*.07)ally.gesture=1.1;
-   animateStoryActor(ally,dt,speed,p.x-ally.group.position.x,p.z-ally.group.position.z,chaseClock);
+   animateStoryActor(ally,dt,speed,p.x-ally.group.position.x,p.z-ally.group.position.z,chaseClock,actorMovementMode());
   }
   return;
  }
@@ -668,7 +693,7 @@ function campaignActorsTick(dt){
  const heliPos=new THREE.Vector3(p.x+heliForward.x*20+heliSide.x*8,p.y+22+Math.sin(chaseClock*2)*.45,p.z+heliForward.z*20+heliSide.z*8);
  pursuitHeli.visible=chaseWarmup>=.8;
  if(pursuitHeli.visible){pursuitHeli.position.copy(heliPos);pursuitHeli.rotation.y=Math.atan2(heliForward.x,heliForward.z);heliRotor.rotation.y+=dt*28;heliTailRotor.rotation.x+=dt*24;}
- if(chaseRecord>=.055){chaseRecord=0;chaseTrail.push({t:chaseClock,x:p.x,y:p.y,z:p.z});while(chaseTrail.length&&chaseTrail[0].t<chaseClock-16)chaseTrail.shift()}
+ if(chaseRecord>=.055){chaseRecord=0;chaseTrail.push({t:chaseClock,x:p.x,y:p.y,z:p.z,action:actorMovementMode()});while(chaseTrail.length&&chaseTrail[0].t<chaseClock-16)chaseTrail.shift()}
  if(ally){
   ally.group.visible=true;
   const q=mission.route[Math.max(0,campaignRun.step-1)];
@@ -691,7 +716,7 @@ function campaignActorsTick(dt){
    e.dropT+=dt;const k=Math.min(1,e.dropT/1.65),ease=k*k*(3-2*k);
    if(e.dropFrom&&e.dropTo)e.group.position.lerpVectors(e.dropFrom,e.dropTo,ease);
    e.group.position.y+=(1-k)*Math.sin(k*Math.PI)*.12;
-   animateStoryActor(e,dt,2,e.dropTo?e.dropTo.x-e.group.position.x:0,e.dropTo?e.dropTo.z-e.group.position.z:0,chaseClock);
+   animateStoryActor(e,dt,2,e.dropTo?e.dropTo.x-e.group.position.x:0,e.dropTo?e.dropTo.z-e.group.position.z:0,chaseClock,'drop');
    if(k>=1){e.dropping=false;e.cursor=Math.max(chaseTrail[0]?.t||0,chaseClock-1.8-i*.12)}
    continue;
   }
@@ -701,7 +726,7 @@ function campaignActorsTick(dt){
    dx=target.x-e.group.position.x;dz=target.z-e.group.position.z;const dy=target.y-e.group.position.y,blend=1-Math.exp(-dt*9.5);
    e.group.position.x+=dx*blend;e.group.position.y+=dy*blend;e.group.position.z+=dz*blend;
   }
-  const travel=Math.hypot(dx,dz);animateStoryActor(e,dt,travel/Math.max(.001,dt),dx,dz,chaseClock);
+  const travel=Math.hypot(dx,dz);animateStoryActor(e,dt,travel/Math.max(.001,dt),dx,dz,chaseClock,target&&target.action?target.action:'run');
   const px=p.x-e.group.position.x,py=p.y-e.group.position.y,pz=p.z-e.group.position.z,d=Math.hypot(px,py*.65,pz);
   if(d<1.55&&e.hit<=0){e.hit=1.5;hurt(ci>=4?8:6,true);stagger=0;shake=Math.max(shake,.07);toast('AETHER PURSUIT · HIT · KEEP MOVING')}
  }
