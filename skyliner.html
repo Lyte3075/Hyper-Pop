@@ -102,7 +102,14 @@ try{const s=JSON.parse(localStorage.getItem('rr_set'));if(s)set={...set,...s,bin
 if(set.gv!==5){set.gear={};set.gv=5}
 const save=()=>{try{localStorage.setItem('rr_set',JSON.stringify(set))}catch(e){}};
 const storageOK=(()=>{try{localStorage.setItem('sr_t','1');localStorage.removeItem('sr_t');return true}catch(e){return false}})();
-function isGearUnlocked(k){return unlockedGear.includes(k)}
+const MAIN_GEAR_KEYS=['rope','dash','wingsuit'];
+let ownedGear=[];try{ownedGear=JSON.parse(localStorage.getItem('rr_gear_owned')||'[]')}catch(e){}
+const legacyGear=[];try{const old=JSON.parse(localStorage.getItem('rr_gear_unlocked')||'[]');for(const k of old)if(!MAIN_GEAR_KEYS.includes(k)&&!ownedGear.includes(k))legacyGear.push(k)}catch(e){}
+ownedGear=[...new Set([...ownedGear,...legacyGear])];
+function saveGearOwnership(){try{localStorage.setItem('rr_gear_owned',JSON.stringify(ownedGear))}catch(e){}}
+function isGearUnlocked(k){return MAIN_GEAR_KEYS.includes(k)?unlockedGear.includes(k):ownedGear.includes(k)}
+const GEAR_PRICES={winch:650,quick:850,sling:1100,aero:650,thrust:900,stable:700,flare:550,twin:700,long:900,charge:850,gloves:500,grips:650,cutter:550,boots:450,soles:600,shoes:750,knees:400,turner:500,stride:700,patch:650,armor:1000,band:750,magnet:550,cells:800};
+const gearPrice=k=>GEAR_PRICES[k]||500;
 const hasGear=k=>!!(set.gear&&set.gear[k]&&isGearUnlocked(k)),GEARS=[
 ['rope','Mag rope','MAIN GEAR. Fire ONLY at the blue anchor orbs (roof posts, avenue pylons, spires, under bridges) and swing. Draw it with the gear key, fire with X or click.','main'],
 ['winch','Rope winch','Mag rope add-on: reels in faster and reaches further.','addon','rope'],
@@ -133,10 +140,15 @@ const hasGear=k=>!!(set.gear&&set.gear[k]&&isGearUnlocked(k)),GEARS=[
 ['cells','Pick-up cells','Medkits and flow cells give much more.','belt']];
 function toggleGear(k){
   set.gear=set.gear||{};const g=GEARS.find(x=>x[0]===k);if(!g)return;
-  if(!isGearUnlocked(k)){toast('LOCKED · COMPLETE CAMPAIGN CHAPTERS');return}
   const off=key=>{set.gear[key]=false;if(key==='rope'){gearOn=false;rope=null}if(key==='wingsuit')wingOn=false};
-  if(set.gear[k]){off(k);if(g[3]==='main')for(const o of GEARS)if(o[4]===k)set.gear[o[0]]=false;save();return}
-  if(g[3]==='addon'){if(!set.gear[g[4]]){toast('Equip '+GEARS.find(x=>x[0]===g[4])[1]+' first');return}set.gear[k]=true;save();return}
+  if(set.gear[k]&&isGearUnlocked(k)){off(k);if(g[3]==='main')for(const o of GEARS)if(o[4]===k)set.gear[o[0]]=false;save();return}
+  if(MAIN_GEAR_KEYS.includes(k)&&!isGearUnlocked(k)){toast('LOCKED · COMPLETE MORE CAMPAIGN CHAPTERS');return}
+  if(!isGearUnlocked(k)){
+    const cost=gearPrice(k);if(currency<cost){toast('NOT ENOUGH GRIDMARKS · NEED '+cost+' GM');return}
+    currency-=cost;ownedGear.push(k);saveGearOwnership();saveCurrency();
+    toast(g[3]==='addon'?'ADD-ON PURCHASED · '+cost+' GM':'GEAR PURCHASED · '+cost+' GM');
+  }
+  if(g[3]==='addon'){if(!set.gear[g[4]]){toast('PURCHASED · EQUIP '+GEARS.find(x=>x[0]===g[4])[1]+' FIRST');save();return}set.gear[k]=true;save();return}
   if(g[3]==='main'){for(const o of GEARS)if(o[3]==='main'&&o[0]!==k){off(o[0]);for(const a2 of GEARS)if(a2[4]===o[0])set.gear[a2[0]]=false}set.gear[k]=true;save();return}
   for(const o of GEARS)if(o[3]===g[3])set.gear[o[0]]=false;
   set.gear[k]=true;save();
@@ -148,8 +160,8 @@ let completedCampaign=[];try{completedCampaign=JSON.parse(localStorage.getItem('
 let unlockedGear=[];try{unlockedGear=JSON.parse(localStorage.getItem('rr_gear_unlocked')||'[]')}catch(e){}
 let currency=0;try{currency=Math.max(0,+localStorage.getItem('rr_currency')||0)}catch(e){}
 let delivery=null,deliveryIndex=0,completedDeliveries=[],nearCourier=null,courierContacts=[];try{completedDeliveries=JSON.parse(localStorage.getItem('rr_deliveries')||'[]');deliveryIndex=completedDeliveries.length}catch(e){}
-const GEAR_REWARDS=[['gloves','boots'],['shoes','soles','knees','turner'],['patch','armor','band'],['grips','cutter','stride'],['rope'],['winch','quick','sling'],['magnet','cells'],['dash'],['twin','long','charge'],['wingsuit'],['aero','thrust','stable','flare']];
-function syncProgressUnlocks(){const next=[];completedCampaign.forEach(i=>{(GEAR_REWARDS[i]||[]).forEach(k=>{if(!next.includes(k))next.push(k)})});unlockedGear=next;try{localStorage.setItem('rr_gear_unlocked',JSON.stringify(unlockedGear));localStorage.setItem('rr_trial_unlocked',String(Math.min(trials.length,3+completedCampaign.length*2)))}catch(e){}}
+const GEAR_REWARDS=[[],[],[],[],[],[],[],['rope'],[],['dash'],['wingsuit']];
+function syncProgressUnlocks(){const next=[];completedCampaign.forEach(i=>{(GEAR_REWARDS[i]||[]).forEach(k=>{if(!next.includes(k))next.push(k)})});unlockedGear=next;try{localStorage.setItem('rr_gear_unlocked',JSON.stringify(unlockedGear));localStorage.setItem('rr_gear_owned',JSON.stringify(ownedGear));localStorage.setItem('rr_trial_unlocked',String(Math.min(trials.length,3+completedCampaign.length*2)))}catch(e){}}
 function trialUnlockCount(){let n=3;try{n=Math.max(3,Math.min(trials.length,+localStorage.getItem('rr_trial_unlocked')||3))}catch(e){}return n}
 function trialUnlocked(t){return trials.indexOf(t)<trialUnlockCount()}
 function saveCurrency(){try{localStorage.setItem('rr_currency',String(currency));localStorage.setItem('rr_deliveries',JSON.stringify(completedDeliveries))}catch(e){toast('Currency saving unavailable')}}
@@ -1317,8 +1329,8 @@ function menu(view,msg){
   if(view==='runchoice'){P.innerHTML='<h2>Choose your run</h2><p>Campaign progression or open-city movement?</p><button id="runCampaign">Campaign</button><button id="runFree" class="alt">Freerun</button><button id="runBack" class="alt">Back</button>';P.querySelector('#runCampaign').onclick=()=>{if(localStorage.getItem('sr_tut')!=='1'){tut.on=true;tut.done={};start.copy(trainStart);p.copy(trainStart);respawn.copy(trainStart);play();toast('Finish the tutorial to unlock campaign')}else menu('campaign')};P.querySelector('#runFree').onclick=()=>{start.copy(cityStart);p.copy(cityStart);respawn.copy(cityStart);safe.copy(cityStart);v.set(0,0,0);trial=null;play()};P.querySelector('#runBack').onclick=()=>menu('main');return}
   if(view==='deliveries'){P.innerHTML='<h2>Veyra courier network</h2><p><b>'+currency+' CR</b> · '+completedDeliveries.length+' completed deliveries</p><p>Deliveries are currently available in Freerun only. Find a civilian courier marked by a green beacon on a rooftop. Approach and interact to accept their package, then race across the skyline to the green drop beacon. Longer routes pay more. Every two completed deliveries add another courier to the city, up to 20 total. Couriers return in new locations after a short cooldown.</p>'+(delivery?'<p><b>ACTIVE DELIVERY</b><br>'+delivery.from+' · '+delivery.distance+' m route · '+delivery.reward+' CR reward</p>':'<p>ACTIVE CONTRACTS · 0<br>Look for a green courier beacon in Freerun.</p>')+'<button id="deliveryBack" class="alt">Back</button>';P.querySelector('#deliveryBack').onclick=()=>menu('main');return}
   if(view==='inv'){
-    const row=g=>'<div class=gr><div><b>'+g[1]+'</b><br><small>'+g[2]+'</small></div><button data-g="'+g[0]+'" class="'+(hasGear(g[0])?'':'alt')+'" '+(isGearUnlocked(g[0])?'':'disabled')+'>'+(hasGear(g[0])?'Equipped':isGearUnlocked(g[0])?'Equip':'LOCKED')+'</button></div>';
-    P.innerHTML='<h2>Inventory</h2><p>One main gear at a time. Add-ons stay expanded while you equip or unequip gear.</p><h3>Main gear</h3>'+GEARS.filter(g=>g[3]==='main').map(g=>{const adds=GEARS.filter(a2=>a2[4]===g[0]);return row(g)+(isGearUnlocked(g[0])&&adds.length?'<details class="gear-addons" data-addon-parent="'+g[0]+'" '+(openGearAddons.has(g[0])?'open':'')+'><summary>UPGRADES · '+adds.length+'</summary>'+adds.map(row).join('')+'</details>':'')}).join('')+['hands','feet','legs','back','belt'].map(c=>'<h3>'+c+'</h3>'+GEARS.filter(g=>g[3]===c).map(row).join('')).join('')+'<button id=ua class=alt>Unequip all</button><button id=ib>Back</button>';
+    const row=g=>{const owned=isGearUnlocked(g[0]),main=MAIN_GEAR_KEYS.includes(g[0]),cost=gearPrice(g[0]),canBuy=currency>=cost;const status=hasGear(g[0])?'Equipped':owned?'Equip':main?(g[0]==='rope'?'UNLOCK · CHAPTER 8':g[0]==='dash'?'UNLOCK · CHAPTER 10':'UNLOCK · CHAPTER 11'):(canBuy?'BUY · '+cost+' GM':'NEED '+cost+' GM');return '<div class=gr><div><b>'+g[1]+'</b><br><small>'+g[2]+'</small></div><button data-g="'+g[0]+'" class="'+(hasGear(g[0])?'':'alt')+'" '+(!owned&&!main&&!canBuy?'disabled':'')+'>'+status+'</button></div>'};
+    P.innerHTML='<h2>Inventory</h2><p><b>'+currency+' GRIDMARKS (GM)</b> · Main gear is unlocked through late campaign chapters. All other gear and add-ons must be purchased. Add-ons stay expanded while you equip or unequip gear.</p><h3>Main gear</h3>'+GEARS.filter(g=>g[3]==='main').map(g=>{const adds=GEARS.filter(a2=>a2[4]===g[0]);return row(g)+(isGearUnlocked(g[0])&&adds.length?'<details class="gear-addons" data-addon-parent="'+g[0]+'" '+(openGearAddons.has(g[0])?'open':'')+'><summary>UPGRADES · '+adds.length+'</summary>'+adds.map(row).join('')+'</details>':'')}).join('')+['hands','feet','legs','back','belt'].map(c=>'<h3>'+c+'</h3>'+GEARS.filter(g=>g[3]===c).map(row).join('')).join('')+'<button id=ua class=alt>Unequip all</button><button id=ib>Back</button>';
     P.querySelectorAll('details[data-addon-parent]').forEach(d=>d.addEventListener('toggle',()=>{if(d.open)openGearAddons.add(d.dataset.addonParent);else openGearAddons.delete(d.dataset.addonParent)}));
     P.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{toggleGear(b.dataset.g);menu('inv')});
     P.querySelector('#ua').onclick=()=>{set.gear={};gearOn=false;rope=null;save();menu('inv')};
