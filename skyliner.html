@@ -1356,6 +1356,7 @@ function step(dt){
     it.t=45;it.mesh.visible=false;tone(700,.1,'triangle',.12,1100)}
   // time trials: stand on a green beacon and Interact
   trialCool-=dt;nearTrial=null;
+  nearTowerRelay=null;
   if(campaignRun){
     const m=CAMPAIGN[campaignRun.index],q=m.route[campaignRun.step];
     if(q&&Math.hypot(p.x-q.x,p.z-q.z)<4.2&&p.y>q.y-5&&p.y<q.y+42){
@@ -1371,7 +1372,7 @@ function step(dt){
         selectedCampaign=campaignRun.index;
         if(!completedCampaign.includes(campaignRun.index))completedCampaign.push(campaignRun.index);syncProgressUnlocks();
         saveCampaign();const last=campaignRun.index===CAMPAIGN.length-1;campaignRun=null;if(last)leaveCampaignMode();playing=false;touchUI.style.display='none';mouseFallback=false;mouseArmed=false;mouseStickX=mouseStickY=0;mouseAim.style.display='none';document.body.classList.remove('mouse-look');toast('MISSION COMPLETE');menu(last?'ending':'chapterComplete');
-      }else{const line=m.radio[Math.min(campaignRun.step-1,m.radio.length-1)];beginDialogue([line])}
+      }else if(relayIndex<0){const line=m.radio[Math.min(campaignRun.step-1,m.radio.length-1)];beginDialogue([line])}
       }
     }
   }
