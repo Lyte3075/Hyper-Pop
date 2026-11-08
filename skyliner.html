@@ -371,7 +371,7 @@ function flushBatches(){
     for(const list of bins.values())for(let o=0;o<list.length;o+=1800){
       const part=list.slice(o,o+1800),inst=new THREE.InstancedMesh(geo,part[0].mat,part.length);
       for(let i=0;i<part.length;i++){const q=part[i];dummy.position.set(q.x+q.dx*q.len/2,(q.y0+q.y1)/2-.3,q.z+q.dz*q.len/2);dummy.rotation.order='YXZ';dummy.rotation.y=Math.atan2(q.dx,q.dz);dummy.rotation.x=-Math.atan2(q.y1-q.y0,q.len);dummy.scale.set(q.w,.6,Math.hypot(q.len,q.y1-q.y0));dummy.updateMatrix();inst.setMatrixAt(i,dummy.matrix)}
-      inst.instanceMatrix.needsUpdate=true;inst.computeBoundingSphere();inst.frustumCulled=true;S.add(inst);
+      inst.instanceMatrix.needsUpdate=true;inst.frustumCulled=false;S.add(inst);
     }
     rampVisuals.length=0;
   }
