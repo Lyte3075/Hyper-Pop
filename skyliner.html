@@ -1023,7 +1023,7 @@ function beginDialogue(lines){
  dialogueCutscene={lines,index:0,cameraReady:false,actor:null};
  storyActors.forEach(a=>{a.dialogueStart=a.group.position.clone();a.navPath=[]});
  const actor=dialogueActorForLine(lines[0]);
- if(actor){dialogueCutscene.actor=actor;const spot=findDialogueSpot();if(spot)actor.group.position.set(spot.x,spot.y,spot.z);actor.group.visible=true;actor.navPath=[];actor.navIndex=0;actor.aiReady=true;actor.navGoal=null}
+ if(actor){dialogueCutscene.actor=actor;const spot=findDialogueSpot();if(spot)actor.group.position.set(spot.x,spot.y,spot.z);actor.dialogueStart=actor.group.position.clone();actor.group.visible=true;actor.navPath=[];actor.navIndex=0;actor.aiReady=true;actor.navGoal=null}
  dialogueUI.classList.add('active');showDialogueLine();
 }
 let dialogueAdvanceStamp=0;
