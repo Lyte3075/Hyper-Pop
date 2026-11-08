@@ -1006,18 +1006,28 @@ function showDialogueLine(){
  dialogueNext.textContent=dialogueCutscene.index>=dialogueCutscene.lines.length-1?'END CONVERSATION':'CONTINUE';
  dialogueCutscene.cameraReady=false;
 }
+function findDialogueSpot(actor){
+ const candidates=[];
+ for(let i=0;i<N;i++)for(let j=0;j<N;j++){
+  const b=bl[i][j];if(!b||b.tr||b.tw)continue;
+  const dx=b.x-p.x,dz=b.z-p.z,d=Math.hypot(dx,dz);
+  if(d<3.5||d>15||Math.abs((b.ht+.12)-p.y)>5.5)continue;
+  const x=b.x,y=b.ht+1.05,z=b.z;
+  if(pointSolid(x,y,z)||!losClear(p.x,p.y+1.1,p.z,x,y,z))continue;
+  candidates.push({x:b.x,y:b.ht+.08,z:b.z,score:Math.abs(d-7)+Math.abs((b.ht+.08)-p.y)*.8});
+ }
+ candidates.sort((a,b)=>a.score-b.score);
+ return candidates[0]||null;
+}
 function beginDialogue(lines){
  if(!Array.isArray(lines)||!lines.length)return;
  dialogueCutscene={lines,index:0,cameraReady:false};
  storyActors.forEach(a=>{a.dialogueStart=a.group.position.clone();a.navPath=[]});
  const first=dialogueActorForLine(lines[0]);
  if(first){
-  first.group.visible=true;
-  const dx=first.group.position.x-p.x,dz=first.group.position.z-p.z,dist=Math.hypot(dx,dz);
-  if(dist>13){
-   const fx=-Math.sin(yaw),fz=-Math.cos(yaw);
-   first.group.position.set(p.x+fx*4.5+Math.cos(yaw)*1.1,p.y,p.z+fz*4.5-Math.sin(yaw)*1.1);
-  }
+  const spot=findDialogueSpot(first);
+  if(spot)first.group.position.set(spot.x,spot.y,spot.z);
+  first.group.visible=true;first.navPath=[];first.navIndex=0;
  }
  dialogueUI.classList.add('active');showDialogueLine();
 }
@@ -1723,7 +1733,7 @@ function loop(now){
   requestAnimationFrame(loop);
   const dt=Math.min(.033,(now-last)/1000);last=now;
   const live=playing&&!done;
-  if(live&&!dialogueCutscene){const sub=Math.hypot(v.x,v.z)>16?2:1;for(let q=0;q<sub;q++)step(dt/sub)}campaignActorsTick(dialogueCutscene?0:dt);deliveryTick(); // at high speed, two physics steps so you never tunnel through thin walls
+  if(live&&!dialogueCutscene){const sub=Math.hypot(v.x,v.z)>16?2:1;for(let q=0;q<sub;q++)step(dt/sub)}campaignActorsTick(dialogueCutscene?0:dt);if(dialogueCutscene){const da=dialogueActorForLine(dialogueCutscene.lines[dialogueCutscene.index]||'')||dialogueCutscene.actor;if(da){da.group.visible=true;dialogueCutscene.actor=da}}deliveryTick(); // at high speed, two physics steps so you never tunnel through thin walls
   if(toastT>0){toastT-=dt;if(toastT<=0)document.getElementById('toast').style.opacity=0}
   const sp=Math.hypot(v.x,v.z);
   if(mouseFallback&&!set.touch&&mouseArmed){yaw-=mouseStickX*2.1*dt;pitch=Math.max(-1.5,Math.min(1.5,pitch+mouseStickY*1.65*dt*(set.invY?-1:1)))}
@@ -1739,9 +1749,9 @@ function loop(now){
   if(dialogueCutscene){
    tickDialogueActors(dt);
    const raw=dialogueCutscene.lines[dialogueCutscene.index]||'';
-   const actor=dialogueActorForLine(raw)||storyActors.find(a=>a.group.visible&&a.group.position.distanceTo(p)<45);
+   const actor=dialogueActorForLine(raw)||dialogueCutscene.actor||storyActors.find(a=>a.group.visible&&a.group.position.distanceTo(p)<45);
    if(actor){
-    actor.group.visible=true;
+    dialogueCutscene.actor=actor;actor.group.visible=true;
     const npc=actor.group.position;
     const playerFocus=new THREE.Vector3(p.x,p.y+1.05,p.z),npcFocus=new THREE.Vector3(npc.x,npc.y+1.05,npc.z);
     const mid=playerFocus.clone().add(npcFocus).multiplyScalar(.5);
@@ -1749,10 +1759,19 @@ function loop(now){
     if(line.lengthSq()<.01)line.set(-Math.sin(yaw),0,-Math.cos(yaw));
     line.normalize();
     const side=new THREE.Vector3(-line.z,0,line.x);
-    const desired=mid.clone().addScaledVector(side,8.2).addScaledVector(line,1.8);
-    desired.y+=3.1;
+    const options=[
+     mid.clone().addScaledVector(side,6.2).addScaledVector(line,1.2).add(new THREE.Vector3(0,3.2,0)),
+     mid.clone().addScaledVector(side,-6.2).addScaledVector(line,1.2).add(new THREE.Vector3(0,3.2,0)),
+     mid.clone().add(new THREE.Vector3(0,9,0))
+    ];
+    let desired=options.find(q=>!pointSolid(q.x,q.y,q.z)&&losClear(mid.x,mid.y,mid.z,q.x,q.y,q.z));
+    if(!desired)desired=options[2];
+    if(pointSolid(desired.x,desired.y,desired.z)){
+     desired.set(p.x,p.y+8,p.z);
+     if(pointSolid(desired.x,desired.y,desired.z))desired.set(npc.x,npc.y+8,npc.z);
+    }
     if(!dialogueCutscene.cameraReady){C.position.copy(desired);dialogueCutscene.cameraReady=true}
-    else C.position.lerp(desired,1-Math.exp(-dt*4.5));
+    else C.position.lerp(desired,1-Math.exp(-dt*3.8));
     C.lookAt(mid.x,mid.y+.15,mid.z);
    }
   }
