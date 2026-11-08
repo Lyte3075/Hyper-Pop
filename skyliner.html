@@ -150,7 +150,8 @@ let currency=0;try{currency=Math.max(0,+localStorage.getItem('rr_currency')||0)}
 let delivery=null,deliveryIndex=0,completedDeliveries=[];try{completedDeliveries=JSON.parse(localStorage.getItem('rr_deliveries')||'[]')}catch(e){}
 const GEAR_REWARDS=[['rope','gloves'],['winch','quick','dash','shoes'],['sling','wingsuit','aero','thrust','stable','flare','soles'],['twin','long','charge'],['grips','cutter','boots'],['knees','turner','stride'],['patch','armor','band'],['magnet','cells']];
 function syncProgressUnlocks(){const next=[];completedCampaign.forEach(i=>{(GEAR_REWARDS[i]||[]).forEach(k=>{if(!next.includes(k))next.push(k)})});unlockedGear=next;try{localStorage.setItem('rr_gear_unlocked',JSON.stringify(unlockedGear));localStorage.setItem('rr_trial_unlocked',String(Math.min(trials.length,3+completedCampaign.length*2)))}catch(e){}}
-function trialUnlocked(t){let n=3;try{n=Math.max(3,Math.min(trials.length,+localStorage.getItem('rr_trial_unlocked')||3))}catch(e){}return trials.indexOf(t)<n}
+function trialUnlockCount(){let n=3;try{n=Math.max(3,Math.min(trials.length,+localStorage.getItem('rr_trial_unlocked')||3))}catch(e){}return n}
+function trialUnlocked(t){return trials.indexOf(t)<trialUnlockCount()}
 function saveCurrency(){try{localStorage.setItem('rr_currency',String(currency));localStorage.setItem('rr_deliveries',JSON.stringify(completedDeliveries))}catch(e){toast('Currency saving unavailable')}}
 let campaignEnding=localStorage.getItem('rr_campaign_ending')||null,selectedCampaign=0;
 let goldUnlock=[];try{goldUnlock=JSON.parse(localStorage.getItem('rr_trial_gold')||'[]')}catch(e){}
@@ -1257,7 +1258,7 @@ function step(dt){
     }
   }
   if(edge.interact&&sideDeliveryInteract())edge.interact=false;
-  if(!trial){if(trialCool<=0)for(const t of trials){if(!trialUnlocked(t))continue;const q=t.pts[0];if(Math.hypot(p.x-q.x,p.z-q.z)<3.4&&p.y>q.y-4&&p.y<q.y+38){nearTrial=t;if(edge.interact){if(!trialUnlocked(t)){toast('TRIAL LOCKED · COMPLETE CAMPAIGN CHAPTERS')}else if(!trialUnlocked(t)){toast('TRIAL LOCKED · COMPLETE CAMPAIGN CHAPTERS')}else if(t.gear&&!hasGear(t.gear)){toast('THIS TRIAL REQUIRES '+GEARS.find(g=>g[0]===t.gear)[1].toUpperCase())}else{trial={t,i:1,t0:performance.now()};respawn.copy(q);chime();toast(t.name+' · GO!')}}break}}}
+  if(!trial){if(trialCool<=0)for(const t of trials){const q=t.pts[0];if(Math.hypot(p.x-q.x,p.z-q.z)<3.4&&p.y>q.y-4&&p.y<q.y+38){nearTrial=t;if(edge.interact){if(!trialUnlocked(t)){const remaining=Math.max(0,trials.indexOf(t)-trialUnlockCount()+1);toast('TRIAL LOCKED · COMPLETE '+remaining+' MORE CAMPAIGN '+(remaining===1?'CHAPTER':'CHAPTERS'))}else if(t.gear&&!hasGear(t.gear)){const req=GEARS.find(g=>g[0]===t.gear);toast('GEAR REQUIRED · '+(req?req[1].toUpperCase():t.gear.toUpperCase()))}else{trial={t,i:1,t0:performance.now()};respawn.copy(q);chime();toast(t.name+' · GO!')}}break}}}
   else if(edge.trialRestart){restartTrial();toast('Trial restarted')}
   else if(edge.trialEnd){endTrial();toast('Trial ended')}
   else{
@@ -1677,10 +1678,11 @@ function tutTick(sp){
 }
 function promptTick(){
   if(playing&&nearTrial&&!trial){
-    const t=nearTrial,b=tb[t.name],gear=t.gear?GEARS.find(g=>g[0]===t.gear)[1]:'None',ok=!t.gear||hasGear(t.gear);
+    const t=nearTrial,b=tb[t.name],req=t.gear?GEARS.find(g=>g[0]===t.gear):null,gear=req?req[1]:t.gear||null,ok=!t.gear||hasGear(t.gear),unlocked=trialUnlocked(t),remaining=Math.max(0,trials.indexOf(t)-trialUnlockCount()+1);
     const bestMed=!b?'NO MEDAL':goldUnlock.includes(t.name)&&b<=t.platinum?'PLATINUM':b<=t.gold?'GOLD':b<=t.silver?'SILVER':b<=t.bronze?'BRONZE':'NO MEDAL';
     const bestLabel=b?b.toFixed(2)+'s · '+bestMed+' MEDAL':'-- · NO MEDAL';
-    promptEl.innerHTML='<b>'+t.name+'</b><br><small>'+(t.gear?'GEAR TRIAL · '+gear:'OPEN TRIAL')+'</small><br>PLATINUM '+(goldUnlock.includes(t.name)?t.platinum.toFixed(1)+'s':'LOCKED · EARN GOLD FIRST')+' · GOLD '+t.gold.toFixed(1)+'s<br>SILVER '+t.silver.toFixed(1)+'s · BRONZE '+t.bronze.toFixed(1)+'s<br><b>BEST '+bestLabel+'</b><br><small>'+(ok?(set.touch?'TAP INTERACT':'PRESS '+lbl(set.binds.interact))+' TO START':'EQUIP '+gear.toUpperCase()+' TO START')+'</small>';
+    const access=!unlocked?'LOCKED · COMPLETE '+remaining+' MORE CAMPAIGN '+(remaining===1?'CHAPTER':'CHAPTERS'):!ok?'REQUIRES GEAR · '+String(gear).toUpperCase():(set.touch?'TAP INTERACT':'PRESS '+lbl(set.binds.interact))+' TO START';
+    promptEl.innerHTML='<b>'+t.name+'</b><br><small>'+(unlocked?(t.gear?'GEAR TRIAL':'OPEN TRIAL'):'<b>TRIAL LOCKED</b>')+'</small><br><small>'+(t.gear?'REQUIRED GEAR · '+String(gear).toUpperCase():'GEAR · NONE')+'</small><br>PLATINUM '+(goldUnlock.includes(t.name)?t.platinum.toFixed(1)+'s':'LOCKED · EARN GOLD FIRST')+' · GOLD '+t.gold.toFixed(1)+'s<br>SILVER '+t.silver.toFixed(1)+'s · BRONZE '+t.bronze.toFixed(1)+'s<br><b>BEST '+bestLabel+'</b><br><small>'+access+'</small>';
     promptEl.style.display='block';
   }else promptEl.style.display='none';
 }
