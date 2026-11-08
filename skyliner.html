@@ -102,13 +102,14 @@ try{const s=JSON.parse(localStorage.getItem('rr_set'));if(s)set={...set,...s,bin
 if(set.gv!==5){set.gear={};set.gv=5}
 const save=()=>{try{localStorage.setItem('rr_set',JSON.stringify(set))}catch(e){}};
 const storageOK=(()=>{try{localStorage.setItem('sr_t','1');localStorage.removeItem('sr_t');return true}catch(e){return false}})();
-const MAIN_GEAR_KEYS=['rope','dash','wingsuit'];
+const MAIN_GEAR_KEYS=['rope','dash','wingsuit','coil','veil'];
+let coilCd=0,veilT=0,veilCd=0;
 let ownedGear=[];try{ownedGear=JSON.parse(localStorage.getItem('rr_gear_owned')||'[]')}catch(e){}
 const legacyGear=[];try{const old=JSON.parse(localStorage.getItem('rr_gear_unlocked')||'[]');for(const k of old)if(!MAIN_GEAR_KEYS.includes(k)&&!ownedGear.includes(k))legacyGear.push(k)}catch(e){}
 ownedGear=[...new Set([...ownedGear,...legacyGear])];
 function saveGearOwnership(){try{localStorage.setItem('rr_gear_owned',JSON.stringify(ownedGear))}catch(e){}}
 function isGearUnlocked(k){return MAIN_GEAR_KEYS.includes(k)?unlockedGear.includes(k):ownedGear.includes(k)}
-const GEAR_PRICES={winch:650,quick:850,sling:1100,aero:650,thrust:900,stable:700,flare:550,twin:700,long:900,charge:850,gloves:500,grips:650,cutter:550,boots:450,soles:600,shoes:750,knees:400,turner:500,stride:700,patch:650,armor:1000,band:750,magnet:550,cells:800};
+const GEAR_PRICES={winch:650,quick:850,sling:1100,aero:650,thrust:900,stable:700,flare:550,twin:700,long:900,charge:850,gloves:500,grips:650,cutter:550,boots:450,soles:600,shoes:750,knees:400,turner:500,stride:700,patch:650,armor:1000,band:750,magnet:550,cells:800,coilcell:850,aircoil:1100,overcoil:1350,veilmesh:900,veilfield:1200,veilghost:1500,impact:700,traction:800,airrudder:750,shockliner:900,flowcapacitor:950};
 const gearPrice=k=>GEAR_PRICES[k]||500;
 const hasGear=k=>!!(set.gear&&set.gear[k]&&isGearUnlocked(k)),GEARS=[
 ['rope','Mag rope','MAIN GEAR. Fire ONLY at the blue anchor orbs (roof posts, avenue pylons, spires, under bridges) and swing. Draw it with the gear key, fire with X or click.','main'],
@@ -137,10 +138,23 @@ const hasGear=k=>!!(set.gear&&set.gear[k]&&isGearUnlocked(k)),GEARS=[
 ['armor','Impact vest','All damage is reduced by a quarter.','back'],
 ['band','Flow band','Your flow meter fades half as fast.','belt'],
 ['magnet','Item magnet','Pick-ups come to you from further away.','belt'],
-['cells','Pick-up cells','Medkits and flow cells give much more.','belt']];
+['cells','Pick-up cells','Medkits and flow cells give much more.','belt'],
+['impact','Impact palms','Mantles and vaults carry more momentum.','hands'],
+['traction','Traction soles','Ground acceleration and braking feel sharper.','feet'],
+['airrudder','Air rudder','Improves mid-air steering authority.','legs'],
+['shockliner','Shock liner','Reduces incoming damage by an additional 10%.','back'],
+['flowcapacitor','Flow capacitor','Builds flow faster from parkour actions.','belt'],
+['coil','Kinetic coil','MAIN GEAR. Press the gear key to launch into a powerful vertical-forward spring.','main'],
+['coilcell','Reserve cell','Kinetic coil add-on: reduces recharge time.','addon','coil'],
+['aircoil','Air spring','Kinetic coil add-on: stronger launch when activated airborne.','addon','coil'],
+['overcoil','Overcharge','Kinetic coil add-on: adds a second stored charge.','addon','coil'],
+['veil','Phase veil','MAIN GEAR. Press the gear key to activate a short damage-dampening phase.','main'],
+['veilmesh','Reactive mesh','Phase veil add-on: extends phase duration.','addon','veil'],
+['veilfield','Wide field','Phase veil add-on: greatly reduces damage while active.','addon','veil'],
+['veilghost','Ghost cycle','Phase veil add-on: recharges faster after activation.','addon','veil']];
 function toggleGear(k){
   set.gear=set.gear||{};const g=GEARS.find(x=>x[0]===k);if(!g)return;
-  const off=key=>{set.gear[key]=false;if(key==='rope'){gearOn=false;rope=null}if(key==='wingsuit')wingOn=false};
+  const off=key=>{set.gear[key]=false;if(key==='rope'){gearOn=false;rope=null}if(key==='wingsuit')wingOn=false;if(key==='veil')veilT=0};
   if(set.gear[k]&&isGearUnlocked(k)){off(k);if(g[3]==='main')for(const o of GEARS)if(o[4]===k)set.gear[o[0]]=false;save();return}
   if(MAIN_GEAR_KEYS.includes(k)&&!isGearUnlocked(k)){toast('LOCKED · COMPLETE MORE CAMPAIGN CHAPTERS');return}
   if(!isGearUnlocked(k)){
@@ -160,7 +174,7 @@ let completedCampaign=[];try{completedCampaign=JSON.parse(localStorage.getItem('
 let unlockedGear=[];try{unlockedGear=JSON.parse(localStorage.getItem('rr_gear_unlocked')||'[]')}catch(e){}
 let currency=0;try{currency=Math.max(0,+localStorage.getItem('rr_currency')||0)}catch(e){}
 let delivery=null,deliveryIndex=0,completedDeliveries=[],nearCourier=null,courierContacts=[];try{completedDeliveries=JSON.parse(localStorage.getItem('rr_deliveries')||'[]');deliveryIndex=completedDeliveries.length}catch(e){}
-const GEAR_REWARDS=[[],[],[],[],[],[],[],['rope'],[],['dash'],['wingsuit']];
+const GEAR_REWARDS=[[],[],[],[],[],[],[],['rope'],[],['dash'],['wingsuit','coil','veil']];
 function syncProgressUnlocks(){const next=[];completedCampaign.forEach(i=>{(GEAR_REWARDS[i]||[]).forEach(k=>{if(!next.includes(k))next.push(k)})});unlockedGear=next;try{localStorage.setItem('rr_gear_unlocked',JSON.stringify(unlockedGear));localStorage.setItem('rr_gear_owned',JSON.stringify(ownedGear));localStorage.setItem('rr_trial_unlocked',String(Math.min(trials.length,3+completedCampaign.length*2)))}catch(e){}}
 function trialUnlockCount(){let n=3;try{n=Math.max(3,Math.min(trials.length,+localStorage.getItem('rr_trial_unlocked')||3))}catch(e){}return n}
 function trialUnlocked(t){return trials.indexOf(t)<trialUnlockCount()}
@@ -948,7 +962,7 @@ function probeWall(e=.2){
 function slopeImpact(imp,hs){landT=Math.min(1,imp/18);puff(600,.2,Math.min(.5,imp/30));shake=Math.min(.12,imp/150);let dmg=(imp>14?(imp-14)*7:0)*(hasGear('boots')?.5:1);
   if(rollBuf>0){rollT=.5;rollStill=hs<2.5;flow=Math.min(1,flow+.064);rollBuf=0;puff(1500,.3,.2);if(imp>24)dmg*=.5;else dmg=0}else if(dmg>0){stagger=.6;v.x*=.35;v.z*=.35;mom=0}
   if(dmg>0)hurt(dmg,rollT>.45)} // falling onto a slope hurts like any other landing
-function hurt(d,rolled){d*=hasGear('armor')?.75:1;hp-=d;hurtT=1;hurtCool=hasGear('patch')?1.5:3;if(!rolled){dmgSev=d/60;dmgDur=Math.min(1.5,.5+d/50);dmgT=dmgDur;stagger=Math.max(stagger,dmgDur*.9);shake=Math.max(shake,Math.min(.3,d/200))}if(hp<=0){hp=100;p.copy(respawn);v.set(0,0,0);mom=0;stagger=0;rope=null;hang=null;vault=null;zip=null;lad=null;resetCampaignPursuit();toast('Too hard a fall - back to checkpoint')}else toast('-'+Math.round(d)+' HP')}
+function hurt(d,rolled){d*=veilT>0?(hasGear('veilfield')?.25:.55):1;d*=hasGear('armor')?.75:1;d*=hasGear('shockliner')?.9:1;hp-=d;hurtT=1;hurtCool=hasGear('patch')?1.5:3;if(!rolled){dmgSev=d/60;dmgDur=Math.min(1.5,.5+d/50);dmgT=dmgDur;stagger=Math.max(stagger,dmgDur*.9);shake=Math.max(shake,Math.min(.3,d/200))}if(hp<=0){hp=100;p.copy(respawn);v.set(0,0,0);mom=0;stagger=0;rope=null;hang=null;vault=null;zip=null;lad=null;resetCampaignPursuit();toast('Too hard a fall - back to checkpoint')}else toast('-'+Math.round(d)+' HP')}
 function nearZip(){
   const hx=p.x,hy=p.y+1.9,hz=p.z;
   for(const g of zips){const wx=hx-g.a.x,wy=hy-g.a.y,wz=hz-g.a.z,t=Math.max(0,Math.min(g.len,wx*g.d.x+wy*g.d.y+wz*g.d.z));
@@ -1076,12 +1090,14 @@ function step(dt){
     else if(hasGear('dash')){
       if(dashCd<=0){const cp3=Math.cos(pitch),pw=hasGear('long')?27:21;v.x+=-Math.sin(yaw)*cp3*pw;v.z+=-Math.cos(yaw)*cp3*pw;v.y=Math.max(v.y,4.5);const s3=Math.hypot(v.x,v.z);if(s3>42){v.x*=42/s3;v.z*=42/s3}dashCd=hasGear('twin')?1.25:2.35;puff(2500,.18,.32);tone(180,.22,'sawtooth',.14,1100);flow=Math.min(1,flow+.08);toast('DASH PACK · BOOST')}
       else toast('Dash recharging')}
-    else if(hasGear('wingsuit')){
+    else if(hasGear('coil')){if(coilCd<=0){const air=!ground,cp=Math.cos(pitch),power=hasGear('aircoil')&&air?18:hasGear('aircoil')?15:12;v.x+=-Math.sin(yaw)*cp*power;v.z+=-Math.cos(yaw)*cp*power;v.y=Math.max(v.y,hasGear('aircoil')&&air?14:10);coilCd=hasGear('overcoil')?1.1:hasGear('coilcell')?2.2:3.4;puff(2500,.22,.42);tone(220,.2,'triangle',.14,850);flow=Math.min(1,flow+.16);toast('KINETIC COIL · SPRING')}else toast('KINETIC COIL RECHARGING')}
+     else if(hasGear('veil')){if(veilCd<=0){veilT=hasGear('veilmesh')?3.4:2.2;veilCd=hasGear('veilghost')?5.5:8.5;puff(1200,.16,.24);tone(420,.18,'sine',.12,120);toast('PHASE VEIL · ACTIVE')}else toast('PHASE VEIL RECHARGING')}
+     else if(hasGear('wingsuit')){
       if(wingOn){wingOn=false;toast('Wingsuit stowed')}
       else if(!ground&&!rope&&!hang&&!zip&&!lad&&!wallrun&&!vault){const s4=Math.hypot(v.x,v.y,v.z);if(s4<14){const cp4=Math.cos(pitch);v.x=-Math.sin(yaw)*cp4*14;v.y=Math.max(v.y,-2);v.z=-Math.cos(yaw)*cp4*14}wingOn=true;toast('Wingsuit deployed');tone(260,.2,'sawtooth',.08,520)}
       else toast('Jump off something, then press the gear key')}
     else toast('No main gear equipped - open the inventory in the pause menu')}
-  ropeCool-=dt;dashCd-=dt;airHookCd-=dt;if(ground&&hasGear('charge'))dashCd=Math.min(dashCd,0);const previousAim=aim;aim=null;slideRun=slideT>0?slideRun+dt:0;wrRun=wallrun?wrRun+dt:0;clRun=(climbing&&!ground)?clRun+dt:0;
+  ropeCool-=dt;dashCd-=dt;airHookCd-=dt;coilCd=Math.max(0,coilCd-dt);veilCd=Math.max(0,veilCd-dt);veilT=Math.max(0,veilT-dt);if(ground&&hasGear('charge'))dashCd=Math.min(dashCd,0);const previousAim=aim;aim=null;slideRun=slideT>0?slideRun+dt:0;wrRun=wallrun?wrRun+dt:0;clRun=(climbing&&!ground)?clRun+dt:0;
   if(gearOn&&!rope&&!tut.on){
     const cp=Math.cos(pitch),fx3=-Math.sin(yaw)*cp,fy3=Math.sin(pitch),fz3=-Math.cos(yaw)*cp,rng=hasGear('winch')?90:70,cone=hasGear('quick')?.78:.83;
     let bestScore=-Infinity;
@@ -1117,7 +1133,7 @@ function step(dt){
   let dx=fx*f+rx*sd,dz=fz*f+rz*sd;const dl=Math.hypot(dx,dz);if(dl>0){dx/=dl;dz/=dl}
   const hs0=Math.hypot(v.x,v.z);
   if(ground&&f>0)mom=Math.min(4.5,mom+dt*1);else if(ground&&dl===0)mom=Math.max(0,mom-dt*6);
-  const maxS=(8.5+mom+flow*10)*(11/13)*(hasGear('shoes')?1.12:1);flow=Math.max(0,flow-dt*(wallrun||slideT>0||lad||zip||vault?0:(hasGear('band')?.06:.13)));wcd-=dt; // flow decays slowly unless you keep moving with style
+  const maxS=(8.5+mom+flow*10)*(11/13)*(hasGear('shoes')?1.12:1)*(hasGear('traction')?1.04:1);flow=Math.max(0,flow-dt*(wallrun||slideT>0||lad||zip||vault?0:(hasGear('band')?.06:.13)));wcd-=dt; // flow decays slowly unless you keep moving with style
   if(ground){wallT=1.6;climbT=1;coyote=.1}else coyote-=dt;
   // slide (needs a fresh key press, no auto-repeat)
   if(edge.slide&&ground&&slideT<=0&&(hs0>5.5||curRamp)){slideT=1;slideMin=.3;const kk=hs0>0?Math.min(1.12+flow*.1,(15+flow*10)/hs0):1;flow=Math.min(1,flow+.038);v.x*=kk;v.z*=kk;puff(3000,.25,.2)}
@@ -1139,7 +1155,7 @@ function step(dt){
         const d=v.x*w.nx+v.z*w.nz,tx=v.x-w.nx*d,tz=v.z-w.nz*d,tl=Math.hypot(tx,tz)||1,sp=Math.max(hs0,Math.min(12+flow*10,Math.max(hs0,8)+3*(1+flow*2)*dt));flow=Math.min(1,flow+dt*.128);
         v.x=tx/tl*sp-w.nx*.6;v.z=tz/tl*sp-w.nz*.6;v.y-=5*dt;
         roll=(w.nx*rx+w.nz*rz)*-.25;
-        if(edge.jump){wrHop=true;hopT=1;hopSide=(w.nx*rx+w.nz*rz)>0?-1:1;{const sc2=1.08+flow*.08+(hasGear('stride')?.1:0);v.x*=sc2;v.z*=sc2}flow=Math.min(1,flow+.096);v.x+=w.nx*6;v.z+=w.nz*6;v.y=8.5;wcd=.35;edge.jump=false;wallrun=false;tone(300,.15,'triangle',.12,500)}
+        if(edge.jump){wrHop=true;hopT=1;hopSide=(w.nx*rx+w.nz*rz)>0?-1:1;{const sc2=1.08+flow*.08+(hasGear('stride')?.1:0);v.x*=sc2;v.z*=sc2}flow=Math.min(1,flow+(hasGear('flowcapacitor')?.125:.096));v.x+=w.nx*6;v.z+=w.nz*6;v.y=8.5;wcd=.35;edge.jump=false;wallrun=false;tone(300,.15,'triangle',.12,500)}
       }
     }
   }
@@ -1164,7 +1180,7 @@ function step(dt){
   glide=false;
   if(wingOn&&(ground||rope||hang||zip||lad||wallrun||vault||tut.on))wingOn=false;
   if(wingOn){
-    const aero=hasGear('aero'),stab=hasGear('stable'),brake=!!keys[set.binds.slide]&&hasGear('flare'),gam=Math.max(-1.1,Math.min(1,pitch));
+    const aero=hasGear('aero')||hasGear('airrudder'),stab=hasGear('stable'),brake=!!keys[set.binds.slide]&&hasGear('flare'),gam=Math.max(-1.1,Math.min(1,pitch));
     let spd=Math.hypot(v.x,v.y,v.z);
     const dirY=Math.sin(gam)-(aero?.09:.14),dxw=-Math.sin(yaw)*Math.cos(gam),dzw=-Math.cos(yaw)*Math.cos(gam),drag=(stab?.0055:.0085)*spd*spd;
     spd+=(-dirY*22-drag+(f>0&&hasGear('thrust')?10:0)-(brake?18:0))*dt;
