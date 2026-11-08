@@ -665,44 +665,46 @@ function animateStoryActor(a,dt,speed,faceX,faceZ,clock,mode){
  a.gesture=Math.max(0,a.gesture-dt);
  if(Math.hypot(faceX,faceZ)>.06)a.group.rotation.y=Math.atan2(faceX,faceZ)+Math.PI;
 }
+function tickCampaignAlly(ally,dt,mission){
+ if(!ally)return;
+ ally.group.visible=true;
+ const start=mission.route[0],target=mission.route[Math.min(campaignRun.step,mission.route.length-1)];
+ if(!ally.aiReady){ally.group.position.set(start.x+5,start.y,start.z+3);ally.aiReady=true}
+ // Story contacts travel between campaign objectives on their own schedule.
+ // They do not orbit the player or copy the player's position.
+ const dx=target.x-ally.group.position.x,dz=target.z-ally.group.position.z,dy=target.y-ally.group.position.y,dist=Math.hypot(dx,dz);
+ const maxStep=Math.min(dist,5.2*dt),nx=dist>.05?dx/dist:0,nz=dist>.05?dz/dist:0;
+ const ox=ally.group.position.x,oz=ally.group.position.z;
+ ally.group.position.x+=nx*maxStep;ally.group.position.z+=nz*maxStep;
+ ally.group.position.y+=Math.max(-3*dt,Math.min(3*dt,dy));
+ const speed=Math.hypot(ally.group.position.x-ox,ally.group.position.z-oz)/Math.max(.001,dt);
+ const mode=Math.abs(dy)>1.1?'jump':'run';
+ animateStoryActor(ally,dt,speed,nx,nz,chaseClock,mode);
+ if(dist<3.8&&ally.gesture<=0&&Math.random()<dt*.035)ally.gesture=1.1;
+}
 function campaignActorsTick(dt){
  storyActors.forEach(a=>a.group.visible=false);campaignEnemies.forEach(a=>a.group.visible=false);
- if(!campaignRun)return;
+ if(!campaignRun){pursuitHeli.visible=false;return}
  const ci=campaignRun.index,mission=CAMPAIGN[ci],allyName=({0:'Mara Voss',2:'Kade Mercer',3:'Dr. Imani Vale',5:'Elias Renn'}[ci]||'Mara Voss'),ally=storyActors.find(a=>a.name===allyName);
  if(!mission.chase){
-  if(ally){
-   ally.group.visible=true;
-   const q=mission.route[Math.max(0,campaignRun.step-1)];
-   if(!ally.aiReady){ally.group.position.set(q.x+5,q.y,q.z+3);ally.aiReady=true}
-   const ox=ally.group.position.x,oz=ally.group.position.z,dx=p.x-ox,dz=p.z-oz,dist=Math.hypot(dx,dz);
-   // The named contact follows at a conversational distance, rather than remaining a static prop.
-   let tx=ox,tz=oz;
-   if(dist>6.5){tx=p.x-dx/Math.max(1,dist)*4.5;tz=p.z-dz/Math.max(1,dist)*4.5}
-   else if(dist<3.1){tx=p.x+Math.sin(yaw)*4.2;tz=p.z+Math.cos(yaw)*4.2}
-   const blend=1-Math.exp(-dt*1.35);
-   ally.group.position.x+=(tx-ox)*blend;ally.group.position.z+=(tz-oz)*blend;
-   ally.group.position.y+=(q.y-ally.group.position.y)*(1-Math.exp(-dt*1.8));
-   const speed=Math.hypot(ally.group.position.x-ox,ally.group.position.z-oz)/Math.max(.001,dt);
-   if(dist<9&&ally.gesture<=0&&Math.random()<dt*.07)ally.gesture=1.1;
-   animateStoryActor(ally,dt,speed,p.x-ally.group.position.x,p.z-ally.group.position.z,chaseClock,actorMovementMode());
-  }
+  tickCampaignAlly(ally,dt,mission);
   return;
  }
  chaseClock+=dt;chaseRecord+=dt;chaseWarmup+=dt;heliDropClock+=dt;
- const heliForward=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw)),heliSide=new THREE.Vector3(heliForward.z,0,-heliForward.x);
- const heliPos=new THREE.Vector3(p.x+heliForward.x*20+heliSide.x*8,p.y+22+Math.sin(chaseClock*2)*.45,p.z+heliForward.z*20+heliSide.z*8);
- pursuitHeli.visible=chaseWarmup>=.8;
- if(pursuitHeli.visible){pursuitHeli.position.copy(heliPos);pursuitHeli.rotation.y=Math.atan2(heliForward.x,heliForward.z);heliRotor.rotation.y+=dt*28;heliTailRotor.rotation.x+=dt*24;}
- if(chaseRecord>=.055){chaseRecord=0;chaseTrail.push({t:chaseClock,x:p.x,y:p.y,z:p.z,action:actorMovementMode()});while(chaseTrail.length&&chaseTrail[0].t<chaseClock-16)chaseTrail.shift()}
- if(ally){
-  ally.group.visible=true;
-  const q=mission.route[Math.max(0,campaignRun.step-1)];
-  if(!ally.aiReady){ally.group.position.set(q.x+5,q.y,q.z+3);ally.aiReady=true}
-  const ox=ally.group.position.x,oz=ally.group.position.z,dx=p.x-ox,dz=p.z-oz,dist=Math.hypot(dx,dz),tx=dist>6.5?p.x-dx/Math.max(1,dist)*4.5:p.x+Math.sin(yaw)*4.2,tz=dist>6.5?p.z-dz/Math.max(1,dist)*4.5:p.z+Math.cos(yaw)*4.2;
-  ally.group.position.x+=(tx-ox)*(1-Math.exp(-dt*1.35));ally.group.position.z+=(tz-oz)*(1-Math.exp(-dt*1.35));
-  const speed=Math.hypot(ally.group.position.x-ox,ally.group.position.z-oz)/Math.max(.001,dt);
-  animateStoryActor(ally,dt,speed,p.x-ally.group.position.x,p.z-ally.group.position.z,chaseClock);
+ // Anchor the helicopter in the camera's forward view, not merely along the runner's
+ // body yaw. This keeps it in-frame on mobile when the camera is freely aimed.
+ const viewDir=new THREE.Vector3();C.getWorldDirection(viewDir);
+ const heliPos=C.position.clone().addScaledVector(viewDir,23);heliPos.y+=3.5+Math.sin(chaseClock*2)*.4;
+ const heliForward=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));
+ pursuitHeli.visible=chaseWarmup>=.35;
+ if(pursuitHeli.visible){
+  pursuitHeli.position.copy(heliPos);
+  pursuitHeli.rotation.y=Math.atan2(heliForward.x,heliForward.z);
+  pursuitHeli.scale.setScalar(1.35);
+  heliRotor.rotation.y+=dt*32;heliTailRotor.rotation.x+=dt*28;
  }
+ if(chaseRecord>=.055){chaseRecord=0;chaseTrail.push({t:chaseClock,x:p.x,y:p.y,z:p.z,action:actorMovementMode()});while(chaseTrail.length&&chaseTrail[0].t<chaseClock-16)chaseTrail.shift()}
+ tickCampaignAlly(ally,dt,mission);
  if(chaseWarmup<3.25)return;
  const m=mission,q=m.route[Math.max(0,campaignRun.step-1)],count=ci===0?5:ci<4?6:ci<7?7:8;
  for(let i=0;i<count;i++){
