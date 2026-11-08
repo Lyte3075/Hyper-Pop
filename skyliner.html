@@ -428,9 +428,37 @@ function spire(cx,cz,H0,b){ // hollow tower: spiral ramp round an open atrium, g
     for(let k=2;k<nl;k+=2){const wb=12*k+ro+1.7;wall(sx,sz,0,6,prev,wb-prev);addGlass(cx+sx*(S2/2-t/2),wb,cz+sz*(S2/2-t/2),sx?.3:6,4,sx?6:.3);prev=wb+4}
     wall(sx,sz,0,6,prev,top-prev);
   }
+  const layoutVariant=Math.abs(Math.round(cx*3+cz*5))%4,layoutTurn=Math.abs(Math.round(cx+cz))%4;
+  const rotateLayout=(x,z)=>{for(let q=0;q<layoutTurn;q++){const t=x;x=-z;z=t}return[x,z]};
+  const interiorAccent=new THREE.MeshLambertMaterial({color:isMeridian?0xe5243b:0x35d9d0,emissive:isMeridian?0x6d0715:0x063c3a,emissiveIntensity:.3});
   for(let k=0;k<nl;k++){const y=12*k;
-    ramp(cx+rc,cz+9,18,4.5,y,y+3,0,-1,rampMat);ramp(cx+9,cz-rc,18,4.5,y+3,y+6,-1,0,rampMat);ramp(cx-rc,cz-9,18,4.5,y+6,y+9,0,1,rampMat);ramp(cx-9,cz+rc,18,4.5,y+9,y+12,1,0,rampMat);
-    for(const[lx,lz,ly]of[[rc,rc,y],[rc,-rc,y+3],[-rc,-rc,y+6],[-rc,rc,y+9]])add(cx+lx,ly-.6,cz+lz,4.5,.6,4.5,shellMat,'roof',1);
+    if(layoutVariant===0){
+      // SKYBRIDGE: broad perimeter ramps and exposed corner transfers.
+      const path=[[rc,9,0,-1],[9,-rc,-1,0],[-rc,-9,0,1],[-9,rc,1,0]];
+      path.forEach(([x,z,dx,dz],i)=>{const[a,c]=rotateLayout(x,z),[rx,rz]=rotateLayout(dx,dz);ramp(cx+a,cz+c,18,5,y+i*3,y+(i+1)*3,rx,rz,rampMat)});
+      for(const[x,z,ly]of[[rc,rc,y],[rc,-rc,y+3],[-rc,-rc,y+6],[-rc,rc,y+9]]){const[a,c]=rotateLayout(x,z);add(cx+a,ly-.6,cz+c,5,.6,5,shellMat,'roof',1)}
+    }else if(layoutVariant===1){
+      // LIFT SHAFT: climb a continuous service pipe through a narrow vertical core, using transfer balconies.
+      add(cx,y-.6,cz,9,.6,9,shellMat,'roof',1);add(cx,y+11.4,cz,9,.6,9,shellMat,'roof',1);
+      addClimb(cx+1.8,cz,1,0,y,y+12,true);
+      for(const[a0,c0]of[[-10,0],[10,0],[0,-10],[0,10]]){const[a,c]=rotateLayout(a0,c0);add(cx+a,y+4.8,cz+c,5,.45,5,shellMat,'roof',1)}
+      for(let q=0;q<4;q++){const[a,c]=rotateLayout(q%2?0:-13,q%2?13:0);let L=batches.get(interiorAccent);if(!L)batches.set(interiorAccent,L=[]);L.push(cx+a,y+6,cz+c,q%2?26:.35,.35,q%2?.35:26)}
+    }else if(layoutVariant===2){
+      // CROSSWIND: leap between floating transfer decks with spring-assisted changes of direction.
+      const pads=[[-6,-6,0],[6,-6,3],[6,6,6],[-6,6,9]];
+      for(const[x,z,dy]of pads){const[a,c]=rotateLayout(x,z);add(cx+a,y+dy-.6,cz+c,6,.6,6,shellMat,'roof',1)}
+      const[a0,c0]=rotateLayout(-6,-6),[a1,c1]=rotateLayout(6,-6),[a2,c2]=rotateLayout(6,6),[a3,c3]=rotateLayout(-6,6);
+      add(cx+a0,y,cz+c0,2,.7,2,springM,'spring',1);add(cx+a2,y+6,cz+c2,2,.7,2,springM,'spring',1);
+      addAnchor(cx+a1,y+3,cz+c1,5);addAnchor(cx+a3,y+9,cz+c3,5);
+      for(const[x,z]of[[0,-12],[12,0],[0,12],[-12,0]]){const[a,c]=rotateLayout(x,z);let L=batches.get(interiorAccent);if(!L)batches.set(interiorAccent,L=[]);L.push(cx+a,y+10.5,cz+c,x===0?1:24,.25,x===0?24:1)}
+    }else{
+      // THE MERIDIAN: broken data-spine ramps, suspended transfer decks and red crossbeams.
+      const path=[[-12,10,1,0],[10,12,0,-1],[12,-10,-1,0],[-10,-12,0,1]];
+      path.forEach(([x,z,dx,dz],i)=>{const[a,c]=rotateLayout(x,z),[rx,rz]=rotateLayout(dx,dz);ramp(cx+a,cz+c,20,3.8,y+i*3,y+(i+1)*3,rx,rz,rampMat)});
+      for(const[x,z,ly]of[[-12,10,y],[10,12,y+3],[12,-10,y+6],[-10,-12,y+9]]){const[a,c]=rotateLayout(x,z);add(cx+a,ly-.6,cz+c,4.2,.6,4.2,shellMat,'roof',1)}
+      add(cx,y+5.2,cz,3,.6,3,shellMat,'roof',1);
+      for(let q=0;q<4;q++){const[a,c]=rotateLayout(q%2?0:-13,q%2?13:0);let L=batches.get(interiorAccent);if(!L)batches.set(interiorAccent,L=[]);L.push(cx+a,y+q*3+.2,cz+c,q%2?26:.35,.35,q%2?.35:26)}
+    }
   }
   add(cx+rc,H-.6,cz+rc,4.5,.6,4.5,shellMat,'roof',1);
   const rt=top-.6;
@@ -1051,8 +1079,8 @@ const ascent=[];let lastHeight=-Infinity;
 for(const item of meridianApproach){if(item.height>lastHeight+5){ascent.push(item.spot);lastHeight=item.height}if(ascent.length===4)break}
 // Continue the final mission through the Meridian's actual spiral interior, with a rooftop marker on each landing.
 const meridianEntryFloor=Math.max(0,Math.min(22,Math.floor((ascent[ascent.length-1]?.y||0)/12)));
-const meridianClimb=[];
-for(let floor=meridianEntryFloor;floor<=23;floor++)meridianClimb.push(new THREE.Vector3(finalTower.x+11.25,12*floor+.08,finalTower.z+11.25));
+const meridianClimb=[],meridianTurn=Math.abs(Math.round(finalTower.x+finalTower.z))%4;
+for(let floor=meridianEntryFloor;floor<=23;floor++)for(const[mx0,mz0,dy]of[[-12,10,0],[10,12,3],[12,-10,6],[-10,-12,9]]){let mx=mx0,mz=mz0;for(let q=0;q<meridianTurn;q++){const t=mx;mx=-mz;mz=t}meridianClimb.push(new THREE.Vector3(finalTower.x+mx,12*floor+dy+.08,finalTower.z+mz))}
 CAMPAIGN[12].route=[campaignRoof(10,1301),...ascent,...meridianClimb,new THREE.Vector3(finalTower.x,finalTower.top+.06,finalTower.z)];
 let towerCampaignFinale=false,nearTowerRelay=null;
 const towerCore=new THREE.Group(),coreRing=new THREE.Mesh(new THREE.TorusGeometry(10,.42,8,56),new THREE.MeshBasicMaterial({color:0xe5243b})),coreRing2=new THREE.Mesh(new THREE.TorusGeometry(7,.24,8,48),new THREE.MeshBasicMaterial({color:0x36e5d0})),coreOrb=new THREE.Mesh(new THREE.OctahedronGeometry(4.8,1),new THREE.MeshBasicMaterial({color:0xff3348,wireframe:true})),coreHeart=new THREE.Mesh(new THREE.OctahedronGeometry(2.3,0),new THREE.MeshBasicMaterial({color:0xe5243b,transparent:true,opacity:.8}));towerCore.add(coreRing,coreRing2,coreOrb,coreHeart);coreRing.rotation.x=Math.PI/2;coreRing2.rotation.set(Math.PI/2,.45,0);towerCore.position.set(finalTower.x,finalTower.top+7,finalTower.z);S.add(towerCore);
@@ -1372,7 +1400,8 @@ function step(dt){
   }
   let onRamp=null;
   for(const rp of ramps){
-    const ex=p.x-rp.ox,ez=p.z-rp.oz,t=ex*rp.dx+ez*rp.dz,lat=Math.abs(-ex*rp.dz+ez*rp.dx);
+    const ex=p.x-rp.ox,ez=p.z-rp.oz;if(Math.abs(ex)>rp.len+rp.w||Math.abs(ez)>rp.len+rp.w)continue;
+    const t=ex*rp.dx+ez*rp.dz,lat=Math.abs(-ex*rp.dz+ez*rp.dx);
     if(t>=0&&t<=rp.len&&lat<=rp.w/2){const ys=rp.y0+t*rp.s;if(v.y<=0&&p.y<=ys+(was?.5:.05)&&p.y>ys-1.2){if(!was&&v.y<-4)slopeImpact(-v.y,hs0);p.y=ys;v.y=0;ground=true;gTag='ramp';onRamp=rp}}
   }
   curRamp=onRamp;
