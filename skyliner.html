@@ -773,16 +773,21 @@ function campaignActorsTick(dt){
   return;
  }
  chaseClock+=dt;chaseRecord+=dt;chaseWarmup+=dt;heliDropClock+=dt;
- // Anchor the helicopter in the camera's forward view, not merely along the runner's
- // body yaw. This keeps it in-frame on mobile when the camera is freely aimed.
- const viewDir=new THREE.Vector3();C.getWorldDirection(viewDir);
- const heliPos=C.position.clone().addScaledVector(viewDir,23);heliPos.y+=3.5+Math.sin(chaseClock*2)*.4;
+ // The AETHER helicopter is a world-space aircraft, not a camera reticle.
+ // It shadows R-17 from high above and slightly behind, smoothly tracking the runner
+ // regardless of where the player aims the camera.
  const heliForward=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));
+ const heliPos=new THREE.Vector3(
+  p.x+Math.sin(yaw)*13,
+  p.y+34+Math.sin(chaseClock*1.15)*.65,
+  p.z+Math.cos(yaw)*13
+ );
  pursuitHeli.visible=chaseWarmup>=.35;
  if(pursuitHeli.visible){
-  pursuitHeli.position.copy(heliPos);
-  pursuitHeli.rotation.y=Math.atan2(heliForward.x,heliForward.z);
-  pursuitHeli.scale.setScalar(1.35);
+  if(chaseWarmup<.55)pursuitHeli.position.copy(heliPos);
+  else pursuitHeli.position.lerp(heliPos,1-Math.exp(-dt*1.8));
+  pursuitHeli.rotation.y+=(Math.atan2(heliForward.x,heliForward.z)-pursuitHeli.rotation.y)*Math.min(1,dt*2.2);
+  pursuitHeli.scale.setScalar(1.65);
   heliRotor.rotation.y+=dt*32;heliTailRotor.rotation.x+=dt*28;
  }
  if(chaseRecord>=.055){chaseRecord=0;chaseTrail.push({t:chaseClock,x:p.x,y:p.y,z:p.z,action:actorMovementMode()});while(chaseTrail.length&&chaseTrail[0].t<chaseClock-16)chaseTrail.shift()}
@@ -794,7 +799,7 @@ function campaignActorsTick(dt){
   if(!e.started){
    e.started=true;e.dropping=true;e.dropT=0;e.cursor=Math.max(chaseTrail[0]?.t||0,chaseClock-(1.45+i*.2));
    const spawn=chaseSample(e.cursor);e.dropTo=spawn?new THREE.Vector3(spawn.x,spawn.y,spawn.z):p.clone();
-   e.dropFrom=heliPos.clone().add(new THREE.Vector3((i%3-1)*1.6,0,(Math.floor(i/3)-1)*1.5));e.group.position.copy(e.dropFrom);
+   e.dropFrom=pursuitHeli.position.clone().add(new THREE.Vector3((i%3-1)*1.6,0,(Math.floor(i/3)-1)*1.5));e.group.position.copy(e.dropFrom);
   }
   if(e.dropping){
    e.dropT+=dt;const k=Math.min(1,e.dropT/1.65),ease=k*k*(3-2*k);
