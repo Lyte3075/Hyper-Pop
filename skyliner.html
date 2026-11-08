@@ -336,34 +336,66 @@ function add(x,y,z,w,h,d,mat,tag,ne){ // static boxes are merged into a few mesh
   boxes.push({min:{x:x-w/2,y,z:z-d/2},max:{x:x+w/2,y:y+h,z:z+d/2},tag});
 }
 function flushBatches(){
-  for(const[mat,L]of batches)for(let o=0;o<L.length;o+=15000){
-    const pos=[],nor=[],idx=[],end=Math.min(L.length,o+15000);
-    for(let q=o;q<end;q+=6){
-      const sz=[L[q+3]/2,L[q+4]/2,L[q+5]/2],c0=[L[q],L[q+1]+L[q+4]/2,L[q+2]];
-      for(let a=0;a<3;a++)for(const sg of[1,-1]){
-        const c=c0.slice();c[a]+=sg*sz[a];let ba=AXT[a][0],ca=AXT[a][1];if(sg<0){const t=ba;ba=ca;ca=t}
-        const b0=pos.length/3,n=[0,0,0];n[a]=sg;
-        for(const[sb,sc]of[[-1,-1],[1,-1],[1,1],[-1,1]]){const pt=c.slice();pt[ba]+=sb*sz[ba];pt[ca]+=sc*sz[ca];pos.push(pt[0],pt[1],pt[2]);nor.push(n[0],n[1],n[2])}
-        idx.push(b0,b0+1,b0+2,b0,b0+2,b0+3);
+  // Spatially partition merged city geometry so the renderer can skip distant districts.
+  const tile=180,yTile=110,binKey=(x,y,z)=>Math.floor(x/tile)+','+Math.floor(y/yTile)+','+Math.floor(z/tile);
+  const buildBoxes=(mat,L)=>{
+    const bins=new Map();
+    for(let q=0;q<L.length;q+=6){const key=binKey(L[q],L[q+1]+L[q+4]/2,L[q+2]);let a=bins.get(key);if(!a)bins.set(key,a=[]);a.push(...L.slice(q,q+6))}
+    for(const A of bins.values())for(let o=0;o<A.length;o+=7200){
+      const pos=[],nor=[],idx=[],end=Math.min(A.length,o+7200);
+      for(let q=o;q<end;q+=6){
+        const sz=[A[q+3]/2,A[q+4]/2,A[q+5]/2],c0=[A[q],A[q+1]+A[q+4]/2,A[q+2]];
+        for(let a=0;a<3;a++)for(const sg of[1,-1]){
+          const c=c0.slice();c[a]+=sg*sz[a];let ba=AXT[a][0],ca=AXT[a][1];if(sg<0){const t=ba;ba=ca;ca=t}
+          const b0=pos.length/3,n=[0,0,0];n[a]=sg;
+          for(const[sb,sc]of[[-1,-1],[1,-1],[1,1],[-1,1]]){const pt=c.slice();pt[ba]+=sb*sz[ba];pt[ca]+=sc*sz[ca];pos.push(pt[0],pt[1],pt[2]);nor.push(n[0],n[1],n[2])}
+          idx.push(b0,b0+1,b0+2,b0,b0+2,b0+3);
+        }
       }
+      const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));g.setIndex(idx);g.computeBoundingSphere();
+      const m=new THREE.Mesh(g,mat);m.frustumCulled=true;S.add(m);
     }
-    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));g.setIndex(idx);
-    const m=new THREE.Mesh(g,mat);m.frustumCulled=false;S.add(m);
+  };
+  for(const[mat,L]of batches)buildBoxes(mat,L);
+  const edgeBins=new Map();
+  for(let q=0;q<eList.length;q+=6){const key=binKey(eList[q],eList[q+1]+eList[q+4]/2,eList[q+2]);let a=edgeBins.get(key);if(!a)edgeBins.set(key,a=[]);a.push(...eList.slice(q,q+6))}
+  for(const A of edgeBins.values())for(let o=0;o<A.length;o+=3000){
+    const pos=[],end=Math.min(A.length,o+3000);
+    for(let q=o;q<end;q+=6){const x=A[q],y=A[q+1],z=A[q+2],hw=A[q+3]/2,hh=A[q+4],hd=A[q+5]/2,c=[[x-hw,z-hd],[x+hw,z-hd],[x+hw,z+hd],[x-hw,z+hd]];
+      for(let i=0;i<4;i++){const P=c[i],Q=c[(i+1)%4];pos.push(P[0],y,P[1],Q[0],y,Q[1],P[0],y+hh,P[1],Q[0],y+hh,Q[1],P[0],y,P[1],P[0],y+hh,P[1])}}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.computeBoundingSphere();const l=new THREE.LineSegments(g,lineMat);l.frustumCulled=true;S.add(l);
   }
-  for(let o=0;o<eList.length;o+=12000){
-    const pos=[],end=Math.min(eList.length,o+12000);
-    for(let q=o;q<end;q+=6){
-      const x=eList[q],y=eList[q+1],z=eList[q+2],hw=eList[q+3]/2,hh=eList[q+4],hd=eList[q+5]/2;
-      const c=[[x-hw,z-hd],[x+hw,z-hd],[x+hw,z+hd],[x-hw,z+hd]];
-      for(let i=0;i<4;i++){const A=c[i],B=c[(i+1)%4];pos.push(A[0],y,A[1],B[0],y,B[1],A[0],y+hh,A[1],B[0],y+hh,B[1],A[0],y,A[1],A[0],y+hh,A[1])}
+  if(rampVisuals.length){
+    const bins=new Map(),geo=new THREE.BoxGeometry(1,1,1),dummy=new THREE.Object3D();
+    for(const q of rampVisuals){const key=binKey(q.x+q.dx*q.len/2,(q.y0+q.y1)/2,q.z+q.dz*q.len/2);let a=bins.get(key);if(!a)bins.set(key,a=[]);a.push(q)}
+    for(const list of bins.values())for(let o=0;o<list.length;o+=1800){
+      const part=list.slice(o,o+1800),inst=new THREE.InstancedMesh(geo,part[0].mat,part.length);
+      for(let i=0;i<part.length;i++){const q=part[i];dummy.position.set(q.x+q.dx*q.len/2,(q.y0+q.y1)/2-.3,q.z+q.dz*q.len/2);dummy.rotation.order='YXZ';dummy.rotation.y=Math.atan2(q.dx,q.dz);dummy.rotation.x=-Math.atan2(q.y1-q.y0,q.len);dummy.scale.set(q.w,.6,Math.hypot(q.len,q.y1-q.y0));dummy.updateMatrix();inst.setMatrixAt(i,dummy.matrix)}
+      inst.instanceMatrix.needsUpdate=true;inst.computeBoundingSphere();inst.frustumCulled=true;S.add(inst);
     }
-    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));const l=new THREE.LineSegments(g,lineMat);l.frustumCulled=false;S.add(l);
+    rampVisuals.length=0;
   }
-  if(rampVisuals.length){const grouped=new Map(),geo=new THREE.BoxGeometry(1,1,1),dummy=new THREE.Object3D();for(const q of rampVisuals){let list=grouped.get(q.mat);if(!list)grouped.set(q.mat,list=[]);list.push(q)}for(const[mat,list]of grouped){const inst=new THREE.InstancedMesh(geo,mat,list.length);inst.frustumCulled=false;for(let i=0;i<list.length;i++){const q=list[i];dummy.position.set(q.x+q.dx*q.len/2,(q.y0+q.y1)/2-.3,q.z+q.dz*q.len/2);dummy.rotation.order='YXZ';dummy.rotation.y=Math.atan2(q.dx,q.dz);dummy.rotation.x=-Math.atan2(q.y1-q.y0,q.len);dummy.scale.set(q.w,.6,Math.hypot(q.len,q.y1-q.y0));dummy.updateMatrix();inst.setMatrixAt(i,dummy.matrix)}inst.instanceMatrix.needsUpdate=true;S.add(inst)}rampVisuals.length=0}
   batches.clear();eList.length=0;
 }
 const BP=36,N=36;let tb={};try{tb=JSON.parse(localStorage.getItem('rr_trials'))||{}}catch(e){}
 const ramps=[],zips=[],bl=[],towers=[];
+const rampGrid=new Map();let rampGridStamp=0;
+function rampGridBuild(){
+  rampGrid.clear();
+  for(const rp of ramps){const x1=rp.ox,x2=rp.ox+rp.dx*rp.len,z1=rp.oz,z2=rp.oz+rp.dz*rp.len,pad=rp.w/2+2;
+    for(let x=Math.floor((Math.min(x1,x2)-pad)/GC);x<=Math.floor((Math.max(x1,x2)+pad)/GC);x++)
+      for(let z=Math.floor((Math.min(z1,z2)-pad)/GC);z<=Math.floor((Math.max(z1,z2)+pad)/GC);z++){
+        const key=(x+2000)*10000+(z+2000);let list=rampGrid.get(key);if(!list)rampGrid.set(key,list=[]);list.push(rp);
+      }
+  }
+}
+function rampsNear(x,z,rad=30){
+  const stamp=++rampGridStamp,out=[];
+  for(let a=Math.floor((x-rad)/GC);a<=Math.floor((x+rad)/GC);a++)for(let b=Math.floor((z-rad)/GC);b<=Math.floor((z+rad)/GC);b++){
+    const list=rampGrid.get((a+2000)*10000+(b+2000));if(list)for(const rp of list)if(rp.q!==stamp){rp.q=stamp;out.push(rp)}
+  }
+  return out;
+}
 const gridH=new THREE.GridHelper(N*BP+300,(N*BP+300)/6,0x7a858d,0x939ea5);gridH.position.y=.03;S.add(gridH);
 add(0,-1,0,N*BP+300,1,N*BP+300,lam(0x838d94),'roof',1);
 function ramp(x,z,len,w,y0,y1,dx,dz,mat){ // shared instanced ramp geometry keeps the city light on mobile
@@ -1055,7 +1087,7 @@ for(let i=0;i<N;i++)for(let j=0;j<N;j++){const b=bl[i][j];if(!b.tr&&!b.tw)facade
 for(let k=0;k<140;k++){const side=Math.floor(rnd()*4),dd=N*BP/2+110+rnd()*330,tt=(rnd()-.5)*(N*BP+700),hh=70+rnd()*150,wv=20+rnd()*30,fx=side<2?(side?-dd:dd):tt,fz=side<2?tt:(side===2?dd:-dd);farI.push([fx,hh/2-10,fz,wv,hh,wv])}   // distant skyline beyond the city limits
 instBox(spAcc,accM[0]);instBox(winL,winLitM);instBox(winD,winDarkM);instBox(ribs,ribM);instBox(farI,farM);accs.forEach((arr,k)=>instBox(arr,accM[k]));
 const WE=N*BP/2+40;add(0,0,-WE,2*WE+20,260,10,white,'roof',1);add(0,0,WE,2*WE+20,260,10,white,'roof',1);add(-WE,0,0,10,260,2*WE,white,'roof',1);add(WE,0,0,10,260,2*WE,white,'roof',1); // city limits
-flushBatches();gridBuild();const anchorSet=new Set(anchors);
+rampGridBuild();flushBatches();gridBuild();const anchorSet=new Set(anchors);
 // ---------- AETHER RELAY NETWORK / POST-CAMPAIGN EXPANSION ----------
 const towerRelayDefs=[[7,7,'NORTH GLASS RELAY'],[17,7,'EAST SIGNAL RELAY'],[7,17,'WEST ARCHIVE RELAY'],[17,17,'SOUTH GRID RELAY'],[22,22,'CENTRAL WATCH RELAY']];
 const relayRoofSpots=[];
@@ -1405,7 +1437,7 @@ function step(dt){
     }else{p.y=b.min.y-h-.001;v.y=0}
   }
   let onRamp=null;
-  for(const rp of ramps){
+  for(const rp of rampsNear(p.x,p.z,30)){
     const ex=p.x-rp.ox,ez=p.z-rp.oz;if(Math.abs(ex)>rp.len+rp.w||Math.abs(ez)>rp.len+rp.w)continue;
     const t=ex*rp.dx+ez*rp.dz,lat=Math.abs(-ex*rp.dz+ez*rp.dx);
     if(t>=0&&t<=rp.len&&lat<=rp.w/2){const ys=rp.y0+t*rp.s;if(v.y<=0&&p.y<=ys+(was?.5:.05)&&p.y>ys-1.2){if(!was&&v.y<-4)slopeImpact(-v.y,hs0);p.y=ys;v.y=0;ground=true;gTag='ramp';onRamp=rp}}
