@@ -1077,10 +1077,16 @@ for(let i=Math.max(0,27-3);i<=Math.min(N-1,27+3);i++)for(let j=Math.max(0,17-3);
 meridianApproach.sort((a,b)=>a.height-b.height||a.d-b.d);
 const ascent=[];let lastHeight=-Infinity;
 for(const item of meridianApproach){if(item.height>lastHeight+5){ascent.push(item.spot);lastHeight=item.height}if(ascent.length===4)break}
-// Continue the final mission through the Meridian's actual spiral interior, with a rooftop marker on each landing.
+// Continue the final mission through the Meridian's actual rising ramp endpoints, with checkpoints on reachable landings.
 const meridianEntryFloor=Math.max(0,Math.min(22,Math.floor((ascent[ascent.length-1]?.y||0)/12)));
 const meridianClimb=[],meridianTurn=Math.abs(Math.round(finalTower.x+finalTower.z))%4;
-for(let floor=meridianEntryFloor;floor<=23;floor++)for(const[mx0,mz0,dy]of[[-12,10,0],[10,12,3],[12,-10,6],[-10,-12,9]]){let mx=mx0,mz=mz0;for(let q=0;q<meridianTurn;q++){const t=mx;mx=-mz;mz=t}meridianClimb.push(new THREE.Vector3(finalTower.x+mx,12*floor+dy+.08,finalTower.z+mz))}
+const meridianRamps=[[-12,10,1,0],[10,12,0,-1],[12,-10,-1,0],[-10,-12,0,1]];
+for(let floor=meridianEntryFloor;floor<=23;floor++)for(const[mx0,mz0,dx0,dz0]of meridianRamps){
+  let mx=mx0,mz=mz0,dx=dx0,dz=dz0;
+  for(let q=0;q<meridianTurn;q++){const t=mx;mx=-mz;mz=t;const td=dx;dx=-dz;dz=td}
+  // Checkpoints sit at the actual far end of each rising ramp, never at its takeoff.
+  meridianClimb.push(new THREE.Vector3(finalTower.x+mx+dx*20,12*floor+3+.08,finalTower.z+mz+dz*20));
+}
 CAMPAIGN[12].route=[campaignRoof(10,1301),...ascent,...meridianClimb,new THREE.Vector3(finalTower.x,finalTower.top+.06,finalTower.z)];
 let towerCampaignFinale=false,nearTowerRelay=null;
 const towerCore=new THREE.Group(),coreRing=new THREE.Mesh(new THREE.TorusGeometry(10,.42,8,56),new THREE.MeshBasicMaterial({color:0xe5243b})),coreRing2=new THREE.Mesh(new THREE.TorusGeometry(7,.24,8,48),new THREE.MeshBasicMaterial({color:0x36e5d0})),coreOrb=new THREE.Mesh(new THREE.OctahedronGeometry(4.8,1),new THREE.MeshBasicMaterial({color:0xff3348,wireframe:true})),coreHeart=new THREE.Mesh(new THREE.OctahedronGeometry(2.3,0),new THREE.MeshBasicMaterial({color:0xe5243b,transparent:true,opacity:.8}));towerCore.add(coreRing,coreRing2,coreOrb,coreHeart);coreRing.rotation.x=Math.PI/2;coreRing2.rotation.set(Math.PI/2,.45,0);towerCore.position.set(finalTower.x,finalTower.top+7,finalTower.z);S.add(towerCore);
