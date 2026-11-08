@@ -34,6 +34,39 @@ ol{text-align:left;display:inline-block;margin:.3rem;padding-left:1.6rem;font-si
 #tut{position:fixed;top:calc(1rem + var(--st));left:50%;transform:translateX(-50%);max-width:min(88vw,30rem);display:none;pointer-events:none;background:rgba(20,26,31,.72);color:#fff;border-radius:.6rem;padding:.55rem 1rem;text-align:center;font-size:1.05rem;line-height:1.35;z-index:2}#tut small{opacity:.7;letter-spacing:.08em}
 #prompt{position:fixed;left:50%;bottom:24%;transform:translateX(-50%);display:none;pointer-events:none;background:rgba(20,26,31,.78);color:#fff;border:2px solid #1fd16b;border-radius:.6rem;padding:.5rem 1.1rem;font-weight:700;font-size:1.15rem;z-index:2;white-space:nowrap}
 #mm{position:fixed;left:calc(1rem + var(--sl));top:calc(6.5rem + var(--st));width:min(26vmin,11rem);height:min(26vmin,11rem);border-radius:.6rem;border:2px solid rgba(255,255,255,.75);box-shadow:0 0 .6rem rgba(0,0,0,.25);pointer-events:none;z-index:1;background:#dfe6ea}
+
+#mm{pointer-events:auto;cursor:pointer;touch-action:manipulation;z-index:4}
+#mm:hover{border-color:#e5242b;box-shadow:0 0 0 2px rgba(229,36,43,.3)}
+#mapScreen{position:fixed;inset:0;z-index:30;display:none;flex-direction:column;background:#edf1f3;color:#14181b;font-family:system-ui,sans-serif;touch-action:none;user-select:none;-webkit-user-select:none}
+#mapScreen.open{display:flex}
+#mapTop,#mapBottom{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:calc(.8rem + var(--st)) calc(1rem + var(--sr)) .8rem calc(1rem + var(--sl));background:#fff;border-bottom:1px solid #cbd2d6;flex-shrink:0}
+#mapTop strong{display:block;font-size:clamp(1.2rem,3vw,2rem);letter-spacing:.18em;font-weight:300}
+#mapTop strong:after{content:"";display:inline-block;width:.35rem;height:.9em;background:#e5242b;margin-left:.35em}
+.mapEyebrow{display:block;font-size:.65rem;letter-spacing:.2em;font-weight:800;color:#e5242b}
+#mapTop small{display:block;color:#69757b;font-size:.68rem;letter-spacing:.08em}
+#mapClose{margin:0;clip-path:none;border:0;background:#e5242b;color:#fff;padding:.7rem 1rem}
+#mapWorkspace{display:flex;flex:1;min-height:0;gap:0}
+#mapCanvasWrap{position:relative;flex:1;min-width:0;min-height:0;background:#dce4e8;overflow:hidden}
+#worldMap{width:100%;height:100%;touch-action:none;cursor:grab}
+#worldMap.dragging{cursor:grabbing}
+#mapCompass,#mapScale,#mapHint{position:absolute;pointer-events:none;background:rgba(255,255,255,.9);padding:.4rem .65rem;font-size:.68rem;letter-spacing:.1em;font-weight:800;box-shadow:0 2px 8px #0001}
+#mapCompass{top:.8rem;left:.8rem;color:#e5242b;font-size:1rem}
+#mapScale{bottom:.8rem;left:.8rem;color:#52616a}
+#mapHint{bottom:.8rem;left:50%;transform:translateX(-50%);white-space:nowrap;color:#52616a;font-size:.58rem}
+#mapInfo{width:min(24rem,31vw);overflow:auto;background:#fff;border-left:1px solid #cbd2d6;padding:1rem;box-sizing:border-box}
+#mapInfo h2{font-size:1.25rem;letter-spacing:.12em;color:#14181b;border-bottom:2px solid #e5242b}
+#mapInfo p{font-size:.9rem;line-height:1.5}
+#mapStats{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin:.8rem 0}
+.mapStat{padding:.6rem;background:#f0f3f4;border-left:2px solid #e5242b}.mapStat b{display:block;font-size:1.25rem}.mapStat small{font-size:.62rem;letter-spacing:.08em;color:#64717a}
+.mapLegend{display:grid;grid-template-columns:1fr 1fr;gap:.55rem;margin:.8rem 0;font-size:.65rem;font-weight:800;color:#52616a}
+.mapLegend span{display:flex;align-items:center;gap:.35rem}.pin{display:inline-block;width:.55rem;height:.55rem;border-radius:50%;background:#e5242b}.pin-player{background:#14181b}.pin-cp{background:#ffa726}.pin-trial{background:#1fd16b}.pin-bag{background:#e5242b}.pin-courier{background:#20bfa8}
+#mapPOIList{margin:.7rem 0}.mapPoi{display:flex;align-items:center;gap:.6rem;width:100%;text-align:left;margin:.2rem 0;padding:.55rem .5rem;clip-path:none;border:1px solid #d9dee1;background:#fff;font-size:.72rem;letter-spacing:.04em}.mapPoi .poiDot{width:.6rem;height:.6rem;flex-shrink:0;border-radius:50%;background:#e5242b}.mapPoi span{flex:1}.mapPoi small{color:#6b777e;font-size:.6rem}
+.mapAction{width:100%;background:#e5242b;color:white;clip-path:none;margin:.4rem 0}
+#mapBottom{border-top:1px solid #cbd2d6;border-bottom:0;padding:.6rem calc(1rem + var(--sr)) calc(.6rem + var(--sb)) calc(1rem + var(--sl));font-size:.65rem;letter-spacing:.1em}
+#mapBottom b,#mapBottom span{display:block}#mapBottom span{color:#e5242b;font-weight:800;margin-top:.15rem}
+.mapZoom{display:flex;align-items:center;gap:.35rem}.mapZoom button{margin:0;padding:.35rem .7rem;min-height:2rem;clip-path:none}.mapZoom span{min-width:3.5rem;text-align:center;color:#14181b!important;margin:0!important}
+#mapBottom>small{color:#78838a}
+@media(max-width:700px){#mapWorkspace{flex-direction:column}#mapCanvasWrap{flex:1;min-height:35vh}#mapInfo{width:100%;max-height:34vh;border-left:0;border-top:1px solid #cbd2d6;padding:.65rem .9rem}#mapInfo h2{margin:.4rem 0}#mapInfo p{margin:.25rem 0}#mapStats{margin:.4rem 0}.mapLegend{margin:.4rem 0}#mapPOIList{display:grid;grid-template-columns:1fr 1fr;gap:.2rem}#mapHint{font-size:.5rem;max-width:90%;white-space:normal;text-align:center}#mapBottom>small{display:none}#mapTop{padding-top:calc(.45rem + var(--st));padding-bottom:.45rem}}
 #jb{position:absolute;width:24vmin;height:24vmin;margin:-12vmin 0 0 -12vmin;left:calc(20vmin + var(--sl));top:calc(100% - 26vmin - var(--sb));border-radius:50%;background:rgba(20,26,31,.22);border:2px solid rgba(255,255,255,.55);opacity:.55;pointer-events:none}
 #jk{position:absolute;left:50%;top:50%;width:10vmin;height:10vmin;border-radius:50%;background:rgba(255,255,255,.8);transform:translate(-50%,-50%)}
 
@@ -89,6 +122,12 @@ body.mouse-look,body.mouse-look canvas{cursor:none!important}
 </script>
 </head><body>
 <div id="dot"></div><div id="mouseAim"><div id="mouseRing"></div><div id="mouseDot"></div><div id="mouseHint">MOVE CURSOR INTO THE CENTER RING TO ARM CAMERA</div></div><div id="vig"></div><div id="hurt"></div><div id="hud"></div><div id="toast"></div><div id="tut"></div><div id="prompt"></div><canvas id="cmp" width="720" height="52"></canvas><canvas id="mm" width="176" height="176"></canvas>
+<div id="mapScreen" aria-hidden="true">
+ <div id="mapTop"><div><span class="mapEyebrow">VEYRA CITY NETWORK</span><strong>RUNNER MAP</strong><small id="mapSubtitle">LIVE CITY INTELLIGENCE · R-17</small></div><button id="mapClose" aria-label="Close map">CLOSE ×</button></div>
+ <div id="mapWorkspace"><div id="mapCanvasWrap"><canvas id="worldMap"></canvas><div id="mapCompass">N ↑</div><div id="mapScale">CITY GRID · LIVE</div><div id="mapHint">DRAG TO PAN · PINCH OR +/- TO ZOOM · SELECT A MARKER</div></div>
+ <aside id="mapInfo"><div class="mapEyebrow">SELECTED LOCATION</div><h2 id="mapPlaceTitle">VEYRA CITY</h2><p id="mapPlaceDesc">Explore the city and select a marker for intel.</p><div id="mapStats"></div><div class="mapLegend"><span><i class="pin pin-player"></i> YOU</span><span><i class="pin pin-cp"></i> CHECKPOINTS</span><span><i class="pin pin-trial"></i> TIME TRIALS</span><span><i class="pin pin-bag"></i> COLLECTIBLES</span><span><i class="pin pin-courier"></i> COURIERS</span></div><div id="mapPOIList"></div><button id="mapLocate" class="mapAction">CENTER ON RUNNER</button></aside></div>
+ <div id="mapBottom"><div><b id="mapCoords">GRID 000 / 000</b><span id="mapRegion">DOWNTOWN</span></div><div class="mapZoom"><button id="mapZoomOut" aria-label="Zoom out">−</button><span id="mapZoomValue">100%</span><button id="mapZoomIn" aria-label="Zoom in">+</button><button id="mapReset">RESET VIEW</button></div><small>SKYLINER // VEYRA NAVIGATION SYSTEM</small></div>
+</div>
 <div id="ov"><div id="panel"><h1>SKY<span>LINER</span></h1><p><b>Ready to run</b></p><p>Loading runner interface…</p><noscript><p>JavaScript is required to play SKYLINER.</p></noscript></div></div>
 <div id="touch"><div id="jb"><div id="jk"></div></div><div class="tb" id="bj" data-t="jump">UP</div><div class="tb" id="bs" data-t="slide">DOWN</div><div class="tb" id="bt" data-t="turn">EXTRA</div><div class="tb" id="bg" data-t="gear">GEAR</div><div class="tb eq" id="bro" data-t="rope">ROPE</div><div class="tb" id="bi" data-t="interact">INTERACT</div><div class="tb" id="bv" data-t="vision">VIS</div><div class="tb" id="br" data-t="respawn">RESET</div><div class="tb sm" id="btr" data-t="trialRestart">REDO</div><div class="tb sm" id="bte" data-t="trialEnd">END</div><div class="tb" id="bp" data-t="pause">II</div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous"></script>
@@ -1770,12 +1809,54 @@ function drawMap(){
   if(trial){const q=trial.t.pts[trial.i];dot(q.x,q.z,'#2aa8ff',4)}
   mmCtx.save();mmCtx.translate(c,c);mmCtx.rotate(-yaw);mmCtx.fillStyle='#111';mmCtx.beginPath();mmCtx.moveTo(0,-6);mmCtx.lineTo(4,5);mmCtx.lineTo(-4,5);mmCtx.closePath();mmCtx.fill();mmCtx.restore();
 }
+// ---------- interactive Catalyst-style city map ----------
+const mapScreen=document.getElementById('mapScreen'),worldMap=document.getElementById('worldMap'),wmCtx=worldMap.getContext('2d'),mapPlaceTitle=document.getElementById('mapPlaceTitle'),mapPlaceDesc=document.getElementById('mapPlaceDesc'),mapStats=document.getElementById('mapStats'),mapPOIList=document.getElementById('mapPOIList'),mapZoomValue=document.getElementById('mapZoomValue'),mapCoords=document.getElementById('mapCoords'),mapRegion=document.getElementById('mapRegion');
+let mapOpen=false,mapZoom=1,mapCenter={x:0,z:0},mapDrag=null,mapPins=[],mapSelected=null,mapDpr=1;
+const mapPinColors={player:'#14181b',checkpoint:'#ffa726',trial:'#1fd16b',collectible:'#e5242b',courier:'#20bfa8',delivery:'#35ff9a'};
+function mapWorldToScreen(x,z){const scale=Math.min(worldMap.width,worldMap.height)*mapZoom/MW;return {x:worldMap.width/2+(x-mapCenter.x)*scale,z:worldMap.height/2+(z-mapCenter.z)*scale}}
+function mapScreenToWorld(x,y){const scale=Math.min(worldMap.width,worldMap.height)*mapZoom/MW;return {x:mapCenter.x+(x-worldMap.width/2)/scale,z:mapCenter.z+(y-worldMap.height/2)/scale}}
+function mapRegionAt(x,z){let best=null,bd=Infinity;for(let i=0;i<N;i++)for(let j=0;j<N;j++){const b=bl[i][j],d=(b.x-x)**2+(b.z-z)**2;if(d<bd){bd=d;best=b}}const names=['DOWNTOWN','RESIDENTIAL','INDUSTRIAL','HARBOR','TRAINING','OLD TOWN','TECH PARK','MARKET','CAMPUS','RAIL YARD','HIGHLANDS'];return best?(names[best.dst]||'VEYRA CITY'):'VEYRA CITY'}
+function buildMapPins(){
+ mapPins=[{id:'player',type:'player',x:p.x,z:p.z,name:'R-17 · YOUR POSITION',desc:'Your current location. Use CENTER ON RUNNER to track your position.',color:mapPinColors.player}];
+ cpts.forEach((q,i)=>mapPins.push({id:'cp'+i,type:'checkpoint',x:q.x,z:q.z,name:q===cpActive?'ACTIVE CHECKPOINT':'CHECKPOINT '+String(i+1).padStart(2,'0'),desc:q===cpActive?'Current campaign checkpoint.':'Campaign route marker. Reach the rooftop marker to progress.',color:mapPinColors.checkpoint}));
+ trials.forEach((t,i)=>mapPins.push({id:'trial'+i,type:'trial',x:t.pts[0].x,z:t.pts[0].z,name:'TIME TRIAL '+String(i+1).padStart(2,'0'),desc:(trialUnlocked(t)?'Available':'Locked trial')+' · '+(t.name||'Freerun route')+'. Select the green beacon in Freeroam to start.',color:mapPinColors.trial}));
+ bags.forEach((q,i)=>{if(!q.got)mapPins.push({id:'bag'+i,type:'collectible',x:q.x,z:q.z,name:'RUNNER BAG '+String(i+1).padStart(2,'0'),desc:'Collectible runner bag. Find it and run through it to collect.',color:mapPinColors.collectible})});
+ courierContacts.forEach((q,i)=>{if(q.active)mapPins.push({id:'courier'+i,type:'courier',x:q.spot.x,z:q.spot.z,name:'CIVILIAN COURIER',desc:'A civilian courier is waiting here. Approach and interact to accept a delivery contract.',color:mapPinColors.courier})});
+ if(delivery)mapPins.push({id:'deliveryTarget',type:'delivery',x:delivery.target.x,z:delivery.target.z,name:'DELIVERY DROP POINT',desc:'Active delivery destination. Reach the green rooftop beacon to complete the contract.',color:mapPinColors.delivery});
+}
+function mapDraw(){
+ if(!mapOpen)return;const w=worldMap.width,h=worldMap.height,scale=Math.min(w,h)*mapZoom/MW,baseSize=MS/MW*scale,ox=w/2-mapCenter.x*scale,oz=h/2-mapCenter.z*scale;
+ wmCtx.clearRect(0,0,w,h);wmCtx.fillStyle='#dce4e8';wmCtx.fillRect(0,0,w,h);
+ wmCtx.drawImage(mmBase,ox-baseSize*MS/2,oz-baseSize*MS/2,baseSize*MS,baseSize*MS);
+ // City grid and subtle navigation lines.
+ wmCtx.save();wmCtx.strokeStyle='rgba(255,255,255,.38)';wmCtx.lineWidth=1;const step=Math.max(28,Math.min(w,h)/12);for(let x=((w/2-mapCenter.x*scale)%step);x<w;x+=step){wmCtx.beginPath();wmCtx.moveTo(x,0);wmCtx.lineTo(x,h);wmCtx.stroke()}for(let y=((h/2-mapCenter.z*scale)%step);y<h;y+=step){wmCtx.beginPath();wmCtx.moveTo(0,y);wmCtx.lineTo(w,y);wmCtx.stroke()}wmCtx.restore();
+ buildMapPins();mapPins.forEach(pin=>{const q=mapWorldToScreen(pin.x,pin.z);if(q.x< -25||q.x>w+25||q.z< -25||q.z>h+25)return;const radius=pin.type==='player'?9:pin.type==='checkpoint'?7:pin.type==='delivery'?8:6;wmCtx.beginPath();wmCtx.fillStyle=pin.color;wmCtx.arc(q.x,q.z,radius,0,Math.PI*2);wmCtx.fill();wmCtx.strokeStyle='#fff';wmCtx.lineWidth=2;wmCtx.stroke();if(mapSelected===pin.id){wmCtx.beginPath();wmCtx.strokeStyle='#e5242b';wmCtx.lineWidth=2;wmCtx.arc(q.x,q.z,radius+5,0,Math.PI*2);wmCtx.stroke()}if(mapZoom>=1.35&&pin.type!=='player'){wmCtx.font='bold 10px system-ui';wmCtx.fillStyle='#14181b';wmCtx.fillText(pin.name.replace(/^(CHECKPOINT |TIME TRIAL |RUNNER BAG )/,'').slice(0,19),q.x+9,q.z-8)}});
+ const me=mapWorldToScreen(p.x,p.z);wmCtx.save();wmCtx.translate(me.x,me.z);wmCtx.rotate(-yaw);wmCtx.fillStyle='#14181b';wmCtx.beginPath();wmCtx.moveTo(0,-13);wmCtx.lineTo(8,9);wmCtx.lineTo(0,5);wmCtx.lineTo(-8,9);wmCtx.closePath();wmCtx.fill();wmCtx.strokeStyle='#fff';wmCtx.lineWidth=1.5;wmCtx.stroke();wmCtx.restore();
+ document.getElementById('mapZoomValue').textContent=Math.round(mapZoom*100)+'%';mapCoords.textContent='GRID '+Math.round((p.x+MW/2)/10).toString().padStart(3,'0')+' / '+Math.round((p.z+MW/2)/10).toString().padStart(3,'0');mapRegion.textContent=mapRegionAt(p.x,p.z);
+}
+function mapResize(){const r=worldMap.getBoundingClientRect();mapDpr=Math.min(2,window.devicePixelRatio||1);worldMap.width=Math.max(1,Math.round(r.width*mapDpr));worldMap.height=Math.max(1,Math.round(r.height*mapDpr));wmCtx.setTransform(mapDpr,0,0,mapDpr,0,0);mapDraw()}
+function mapSelect(pin){mapSelected=pin.id;mapPlaceTitle.textContent=pin.name;mapPlaceDesc.textContent=pin.desc;mapRegion.textContent=mapRegionAt(pin.x,pin.z);const dist=Math.round(Math.hypot(pin.x-p.x,p.z-p.z));mapStats.innerHTML='<div class="mapStat"><b>'+dist+' m</b><small>STRAIGHT-LINE DISTANCE</small></div><div class="mapStat"><b>'+mapRegionAt(pin.x,pin.z)+'</b><small>DISTRICT</small></div>';mapDraw()}
+function mapOpenMenu(){if(mapOpen)return;mapOpen=true;mapScreen.classList.add('open');mapScreen.setAttribute('aria-hidden','false');mapCenter={x:p.x,z:p.z};mapZoom=1;mapSelected='player';mapResize();mapSelect(mapPins[0]);mapPOIList.innerHTML='';const groups=[['checkpoint','CHECKPOINTS'],['trial','TIME TRIALS'],['collectible','RUNNER BAGS'],['courier','COURIERS'],['delivery','DELIVERY']];buildMapPins();groups.forEach(([type,label])=>{const items=mapPins.filter(x=>x.type===type);if(!items.length)return;const h=document.createElement('div');h.className='mapEyebrow';h.textContent=label+' · '+items.length;mapPOIList.appendChild(h);items.slice(0,12).forEach(pin=>{const b=document.createElement('button');b.className='mapPoi';b.innerHTML='<i class="poiDot" style="background:'+pin.color+'"></i><span>'+pin.name+'</span><small>VIEW</small>';b.onclick=()=>{mapCenter={x:pin.x,z:pin.z};mapZoom=Math.max(mapZoom,1.5);mapSelect(pin);mapDraw()};mapPOIList.appendChild(b)})});}
+function mapCloseMenu(){mapOpen=false;mapScreen.classList.remove('open');mapScreen.setAttribute('aria-hidden','true');mapDrag=null}
+function mapZoomAt(factor,x=worldMap.width/2,y=worldMap.height/2){const before=mapScreenToWorld(x,y);mapZoom=Math.max(.35,Math.min(8,mapZoom*factor));const after=mapScreenToWorld(x,y);mapCenter.x+=before.x-after.x;mapCenter.z+=before.z-after.z;mapDraw()}
+mmEl.addEventListener('click',e=>{e.preventDefault();mapOpenMenu()});mmEl.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();mapOpenMenu()}});
+mmEl.setAttribute('tabindex','0');mmEl.setAttribute('role','button');mmEl.setAttribute('aria-label','Open full city map');
+document.getElementById('mapClose').onclick=mapCloseMenu;document.getElementById('mapLocate').onclick=()=>{mapCenter={x:p.x,z:p.z};mapSelect(mapPins.find(x=>x.type==='player')||mapPins[0]);mapDraw()};
+document.getElementById('mapZoomIn').onclick=()=>mapZoomAt(1.25);document.getElementById('mapZoomOut').onclick=()=>mapZoomAt(.8);document.getElementById('mapReset').onclick=()=>{mapZoom=1;mapCenter={x:p.x,z:p.z};mapDraw()};
+worldMap.addEventListener('pointerdown',e=>{if(!mapOpen)return;worldMap.setPointerCapture(e.pointerId);mapDrag={id:e.pointerId,x:e.clientX,y:e.clientY,cx:mapCenter.x,cz:mapCenter.z,moved:false};worldMap.classList.add('dragging')});
+worldMap.addEventListener('pointermove',e=>{if(!mapDrag||mapDrag.id!==e.pointerId)return;const dx=e.clientX-mapDrag.x,dy=e.clientY-mapDrag.y;if(Math.abs(dx)+Math.abs(dy)>3)mapDrag.moved=true;const scale=Math.min(worldMap.width,worldMap.height)*mapZoom/MW;mapCenter.x=mapDrag.cx-dx*mapDpr/scale;mapCenter.z=mapDrag.cz-dy*mapDpr/scale;mapDraw()});
+worldMap.addEventListener('pointerup',e=>{if(!mapDrag||mapDrag.id!==e.pointerId)return;const moved=mapDrag.moved;mapDrag=null;worldMap.classList.remove('dragging');if(moved)return;const rect=worldMap.getBoundingClientRect(),x=(e.clientX-rect.left)*mapDpr,y=(e.clientY-rect.top)*mapDpr;let best=null,bd=24*mapDpr;mapPins.forEach(pin=>{const q=mapWorldToScreen(pin.x,pin.z),d=Math.hypot(q.x-x,q.z-y);if(d<bd){bd=d;best=pin}});if(best)mapSelect(best);else{const q=mapScreenToWorld(x,y);mapSelected=null;mapPlaceTitle.textContent=mapRegionAt(q.x,q.z);mapPlaceDesc.textContent='Unmarked city block. Pan the map or select a nearby marker to inspect points of interest.';mapStats.innerHTML='<div class="mapStat"><b>'+Math.round(Math.hypot(q.x-p.x,q.z-p.z))+' m</b><small>FROM YOUR POSITION</small></div><div class="mapStat"><b>'+mapRegionAt(q.x,q.z)+'</b><small>DISTRICT</small></div>';mapDraw()}});
+worldMap.addEventListener('pointercancel',()=>{mapDrag=null;worldMap.classList.remove('dragging')});
+worldMap.addEventListener('wheel',e=>{e.preventDefault();const r=worldMap.getBoundingClientRect();mapZoomAt(e.deltaY<0?1.12:.89,(e.clientX-r.left)*mapDpr,(e.clientY-r.top)*mapDpr)},{passive:false});
+worldMap.addEventListener('dblclick',e=>{const r=worldMap.getBoundingClientRect();mapZoomAt(1.5,(e.clientX-r.left)*mapDpr,(e.clientY-r.top)*mapDpr)});
+window.addEventListener('keydown',e=>{if(mapOpen&&e.key==='Escape'){e.preventDefault();mapCloseMenu()}});
+window.addEventListener('resize',()=>{if(mapOpen)mapResize()});
 // ---------- loop ----------
 const hud=document.getElementById('hud'),vig=document.getElementById('vig');let last=performance.now();
 function loop(now){
   requestAnimationFrame(loop);
   const dt=Math.min(.033,(now-last)/1000);last=now;
-  const live=playing&&!done;
+  const live=playing&&!done&&!mapOpen;
   if(live&&!dialogueCutscene){const sub=Math.hypot(v.x,v.z)>16?2:1;for(let q=0;q<sub;q++)step(dt/sub)}campaignActorsTick(dialogueCutscene?0:dt);if(dialogueCutscene){const da=dialogueActorForLine(dialogueCutscene.lines[dialogueCutscene.index]||'')||dialogueCutscene.actor;if(da){da.group.visible=true;dialogueCutscene.actor=da}}deliveryTick(dt); // courier contacts and drop-off route
   if(toastT>0){toastT-=dt;if(toastT<=0)document.getElementById('toast').style.opacity=0}
   const sp=Math.hypot(v.x,v.z);
@@ -1812,7 +1893,7 @@ function loop(now){
     slideG.gain.setTargetAtTime(slideT>0&&live?.14:0,n,.05);
     wallG.gain.setTargetAtTime(wallrun&&live?.2:0,n,.05)}
   hud.innerHTML=(campaignRun?'SKYLINER · '+CAMPAIGN[campaignRun.index].title+' · '+campaignRun.step+'/'+(CAMPAIGN[campaignRun.index].route.length-1)+'<br>':'')+(trial?'TRIAL '+trial.t.name+' · '+((now-trial.t0)/1000).toFixed(1)+'s · '+(trial.i-1)+'/'+(trial.t.pts.length-1)+' · '+Math.round(Math.hypot(p.x-trial.t.pts[trial.i].x,p.z-trial.t.pts[trial.i].z))+'m<br>':'')+sp.toFixed(1)+' m/s'+(flow>.05?' · FLOW '+Math.round(flow*100)+'%':'')+' · HP '+Math.round(hp)+' · BAGS '+bagCount+'/'+bags.length+(zip?' · ZIPLINE':hang?' · LEDGE':wallrun?' · WALL-RUN':climbing||(!ground&&keys[set.binds.fwd]&&climbT<1&&climbT>0&&v.y>4)?' · CLIMB':slideT>0?' · SLIDE':rollT>0?' · ROLL':'');
-  bags.forEach(b=>{if(!b.got){b.mesh.rotation.y=now*.002;b.mesh.position.y=b.y+Math.sin(now*.003+b.x)*.15}});if(playing)drawMap();
+  bags.forEach(b=>{if(!b.got){b.mesh.rotation.y=now*.002;b.mesh.position.y=b.y+Math.sin(now*.003+b.x)*.15}});if(playing)drawMap();if(mapOpen)mapDraw();
   itemTick(dt,now);drawCompass();gearTick();skyTick(dt);shardTick(dt);musicTick(dt,sp);visionTick(dt,now);tutTick(sp);promptTick();document.body.classList.toggle('intrial',!!trial);
   animFP(dt,sp,now);
   R.render(S,C);
