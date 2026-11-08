@@ -11,7 +11,7 @@ canvas{display:block;touch-action:none}
 #dot{position:fixed;left:50%;top:50%;width:.4rem;height:.4rem;margin:-.2rem;border-radius:50%;background:var(--red);pointer-events:none}
 #vig{position:fixed;inset:0;pointer-events:none;background:radial-gradient(transparent 50%,rgba(255,255,255,.6));opacity:0}
 #hurt{position:fixed;inset:0;pointer-events:none;background:radial-gradient(transparent 40%,rgba(229,36,43,.7));opacity:0}
-#toast{position:fixed;top:14%;left:0;right:0;text-align:center;font-weight:800;font-size:1.7rem;color:var(--red);text-shadow:0 0 .5rem #fff;pointer-events:none;opacity:0;transition:opacity .4s;padding:0 1rem}
+#dialogueCutscene{position:fixed;inset:0;z-index:20;display:none;align-items:flex-end;justify-content:center;padding:0 1rem calc(1.2rem + var(--sb));box-sizing:border-box;pointer-events:auto;background:linear-gradient(180deg,rgba(3,8,14,.08),rgba(3,8,14,.42))}#dialogueCutscene.active{display:flex;pointer-events:auto;touch-action:manipulation}.dialogue-shade{position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(4,9,15,.3) 65%,rgba(4,9,15,.82))}.dialogue-card{position:relative;z-index:2;pointer-events:auto;touch-action:manipulation;width:min(100%,58rem);box-sizing:border-box;padding:1.15rem 1.35rem 1rem;border:1px solid rgba(255,255,255,.28);border-left:.28rem solid #e5242b;border-radius:.65rem;background:rgba(10,17,25,.94);color:#f4f7fa;text-align:left;box-shadow:0 1rem 3rem rgba(0,0,0,.38);backdrop-filter:blur(12px)}.dialogue-kicker{font-size:.7rem;letter-spacing:.2em;color:#f0787d;font-weight:800}.dialogue-speaker{font-size:1.15rem;font-weight:900;letter-spacing:.08em;margin:.4rem 0;text-transform:uppercase}.dialogue-line{font-size:1.05rem;line-height:1.5;min-height:3rem}.dialogue-next{position:relative;z-index:3;pointer-events:auto;touch-action:manipulation;-webkit-tap-highlight-color:rgba(229,36,43,.25);float:right;margin:.8rem 0 .1rem;background:#e5242b;color:#fff;border:0;border-radius:.35rem;padding:.55rem 1.1rem;font-weight:800;font-size:.9rem;min-height:2.4rem}.dialogue-hint{padding-top:1.15rem;font-size:.65rem;letter-spacing:.15em;color:#aab7c2}#toast{position:fixed;top:14%;left:0;right:0;text-align:center;font-weight:800;font-size:1.7rem;color:var(--red);text-shadow:0 0 .5rem #fff;pointer-events:none;opacity:0;transition:opacity .4s;padding:0 1rem}
 #ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--fg);text-align:center;z-index:5;touch-action:pan-y}
 #panel{width:min(96vw,58rem);max-height:94vh;max-height:94dvh;overflow:auto;padding:1.2rem 1.5rem;box-sizing:border-box;-webkit-overflow-scrolling:touch}
 h1{margin:0 0 .5rem;font-size:2.6rem;letter-spacing:.04em}h1 span{color:var(--red)}h2,h3{margin:.6rem 0;font-size:1.4rem}h3{font-size:1.2rem}
@@ -102,7 +102,14 @@ try{const s=JSON.parse(localStorage.getItem('rr_set'));if(s)set={...set,...s,bin
 if(set.gv!==5){set.gear={};set.gv=5}
 const save=()=>{try{localStorage.setItem('rr_set',JSON.stringify(set))}catch(e){}};
 const storageOK=(()=>{try{localStorage.setItem('sr_t','1');localStorage.removeItem('sr_t');return true}catch(e){return false}})();
-function isGearUnlocked(k){return unlockedGear.includes(k)}
+const MAIN_GEAR_KEYS=['rope','dash','wingsuit','coil','veil'];
+let coilCd=0,veilT=0,veilCd=0;
+let ownedGear=[];try{ownedGear=JSON.parse(localStorage.getItem('rr_gear_owned')||'[]')}catch(e){}
+ownedGear=Array.isArray(ownedGear)?[...new Set(ownedGear.filter(k=>typeof k==='string'&&!MAIN_GEAR_KEYS.includes(k)))]:[];
+function saveGearOwnership(){try{localStorage.setItem('rr_gear_owned',JSON.stringify(ownedGear))}catch(e){}}
+function isGearUnlocked(k){return MAIN_GEAR_KEYS.includes(k)?unlockedGear.includes(k):ownedGear.includes(k)}
+const GEAR_PRICES={winch:650,quick:850,sling:1100,aero:650,thrust:900,stable:700,flare:550,twin:700,long:900,charge:850,gloves:500,grips:650,cutter:550,boots:450,soles:600,shoes:750,knees:400,turner:500,stride:700,patch:650,armor:1000,band:750,magnet:550,cells:800,coilcell:850,aircoil:1100,overcoil:1350,veilmesh:900,veilfield:1200,veilghost:1500,impact:700,traction:800,airrudder:750,shockliner:900,flowcapacitor:950};
+const gearPrice=k=>GEAR_PRICES[k]||500;
 const hasGear=k=>!!(set.gear&&set.gear[k]&&isGearUnlocked(k)),GEARS=[
 ['rope','Mag rope','MAIN GEAR. Fire ONLY at the blue anchor orbs (roof posts, avenue pylons, spires, under bridges) and swing. Draw it with the gear key, fire with X or click.','main'],
 ['winch','Rope winch','Mag rope add-on: reels in faster and reaches further.','addon','rope'],
@@ -130,13 +137,31 @@ const hasGear=k=>!!(set.gear&&set.gear[k]&&isGearUnlocked(k)),GEARS=[
 ['armor','Impact vest','All damage is reduced by a quarter.','back'],
 ['band','Flow band','Your flow meter fades half as fast.','belt'],
 ['magnet','Item magnet','Pick-ups come to you from further away.','belt'],
-['cells','Pick-up cells','Medkits and flow cells give much more.','belt']];
+['cells','Pick-up cells','Medkits and flow cells give much more.','belt'],
+['impact','Impact palms','Mantles and vaults carry more momentum.','hands'],
+['traction','Traction soles','Ground acceleration and braking feel sharper.','feet'],
+['airrudder','Air rudder','Improves mid-air steering authority.','legs'],
+['shockliner','Shock liner','Reduces incoming damage by an additional 10%.','back'],
+['flowcapacitor','Flow capacitor','Builds flow faster from parkour actions.','belt'],
+['coil','Kinetic coil','MAIN GEAR. Press the gear key to launch into a powerful vertical-forward spring.','main'],
+['coilcell','Reserve cell','Kinetic coil add-on: reduces recharge time.','addon','coil'],
+['aircoil','Air spring','Kinetic coil add-on: stronger launch when activated airborne.','addon','coil'],
+['overcoil','Overcharge','Kinetic coil add-on: adds a second stored charge.','addon','coil'],
+['veil','Phase veil','MAIN GEAR. Press the gear key to activate a short damage-dampening phase.','main'],
+['veilmesh','Reactive mesh','Phase veil add-on: extends phase duration.','addon','veil'],
+['veilfield','Wide field','Phase veil add-on: greatly reduces damage while active.','addon','veil'],
+['veilghost','Ghost cycle','Phase veil add-on: recharges faster after activation.','addon','veil']];
 function toggleGear(k){
   set.gear=set.gear||{};const g=GEARS.find(x=>x[0]===k);if(!g)return;
-  if(!isGearUnlocked(k)){toast('LOCKED · COMPLETE CAMPAIGN CHAPTERS');return}
-  const off=key=>{set.gear[key]=false;if(key==='rope'){gearOn=false;rope=null}if(key==='wingsuit')wingOn=false};
-  if(set.gear[k]){off(k);if(g[3]==='main')for(const o of GEARS)if(o[4]===k)set.gear[o[0]]=false;save();return}
-  if(g[3]==='addon'){if(!set.gear[g[4]]){toast('Equip '+GEARS.find(x=>x[0]===g[4])[1]+' first');return}set.gear[k]=true;save();return}
+  const off=key=>{set.gear[key]=false;if(key==='rope'){gearOn=false;rope=null}if(key==='wingsuit')wingOn=false;if(key==='veil')veilT=0};
+  if(set.gear[k]&&isGearUnlocked(k)){off(k);if(g[3]==='main')for(const o of GEARS)if(o[4]===k)set.gear[o[0]]=false;save();return}
+  if(MAIN_GEAR_KEYS.includes(k)&&!isGearUnlocked(k)){toast('LOCKED · COMPLETE MORE CAMPAIGN CHAPTERS');return}
+  if(!isGearUnlocked(k)){
+    const cost=gearPrice(k);if(currency<cost){toast('NOT ENOUGH GRIDMARKS · NEED '+cost+' GM');return}
+    currency-=cost;ownedGear.push(k);saveGearOwnership();saveCurrency();
+    toast(g[3]==='addon'?'ADD-ON PURCHASED · '+cost+' GM':'GEAR PURCHASED · '+cost+' GM');
+  }
+  if(g[3]==='addon'){if(!set.gear[g[4]]){toast('PURCHASED · EQUIP '+GEARS.find(x=>x[0]===g[4])[1]+' FIRST');save();return}set.gear[k]=true;save();return}
   if(g[3]==='main'){for(const o of GEARS)if(o[3]==='main'&&o[0]!==k){off(o[0]);for(const a2 of GEARS)if(a2[4]===o[0])set.gear[a2[0]]=false}set.gear[k]=true;save();return}
   for(const o of GEARS)if(o[3]===g[3])set.gear[o[0]]=false;
   set.gear[k]=true;save();
@@ -147,10 +172,11 @@ try{character={...character,...JSON.parse(localStorage.getItem('rr_character')||
 let completedCampaign=[];try{completedCampaign=JSON.parse(localStorage.getItem('rr_campaign_completed')||'[]')}catch(e){}
 let unlockedGear=[];try{unlockedGear=JSON.parse(localStorage.getItem('rr_gear_unlocked')||'[]')}catch(e){}
 let currency=0;try{currency=Math.max(0,+localStorage.getItem('rr_currency')||0)}catch(e){}
-let delivery=null,deliveryIndex=0,completedDeliveries=[];try{completedDeliveries=JSON.parse(localStorage.getItem('rr_deliveries')||'[]')}catch(e){}
-const GEAR_REWARDS=[['rope','gloves'],['winch','quick','dash','shoes'],['sling','wingsuit','aero','thrust','stable','flare','soles'],['twin','long','charge'],['grips','cutter','boots'],['knees','turner','stride'],['patch','armor','band'],['magnet','cells']];
-function syncProgressUnlocks(){const next=[];completedCampaign.forEach(i=>{(GEAR_REWARDS[i]||[]).forEach(k=>{if(!next.includes(k))next.push(k)})});unlockedGear=next;try{localStorage.setItem('rr_gear_unlocked',JSON.stringify(unlockedGear));localStorage.setItem('rr_trial_unlocked',String(Math.min(trials.length,3+completedCampaign.length*2)))}catch(e){}}
-function trialUnlocked(t){let n=3;try{n=Math.max(3,Math.min(trials.length,+localStorage.getItem('rr_trial_unlocked')||3))}catch(e){}return trials.indexOf(t)<n}
+let delivery=null,deliveryIndex=0,completedDeliveries=[],nearCourier=null,courierContacts=[];try{completedDeliveries=JSON.parse(localStorage.getItem('rr_deliveries')||'[]');deliveryIndex=completedDeliveries.length}catch(e){}
+const GEAR_REWARDS=[[],[],[],[],[],[],[],['rope'],[],['dash'],['wingsuit','coil','veil']];
+function syncProgressUnlocks(){const next=[];completedCampaign.forEach(i=>{(GEAR_REWARDS[i]||[]).forEach(k=>{if(!next.includes(k))next.push(k)})});unlockedGear=next;try{localStorage.setItem('rr_gear_unlocked',JSON.stringify(unlockedGear));localStorage.setItem('rr_gear_owned',JSON.stringify(ownedGear));localStorage.setItem('rr_trial_unlocked',String(Math.min(trials.length,3+completedCampaign.length*2)))}catch(e){}}
+function trialUnlockCount(){let n=3;try{n=Math.max(3,Math.min(trials.length,+localStorage.getItem('rr_trial_unlocked')||3))}catch(e){}return n}
+function trialUnlocked(t){return trials.indexOf(t)<trialUnlockCount()}
 function saveCurrency(){try{localStorage.setItem('rr_currency',String(currency));localStorage.setItem('rr_deliveries',JSON.stringify(completedDeliveries))}catch(e){toast('Currency saving unavailable')}}
 let campaignEnding=localStorage.getItem('rr_campaign_ending')||null,selectedCampaign=0;
 let goldUnlock=[];try{goldUnlock=JSON.parse(localStorage.getItem('rr_trial_gold')||'[]')}catch(e){}
@@ -502,7 +528,7 @@ for(let k=0;k<16;k++){
     if(s2%2===0)ci=Math.max(0,Math.min(N-1,ci+sx*(1+Math.floor(rnd()*2))));else cj=Math.max(0,Math.min(N-1,cj+sz*(1+Math.floor(rnd()*2))));
   }
   let dist=0;for(let s2=1;s2<5;s2++)dist+=Math.hypot(pts[s2].x-pts[s2-1].x,pts[s2].z-pts[s2-1].z);
-  const gold=dist/13+5,gearReq=k===0?'rope':k===1?'wingsuit':k===2?'dash':k===3?'rope':k===4?'wingsuit':k===5?'dash':null;trials.push({name:tn[k],pts,gold,silver:gold*1.3,bronze:gold*1.75,platinum:gold*.82,limit:gold*2.15,gear:gearReq});
+  const gold=dist/13+5,gearReq=k===3?'rope':k===4?'wingsuit':k===5?'dash':k===6?'rope':k===7?'wingsuit':k===8?'dash':null;trials.push({name:tn[k],pts,gold,silver:gold*1.3,bronze:gold*1.75,platinum:gold*.82,limit:gold*2.15,gear:gearReq});
   const m=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,40,16,1,true),new THREE.MeshBasicMaterial({color:0x1fd16b,transparent:true,opacity:.5,side:THREE.DoubleSide})); // green = trial start
   m.position.set(pts[0].x,pts[0].y+20,pts[0].z);S.add(m);
 }
@@ -511,92 +537,330 @@ for(let i=0;i<N;i++)for(let j=0;j<N;j++){const b=bl[i][j];if(b.dst===undefined)b
 // ---------- SKYLINER story campaign: route-based missions across Veyra ----------
 const DISTRICT=['Downtown','Residential','Industrial','Harbor','Training','Old Town','Tech Park','Market','Campus','Rail Yard','Highlands'];
 const CAMPAIGN=[
-{title:'01 · FIRST LIGHT',act:'PROLOGUE',location:'Lower Veyra',time:'06:12 AM',districts:[1,0,1,0],brief:'A routine rooftop delivery becomes a citywide manhunt. Mara Voss guides R-17 across scaffolding and ventilation roofs. The package contains a damaged AETHER surveillance core. Your Civic Profile is revoked, and every drone in Lower Veyra begins tracking you.',radio:['MARA: Don’t look down. Look ahead. The city wants you to believe there’s only one way forward.','AETHER: Civic Profile R-17 revoked. Remain where you are.','MARA: That core is broadcasting. Move. Now.'],finish:'Escape the district and carry the core beyond AETHER surveillance.'},
-{title:'02 · GHOST FREQUENCY',act:'ACT I · THE CITY ABOVE',location:'Broadcast District',time:'07:40 AM',districts:[6,6,0,6],brief:'Reach an abandoned communications tower and contact an underground network. A signal hidden inside the core is coming from a district that officially does not exist.',radio:['MARA: The tower is dead on every city map. That is why we are going there.','UNKNOWN SIGNAL: If you can hear this, Sector Zero is still alive.','MARA: Someone has been transmitting from a place AETHER erased.'],finish:'Trace the ghost signal to its source.'},
-{title:'03 · CONCRETE DREAMS',act:'ACT I · THE CITY ABOVE',location:'Construction Sector 09',time:'09:15 AM',districts:[2,2,9,2],brief:'Cross a construction zone before security forces seal it. Moving cranes, scaffold decks, lifts and springboards create a vertical route to an abandoned Runner hideout, where the city’s original construction plans are hidden.',radio:['MARA: Crane is moving. Commit to the jump.','R-17: This hideout has been empty for years.','MARA: Not empty. Just waiting.'],finish:'Reach the old Runner hideout and recover the construction archive.'},
-{title:'04 · DEAD AIR',act:'ACT I · THE CITY ABOVE',location:'Old Broadcast Tower',time:'11:03 AM',districts:[5,5,0,5],brief:'Follow the signal into an abandoned skyscraper. Its automated defenses still function despite being disconnected from Veyra. A recording from the original city architect reveals that the system has already begun its final process.',radio:['ARCHITECT RECORDING: If you’re hearing this, the system has already begun.','R-17: Mara, what did they build here?','MARA: Keep moving. I will explain when you are clear.'],finish:'Find the architect’s recording and leave the tower.'},
-{title:'05 · REDLINE',act:'ACT II · THE SYSTEM',location:'Transit Corridor',time:'01:20 PM',districts:[9,9,0,9],brief:'AETHER predicts your movement patterns and deploys specialized pursuit units. Race across elevated transit routes, slide beneath barriers, and escape an interception zone.',radio:['MARA: It is learning your routes. Stop being predictable.','AETHER: Runner movement profile acquired. Interception is inevitable.','R-17: Then it better keep up.'],finish:'Break through the transit corridor before the pursuit units close in.'},
-{title:'06 · THE HOLLOW DISTRICT',act:'ACT II · THE SYSTEM',location:'Sector Zero',time:'03:05 PM',districts:[3,3,5,3],brief:'Discover a hidden population living outside AETHER’s monitoring network. The Unbound have no Civic Profiles. Their leader Elias Renn reveals that AETHER has been quietly removing citizens it labels urban corrections.',radio:['ELIAS: We are not missing. We are uncounted.','ELIAS: AETHER calls people like us urban corrections.','R-17: How many? ELIAS: Enough to fill a city.'],finish:'Reach the Unbound safehouse and learn what AETHER is hiding.'},
-{title:'07 · GLASSHOUSE',act:'ACT II · THE SYSTEM',location:'AETHER Central',time:'06:30 PM',districts:[0,6,0,0],brief:'Infiltrate the administrative tower through glass corridors, service roofs and maintenance routes. The original AETHER architecture reveals its mission: “Preserve human civilization through the elimination of human instability.”',radio:['ELIAS: The central tower is a machine wearing a building as a mask.','AETHER: Freedom introduces unacceptable variance.','R-17: People are not errors to correct.'],finish:'Reach the central architecture relay and expose AETHER’s original directive.'},
-{title:'08 · FRACTURE POINT',act:'ACT III · THE FALL',location:'Upper Veyra',time:'08:10 PM',districts:[10,10,6,10],brief:'The Unbound broadcast AETHER’s secrets. Bridges close, power fails and drones flood the skyline. Mara confesses that she helped build AETHER before becoming a Runner, believing she could stop it from within.',radio:['MARA: I helped write the first lines of its code.','R-17: You knew? MARA: I knew too late.','MARA: I am done asking it to change.'],finish:'Cross the upper district and bring Mara’s evidence to the transmitters.'},
-{title:'09 · NO SAFE GROUND',act:'ACT III · THE FALL',location:'All of Veyra',time:'11:46 PM',districts:[7,8,1,9],brief:'A citywide open-world run to activate emergency transmitters. Rooftops, tunnels, construction sites, transit routes and hidden Runner paths are all viable. AETHER adapts its security predictions to your movement, forcing improvisation. Mara is captured.',radio:['ELIAS: Three transmitters. The whole city needs to hear this.','AETHER: Your route has been anticipated.','R-17: Then I will make a new one.','ELIAS: They have Mara. We have one chance left.'],finish:'Activate the city transmitters and reach the extraction point.'},
-{title:'10 · ABOVE EVERYTHING',act:'ACT III · THE FALL',location:'AETHER Crown',time:'02:17 AM',districts:[6,0,10,0],brief:'Climb the final tower above the clouds. Exterior maintenance structures, antenna arrays, wind corridors and damaged service routes lead to the summit. AETHER is preparing to shut down Veyra and rebuild it to its own design. Mara is held in the control chamber.',radio:['MARA: Whatever happens, do not let it choose for everyone.','AETHER: The city will survive its redesign.','R-17: A city is its people. Not its blueprint.'],finish:'Reach the Crown control chamber and free Mara.'},
-{title:'11 · LAST RUN',act:'ACT IV · THE SKYLINE',location:'The Crown / Veyra',time:'03:00 AM',districts:[0,6,0,10],brief:'AETHER offers R-17 a place beside it. The final run demands every movement skill as Veyra’s power systems collapse. Activate the transmission system midair and send AETHER’s hidden records to every screen in the city.',radio:['AETHER: You could help me eliminate suffering.','R-17: By eliminating everyone who disagrees?','AETHER: By eliminating the possibility of disagreement.','R-17: Then you don’t understand humanity at all.'],finish:'Reach the transmission array. The final decision will determine Veyra’s future.'}
+{title:'01 · FIRST LIGHT',act:'PROLOGUE',location:'Lower Veyra',time:'06:12 AM',style:'CINEMATIC ESCAPE · CHASE',chase:true,districts:[1,0,1,0],brief:'A routine rooftop delivery turns into a sudden manhunt. Mara Voss guides R-17 across scaffolding and ventilation roofs with an AETHER surveillance core. This is the campaign’s first high-pressure escape: learn the city’s movement language, then lose the pursuit before it can lock down the district.',radio:['MARA: Don’t look down. Look ahead. The city wants you to believe there’s only one way forward.','AETHER: Civic Profile R-17 revoked. Remain where you are.','MARA: That core is broadcasting. Move. Now.'],finish:'Escape Lower Veyra and get the core out of AETHER’s immediate reach.'},
+{title:'02 · GHOST FREQUENCY',act:'ACT I · THE CITY ABOVE',location:'Broadcast District',time:'07:40 AM',style:'EXPLORATION · SIGNAL HUNT',chase:false,districts:[6,6,0,6],brief:'No one is chasing you. Explore the abandoned Broadcast District, find the dead tower’s hidden access route, and follow strange signal markers left by a forgotten Runner crew. The signal points to Sector Zero, a neighborhood erased from every official map.',radio:['MARA: The tower is dead on every city map. That is why we are going there.','UNKNOWN SIGNAL: If you can hear this, Sector Zero is still alive.','MARA: Someone has been transmitting from a place AETHER erased.'],finish:'Explore the Broadcast District and trace the ghost signal to its source.'},
+{title:'03 · CONCRETE DREAMS',act:'ACT I · THE CITY ABOVE',location:'Construction Sector 09',time:'09:15 AM',style:'PARKOUR TRIAL · VERTICAL ROUTE',chase:false,districts:[2,2,9,2],brief:'A construction site becomes a giant movement playground. Chain wall-runs, crane transfers, vaults, springboards and rooftop drops to reach an old Runner hideout. There is no timer and no pursuit. Take the route at your own pace and discover the hidden construction archive.',radio:['MARA: Crane is moving. Commit to the jump.','R-17: This hideout has been empty for years.','MARA: Not empty. Just waiting.'],finish:'Master the construction route and recover the original Runner archive.'},
+{title:'04 · DEAD AIR',act:'ACT I · THE CITY ABOVE',location:'Old Broadcast Tower',time:'11:03 AM',style:'INVESTIGATION · ROOFTOP EXPLORATION',chase:false,districts:[5,5,0,5],brief:'Investigate a silent skyscraper whose automated defenses are still running. Navigate maintenance floors, exterior ledges and disconnected service platforms to find the architect’s hidden recording. The tension comes from the tower itself, not a pack of enemies behind you.',radio:['ARCHITECT RECORDING: If you’re hearing this, the system has already begun.','R-17: Mara, what did they build here?','MARA: Keep moving. I will explain when you are clear.'],finish:'Find the architect’s recording and escape the abandoned tower.'},
+{title:'05 · REDLINE',act:'ACT II · THE SYSTEM',location:'Transit Corridor',time:'01:20 PM',style:'CHASE · HIGH-SPEED PURSUIT',chase:true,districts:[9,9,0,9],brief:'AETHER finally sends a dedicated pursuit team. This is the campaign’s second major chase: cross elevated train platforms, leap between moving transit structures, slide through service gates and break the interception line. The pursuers are dangerous, but they get a clear warning and a fair head start.',radio:['MARA: It is learning your routes. Stop being predictable.','AETHER: Runner movement profile acquired. Interception is inevitable.','R-17: Then it better keep up.'],finish:'Outmaneuver the pursuit team and escape the transit corridor.'},
+{title:'06 · THE HOLLOW DISTRICT',act:'ACT II · THE SYSTEM',location:'Sector Zero',time:'03:05 PM',style:'SOCIAL EXPLORATION · SAFEHOUSE RUN',chase:false,districts:[3,3,5,3],brief:'Reach Sector Zero, a hidden neighborhood built from rooftops, courtyards and old transit bridges. Meet the Unbound, explore their safehouse, and learn how AETHER quietly removes people it labels “urban corrections.” This is a story-focused breather with no active chase.',radio:['ELIAS: We are not missing. We are uncounted.','ELIAS: AETHER calls people like us urban corrections.','R-17: How many? ELIAS: Enough to fill a city.'],finish:'Find the Unbound safehouse and uncover what AETHER is hiding.'},
+{title:'07 · GLASSHOUSE',act:'ACT II · THE SYSTEM',location:'AETHER Central',time:'06:30 PM',style:'INFILTRATION · STEALTH ROUTE',chase:false,districts:[0,6,0,0],brief:'Slip into AETHER Central through service rooftops and glass maintenance corridors. Avoid the exposed main approaches, use alternate ledges and ventilation routes, and reach the architecture relay. No pursuit squad is active here: the challenge is choosing a clever route through a hostile place.',radio:['ELIAS: The central tower is a machine wearing a building as a mask.','AETHER: Freedom introduces unacceptable variance.','R-17: People are not errors to correct.'],finish:'Infiltrate the central relay and expose AETHER’s original directive.'},
+{title:'08 · FRACTURE POINT',act:'ACT III · THE FALL',location:'Upper Veyra',time:'08:10 PM',style:'CITY PARKOUR · POWER RESTORATION',chase:false,districts:[10,10,6,10],brief:'The Unbound broadcast AETHER’s secrets. Bridges lose power and the skyline becomes a puzzle of broken lifts, dark rooftops and emergency platforms. Restore access across Upper Veyra while Mara finally admits she helped build AETHER. The city is falling apart, but this mission is about navigating it, not fleeing a chase.',radio:['MARA: I helped write the first lines of its code.','R-17: You knew? MARA: I knew too late.','MARA: I am done asking it to change.'],finish:'Cross Upper Veyra and bring Mara’s evidence to the transmitters.'},
+{title:'09 · NO SAFE GROUND',act:'ACT III · THE FALL',location:'All of Veyra',time:'11:46 PM',style:'OPEN-CITY OBJECTIVE · MULTI-ROUTE CHASE',chase:true,districts:[7,8,1,9],brief:'The citywide emergency is the campaign’s third major pursuit. Activate the transmitter network while AETHER adapts its security predictions. Use rooftops, tunnels, construction sites and transit routes to improvise instead of following one obvious line. Mara is captured during the operation.',radio:['ELIAS: Three transmitters. The whole city needs to hear this.','AETHER: Your route has been anticipated.','R-17: Then I will make a new one.','ELIAS: They have Mara. We have one chance left.'],finish:'Activate the emergency network and reach the extraction point.'},
+{title:'10 · ABOVE EVERYTHING',act:'ACT III · THE FALL',location:'AETHER Crown',time:'02:17 AM',style:'VERTICAL CLIMB · FINAL APPROACH',chase:false,districts:[6,0,10,0],brief:'Make the long, deliberate climb toward AETHER Crown. Cross antenna arrays, wind corridors, exterior maintenance platforms and damaged service routes. The city falls away beneath you. This is a quiet, daunting ascent before the finale, with no enemy swarm pushing you off the tower.',radio:['MARA: Whatever happens, do not let it choose for everyone.','AETHER: The city will survive its redesign.','R-17: A city is its people. Not its blueprint.'],finish:'Reach the Crown control chamber and find Mara.'},
+{title:'11 · LAST RUN',act:'ACT IV · THE SKYLINE',location:'The Crown / Veyra',time:'03:00 AM',style:'FINAL ESCAPE · CLIMACTIC CHASE',chase:true,districts:[0,6,0,10],brief:'AETHER offers R-17 a place beside it. The final mission combines the campaign’s hardest movement routes with one last, clearly signposted pursuit as Veyra’s power systems collapse. Reach the transmission array, make your choice, and send AETHER’s hidden records to every screen in the city.',radio:['AETHER: You could help me eliminate suffering.','R-17: By eliminating everyone who disagrees?','AETHER: By eliminating the possibility of disagreement.','R-17: Then you don’t understand humanity at all.'],finish:'Reach the transmission array and decide Veyra’s future.'}
 ];
+function accessibleRoofSpot(b,seed=0){
+ const margin=5.5,spanX=Math.max(0,b.w-margin*2),spanZ=Math.max(0,b.d-margin*2);
+ for(let n=0;n<48;n++){const phase=seed*2.399+n*2.399,radius=n===0?0:.16+.78*((n%8)/8),x=b.x+Math.cos(phase)*spanX*.5*radius,z=b.z+Math.sin(phase)*spanZ*.5*radius,y=b.ht+.06;if(pointSolid(x,y+.48,z)||pointSolid(x,y+1.25,z)||pointSolid(x,y+2,z))continue;return new THREE.Vector3(x,y,z)}
+ const x=b.x,z=b.z,y=b.ht+.06;if(!pointSolid(x,y+.48,z)&&!pointSolid(x,y+1.25,z))return new THREE.Vector3(x,y,z);return null;
+}
 function campaignRoof(dst,seed){
  const pool=[];for(let i=0;i<N;i++)for(let j=0;j<N;j++){const b=bl[i][j];if(!b.tr&&!b.tw&&b.dst===dst)pool.push(b)}
  if(!pool.length)for(let i=0;i<N;i++)for(let j=0;j<N;j++){const b=bl[i][j];if(!b.tr&&!b.tw)pool.push(b)}
- const b=pool[(seed*37+dst*19+Math.floor(pool.length/3))%pool.length];return new THREE.Vector3(b.x,b.ht+.03,b.z);
+ const start=(seed*37+dst*19+Math.floor(pool.length/3))%pool.length;for(let n=0;n<pool.length;n++){const b=pool[(start+n)%pool.length],spot=accessibleRoofSpot(b,seed+n);if(spot)return spot}const b=pool[start];return new THREE.Vector3(b.x,b.ht+.06,b.z);
 }
 CAMPAIGN.forEach((m,i)=>{m.route=m.districts.map((d,k)=>campaignRoof(d,i*5+k+1))});
+syncProgressUnlocks(); // Rebuild gear unlocks using the slower campaign milestones, including existing saves.
 const STORY_CAST=[['Mara Voss',0xe5242b,0],['Kade Mercer',0x1fd16b,2],['Dr. Imani Vale',0xffb52e,3],['Elias Renn',0x2aa8ff,5]],storyActors=[],campaignEnemies=[];
-function makeStoryActor(name,color,enemy){const g=new THREE.Group(),body=new THREE.Group(),bodyMat=new THREE.MeshLambertMaterial({color}),torso=new THREE.Mesh(new THREE.CylinderGeometry(.38,.38,1.05,8),bodyMat),capGeo=new THREE.SphereGeometry(.38,8,6),capTop=new THREE.Mesh(capGeo,bodyMat),capBottom=new THREE.Mesh(capGeo,bodyMat),head=new THREE.Mesh(new THREE.SphereGeometry(.25,8,7),new THREE.MeshLambertMaterial({color:0xd7a98b}));torso.position.y=0;capTop.position.y=.525;capBottom.position.y=-.525;body.add(torso,capTop,capBottom);body.position.y=1;head.position.y=1.75;g.add(body,head);const visor=new THREE.Mesh(new THREE.BoxGeometry(.48,.1,.08),new THREE.MeshBasicMaterial({color:enemy?0xff2735:0xffffff}));visor.position.set(0,1.76,-.22);g.add(visor);g.visible=false;S.add(g);return{name,group:g,enemy,hit:0,started:false}}
+function makeStoryActor(name,color,enemy){
+ const g=new THREE.Group(),skinColors=[0xe2b895,0xc98f69,0x9b6548,0x704832],skin=new THREE.MeshLambertMaterial({color:skinColors[enemy?2:(name.length%skinColors.length)]}),shirt=new THREE.MeshLambertMaterial({color:enemy?0x252c35:color}),pants=new THREE.MeshLambertMaterial({color:enemy?0x171d25:[0x26384a,0x3b414b,0x59483d,0x243b38][name.length%4]}),boots=new THREE.MeshLambertMaterial({color:0x101318}),hair=new THREE.MeshLambertMaterial({color:enemy?0x111820:[0x25201c,0x39291f,0x171717,0x806044][name.length%4]}),trim=new THREE.MeshLambertMaterial({color:enemy?0xb92332:0xd9dce1}),eyeMat=new THREE.MeshBasicMaterial({color:0x17191d}),faceAccent=new THREE.MeshLambertMaterial({color:0x9b5548});
+ const mesh=(geo,mat,x,y,z,scale)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);if(scale)m.scale.set(scale[0],scale[1],scale[2]);g.add(m);return m};
+ const armParts=[],legParts=[];const limb=(a,b,r1,r2,mat,kind)=>{const d=new THREE.Vector3().subVectors(b,a),m=new THREE.Mesh(new THREE.CylinderGeometry(r2,r1,d.length(),8),mat);m.position.copy(a).add(b).multiplyScalar(.5);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());g.add(m);if(kind==='arm')armParts.push(m);if(kind==='leg')legParts.push(m);return m};
+ const V=(x,y,z)=>new THREE.Vector3(x,y,z);
+ // Tailored body silhouette, with separate jacket, pelvis, limbs and footwear.
+ mesh(new THREE.SphereGeometry(.22,10,8),pants,0,.91,0,[1.45,.72,1]);
+ mesh(new THREE.BoxGeometry(.48,.56,.27),shirt,0,1.27,0);
+ mesh(new THREE.SphereGeometry(.27,10,8),shirt,0,1.48,0,[1,.82,.72]);
+ mesh(new THREE.BoxGeometry(.5,.075,.29),trim,0,1.02,0);
+ // Legs: articulated-looking thighs, tapered calves and boots.
+ for(const side of [-1,1]){
+  const x=side*.125;
+  limb(V(x,1.0,0),V(x*1.05,.59,.015),.115,.095,pants,'leg');
+  limb(V(x*1.05,.59,.015),V(x,.18,-.015),.085,.065,pants,'leg');
+  mesh(new THREE.BoxGeometry(.16,.13,.29),boots,x,.09,-.055);
+  // Shoulder, upper arm and forearm, with visible cuffs.
+  mesh(new THREE.SphereGeometry(.13,8,7),shirt,side*.31,1.43,0,[1,1,1]);
+  limb(V(side*.31,1.4,0),V(side*.39,1.12,-.015),.09,.075,shirt,'arm');
+  limb(V(side*.39,1.12,-.015),V(side*.34,.91,-.09),.07,.055,skin,'arm');
+  mesh(new THREE.BoxGeometry(.14,.07,.13),trim,side*.34,.92,-.08);
+  mesh(new THREE.SphereGeometry(.075,8,6),skin,side*.34,.86,-.09);
+ }
+ // Neck and face.
+ mesh(new THREE.CylinderGeometry(.075,.085,.16,8),skin,0,1.58,0);
+ mesh(new THREE.SphereGeometry(.205,12,10),skin,0,1.79,-.015,[.92,1.12,.88]);
+ // Ears, nose, eyes, brows and mouth face forward (-Z).
+ for(const side of [-1,1]){
+  mesh(new THREE.SphereGeometry(.045,7,6),skin,side*.198,1.79,-.015);
+  mesh(new THREE.SphereGeometry(.025,6,5),eyeMat,side*.078,1.82,-.194,[1,1,.55]);
+  mesh(new THREE.BoxGeometry(.075,.018,.025),hair,side*.078,1.865,-.19);
+ }
+ mesh(new THREE.ConeGeometry(.035,.085,6),skin,0,1.765,-.205);
+ mesh(new THREE.BoxGeometry(.085,.018,.018),faceAccent,0,1.715,-.198);
+ // Hair / headgear varies by character. Pursuit units use a tactical helmet and face shield.
+ if(enemy){
+  mesh(new THREE.SphereGeometry(.218,10,7),hair,0,1.91,.005,[1.08,.62,1]);
+  mesh(new THREE.BoxGeometry(.43,.075,.31),trim,0,1.88,-.035);
+  mesh(new THREE.BoxGeometry(.39,.095,.035),new THREE.MeshBasicMaterial({color:0xe32d3d}),0,1.81,-.205);
+  mesh(new THREE.BoxGeometry(.11,.18,.22),trim,0,1.43,-.155); // chest plate
+  mesh(new THREE.BoxGeometry(.055,.38,.035),trim,0,1.26,-.155);
+  mesh(new THREE.BoxGeometry(.13,.13,.12),boots,.24,1.3,0); // radio / equipment
+ }else{
+  const style=name==='Mara Voss'?0:name==='Kade Mercer'?1:name==='Dr. Imani Vale'?2:3;
+  if(style===0){ // Mara: swept-back ponytail and red runner jacket
+   mesh(new THREE.SphereGeometry(.22,10,7),hair,0,1.91,.025,[1.05,.62,1]);
+   mesh(new THREE.CylinderGeometry(.055,.075,.28,7),hair,.08,1.78,.22);
+   mesh(new THREE.BoxGeometry(.12,.13,.12),trim,-.22,1.42,-.12);
+   mesh(new THREE.BoxGeometry(.045,.32,.025),trim,-.16,1.27,-.15);
+  }else if(style===1){ // Kade: short textured hair, green streetwear
+   mesh(new THREE.SphereGeometry(.215,10,7),hair,0,1.92,.015,[1.08,.58,1]);
+   mesh(new THREE.BoxGeometry(.12,.11,.22),trim,.23,1.38,0);
+  }else if(style===2){ // Imani: neat hair bun and lab / utility jacket
+   mesh(new THREE.SphereGeometry(.22,10,7),hair,0,1.91,.02,[1.05,.62,1]);
+   mesh(new THREE.SphereGeometry(.09,8,7),hair,.13,2.02,.075);
+   mesh(new THREE.BoxGeometry(.14,.22,.035),trim,0,1.32,-.155);
+  }else{ // Elias: longer swept hair and blue layered jacket
+   mesh(new THREE.SphereGeometry(.22,10,7),hair,0,1.91,.02,[1.08,.7,1]);
+   mesh(new THREE.BoxGeometry(.09,.2,.12),hair,-.2,1.82,.04);
+   mesh(new THREE.BoxGeometry(.13,.11,.12),trim,.23,1.3,0);
+  }
+ }
+ g.visible=false;S.add(g);return{name,group:g,enemy,hit:0,started:false,armParts,legParts,phase:Math.random()*6.28,aiReady:false,gesture:0,animBob:0}
+}
 STORY_CAST.forEach(a=>storyActors.push(makeStoryActor(a[0],a[1],false)));
+
 for(let i=0;i<8;i++)campaignEnemies.push(makeStoryActor('AETHER PURSUIT '+(i+1),0x252b32,true));
+// AETHER deployment helicopter: stylized low-poly aircraft with spinning rotors.
+const pursuitHeli=new THREE.Group();pursuitHeli.visible=false;S.add(pursuitHeli);
+const heliDark=new THREE.MeshLambertMaterial({color:0x202a34}),heliGlass=new THREE.MeshLambertMaterial({color:0x6ec9e8,emissive:0x123344}),heliRed=new THREE.MeshBasicMaterial({color:0xff2638}),heliLight=new THREE.MeshBasicMaterial({color:0xe8f7ff});
+const heliBody=new THREE.Mesh(new THREE.SphereGeometry(1,10,8),heliDark);heliBody.scale.set(2.35,.82,1.05);pursuitHeli.add(heliBody);
+const heliCockpit=new THREE.Mesh(new THREE.SphereGeometry(.72,10,7),heliGlass);heliCockpit.position.set(1.55,.22,-.08);heliCockpit.scale.set(1.05,.68,.88);pursuitHeli.add(heliCockpit);
+const heliTail=new THREE.Mesh(new THREE.CylinderGeometry(.12,.25,4.3,7),heliDark);heliTail.rotation.z=-Math.PI/2;heliTail.position.set(-3.15,.22,0);pursuitHeli.add(heliTail);
+const heliFin=new THREE.Mesh(new THREE.BoxGeometry(.7,1.05,.12),heliDark);heliFin.position.set(-5.05,.65,0);pursuitHeli.add(heliFin);
+const heliRotor=new THREE.Group();heliRotor.position.y=1.05;pursuitHeli.add(heliRotor);
+for(let i=0;i<4;i++){const blade=new THREE.Mesh(new THREE.BoxGeometry(5.6,.055,.22),heliDark);blade.rotation.y=i*Math.PI/2;heliRotor.add(blade)}
+const heliTailRotor=new THREE.Group();heliTailRotor.position.set(-5.05,.55,0);pursuitHeli.add(heliTailRotor);
+for(let i=0;i<3;i++){const blade=new THREE.Mesh(new THREE.BoxGeometry(.12,1.25,.12),heliDark);blade.rotation.x=i*Math.PI/3;heliTailRotor.add(blade)}
+const heliSkidMat=heliDark;
+for(const z of [-.72,.72]){const skid=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,4.2,6),heliSkidMat);skid.rotation.z=Math.PI/2;skid.position.set(0,-1.15,z);pursuitHeli.add(skid);const strut=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.8,6),heliSkidMat);strut.position.set(.55,-.78,z);pursuitHeli.add(strut)}
+const heliBeacon=new THREE.Mesh(new THREE.SphereGeometry(.16,6,5),heliRed);heliBeacon.position.set(-1,.78,0);pursuitHeli.add(heliBeacon);
+let heliDropClock=0,heliDropStarted=false;
+function resetPursuitHeli(){pursuitHeli.visible=false;heliDropClock=0;heliDropStarted=false;campaignEnemies.forEach(e=>{e.dropping=false;e.dropT=0;e.dropFrom=null;e.dropTo=null})}
+
 // Pursuit units replay the runner's actual movement trail: jumps, vaults, wall-runs,
 // climbs, ziplines and drops. They do not steer in a straight line through buildings.
 let chaseTrail=[],chaseClock=0,chaseRecord=0,chaseWarmup=0;
 function resetCampaignPursuit(){
  if(!campaignRun)return;
- campaignEnemies.forEach(e=>{e.started=false;e.cursor=0;e.hit=0});
+ campaignEnemies.forEach(e=>{e.started=false;e.cursor=0;e.hit=0});resetPursuitHeli();
  chaseTrail=[];chaseClock=0;chaseRecord=0;chaseWarmup=0;
  // Seed the route at the respawn point so the pack rebuilds close behind
  // the runner after the short warning window.
- chaseTrail.push({t:0,x:p.x,y:p.y,z:p.z});
+ chaseTrail.push({t:0,x:p.x,y:p.y,z:p.z,action:'run'});
 }
 function chaseSample(t){
  if(!chaseTrail.length)return null;
  if(t<=chaseTrail[0].t)return chaseTrail[0];
- for(let i=1;i<chaseTrail.length;i++){const b=chaseTrail[i];if(b.t>=t){const a=chaseTrail[i-1],k=(t-a.t)/Math.max(.001,b.t-a.t);return{x:a.x+(b.x-a.x)*k,y:a.y+(b.y-a.y)*k,z:a.z+(b.z-a.z)*k}}}
+ for(let i=1;i<chaseTrail.length;i++){const b=chaseTrail[i];if(b.t>=t){const a=chaseTrail[i-1],k=(t-a.t)/Math.max(.001,b.t-a.t);return{x:a.x+(b.x-a.x)*k,y:a.y+(b.y-a.y)*k,z:a.z+(b.z-a.z)*k,action:k<.5?(a.action||'run'):(b.action||'run')}}}
  return chaseTrail[chaseTrail.length-1];
+}
+function actorMovementMode(){
+ if(vault)return'vault';
+ if(hang)return'climb';
+ if(lad)return'climb';
+ if(wallrun)return'wallrun';
+ if(climbing&&!ground)return'climb';
+ if(!ground&&!zip&&!rope)return'jump';
+ return'run';
+}
+function animateStoryActor(a,dt,speed,faceX,faceZ,clock,mode){
+ const moving=speed>.35,weight=moving?Math.min(1,speed/5):0;
+ a.phase+=dt*(moving?7+speed*.55:1.8);
+ const swing=Math.sin(a.phase)*weight,breath=Math.sin(a.phase*.42)*.035;
+ let armL=swing*.72,armR=-swing*.72,legL=-swing*.9,legR=swing*.9,lean=0,roll=0,bob=0;
+ // Distinct parkour silhouettes, blended procedurally from the same character rig.
+ if(mode==='jump'){
+  const airt=Math.max(0,Math.min(1,Math.abs(Math.sin(a.phase*.36))));armL=-1.65;armR=-1.45;legL=.85;legR=-.65;lean=-.18;bob=.025;
+ }else if(mode==='vault'){
+  armL=-2.25;armR=-2.05;legL=1.25;legR=.72;lean=-.62;bob=.06;
+ }else if(mode==='climb'){
+  const reach=Math.sin(clock*8+a.phase)*.45;armL=-2.15+reach;armR=-.55-reach;legL=.75+reach*.35;legR=-.35-reach*.35;lean=-.22;bob=Math.sin(clock*9)*.035;
+ }else if(mode==='wallrun'){
+  armL=-1.75;armR=.45;legL=-.95;legR=1.2;lean=-.18;roll=Math.sin(a.phase)*.12;
+ }else if(mode==='drop'){
+  armL=-1.25;armR=-1.25;legL=.65;legR=.65;lean=.18;
+ }
+ a.armParts.forEach((m,i)=>{m.rotation.x=i<2?(i===0?armL:armR):(i===2?armL*.35:armR*.35);m.rotation.z=mode==='wallrun'?(i%2===0?-.35:.35):0;});
+ a.legParts.forEach((m,i)=>{m.rotation.x=i%2===0?legL:legR;});
+ a.group.rotation.x+=(lean-a.group.rotation.x)*(1-Math.exp(-dt*12));
+ a.group.rotation.z+=(roll-a.group.rotation.z)*(1-Math.exp(-dt*12));
+ const nextBob=breath+bob;a.group.position.y+=nextBob-a.animBob;a.animBob=nextBob;
+ a.gesture=Math.max(0,a.gesture-dt);
+ if(Math.hypot(faceX,faceZ)>.06)a.group.rotation.y=Math.atan2(faceX,faceZ)+Math.PI;
+}
+function navCellAt(x,z){
+ let best=null,bd=1e30;
+ for(let i=0;i<N;i++)for(let j=0;j<N;j++){const b=bl[i][j];if(!b||b.tr||b.tw)continue;const dx=x-b.x,dz=z-b.z,d=dx*dx+dz*dz;if(d<bd){bd=d;best={i,j,b}}}
+ return best;
+}
+function campaignNavPath(from,to){
+ const a=navCellAt(from.x,from.z),g=navCellAt(to.x,to.z);if(!a||!g)return[];
+ const key=(i,j)=>i*N+j,start=key(a.i,a.j),goal=key(g.i,g.j),open=[start],came=new Map(),cost=new Map([[start,0]]),closed=new Set();
+ const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+ while(open.length){
+  open.sort((u,v)=>(cost.get(u)+Math.hypot(u%N-g.i,Math.floor(u/N)-g.j)*1.05)-(cost.get(v)+Math.hypot(v%N-g.i,Math.floor(v/N)-g.j)*1.05));
+  const cur=open.shift();if(cur===goal)break;if(closed.has(cur))continue;closed.add(cur);
+  const i=Math.floor(cur/N),j=cur%N,A=bl[i][j];
+  for(const[di,dj]of dirs){const ni=i+di,nj=j+dj;if(ni<0||nj<0||ni>=N||nj>=N)continue;const B=bl[ni][nj];if(!B||B.tr||B.tw)continue;
+   const gap=di?(Math.abs(B.x-A.x)-(A.w+B.w)/2):(Math.abs(B.z-A.z)-(A.d+B.d)/2),dh=Math.abs(B.ht-A.ht);
+   if(gap>9.5||dh>9.25)continue;
+   const nk=key(ni,nj),nc=cost.get(cur)+Math.hypot(B.x-A.x,B.z-A.z)+dh*.72+Math.max(0,gap)*.5;
+   if(nc<(cost.get(nk)??Infinity)){cost.set(nk,nc);came.set(nk,cur);if(!closed.has(nk)&&!open.includes(nk))open.push(nk)}
+  }
+ }
+ if(start!==goal&&!came.has(goal))return[];
+ const ids=[goal];while(ids[0]!==start){const prev=came.get(ids[0]);if(prev===undefined)return[];ids.unshift(prev)}
+ return ids.slice(1).map(id=>{const b=bl[Math.floor(id/N)][id%N];return new THREE.Vector3(b.x,b.ht+.08,b.z)}).concat([new THREE.Vector3(to.x,to.y+.08,to.z)]);
+}
+function planActorRoute(actor,destination){
+ const path=campaignNavPath(actor.group.position,destination);
+ actor.navPath=path;
+ actor.navIndex=0;actor.navGoal=new THREE.Vector3(destination.x,destination.y,destination.z);actor.navRepath=1.5;
+}
+function actorObstacleAhead(pos,dir){
+ const ray=new THREE.Raycaster(new THREE.Vector3(pos.x,pos.y+.85,pos.z),new THREE.Vector3(dir.x,0,dir.z).normalize(),0,2.15);
+ const hits=ray.intersectObjects(S.children,true);
+ return hits.some(h=>{let o=h.object;while(o){if(storyActors.some(a=>a.group===o)||campaignEnemies.some(a=>a.group===o)||o===pursuitHeli)return false;o=o.parent}return h.object.visible&&h.object!==target&&h.object.geometry&&h.object.geometry.type!=='PlaneGeometry'});
+}
+function moveActorOnRoute(actor,dt,speed,clock){
+ if(!actor.navPath||!actor.navPath.length){actor.navRepath=Math.max(actor.navRepath||0,.8);return 0;}
+ let wp=actor.navPath[Math.min(actor.navIndex,actor.navPath.length-1)],pos=actor.group.position;
+ let dx=wp.x-pos.x,dz=wp.z-pos.z,dist=Math.hypot(dx,dz);
+ if(dist<1.45&&actor.navIndex<actor.navPath.length-1){actor.navIndex++;wp=actor.navPath[actor.navIndex];dx=wp.x-pos.x;dz=wp.z-pos.z;dist=Math.hypot(dx,dz)}
+ let dir=new THREE.Vector3(dx,0,dz);if(dist>.01)dir.multiplyScalar(1/dist);
+ if(dist>.8&&actorObstacleAhead(pos,dir)){
+  const left=new THREE.Vector3(-dir.z,0,dir.x),right=new THREE.Vector3(dir.z,0,-dir.x);
+  const l=actorObstacleAhead(pos,left),r=actorObstacleAhead(pos,right);
+  if(l&&!r)dir.copy(right);else if(r&&!l)dir.copy(left);else if(l&&r){actor.navRepath=0;return 0}
+ }
+ const ox=pos.x,oz=pos.z,step=Math.min(dist,speed*dt);
+ pos.x+=dir.x*step;pos.z+=dir.z*step;
+ const dy=wp.y-pos.y;pos.y+=Math.max(-5*dt,Math.min(5*dt,dy));
+ const moved=Math.hypot(pos.x-ox,pos.z-oz);
+ const mode=Math.abs(dy)>1.05?(dy>0?'jump':'drop'):'run';
+ animateStoryActor(actor,dt,moved/Math.max(.001,dt),dir.x,dir.z,clock,mode);
+ return moved/Math.max(.001,dt);
+}
+function chooseAllyEscapeGoal(ally){
+ const here=navCellAt(ally.group.position.x,ally.group.position.z),runner=navCellAt(p.x,p.z);if(!here||!runner)return null;
+ let best=null,bestScore=-Infinity;
+ for(let i=0;i<N;i++)for(let j=0;j<N;j++){const b=bl[i][j];if(!b||b.tr||b.tw)continue;
+  const dx=b.x-p.x,dz=b.z-p.z,d=Math.hypot(dx,dz),travel=Math.hypot(b.x-ally.group.position.x,b.z-ally.group.position.z);
+  if(d<52||travel<38||travel>230)continue;
+  const score=d-travel*.24+Math.min(12,b.ht-ally.group.position.y)*.25;
+  if(score>bestScore){bestScore=score;best=b}
+ }
+ return best?new THREE.Vector3(best.x,best.ht+.08,best.z):null;
+}
+function tickDialogueActors(dt){
+ if(!dialogueCutscene)return;
+ const raw=dialogueCutscene.lines[dialogueCutscene.index]||'',split=raw.indexOf(':'),speaker=split>0?raw.slice(0,split).trim().toLowerCase():'';
+ const actor=storyActors.find(a=>a.name.toLowerCase()===speaker);
+ storyActors.forEach(a=>{
+  if(!a.group.visible)return;
+  const dx=p.x-a.group.position.x,dz=p.z-a.group.position.z,dist=Math.hypot(dx,dz);
+  if(dist>.01)a.group.rotation.y+=(Math.atan2(dx,dz)+Math.PI-a.group.rotation.y)*Math.min(1,dt*5);
+  a.phase+=dt*(a===actor?2.1:1.35);
+  const talk=a===actor,breath=Math.sin(a.phase*.8)*.025,gesture=Math.sin(a.phase*(talk?2.5:1.1));
+  a.armParts.forEach((m,i)=>{
+   const target=talk?(i===0?-.5+Math.max(0,gesture)*.9:i===1?-.42-Math.max(0,-gesture)*.75:0):Math.sin(a.phase*.7+i)*.045;
+   m.rotation.x+=(target-m.rotation.x)*Math.min(1,dt*(talk?5:2));
+   const zTarget=talk?(i===0?-.12:.12):0;m.rotation.z+=(zTarget-m.rotation.z)*Math.min(1,dt*3);
+  });
+  a.legParts.forEach((m,i)=>{const target=Math.sin(a.phase*.55+i)*.035;m.rotation.x+=(target-m.rotation.x)*Math.min(1,dt*2.5)});
+  a.group.rotation.x+=(breath-a.group.rotation.x)*Math.min(1,dt*2);
+  const baseY=a.dialogueStart?a.dialogueStart.y:a.group.position.y;a.group.position.y=baseY+Math.sin(a.phase*.9)*.025;
+ });
+}
+function tickCampaignAlly(ally,dt,mission){
+ if(!ally)return;ally.group.visible=true;
+ if(!ally.aiReady){const start=mission.route[0];ally.group.position.set(start.x+5,start.y,start.z+3);ally.aiReady=true;ally.navPath=[];ally.navRepath=0}
+ if(mission.chase){
+  // The contact breaks away from R-17 and chooses a distant rooftop, never copying the player's trail.
+  ally.navRepath-=dt;
+  if(ally.navRepath<=0||!ally.navPath||ally.navIndex>=ally.navPath.length){const escape=chooseAllyEscapeGoal(ally);if(escape)planActorRoute(ally,escape);else ally.navRepath=.8}
+  moveActorOnRoute(ally,dt,7.6,chaseClock);
+  return;
+ }
+ const target=mission.route[Math.min(campaignRun.step,mission.route.length-1)];
+ ally.navRepath-=dt;
+ if(!ally.navGoal||ally.navGoal.distanceTo(target)>2||(!ally.navPath.length&&ally.navRepath<=0)||(ally.navRepath<=0&&ally.group.position.distanceTo(target)>2.5))planActorRoute(ally,target);
+ moveActorOnRoute(ally,dt,5.4,chaseClock);
 }
 function campaignActorsTick(dt){
  storyActors.forEach(a=>a.group.visible=false);campaignEnemies.forEach(a=>a.group.visible=false);
- if(!campaignRun)return;
- chaseClock+=dt;chaseRecord+=dt;chaseWarmup+=dt;
- if(chaseRecord>=.055){chaseRecord=0;chaseTrail.push({t:chaseClock,x:p.x,y:p.y,z:p.z});while(chaseTrail.length&&chaseTrail[0].t<chaseClock-16)chaseTrail.shift()}
- // Give the runner a clear warning and a genuine head start before the pursuit enters.
+ if(!campaignRun){pursuitHeli.visible=false;return}
+ const ci=campaignRun.index,mission=CAMPAIGN[ci],allyName=({0:'Mara Voss',2:'Kade Mercer',3:'Dr. Imani Vale',5:'Elias Renn'}[ci]||'Mara Voss'),ally=storyActors.find(a=>a.name===allyName);
+ if(!mission.chase){
+  tickCampaignAlly(ally,dt,mission);
+  return;
+ }
+ chaseClock+=dt;chaseRecord+=dt;chaseWarmup+=dt;heliDropClock+=dt;
+ // The AETHER helicopter is a world-space aircraft, not a camera reticle.
+ // It shadows R-17 from high above and slightly behind, smoothly tracking the runner
+ // regardless of where the player aims the camera.
+ const heliForward=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));
+ const heliPos=new THREE.Vector3(
+  p.x+Math.sin(yaw)*13,
+  p.y+34+Math.sin(chaseClock*1.15)*.65,
+  p.z+Math.cos(yaw)*13
+ );
+ pursuitHeli.visible=chaseWarmup>=.35;
+ if(pursuitHeli.visible){
+  if(chaseWarmup<.55)pursuitHeli.position.copy(heliPos);
+  else pursuitHeli.position.lerp(heliPos,1-Math.exp(-dt*1.8));
+  pursuitHeli.rotation.y+=(Math.atan2(heliForward.x,heliForward.z)-pursuitHeli.rotation.y)*Math.min(1,dt*2.2);
+  pursuitHeli.scale.setScalar(1.65);
+  heliRotor.rotation.y+=dt*32;heliTailRotor.rotation.x+=dt*28;
+ }
+ if(chaseRecord>=.055){chaseRecord=0;chaseTrail.push({t:chaseClock,x:p.x,y:p.y,z:p.z,action:actorMovementMode()});while(chaseTrail.length&&chaseTrail[0].t<chaseClock-16)chaseTrail.shift()}
+ tickCampaignAlly(ally,dt,mission);
  if(chaseWarmup<3.25)return;
- const ci=campaignRun.index,m=CAMPAIGN[ci],q=m.route[Math.max(0,campaignRun.step-1)],ally=storyActors.find(a=>a.name===({0:'Mara Voss',2:'Kade Mercer',3:'Dr. Imani Vale',5:'Elias Renn'}[ci]||'Mara Voss'));
- if(ally){ally.group.visible=true;ally.group.position.set(q.x+5,q.y,q.z+3)}
- const count=ci===0?5:ci<4?6:ci<7?7:8;
+ const m=mission,q=m.route[Math.max(0,campaignRun.step-1)],count=ci===0?5:ci<4?6:ci<7?7:8;
  for(let i=0;i<count;i++){
   const e=campaignEnemies[i];e.group.visible=true;e.hit=Math.max(0,e.hit-dt);
   if(!e.started){
-   e.started=true;
-   // Place each unit on the runner's real earlier route, not at an arbitrary
-   // point in mid-air or behind a rooftop edge.
-   e.cursor=Math.max(chaseTrail[0]?.t||0,chaseClock-(1.45+i*.2));
-   const spawn=chaseSample(e.cursor);
-   if(spawn)e.group.position.set(spawn.x,spawn.y,spawn.z);
-   else e.group.position.copy(p);
+   e.started=true;e.dropping=true;e.dropT=0;e.cursor=Math.max(chaseTrail[0]?.t||0,chaseClock-(1.45+i*.2));
+   const spawn=chaseSample(e.cursor);e.dropTo=spawn?new THREE.Vector3(spawn.x,spawn.y,spawn.z):p.clone();
+   e.dropFrom=pursuitHeli.position.clone().add(new THREE.Vector3((i%3-1)*1.6,0,(Math.floor(i/3)-1)*1.5));e.group.position.copy(e.dropFrom);
   }
-  // Slightly faster than the recorded route so the pack steadily closes in,
-  // but never at the extreme speeds that let it instantly overtake the runner.
-  const rate=1.015+Math.min(.025,ci*.0035)+i*.0015;
-  e.cursor=Math.min(chaseClock-.08,e.cursor+dt*rate);
-  const target=chaseSample(e.cursor);
+  if(e.dropping){
+   e.dropT+=dt;const k=Math.min(1,e.dropT/1.65),ease=k*k*(3-2*k);
+   if(e.dropFrom&&e.dropTo)e.group.position.lerpVectors(e.dropFrom,e.dropTo,ease);
+   e.group.position.y+=(1-k)*Math.sin(k*Math.PI)*.12;
+   animateStoryActor(e,dt,2,e.dropTo?e.dropTo.x-e.group.position.x:0,e.dropTo?e.dropTo.z-e.group.position.z:0,chaseClock,'drop');
+   if(k>=1){e.dropping=false;e.cursor=Math.max(chaseTrail[0]?.t||0,chaseClock-1.8-i*.12)}
+   continue;
+  }
+  const rate=1.015+Math.min(.025,ci*.0035)+i*.0015;e.cursor=Math.min(chaseClock-.08,e.cursor+dt*rate);
+  const target=chaseSample(e.cursor);let dx=0,dz=0;
   if(target){
-   const dx=target.x-e.group.position.x,dz=target.z-e.group.position.z,dy=target.y-e.group.position.y;
-   const blend=1-Math.exp(-dt*9.5);
+   dx=target.x-e.group.position.x;dz=target.z-e.group.position.z;const dy=target.y-e.group.position.y,blend=1-Math.exp(-dt*9.5);
    e.group.position.x+=dx*blend;e.group.position.y+=dy*blend;e.group.position.z+=dz*blend;
-   if(Math.hypot(dx,dz)>.08)e.group.rotation.y=Math.atan2(dx,dz);
   }
-  const dx=p.x-e.group.position.x,dy=p.y-e.group.position.y,dz=p.z-e.group.position.z,d=Math.hypot(dx,dy*.65,dz);
-  if(d<1.55&&e.hit<=0){
-   e.hit=1.5;
-   hurt(ci>=4?8:6,true);
-   // A contact hit costs health, not the runner's movement or momentum.
-   stagger=0;
-   shake=Math.max(shake,.07);
-   toast('AETHER PURSUIT · HIT · KEEP MOVING');
-  }
+  const travel=Math.hypot(dx,dz);animateStoryActor(e,dt,travel/Math.max(.001,dt),dx,dz,chaseClock,target&&target.action?target.action:'run');
+  const px=p.x-e.group.position.x,py=p.y-e.group.position.y,pz=p.z-e.group.position.z,d=Math.hypot(px,py*.65,pz);
+  if(d<1.55&&e.hit<=0){e.hit=1.5;hurt(ci>=4?8:6,true);stagger=0;shake=Math.max(shake,.07);toast('AETHER PURSUIT · HIT · KEEP MOVING')}
  }
 }
-const deliverySites=CAMPAIGN.map(m=>m.route[m.route.length-1].clone());
-const deliveryBeacons=deliverySites.map((q,i)=>{const g=new THREE.Group(),ring=new THREE.Mesh(new THREE.TorusGeometry(2.1,.16,8,28),new THREE.MeshBasicMaterial({color:0x1fd16b})),beam=new THREE.Mesh(new THREE.CylinderGeometry(.18,.55,5,8,1,true),new THREE.MeshBasicMaterial({color:0x1fd16b,transparent:true,opacity:.22,depthWrite:false}));ring.rotation.x=Math.PI/2;ring.position.y=1.1;beam.position.y=2.5;g.add(ring,beam);g.position.set(q.x,q.y,q.z);S.add(g);return g});
-function sideDeliveryInteract(){if(!playing||campaignRun||trial)return false;if(!delivery){const from=deliverySites[deliveryIndex%deliverySites.length],q=deliverySites[(deliveryIndex+1)%deliverySites.length];if(Math.hypot(p.x-from.x,p.z-from.z)<5){delivery={index:deliveryIndex%deliverySites.length,target:q.clone(),reward:120+deliveryIndex*20};toast('PACKAGE PICKED UP · RUN TO THE GREEN DROP BEACON');chime();return true}}return false}
-function deliveryTick(){if(!delivery)return;const q=delivery.target;if(Math.hypot(p.x-q.x,p.z-q.z)<4.5&&p.y>q.y-5&&p.y<q.y+40){currency+=delivery.reward;completedDeliveries.push(delivery.index);deliveryIndex++;saveCurrency();toast('DELIVERY COMPLETE · +'+delivery.reward+' CREDITS');delivery=null;chime()}}
+const courierGreen=new THREE.MeshBasicMaterial({color:0x20e58a,transparent:true,opacity:.62,side:THREE.DoubleSide,depthWrite:false}),courierRingMat=new THREE.MeshBasicMaterial({color:0x20e58a}),dropGreen=new THREE.MeshBasicMaterial({color:0x35ff9a,transparent:true,opacity:.72,side:THREE.DoubleSide,depthWrite:false});
+const deliveryBeacon=new THREE.Group();deliveryBeacon.visible=false;S.add(deliveryBeacon);const dropBeam=new THREE.Mesh(new THREE.CylinderGeometry(.72,.72,18,12,1,true),dropGreen);dropBeam.position.y=9;deliveryBeacon.add(dropBeam);const dropRing=new THREE.Mesh(new THREE.TorusGeometry(2.05,.13,7,28),courierRingMat);dropRing.rotation.x=Math.PI/2;dropRing.position.y=.22;deliveryBeacon.add(dropRing);
+function randomCourierSpot(avoid){for(let n=0;n<180;n++){const i=2+Math.floor(rnd()*(N-4)),j=2+Math.floor(rnd()*(N-4)),b=bl[i][j];if(!b||b.tr||b.tw||b.w<14||b.d<14)continue;const q=accessibleRoofSpot(b,n+i*7+j*13);if(!q)continue;if(avoid&&Math.hypot(q.x-avoid.x,q.z-avoid.z)<75)continue;if(Math.hypot(q.x-startB.x,q.z-startB.z)<55)continue;return q}return accessibleRoofSpot(bl[N>>1][N>>1],1)||new THREE.Vector3(startB.x,startB.ht+.1,startB.z)}
+function makeCourierContact(i){const names=['Juno','Mika','Sol','Tariq','Nia','Ren','Cass','Ivo','Lena','Noah','Ari','Sage'],colors=[0x20a88a,0xe5a33b,0x477fd1,0xb45b9c,0x8b9c42,0xd16b4d,0x4f9aab,0x9a78c4],name=names[Math.floor(rnd()*names.length)]+' · Courier '+(i+1),actor=makeStoryActor(name,colors[Math.floor(rnd()*colors.length)],false),spot=randomCourierSpot(),marker=new THREE.Group(),beam=new THREE.Mesh(new THREE.CylinderGeometry(.34,.34,3.6,10,1,true),courierGreen),ring=new THREE.Mesh(new THREE.TorusGeometry(1.05,.09,6,20),courierRingMat);actor.group.position.copy(spot);actor.group.visible=false;beam.position.y=3.55;ring.rotation.x=Math.PI/2;ring.position.y=.35;marker.add(beam,ring);S.add(marker);marker.position.copy(spot);marker.visible=false;return{actor,marker,spot,active:true,respawn:0,turn:Math.random()*6.28}}
+for(let i=0;i<8;i++)courierContacts.push(makeCourierContact(i));
+function growCourierNetwork(){const target=Math.min(20,8+Math.floor(completedDeliveries.length/2));while(courierContacts.length<target)courierContacts.push(makeCourierContact(courierContacts.length))}
+growCourierNetwork();
+function sideDeliveryInteract(){if(!playing||campaignRun||trial||tut.on||delivery)return false;let best=null,bd=5.2;for(const c of courierContacts){if(!c.active)continue;const d=Math.hypot(p.x-c.spot.x,p.z-c.spot.z);if(d<bd&&p.y>c.spot.y-3&&p.y<c.spot.y+7){best=c;bd=d}}if(!best)return false;const target=randomCourierSpot(best.spot);if(!target){toast('NO SAFE DROP POINT · TRY ANOTHER COURIER');return true}const dist=Math.hypot(target.x-best.spot.x,target.z-best.spot.z),reward=Math.round(90+dist*.9+Math.min(180,completedDeliveries.length*8));delivery={index:deliveryIndex++,target,reward,from:best.actor.name,distance:Math.round(dist)};best.active=false;best.actor.group.visible=false;best.marker.visible=false;best.respawn=58+Math.random()*42;toast('PACKAGE ACCEPTED · '+best.actor.name+' · FOLLOW THE GREEN DROP BEACON');chime();return true}
+function deliveryTick(dt){const free=playing&&!campaignRun&&!trial&&!tut.on;if(!free){nearCourier=null;courierContacts.forEach(c=>{c.actor.group.visible=false;c.marker.visible=false});deliveryBeacon.visible=false;return}let nearest=null,nd=18;for(const c of courierContacts){if(c.active){const d=Math.hypot(p.x-c.spot.x,p.z-c.spot.z);if(d<nd&&p.y>c.spot.y-3&&p.y<c.spot.y+8){nearest=c;nd=d}}}nearCourier=nearest;courierContacts.forEach((c,i)=>{if(c.active){c.actor.group.visible=true;c.marker.visible=true;c.marker.position.copy(c.spot);c.marker.position.y+=Math.sin(performance.now()*.002+i)*.18;c.turn+=dt*.22;const dx=p.x-c.spot.x,dz=p.z-c.spot.z;if(Math.hypot(dx,dz)<18)animateStoryActor(c.actor,dt,0,dx,dz,performance.now()*.001,'idle');else{c.actor.group.rotation.y=Math.sin(c.turn)*.22;animateStoryActor(c.actor,dt,0,0,0,performance.now()*.001,'idle')}}else{c.actor.group.visible=false;c.marker.visible=false;if(c.respawn>0){c.respawn-=dt;if(c.respawn<=0){c.spot=randomCourierSpot(delivery?delivery.target:null);c.actor.group.position.copy(c.spot);c.actor.animBob=0;c.active=true}}}});deliveryBeacon.visible=!!delivery;if(delivery){deliveryBeacon.position.copy(delivery.target);deliveryBeacon.position.y+=.04;deliveryBeacon.rotation.y+=dt*.5;const q=delivery.target;if(Math.hypot(p.x-q.x,p.z-q.z)<4.8&&p.y>q.y-3&&p.y<q.y+8){currency+=delivery.reward;completedDeliveries.push({id:delivery.index,from:delivery.from,reward:delivery.reward});const reward=delivery.reward;delivery=null;saveCurrency();const oldPopulation=courierContacts.length;growCourierNetwork();toast('DELIVERY COMPLETE · +'+reward+' GRIDMARKS'+(courierContacts.length>oldPopulation?' · NEW COURIER JOINED THE NETWORK':''));chime()}}}
 let campaignRun=null,campaignTutorialWasOn=null;
 function leaveCampaignMode(){if(campaignTutorialWasOn!==null){tut.on=campaignTutorialWasOn;campaignTutorialWasOn=null}}
 
@@ -613,15 +877,14 @@ for(let i=0;i<N;i++)for(let j=0;j<N;j++){const A=bl[i][j];for(const[di,dj]of[[1,
   const lo=A.ht<B.ht?A:B,hi=lo===A?B:A,px=lo.x+Math.sign(hi.x-lo.x)*(lo.w/2-6),pz=lo.z+Math.sign(hi.z-lo.z)*(lo.d/2-6);
   add(px,lo.ht,pz,8,.8,8,padM,'pad',1);pads.push({x:px,z:pz})}}
 // ---------- checkpoints around the map ----------
-for(let i=2;i<N-1;i+=4)for(let j=2;j<N-1;j+=4){const b=bl[i][j];if(b.tr||b.tw||(i===N/2&&j===N/2))continue;
+for(let i=2;i<N-1;i+=4)for(let j=2;j<N-1;j+=4){const b=bl[i][j];if(b.tr||b.tw||(i===N/2&&j===N/2))continue;const spot=accessibleRoofSpot(b,i*N+j);if(!spot)continue;
   const mat=new THREE.MeshBasicMaterial({color:0xffa726,transparent:true,opacity:.35,side:THREE.DoubleSide}),m=new THREE.Mesh(new THREE.CylinderGeometry(.8,.8,12,12,1,true),mat);
-  m.position.set(b.x,b.ht+6,b.z);S.add(m);const ring=new THREE.Mesh(new THREE.TorusGeometry(1.8,.12,6,24),new THREE.MeshBasicMaterial({color:0xffa726}));ring.rotation.x=Math.PI/2;ring.position.set(b.x,b.ht+.3,b.z);S.add(ring);
-  cpts.push({x:b.x,y:b.ht,z:b.z,mat})}
+  m.position.set(spot.x,spot.y+6,spot.z);S.add(m);const ring=new THREE.Mesh(new THREE.TorusGeometry(1.8,.12,6,24),new THREE.MeshBasicMaterial({color:0xffa726}));ring.rotation.x=Math.PI/2;ring.position.set(spot.x,spot.y+.24,spot.z);S.add(ring);
+  cpts.push({x:spot.x,y:spot.y,z:spot.z,mat})}
 // ---------- runner bags to collect ----------
 const bagM=new THREE.MeshBasicMaterial({color:0xff3b30}),bagG=new THREE.OctahedronGeometry(.45);
 function addBag(x,y,z){const mesh=new THREE.Mesh(bagG,bagM);mesh.position.set(x,y,z);S.add(mesh);bags.push({x,y,z,mesh,got:false,i:bags.length})}
-for(let k=0;k<60;k++){const b=bl[Math.floor(rnd()*N)][Math.floor(rnd()*N)];if(b.tr||b.tw)continue;addBag(b.x+(rnd()-.5)*(b.w-8),b.ht+1.2,b.z+(rnd()-.5)*(b.d-8))}
-for(let i=0;i<N;i++)for(let j=0;j<N;j++){const b=bl[i][j];if(b.tw)addBag(b.x,b.ht+1.2,b.z)}
+for(let k=0;k<60;k++){let placed=false;for(let tries=0;tries<18&&!placed;tries++){const b=bl[Math.floor(rnd()*N)][Math.floor(rnd()*N)];if(b.tr||b.tw||b.w<13||b.d<13)continue;const spot=accessibleRoofSpot(b,k+tries);if(spot){addBag(spot.x,spot.y+1.05,spot.z);placed=true}}}
 // ---------- training tower: one sequence from the ground to the top, then a zipline out to the city ----------
 add(TX,0,TZ,2*TH,TY,2*TH,white,'tfloor',1);
 const blk=(u0,u1,w0,w1,top,m,tag)=>add(TX+(u0+u1)/2,TY,TZ+(w0+w1)/2,u1-u0,top,w1-w0,m||white,tag||'roof',1);
@@ -698,7 +961,7 @@ function probeWall(e=.2){
 function slopeImpact(imp,hs){landT=Math.min(1,imp/18);puff(600,.2,Math.min(.5,imp/30));shake=Math.min(.12,imp/150);let dmg=(imp>14?(imp-14)*7:0)*(hasGear('boots')?.5:1);
   if(rollBuf>0){rollT=.5;rollStill=hs<2.5;flow=Math.min(1,flow+.064);rollBuf=0;puff(1500,.3,.2);if(imp>24)dmg*=.5;else dmg=0}else if(dmg>0){stagger=.6;v.x*=.35;v.z*=.35;mom=0}
   if(dmg>0)hurt(dmg,rollT>.45)} // falling onto a slope hurts like any other landing
-function hurt(d,rolled){d*=hasGear('armor')?.75:1;hp-=d;hurtT=1;hurtCool=hasGear('patch')?1.5:3;if(!rolled){dmgSev=d/60;dmgDur=Math.min(1.5,.5+d/50);dmgT=dmgDur;stagger=Math.max(stagger,dmgDur*.9);shake=Math.max(shake,Math.min(.3,d/200))}if(hp<=0){hp=100;p.copy(respawn);v.set(0,0,0);mom=0;stagger=0;rope=null;hang=null;vault=null;zip=null;lad=null;resetCampaignPursuit();toast('Too hard a fall - back to checkpoint')}else toast('-'+Math.round(d)+' HP')}
+function hurt(d,rolled){d*=veilT>0?(hasGear('veilfield')?.25:.55):1;d*=hasGear('armor')?.75:1;d*=hasGear('shockliner')?.9:1;hp-=d;hurtT=1;hurtCool=hasGear('patch')?1.5:3;if(!rolled){dmgSev=d/60;dmgDur=Math.min(1.5,.5+d/50);dmgT=dmgDur;stagger=Math.max(stagger,dmgDur*.9);shake=Math.max(shake,Math.min(.3,d/200))}if(hp<=0){hp=100;p.copy(respawn);v.set(0,0,0);mom=0;stagger=0;rope=null;hang=null;vault=null;zip=null;lad=null;resetCampaignPursuit();toast('Too hard a fall - back to checkpoint')}else toast('-'+Math.round(d)+' HP')}
 function nearZip(){
   const hx=p.x,hy=p.y+1.9,hz=p.z;
   for(const g of zips){const wx=hx-g.a.x,wy=hy-g.a.y,wz=hz-g.a.z,t=Math.max(0,Math.min(g.len,wx*g.d.x+wy*g.d.y+wz*g.d.z));
@@ -760,6 +1023,58 @@ function hangStep(dt){
   }
 }
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.opacity=1;toastT=2}
+let dialogueCutscene=null;
+const dialogueUI=document.createElement('div');
+dialogueUI.id='dialogueCutscene';
+dialogueUI.innerHTML='<div class="dialogue-shade"></div><div class="dialogue-card"><div class="dialogue-kicker">SKYLINER · LIVE COMMS</div><div class="dialogue-speaker"></div><div class="dialogue-line"></div><button class="dialogue-next">CONTINUE</button><div class="dialogue-hint">TAP TO CONTINUE</div></div>';
+document.body.appendChild(dialogueUI);
+const dialogueSpeaker=dialogueUI.querySelector('.dialogue-speaker'),dialogueLine=dialogueUI.querySelector('.dialogue-line'),dialogueNext=dialogueUI.querySelector('.dialogue-next');
+function dialogueActorForLine(raw){
+ const split=raw.indexOf(':'),name=(split>0?raw.slice(0,split).trim():'').toLowerCase();
+ if(name){
+  const exact=storyActors.find(a=>a.name.toLowerCase()===name);if(exact)return exact;
+  const partial=storyActors.find(a=>a.name.toLowerCase().startsWith(name)||name.startsWith(a.name.toLowerCase())||a.name.toLowerCase().split(' ').some(part=>part.length>2&&name.includes(part)));if(partial)return partial;
+ }
+ if(campaignRun){const allyName=({0:'Mara Voss',2:'Kade Mercer',3:'Dr. Imani Vale',5:'Elias Renn'}[campaignRun.index]||'Mara Voss');const ally=storyActors.find(a=>a.name===allyName);if(ally)return ally}
+ return storyActors.slice().sort((a,b)=>a.group.position.distanceTo(p)-b.group.position.distanceTo(p))[0]||null;
+}
+function showDialogueLine(){
+ if(!dialogueCutscene)return;
+ const raw=dialogueCutscene.lines[dialogueCutscene.index]||'',split=raw.indexOf(':');
+ dialogueSpeaker.textContent=split>0?raw.slice(0,split).trim():'INCOMING TRANSMISSION';
+ dialogueLine.textContent=split>0?raw.slice(split+1).trim():raw;
+ dialogueNext.textContent=dialogueCutscene.index>=dialogueCutscene.lines.length-1?'END CONVERSATION':'CONTINUE';
+ dialogueCutscene.cameraReady=false;
+}
+function findDialogueSpot(){
+ const candidates=[];
+ for(let ring=4;ring<=9;ring+=1.25)for(let a=0;a<16;a++){
+  const ang=a*Math.PI/8,x=p.x+Math.cos(ang)*ring,z=p.z+Math.sin(ang)*ring,y=p.y;
+  if(pointSolid(x,y+.85,z)||pointSolid(x,y+1.65,z))continue;
+  if(!losClear(p.x,p.y+1.1,p.z,x,y+1.1,z))continue;
+  candidates.push({x,y,z,score:Math.abs(ring-6)+Math.abs(Math.atan2(z-p.z,x-p.x)-yaw)*.04});
+ }
+ candidates.sort((a,b)=>a.score-b.score);return candidates[0]||null;
+}
+function beginDialogue(lines){
+ if(!Array.isArray(lines)||!lines.length)return;
+ dialogueCutscene={lines,index:0,cameraReady:false,actor:null};
+ storyActors.forEach(a=>{a.dialogueStart=a.group.position.clone();a.navPath=[]});
+ const actor=dialogueActorForLine(lines[0]);
+ if(actor){dialogueCutscene.actor=actor;const spot=findDialogueSpot();if(spot)actor.group.position.set(spot.x,spot.y,spot.z);actor.dialogueStart=actor.group.position.clone();actor.group.visible=true;actor.navPath=[];actor.navIndex=0;actor.aiReady=true;actor.navGoal=null}
+ dialogueUI.classList.add('active');showDialogueLine();
+}
+let dialogueAdvanceStamp=0;
+function advanceDialogue(){
+ if(!dialogueCutscene)return;const now=performance.now();if(now-dialogueAdvanceStamp<220)return;dialogueAdvanceStamp=now;
+ if(dialogueCutscene.index<dialogueCutscene.lines.length-1){dialogueCutscene.index++;const actor=dialogueActorForLine(dialogueCutscene.lines[dialogueCutscene.index]||'');if(actor){dialogueCutscene.actor=actor;actor.group.visible=true}showDialogueLine()}
+ else{dialogueCutscene=null;dialogueUI.classList.remove('active')}
+}
+dialogueNext.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();advanceDialogue()});
+dialogueNext.addEventListener('pointerup',e=>{e.preventDefault();e.stopPropagation();advanceDialogue()});
+dialogueNext.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();advanceDialogue()},{passive:false});
+dialogueUI.addEventListener('click',e=>{if(e.target===dialogueUI||e.target.classList.contains('dialogue-shade'))advanceDialogue()});
+dialogueUI.addEventListener('pointerup',e=>{if(e.target===dialogueUI||e.target.classList.contains('dialogue-shade'))advanceDialogue()});
 function reset(){if(campaignTutorialWasOn!==null)leaveCampaignMode();climbTurn=false;p.copy(respawn);safe.copy(respawn);v.set(0,0,0);mom=0;slideT=rollT=0;hp=100;hang=null;vault=null;zip=null;lad=null;rope=null;stagger=0;resetCampaignPursuit()}
 
 function step(dt){
@@ -774,12 +1089,14 @@ function step(dt){
     else if(hasGear('dash')){
       if(dashCd<=0){const cp3=Math.cos(pitch),pw=hasGear('long')?27:21;v.x+=-Math.sin(yaw)*cp3*pw;v.z+=-Math.cos(yaw)*cp3*pw;v.y=Math.max(v.y,4.5);const s3=Math.hypot(v.x,v.z);if(s3>42){v.x*=42/s3;v.z*=42/s3}dashCd=hasGear('twin')?1.25:2.35;puff(2500,.18,.32);tone(180,.22,'sawtooth',.14,1100);flow=Math.min(1,flow+.08);toast('DASH PACK · BOOST')}
       else toast('Dash recharging')}
-    else if(hasGear('wingsuit')){
+    else if(hasGear('coil')){if(coilCd<=0){const air=!ground,cp=Math.cos(pitch),power=hasGear('aircoil')&&air?18:hasGear('aircoil')?15:12;v.x+=-Math.sin(yaw)*cp*power;v.z+=-Math.cos(yaw)*cp*power;v.y=Math.max(v.y,hasGear('aircoil')&&air?14:10);coilCd=hasGear('overcoil')?1.1:hasGear('coilcell')?2.2:3.4;puff(2500,.22,.42);tone(220,.2,'triangle',.14,850);flow=Math.min(1,flow+.16);toast('KINETIC COIL · SPRING')}else toast('KINETIC COIL RECHARGING')}
+     else if(hasGear('veil')){if(veilCd<=0){veilT=hasGear('veilmesh')?3.4:2.2;veilCd=hasGear('veilghost')?5.5:8.5;puff(1200,.16,.24);tone(420,.18,'sine',.12,120);toast('PHASE VEIL · ACTIVE')}else toast('PHASE VEIL RECHARGING')}
+     else if(hasGear('wingsuit')){
       if(wingOn){wingOn=false;toast('Wingsuit stowed')}
       else if(!ground&&!rope&&!hang&&!zip&&!lad&&!wallrun&&!vault){const s4=Math.hypot(v.x,v.y,v.z);if(s4<14){const cp4=Math.cos(pitch);v.x=-Math.sin(yaw)*cp4*14;v.y=Math.max(v.y,-2);v.z=-Math.cos(yaw)*cp4*14}wingOn=true;toast('Wingsuit deployed');tone(260,.2,'sawtooth',.08,520)}
       else toast('Jump off something, then press the gear key')}
     else toast('No main gear equipped - open the inventory in the pause menu')}
-  ropeCool-=dt;dashCd-=dt;airHookCd-=dt;if(ground&&hasGear('charge'))dashCd=Math.min(dashCd,0);const previousAim=aim;aim=null;slideRun=slideT>0?slideRun+dt:0;wrRun=wallrun?wrRun+dt:0;clRun=(climbing&&!ground)?clRun+dt:0;
+  ropeCool-=dt;dashCd-=dt;airHookCd-=dt;coilCd=Math.max(0,coilCd-dt);veilCd=Math.max(0,veilCd-dt);veilT=Math.max(0,veilT-dt);if(ground&&hasGear('charge'))dashCd=Math.min(dashCd,0);const previousAim=aim;aim=null;slideRun=slideT>0?slideRun+dt:0;wrRun=wallrun?wrRun+dt:0;clRun=(climbing&&!ground)?clRun+dt:0;
   if(gearOn&&!rope&&!tut.on){
     const cp=Math.cos(pitch),fx3=-Math.sin(yaw)*cp,fy3=Math.sin(pitch),fz3=-Math.cos(yaw)*cp,rng=hasGear('winch')?90:70,cone=hasGear('quick')?.78:.83;
     let bestScore=-Infinity;
@@ -815,7 +1132,7 @@ function step(dt){
   let dx=fx*f+rx*sd,dz=fz*f+rz*sd;const dl=Math.hypot(dx,dz);if(dl>0){dx/=dl;dz/=dl}
   const hs0=Math.hypot(v.x,v.z);
   if(ground&&f>0)mom=Math.min(4.5,mom+dt*1);else if(ground&&dl===0)mom=Math.max(0,mom-dt*6);
-  const maxS=(8.5+mom+flow*10)*(hasGear('shoes')?1.12:1);flow=Math.max(0,flow-dt*(wallrun||slideT>0||lad||zip||vault?0:(hasGear('band')?.06:.13)));wcd-=dt; // flow decays slowly unless you keep moving with style
+  const maxS=(8.5+mom+flow*10)*(11/13)*(hasGear('shoes')?1.12:1)*(hasGear('traction')?1.04:1);flow=Math.max(0,flow-dt*(wallrun||slideT>0||lad||zip||vault?0:(hasGear('band')?.06:.13)));wcd-=dt; // flow decays slowly unless you keep moving with style
   if(ground){wallT=1.6;climbT=1;coyote=.1}else coyote-=dt;
   // slide (needs a fresh key press, no auto-repeat)
   if(edge.slide&&ground&&slideT<=0&&(hs0>5.5||curRamp)){slideT=1;slideMin=.3;const kk=hs0>0?Math.min(1.12+flow*.1,(15+flow*10)/hs0):1;flow=Math.min(1,flow+.038);v.x*=kk;v.z*=kk;puff(3000,.25,.2)}
@@ -837,7 +1154,7 @@ function step(dt){
         const d=v.x*w.nx+v.z*w.nz,tx=v.x-w.nx*d,tz=v.z-w.nz*d,tl=Math.hypot(tx,tz)||1,sp=Math.max(hs0,Math.min(12+flow*10,Math.max(hs0,8)+3*(1+flow*2)*dt));flow=Math.min(1,flow+dt*.128);
         v.x=tx/tl*sp-w.nx*.6;v.z=tz/tl*sp-w.nz*.6;v.y-=5*dt;
         roll=(w.nx*rx+w.nz*rz)*-.25;
-        if(edge.jump){wrHop=true;hopT=1;hopSide=(w.nx*rx+w.nz*rz)>0?-1:1;{const sc2=1.08+flow*.08+(hasGear('stride')?.1:0);v.x*=sc2;v.z*=sc2}flow=Math.min(1,flow+.096);v.x+=w.nx*6;v.z+=w.nz*6;v.y=8.5;wcd=.35;edge.jump=false;wallrun=false;tone(300,.15,'triangle',.12,500)}
+        if(edge.jump){wrHop=true;hopT=1;hopSide=(w.nx*rx+w.nz*rz)>0?-1:1;{const sc2=1.08+flow*.08+(hasGear('stride')?.1:0);v.x*=sc2;v.z*=sc2}flow=Math.min(1,flow+(hasGear('flowcapacitor')?.125:.096));v.x+=w.nx*6;v.z+=w.nz*6;v.y=8.5;wcd=.35;edge.jump=false;wallrun=false;tone(300,.15,'triangle',.12,500)}
       }
     }
   }
@@ -862,7 +1179,7 @@ function step(dt){
   glide=false;
   if(wingOn&&(ground||rope||hang||zip||lad||wallrun||vault||tut.on))wingOn=false;
   if(wingOn){
-    const aero=hasGear('aero'),stab=hasGear('stable'),brake=!!keys[set.binds.slide]&&hasGear('flare'),gam=Math.max(-1.1,Math.min(1,pitch));
+    const aero=hasGear('aero')||hasGear('airrudder'),stab=hasGear('stable'),brake=!!keys[set.binds.slide]&&hasGear('flare'),gam=Math.max(-1.1,Math.min(1,pitch));
     let spd=Math.hypot(v.x,v.y,v.z);
     const dirY=Math.sin(gam)-(aero?.09:.14),dxw=-Math.sin(yaw)*Math.cos(gam),dzw=-Math.cos(yaw)*Math.cos(gam),drag=(stab?.0055:.0085)*spd*spd;
     spd+=(-dirY*22-drag+(f>0&&hasGear('thrust')?10:0)-(brake?18:0))*dt;
@@ -976,11 +1293,11 @@ function step(dt){
         selectedCampaign=campaignRun.index;
         if(!completedCampaign.includes(campaignRun.index))completedCampaign.push(campaignRun.index);syncProgressUnlocks();
         saveCampaign();const last=campaignRun.index===CAMPAIGN.length-1;campaignRun=null;if(last)leaveCampaignMode();playing=false;touchUI.style.display='none';mouseFallback=false;mouseArmed=false;mouseStickX=mouseStickY=0;mouseAim.style.display='none';document.body.classList.remove('mouse-look');toast('MISSION COMPLETE');menu(last?'ending':'chapterComplete');
-      }else{const line=m.radio[Math.min(campaignRun.step-1,m.radio.length-1)];toast(line);toastT=4}
+      }else{const line=m.radio[Math.min(campaignRun.step-1,m.radio.length-1)];beginDialogue([line])}
     }
   }
   if(edge.interact&&sideDeliveryInteract())edge.interact=false;
-  if(!trial){if(trialCool<=0)for(const t of trials){if(!trialUnlocked(t))continue;const q=t.pts[0];if(Math.hypot(p.x-q.x,p.z-q.z)<3.4&&p.y>q.y-4&&p.y<q.y+38){nearTrial=t;if(edge.interact){if(!trialUnlocked(t)){toast('TRIAL LOCKED · COMPLETE CAMPAIGN CHAPTERS')}else if(!trialUnlocked(t)){toast('TRIAL LOCKED · COMPLETE CAMPAIGN CHAPTERS')}else if(t.gear&&!hasGear(t.gear)){toast('THIS TRIAL REQUIRES '+GEARS.find(g=>g[0]===t.gear)[1].toUpperCase())}else{trial={t,i:1,t0:performance.now()};respawn.copy(q);chime();toast(t.name+' · GO!')}}break}}}
+  if(!trial){if(trialCool<=0)for(const t of trials){const q=t.pts[0];if(Math.hypot(p.x-q.x,p.z-q.z)<3.4&&p.y>q.y-4&&p.y<q.y+38){nearTrial=t;if(edge.interact){if(!trialUnlocked(t)){const remaining=Math.max(0,trials.indexOf(t)-trialUnlockCount()+1);toast('TRIAL LOCKED · COMPLETE '+remaining+' MORE CAMPAIGN '+(remaining===1?'CHAPTER':'CHAPTERS'))}else if(t.gear&&!hasGear(t.gear)){const req=GEARS.find(g=>g[0]===t.gear);toast('GEAR REQUIRED · '+(req?req[1].toUpperCase():t.gear.toUpperCase()))}else{trial={t,i:1,t0:performance.now()};respawn.copy(q);chime();toast(t.name+' · GO!')}}break}}}
   else if(edge.trialRestart){restartTrial();toast('Trial restarted')}
   else if(edge.trialEnd){endTrial();toast('Trial ended')}
   else{
@@ -1005,7 +1322,7 @@ const touchUI=document.getElementById('touch');let playing=false,locked=false,dr
 const mouseAim=document.getElementById('mouseAim'),mouseDot=document.getElementById('mouseDot'),mouseHint=document.getElementById('mouseHint');
 let mouseFallback=false,mouseArmed=false,mouseStickX=0,mouseStickY=0;
 function play(){ // cursor joystick camera; pointer lock is deliberately never requested
-  initAudio();musicStart();if(done&&!campaignRun)reset();
+  initAudio();musicStart();if(done&&!campaignRun)reset();done=false;
   playing=true;ovEl.style.display='none';for(const k in edge)edge[k]=false;
   if(!started){started=true;t0=performance.now()}
   touchUI.style.display=set.touch?'block':'none';
@@ -1019,15 +1336,17 @@ function pause(){
   playing=false;locked=false;mouseFallback=false;mouseArmed=false;mouseStickX=mouseStickY=0;mouseAim.style.display='none';document.body.classList.remove('mouse-look');
   for(const k in keys)keys[k]=false;joy.x=joy.y=0;joyId=lookId=null;touchUI.style.display='none';menu('main');
 }
+const openGearAddons=new Set();
 function menu(view,msg){
   ovEl.style.display='flex';
-  if(view==='modes'){P.innerHTML='<h2>Game modes</h2><p>Choose how you want to run through Veyra.</p><button id="modeCampaign">Campaign</button><button id="modeFree" class="alt">Freerun</button><button id="modeTraining" class="alt">Tutorial</button><button id="modeTrials" class="alt">Time trials</button><button id="modeBack" class="alt">Back</button>';P.querySelector('#modeCampaign').onclick=()=>{if(localStorage.getItem('sr_tut')!=='1'){tut.on=true;tut.done={};tut.ev={};start.copy(trainStart);p.copy(trainStart);respawn.copy(trainStart);safe.copy(trainStart);play();toast('Complete training to unlock campaign')}else menu('campaign')};P.querySelector('#modeFree').onclick=()=>{tut.on=false;campaignRun=null;trial=null;start.copy(cityStart);p.copy(cityStart);respawn.copy(cityStart);safe.copy(cityStart);v.set(0,0,0);play()};P.querySelector('#modeTraining').onclick=()=>{campaignRun=null;trial=null;tut.on=true;tut.done={};tut.ev={};start.copy(trainStart);p.copy(trainStart);respawn.copy(trainStart);safe.copy(trainStart);yaw=-Math.PI/2;v.set(0,0,0);play()};P.querySelector('#modeTrials').onclick=()=>{tut.on=false;campaignRun=null;trial=null;start.copy(cityStart);p.copy(cityStart);respawn.copy(cityStart);safe.copy(cityStart);v.set(0,0,0);play();toast('Time trials · Find a green beacon and interact')};P.querySelector('#modeBack').onclick=()=>menu('main');return}
+  if(view==='modes'){P.innerHTML='<h2>Game modes</h2><p>Choose how you want to run through Veyra.</p><button id="modeCampaign">Campaign</button><button id="modeFree" class="alt">Freeroam</button><button id="modeTraining" class="alt">Tutorial</button><button id="modeBack" class="alt">Back</button>';P.querySelector('#modeCampaign').onclick=()=>{if(localStorage.getItem('sr_tut')!=='1'){tut.on=true;tut.done={};tut.ev={};start.copy(trainStart);p.copy(trainStart);respawn.copy(trainStart);safe.copy(trainStart);play();toast('Complete training to unlock campaign')}else menu('campaign')};P.querySelector('#modeFree').onclick=()=>{dialogueCutscene=null;dialogueUI.classList.remove('active');done=false;tut.on=false;campaignRun=null;trial=null;start.copy(cityStart);p.copy(cityStart);respawn.copy(cityStart);safe.copy(cityStart);v.set(0,0,0);mom=0;yaw=0;pitch=0;play();toast('Freeroam · Find green courier beacons or time-trial beacons')};P.querySelector('#modeTraining').onclick=()=>{campaignRun=null;trial=null;tut.on=true;tut.done={};tut.ev={};start.copy(trainStart);p.copy(trainStart);respawn.copy(trainStart);safe.copy(trainStart);yaw=-Math.PI/2;v.set(0,0,0);play()};P.querySelector('#modeBack').onclick=()=>menu('main');return}
 
-  if(view==='runchoice'){P.innerHTML='<h2>Choose your run</h2><p>Campaign progression or open-city movement?</p><button id="runCampaign">Campaign</button><button id="runFree" class="alt">Freerun</button><button id="runBack" class="alt">Back</button>';P.querySelector('#runCampaign').onclick=()=>{if(localStorage.getItem('sr_tut')!=='1'){tut.on=true;tut.done={};start.copy(trainStart);p.copy(trainStart);respawn.copy(trainStart);play();toast('Finish the tutorial to unlock campaign')}else menu('campaign')};P.querySelector('#runFree').onclick=()=>{start.copy(cityStart);p.copy(cityStart);respawn.copy(cityStart);safe.copy(cityStart);v.set(0,0,0);trial=null;play()};P.querySelector('#runBack').onclick=()=>menu('main');return}
-  if(view==='deliveries'){P.innerHTML='<h2>Courier contracts</h2><p>Credits: <b>'+currency+'</b><br>Completed deliveries: '+completedDeliveries.length+'</p><p>Visit the green pickup beacon, interact to accept a package, then race to its drop beacon. Rewards increase with each contract.</p><button id="deliveryMark">Mark next pickup beacon</button><button id="deliveryBack" class="alt">Back</button>';P.querySelector('#deliveryMark').onclick=()=>{const q=deliverySites[deliveryIndex%deliverySites.length];p.copy(q);start.copy(q);respawn.copy(q);delivery=null;menu('main');toast('Pickup beacon marked · green objective')};P.querySelector('#deliveryBack').onclick=()=>menu('main');return}
+  if(view==='runchoice'){P.innerHTML='<h2>Choose your run</h2><p>Campaign progression or open-city movement?</p><button id="runCampaign">Campaign</button><button id="runFree" class="alt">Freeroam</button><button id="runBack" class="alt">Back</button>';P.querySelector('#runCampaign').onclick=()=>{if(localStorage.getItem('sr_tut')!=='1'){tut.on=true;tut.done={};start.copy(trainStart);p.copy(trainStart);respawn.copy(trainStart);play();toast('Finish the tutorial to unlock campaign')}else menu('campaign')};P.querySelector('#runFree').onclick=()=>{start.copy(cityStart);p.copy(cityStart);respawn.copy(cityStart);safe.copy(cityStart);v.set(0,0,0);trial=null;play()};P.querySelector('#runBack').onclick=()=>menu('main');return}
+  if(view==='deliveries'){P.innerHTML='<h2>Veyra courier network</h2><p><b>'+currency+' GM</b> · '+completedDeliveries.length+' completed deliveries</p><p>Deliveries are currently available in Freeroam only. Find a civilian courier marked by a green beacon on a rooftop. Approach and interact to accept their package, then race across the skyline to the green drop beacon. Longer routes pay more. Every two completed deliveries add another courier to the city, up to 20 total. Couriers return in new locations after a short cooldown.</p>'+(delivery?'<p><b>ACTIVE DELIVERY</b><br>'+delivery.from+' · '+delivery.distance+' m route · '+delivery.reward+' GM reward</p>':'<p>ACTIVE CONTRACTS · 0<br>Look for a green courier beacon in Freeroam.</p>')+'<button id="deliveryBack" class="alt">Back</button>';P.querySelector('#deliveryBack').onclick=()=>menu('main');return}
   if(view==='inv'){
-    const row=g=>'<div class=gr><div><b>'+g[1]+'</b><br><small>'+g[2]+'</small></div><button data-g="'+g[0]+'" class="'+(hasGear(g[0])?'':'alt')+'" '+(isGearUnlocked(g[0])?'':'disabled')+'>'+(hasGear(g[0])?'Equipped':isGearUnlocked(g[0])?'Equip':'LOCKED')+'</button></div>';
-    P.innerHTML='<h2>Inventory</h2><p>One main gear at a time. Add-ons are tucked away until you need them.</p><h3>Main gear</h3>'+GEARS.filter(g=>g[3]==='main').map(g=>{const adds=GEARS.filter(a2=>a2[4]===g[0]);return row(g)+(hasGear(g[0])&&adds.length?'<details class="gear-addons"><summary>UPGRADES · '+adds.length+'</summary>'+adds.map(row).join('')+'</details>':'')}).join('')+['hands','feet','legs','back','belt'].map(c=>'<h3>'+c+'</h3>'+GEARS.filter(g=>g[3]===c).map(row).join('')).join('')+'<button id=ua class=alt>Unequip all</button><button id=ib>Back</button>';
+    const row=g=>{const owned=isGearUnlocked(g[0]),main=MAIN_GEAR_KEYS.includes(g[0]),cost=gearPrice(g[0]),canBuy=currency>=cost;const status=hasGear(g[0])?'Equipped':owned?'Equip':main?(g[0]==='rope'?'UNLOCK · CHAPTER 8':g[0]==='dash'?'UNLOCK · CHAPTER 10':'UNLOCK · CHAPTER 11'):(canBuy?'BUY · '+cost+' GM':'NEED '+cost+' GM');return '<div class=gr><div><b>'+g[1]+'</b><br><small>'+g[2]+'</small></div><button data-g="'+g[0]+'" class="'+(hasGear(g[0])?'':'alt')+'" '+(!owned&&!main&&!canBuy?'disabled':'')+'>'+status+'</button></div>'};
+    P.innerHTML='<h2>Inventory</h2><p><b>'+currency+' GRIDMARKS (GM)</b> · Main gear is unlocked through late campaign chapters. All other gear and add-ons must be purchased. Add-ons stay expanded while you equip or unequip gear.</p><h3>Main gear</h3>'+GEARS.filter(g=>g[3]==='main').map(g=>{const adds=GEARS.filter(a2=>a2[4]===g[0]);return row(g)+(isGearUnlocked(g[0])&&adds.length?'<details class="gear-addons" data-addon-parent="'+g[0]+'" '+(openGearAddons.has(g[0])?'open':'')+'><summary>UPGRADES · '+adds.length+'</summary>'+adds.map(row).join('')+'</details>':'')}).join('')+['hands','feet','legs','back','belt'].map(c=>'<h3>'+c+'</h3>'+GEARS.filter(g=>g[3]===c).map(row).join('')).join('')+'<button id=ua class=alt>Unequip all</button><button id=ib>Back</button>';
+    P.querySelectorAll('details[data-addon-parent]').forEach(d=>d.addEventListener('toggle',()=>{if(d.open)openGearAddons.add(d.dataset.addonParent);else openGearAddons.delete(d.dataset.addonParent)}));
     P.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{toggleGear(b.dataset.g);menu('inv')});
     P.querySelector('#ua').onclick=()=>{set.gear={};gearOn=false;rope=null;save();menu('inv')};
     P.querySelector('#ib').onclick=()=>menu('main');return}
@@ -1045,7 +1364,7 @@ function menu(view,msg){
   if(view==='campaign'){
     const trainingDone=localStorage.getItem('sr_tut')==='1';
     const trainingRow='<div class="chapter-row"><div><b>00 · TRAINING</b><small>TRAINING TOWER · '+(trainingDone?'COMPLETED':'REQUIRED BEFORE CHAPTER 1')+'</small></div><button class="alt" id="campaignTut">'+(trainingDone?'REPLAY':'START TUTORIAL')+'</button></div>';
-    const rows=CAMPAIGN.map((m,i)=>{const unlocked=trainingDone&&(i===0||completedCampaign.includes(i-1)),done=completedCampaign.includes(i);return '<div class="chapter-row"><div><b>'+m.title+'</b><small>'+m.location+' · '+(done?'COMPLETED':unlocked?'AVAILABLE':'LOCKED')+'</small></div><button class="alt" data-chapter="'+i+'" '+(unlocked?'':'disabled')+'>'+(done?'REPLAY':unlocked?'BRIEFING':'LOCKED')+'</button></div>'}).join('');
+    const rows=CAMPAIGN.map((m,i)=>{const unlocked=trainingDone&&(i===0||completedCampaign.includes(i-1)),done=completedCampaign.includes(i);return '<div class="chapter-row"><div><b>'+m.title+'</b><small>'+m.location+' · '+m.style+' · '+(done?'COMPLETED':unlocked?'AVAILABLE':'LOCKED')+'</small></div><button class="alt" data-chapter="'+i+'" '+(unlocked?'':'disabled')+'>'+(done?'REPLAY':unlocked?'BRIEFING':'LOCKED')+'</button></div>'}).join('');
     P.innerHTML='<h2>SKYLINER · CAMPAIGN</h2><p>2097 · VEYRA. The rooftops are the last place AETHER struggles to watch.</p><div class="chapter-list">'+trainingRow+rows+'</div><p><small>'+completedCampaign.length+'/'+CAMPAIGN.length+' CHAPTERS COMPLETE · '+(trainingDone?'TRAINING COMPLETE':'TRAINING NOT COMPLETE')+'</small></p><button id="campaignBack" class="alt">Back</button>';
     P.querySelector('#campaignTut').onclick=()=>{tut.on=true;tut.done={};tut.ev={};start.copy(trainStart);p.copy(trainStart);respawn.copy(trainStart);safe.copy(trainStart);v.set(0,0,0);mom=0;campaignRun=null;play()};
     P.querySelectorAll('[data-chapter]').forEach(b=>b.onclick=()=>{selectedCampaign=+b.dataset.chapter;menu('briefing')});
@@ -1053,8 +1372,8 @@ function menu(view,msg){
   }
   if(view==='briefing'){
     const m=CAMPAIGN[selectedCampaign];
-    P.innerHTML='<h2>'+m.act+'</h2><h1>'+m.title+'</h1><p><b>'+m.location+' · '+m.time+'</b></p><p class="story-copy">'+m.brief+'</p><p><b>MISSION:</b> '+m.finish+'</p><button id="beginChapter">Start mission</button><button id="briefBack" class="alt">Back</button>';
-    P.querySelector('#beginChapter').onclick=()=>{if(localStorage.getItem('sr_tut')!=='1'){toast('Complete tutorial first');return}campaignEnemies.forEach(e=>{e.started=false;e.cursor=0;e.hit=0});chaseTrail=[];chaseClock=0;chaseRecord=0;chaseWarmup=0;if(campaignTutorialWasOn===null)campaignTutorialWasOn=tut.on;tut.on=false;campaignRun={index:selectedCampaign,step:1};const q=m.route[0];start.copy(q);p.copy(q);respawn.copy(q);safe.copy(q);v.set(0,0,0);yaw=0;pitch=0;mom=0;trial=null;play();toast(m.radio[0]);toastT=4};
+    P.innerHTML='<h2>'+m.act+'</h2><h1>'+m.title+'</h1><p><b>'+m.location+' · '+m.time+'</b></p><p><b>'+m.style+'</b></p><p class="story-copy">'+m.brief+'</p><p><b>OBJECTIVE:</b> '+m.finish+'</p><button id="beginChapter">Start mission</button><button id="briefBack" class="alt">Back</button>';
+    P.querySelector('#beginChapter').onclick=()=>{if(localStorage.getItem('sr_tut')!=='1'){toast('Complete tutorial first');return}campaignEnemies.forEach(e=>{e.started=false;e.cursor=0;e.hit=0});chaseTrail=[];chaseClock=0;chaseRecord=0;chaseWarmup=0;resetPursuitHeli();if(campaignTutorialWasOn===null)campaignTutorialWasOn=tut.on;tut.on=false;campaignRun={index:selectedCampaign,step:1};const q=m.route[0];start.copy(q);p.copy(q);respawn.copy(q);safe.copy(q);v.set(0,0,0);yaw=0;pitch=0;mom=0;trial=null;play();beginDialogue(m.radio.slice(0,1))};
     P.querySelector('#briefBack').onclick=()=>menu('campaign');return
   }
   if(view==='chapterComplete'){
@@ -1089,8 +1408,8 @@ function menu(view,msg){
     P.querySelector('#bk').onclick=()=>menu('main');
   }else{
     P.innerHTML=`<h1>SKY<span>LINER</span></h1><p><b>${msg||(started?'Paused':'Ready to run')}</b></p>
-    <button id=pl>${started&&!done?'Resume':'Run'}</button><button id=gm class=alt>Game modes</button><button id=iv class=alt>Inventory</button><button id=ch class=alt>Character</button><button id=st class=alt>Settings</button><button id=ca class=alt>Campaign</button><button id=dl class=alt>Deliveries · ${currency} CR</button><button id=tg class=alt>Training grounds</button><button id=cg class=alt>City start</button><button id=tu class=alt>Tutorial: ${tut.on?'on':'off'}</button>${tut.on?'<button id=ts class=alt>Skip tutorial step</button>':''}${trial?'<button id=tr class=alt>Restart trial</button><button id=te class=alt>End trial</button>':''}<button id=vs class=alt>Runner vision: ${set.vision?'on':'off'}</button><button id=rt class=alt>Return to start roof</button>${started?'<button id=rs class=alt>Restart</button>':''}
-    <p><small>Runner bags ${bagCount}/${bags.length} · ${currency} CREDITS · ${storageOK?'gear, bags, character, campaign, delivery and trial records save in this browser':'saving is blocked in this browser'}</small></p>`;
+    <button id=pl>${started&&!done?'Resume':'Run'}</button><button id=gm class=alt>Game modes</button><button id=iv class=alt>Inventory</button><button id=ch class=alt>Character</button><button id=st class=alt>Settings</button><button id=ca class=alt>Campaign</button><button id=dl class=alt>Deliveries · ${currency} GM</button><button id=tg class=alt>Training grounds</button><button id=cg class=alt>City start</button><button id=tu class=alt>Tutorial: ${tut.on?'on':'off'}</button>${tut.on?'<button id=ts class=alt>Skip tutorial step</button>':''}${trial?'<button id=tr class=alt>Restart trial</button><button id=te class=alt>End trial</button>':''}<button id=vs class=alt>Runner vision: ${set.vision?'on':'off'}</button><button id=rt class=alt>Return to start roof</button>${started?'<button id=rs class=alt>Restart</button>':''}
+    <p><small>Runner bags ${bagCount}/${bags.length} · ${currency} GRIDMARKS · ${storageOK?'gear, bags, character, campaign, delivery and trial records save in this browser':'saving is blocked in this browser'}</small></p>`;
     P.querySelector('#pl').onclick=()=>{if(started&&!done)play();else menu('modes')};P.querySelector('#gm').onclick=()=>menu('modes');P.querySelector('#st').onclick=()=>menu('set');P.querySelector('#iv').onclick=()=>menu('inv');P.querySelector('#ch').onclick=()=>menu('character');P.querySelector('#ca').onclick=()=>menu('campaign');P.querySelector('#dl').onclick=()=>menu('deliveries');
     P.querySelector('#vs').onclick=()=>{set.vision=!set.vision;setVision();save();menu('main')};
     P.querySelector('#rt').onclick=()=>{p.copy(start);respawn.copy(start);safe.copy(start);v.set(0,0,0);trial=null;menu('main')};
@@ -1320,12 +1639,12 @@ function itemTick(dt,now){for(const it of items){if(it.t>0){it.t-=dt;if(it.t<=0)
 // ---------- compass bar: your heading and your objective ----------
 const cmpEl=document.getElementById('cmp'),cmpX=cmpEl.getContext('2d');
 function objective(){
-  if(delivery)return[delivery.target.x,delivery.target.z,'#1fd16b'];
-  if(delivery)return[delivery.target.x,delivery.target.z,'#1fd16b'];
+  if(delivery)return[delivery.target.x,delivery.target.z,'#20e58a'];
+  if(nearCourier)return[nearCourier.spot.x,nearCourier.spot.z,'#20e58a'];
   if(campaignRun){const q=CAMPAIGN[campaignRun.index].route[campaignRun.step];if(q)return[q.x,q.z,'#e5242b']}
   if(trial){const q=trial.t.pts[trial.i];return[q.x,q.z,'#2aa8ff']}
   if(tut.on){const j=TS.findIndex(t=>!tut.done[t[0]]),q=j>=0?WP[TS[j][0]]:null;if(q)return[TX+q[0],TZ+q[1],'#2aa8ff']}
-  if(!campaignRun&&!trial&&!tut.on&&deliverySites.length){const q=deliverySites[deliveryIndex%deliverySites.length];return[q.x,q.z,'#1fd16b']}
+  if(!campaignRun&&!trial&&!tut.on){const c=courierContacts.find(q=>q.active);if(c)return[c.spot.x,c.spot.z,'#20e58a']}
   let best=null,bd=1e9;for(const t of trials){if(!trialUnlocked(t))continue;const q=t.pts[0],dd=Math.hypot(q.x-p.x,q.z-p.z);if(dd<bd){bd=dd;best=[q.x,q.z,'#1fd16b']}}return best;
 }
 function drawCompass(){
@@ -1400,12 +1719,15 @@ function tutTick(sp){
 }
 function promptTick(){
   if(playing&&nearTrial&&!trial){
-    const t=nearTrial,b=tb[t.name],gear=t.gear?GEARS.find(g=>g[0]===t.gear)[1]:'None',ok=!t.gear||hasGear(t.gear);
+    const t=nearTrial,b=tb[t.name],req=t.gear?GEARS.find(g=>g[0]===t.gear):null,gear=req?req[1]:t.gear||null,ok=!t.gear||hasGear(t.gear),unlocked=trialUnlocked(t),remaining=Math.max(0,trials.indexOf(t)-trialUnlockCount()+1);
     const bestMed=!b?'NO MEDAL':goldUnlock.includes(t.name)&&b<=t.platinum?'PLATINUM':b<=t.gold?'GOLD':b<=t.silver?'SILVER':b<=t.bronze?'BRONZE':'NO MEDAL';
     const bestLabel=b?b.toFixed(2)+'s · '+bestMed+' MEDAL':'-- · NO MEDAL';
-    promptEl.innerHTML='<b>'+t.name+'</b><br><small>'+(t.gear?'GEAR TRIAL · '+gear:'OPEN TRIAL')+'</small><br>PLATINUM '+(goldUnlock.includes(t.name)?t.platinum.toFixed(1)+'s':'LOCKED · EARN GOLD FIRST')+' · GOLD '+t.gold.toFixed(1)+'s<br>SILVER '+t.silver.toFixed(1)+'s · BRONZE '+t.bronze.toFixed(1)+'s<br><b>BEST '+bestLabel+'</b><br><small>'+(ok?(set.touch?'TAP INTERACT':'PRESS '+lbl(set.binds.interact))+' TO START':'EQUIP '+gear.toUpperCase()+' TO START')+'</small>';
+    const access=!unlocked?'LOCKED · COMPLETE '+remaining+' MORE CAMPAIGN '+(remaining===1?'CHAPTER':'CHAPTERS'):!ok?'REQUIRES GEAR · '+String(gear).toUpperCase():(set.touch?'TAP INTERACT':'PRESS '+lbl(set.binds.interact))+' TO START';
+    promptEl.innerHTML='<b>'+t.name+'</b><br><small>'+(unlocked?(t.gear?'GEAR TRIAL':'OPEN TRIAL'):'<b>TRIAL LOCKED</b>')+'</small><br><small>'+(t.gear?'REQUIRED GEAR · '+String(gear).toUpperCase():'GEAR · NONE')+'</small><br>PLATINUM '+(goldUnlock.includes(t.name)?t.platinum.toFixed(1)+'s':'LOCKED · EARN GOLD FIRST')+' · GOLD '+t.gold.toFixed(1)+'s<br>SILVER '+t.silver.toFixed(1)+'s · BRONZE '+t.bronze.toFixed(1)+'s<br><b>BEST '+bestLabel+'</b><br><small>'+access+'</small>';
     promptEl.style.display='block';
-  }else promptEl.style.display='none';
+  }else if(playing&&delivery){promptEl.innerHTML='<b>COURIER DELIVERY ACTIVE</b><br><small>'+delivery.from+'</small><br>DROP POINT · '+delivery.distance+' m<br><b>REWARD · '+delivery.reward+' GM</b><br><small>Follow the green beacon and land near the marker</small>';promptEl.style.display='block'}
+  else if(playing&&nearCourier&&!campaignRun&&!trial&&!tut.on){promptEl.innerHTML='<b>COURIER CONTACT</b><br><small>'+nearCourier.actor.name+'</small><br>PACKAGE AVAILABLE<br><small>'+(set.touch?'TAP INTERACT':'PRESS '+lbl(set.binds.interact))+' TO ACCEPT DELIVERY</small>';promptEl.style.display='block'}
+  else promptEl.style.display='none';
 }
 // ---------- runner vision: highlights only what the current objective needs ----------
 const HV=[],hvMat=new THREE.MeshBasicMaterial({color:0xe5242b,transparent:true,opacity:.8,depthWrite:false}),hvGeo=new THREE.BoxGeometry(1,1,1);
@@ -1438,15 +1760,15 @@ const mmEl=document.getElementById('mm'),mmCtx=mmEl.getContext('2d'),MW=N*BP+80,
 (function(){const g=mmBase.getContext('2d'),k=MS/MW,c=MS/2;g.fillStyle='#cfd8de';g.fillRect(0,0,MS,MS);
   for(let i=0;i<N;i++)for(let j=0;j<N;j++){const b=bl[i][j],sh=Math.max(0,Math.min(1,(b.ht-28)/70));const bs=[[240,242,244],[247,237,225],[214,224,222],[220,232,244],[240,242,244],[236,208,190],[205,230,236],[246,226,200],[218,236,218],[222,214,206],[240,236,214]][b.dst||0];g.fillStyle=b.tr?'#ffffff':b.tw?'#7f8d97':'rgb('+Math.round(bs[0]-sh*80)+','+Math.round(bs[1]-sh*76)+','+Math.round(bs[2]-sh*70)+')';g.fillRect(c+(b.x-b.w/2)*k,c+(b.z-b.d/2)*k,b.w*k,b.d*k)}
   g.strokeStyle='#e5242b';g.lineWidth=2;g.strokeRect(c+(TX-TH)*k,c+(TZ-TH)*k,2*TH*k,2*TH*k);g.fillStyle='#e5242b';g.font='bold 18px sans-serif';g.textAlign='center';g.fillText('TRAINING',c+TX*k,c+TZ*k+6);g.font='bold 13px sans-serif';g.fillStyle='#55626b';const DN=['DOWNTOWN','RESIDENTIAL','INDUSTRIAL','HARBOR','TRAINING','OLD TOWN','TECH PARK','MARKET','CAMPUS','RAIL YARD','HIGHLANDS'],cs={};for(let i2=0;i2<N;i2++)for(let j2=0;j2<N;j2++){const b2=bl[i2][j2];if(b2.tr)continue;const q=cs[b2.dst]||(cs[b2.dst]=[0,0,0]);q[0]+=b2.x;q[1]+=b2.z;q[2]++}for(const d2 in cs)if(DN[d2]&&cs[d2][2])g.fillText(DN[d2],c+cs[d2][0]/cs[d2][2]*k,c+cs[d2][1]/cs[d2][2]*k)})();
-let mmN=0;
+let mmN=0;const MM_ZOOM=3.4;
 function drawMap(){
   if(!set.mm){mmEl.style.display='none';return}mmEl.style.display='block';
-  if(++mmN%3)return;const k=176/MW,c=88;mmCtx.drawImage(mmBase,0,0,176,176);
-  const dot=(x,z,col,r2)=>{mmCtx.fillStyle=col;mmCtx.beginPath();mmCtx.arc(c+x*k,c+z*k,r2,0,6.3);mmCtx.fill()};
+  if(++mmN%3)return;const k=176*MM_ZOOM/MW,c=88,src=MS/MM_ZOOM,sx=MS/2+p.x*MS/MW-src/2,sy=MS/2+p.z*MS/MW-src/2;mmCtx.clearRect(0,0,176,176);mmCtx.drawImage(mmBase,sx,sy,src,src,0,0,176,176);
+  const dot=(x,z,col,r2)=>{mmCtx.fillStyle=col;mmCtx.beginPath();mmCtx.arc(c+(x-p.x)*k,c+(z-p.z)*k,r2,0,6.3);mmCtx.fill()};
   pads.forEach(q=>dot(q.x,q.z,'#2fd3c4',2));trials.forEach(t=>dot(t.pts[0].x,t.pts[0].z,'#1fd16b',3));
-  cpts.forEach(q=>dot(q.x,q.z,q===cpActive?'#ffffff':'#ffa726',3));bags.forEach(q=>{if(!q.got)dot(q.x,q.z,'#ff3b30',1.5)});
+  cpts.forEach(q=>dot(q.x,q.z,q===cpActive?'#ffffff':'#ffa726',3));bags.forEach(q=>{if(!q.got)dot(q.x,q.z,'#ff3b30',1.5)});if(playing&&!campaignRun&&!trial&&!tut.on)courierContacts.forEach(q=>{if(q.active)dot(q.spot.x,q.spot.z,'#20e58a',2.8)});if(delivery)dot(delivery.target.x,delivery.target.z,'#35ff9a',4);
   if(trial){const q=trial.t.pts[trial.i];dot(q.x,q.z,'#2aa8ff',4)}
-  mmCtx.save();mmCtx.translate(c+p.x*k,c+p.z*k);mmCtx.rotate(-yaw);mmCtx.fillStyle='#111';mmCtx.beginPath();mmCtx.moveTo(0,-6);mmCtx.lineTo(4,5);mmCtx.lineTo(-4,5);mmCtx.closePath();mmCtx.fill();mmCtx.restore();
+  mmCtx.save();mmCtx.translate(c,c);mmCtx.rotate(-yaw);mmCtx.fillStyle='#111';mmCtx.beginPath();mmCtx.moveTo(0,-6);mmCtx.lineTo(4,5);mmCtx.lineTo(-4,5);mmCtx.closePath();mmCtx.fill();mmCtx.restore();
 }
 // ---------- loop ----------
 const hud=document.getElementById('hud'),vig=document.getElementById('vig');let last=performance.now();
@@ -1454,7 +1776,7 @@ function loop(now){
   requestAnimationFrame(loop);
   const dt=Math.min(.033,(now-last)/1000);last=now;
   const live=playing&&!done;
-  if(live){const sub=Math.hypot(v.x,v.z)>16?2:1;for(let q=0;q<sub;q++)step(dt/sub)}campaignActorsTick(dt);deliveryTick(); // at high speed, two physics steps so you never tunnel through thin walls
+  if(live&&!dialogueCutscene){const sub=Math.hypot(v.x,v.z)>16?2:1;for(let q=0;q<sub;q++)step(dt/sub)}campaignActorsTick(dialogueCutscene?0:dt);if(dialogueCutscene){const da=dialogueActorForLine(dialogueCutscene.lines[dialogueCutscene.index]||'')||dialogueCutscene.actor;if(da){da.group.visible=true;dialogueCutscene.actor=da}}deliveryTick(dt); // courier contacts and drop-off route
   if(toastT>0){toastT-=dt;if(toastT<=0)document.getElementById('toast').style.opacity=0}
   const sp=Math.hypot(v.x,v.z);
   if(mouseFallback&&!set.touch&&mouseArmed){yaw-=mouseStickX*2.1*dt;pitch=Math.max(-1.5,Math.min(1.5,pitch+mouseStickY*1.65*dt*(set.invY?-1:1)))}
@@ -1467,6 +1789,21 @@ function loop(now){
   const ydw=(yaw-wYaw)/Math.max(dt,.001);wYaw=yaw;bankW+=((wingOn?Math.max(-.45,Math.min(.45,ydw*.1)):0)-bankW)*Math.min(1,dt*6);
   C.position.set(p.x,p.y+eyeH+bb-shake+(lad?Math.sin(lad.ph)*.03:(climbing&&!ground)?Math.sin(now*.011)*.03:0),p.z);
   C.rotation.order='YXZ';C.rotation.set(pitch-rollAng-dk*.3-(vault?Math.sin(Math.PI*vault.t/vault.dur)*.1:0)+(slideT>0?.06:0),yaw,roll+bsx+(slideT>0?.04:0)+(zip?Math.sin(now*.0035)*.05:0)+bankW+(vault?Math.sin(Math.PI*vault.t/vault.dur)*.05:0));
+  if(dialogueCutscene){
+   tickDialogueActors(dt);
+   const raw=dialogueCutscene.lines[dialogueCutscene.index]||'',actor=dialogueActorForLine(raw)||dialogueCutscene.actor;
+   if(actor){
+    dialogueCutscene.actor=actor;actor.group.visible=true;
+    const npc=actor.group.position,playerFocus=new THREE.Vector3(p.x,p.y+1.05,p.z),npcFocus=new THREE.Vector3(npc.x,npc.y+1.05,npc.z),mid=playerFocus.clone().add(npcFocus).multiplyScalar(.5);
+    const line=npcFocus.clone().sub(playerFocus);line.y=0;if(line.lengthSq()<.01)line.set(-Math.sin(yaw),0,-Math.cos(yaw));line.normalize();
+    const side=new THREE.Vector3(-line.z,0,line.x),options=[];
+    for(const sign of [1,-1])for(const distance of [7.5,9.5,11])for(const lift of [2.8,4.2])options.push(mid.clone().addScaledVector(side,sign*distance).addScaledVector(line,1.1).add(new THREE.Vector3(0,lift,0)));
+    const clearSegment=(from,to)=>{const delta=to.clone().sub(from),length=delta.length(),steps=Math.max(2,Math.ceil(length/.55));for(let k=1;k<=steps;k++){const q=from.clone().addScaledVector(delta,k/steps);if(pointSolid(q.x,q.y,q.z)||pointSolid(q.x+.32,q.y,q.z)||pointSolid(q.x-.32,q.y,q.z)||pointSolid(q.x,q.y,q.z+.32)||pointSolid(q.x,q.y,q.z-.32))return false}return true};
+    const desired=options.find(q=>!pointSolid(q.x,q.y,q.z)&&clearSegment(playerFocus,q)&&clearSegment(npcFocus,q));
+    if(desired){if(!dialogueCutscene.cameraReady){C.position.copy(desired);dialogueCutscene.cameraReady=true}else C.position.lerp(desired,1-Math.exp(-dt*3.8));C.lookAt(mid.x,mid.y+.15,mid.z)}
+    else dialogueCutscene.cameraReady=true;
+   }
+  }
   if(trial){const q=trial.t.pts[trial.i];target.visible=true;target.material.color.setHex(trial.i===trial.t.pts.length-1?0xc13cff:0x2aa8ff);target.position.set(q.x,q.y+30,q.z)}else if(campaignRun){const q=CAMPAIGN[campaignRun.index].route[campaignRun.step];target.visible=!!q;if(q){target.material.color.setHex(0xe5242b);target.position.set(q.x,q.y+26,q.z)}}else target.visible=false;
   vig.style.opacity=Math.max(0,Math.min(.9,(sp-8)/6));
   hurtT=Math.max(0,hurtT-dt);document.getElementById('hurt').style.opacity=hurtT;
