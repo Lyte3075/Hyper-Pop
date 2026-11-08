@@ -547,7 +547,7 @@ const HT=[];for(let i=0;i<N;i++){HT[i]=[];for(let j=0;j<N;j++){const dc=Math.hyp
 for(let i=0;i<N;i++)for(let j=0;j<N;j++)if(TR(i,j))HT[i][j]=TY;
 for(let it=0;it<4;it++)for(let i=0;i<N;i++)for(let j=0;j<N;j++)for(const[di,dj]of[[1,0],[-1,0],[0,1],[0,-1]]){const a=i+di,b=j+dj;if(a<0||b<0||a>=N||b>=N)continue;HT[i][j]=Math.max(HT[a][b]-9,Math.min(HT[a][b]+9,HT[i][j]))} // neighbours never differ by more than 9m
 for(let i=0;i<N;i++)for(let j=0;j<N;j++)if(TR(i,j))HT[i][j]=TY;
-const TW={};[[7,7,108],[12,2,96],[17,7,120],[2,12,96],[22,12,108],[7,17,132],[12,22,96],[17,17,120],[22,22,108],[22,2,96],[2,2,108],[12,12,132],[27,17,96]].forEach(([i,j,H])=>TW[i+','+j]=H);
+const TW={};[[7,7,108],[12,2,96],[17,7,120],[2,12,96],[22,12,108],[7,17,132],[12,22,96],[17,17,120],[22,22,108],[22,2,96],[2,2,108],[12,12,132],[27,17,276]].forEach(([i,j,H])=>TW[i+','+j]=H);
 for(let i=0;i<N;i++){bl[i]=[];for(let j=0;j<N;j++){
   const gl=gapAt(i),gr=gapAt(i+1),gu=gapAt(j),gd=gapAt(j+1),x=(i-N/2+.5)*BP+(gl-gr)/4,z=(j-N/2+.5)*BP+(gu-gd)/4,w=BP-gl/2-gr/2,d=BP-gu/2-gd/2;
   if(TR(i,j)){bl[i][j]={x,z,w,d,ht:TY,tr:true};continue}
@@ -997,6 +997,18 @@ for(let k=0;k<140;k++){const side=Math.floor(rnd()*4),dd=N*BP/2+110+rnd()*330,tt
 instBox(spAcc,accM[0]);instBox(winL,winLitM);instBox(winD,winDarkM);instBox(ribs,ribM);instBox(farI,farM);accs.forEach((arr,k)=>instBox(arr,accM[k]));
 const WE=N*BP/2+40;add(0,0,-WE,2*WE+20,260,10,white,'roof',1);add(0,0,WE,2*WE+20,260,10,white,'roof',1);add(-WE,0,0,10,260,2*WE,white,'roof',1);add(WE,0,0,10,260,2*WE,white,'roof',1); // city limits
 flushBatches();gridBuild();const anchorSet=new Set(anchors);
+// ---------- AETHER RELAY NETWORK / POST-CAMPAIGN EXPANSION ----------
+const towerRelayDefs=[[7,7,'NORTH GLASS RELAY'],[17,7,'EAST SIGNAL RELAY'],[7,17,'WEST ARCHIVE RELAY'],[17,17,'SOUTH GRID RELAY'],[22,22,'CENTRAL WATCH RELAY']];
+const towerRelays=towerRelayDefs.map(([i,j,name],index)=>{const b=bl[i][j],mesh=new THREE.Group(),orb=new THREE.Mesh(new THREE.OctahedronGeometry(1.35,1),new THREE.MeshBasicMaterial({color:0x36e5d0,wireframe:true})),ring=new THREE.Mesh(new THREE.TorusGeometry(2.1,.13,8,32),new THREE.MeshBasicMaterial({color:0x36e5d0}));mesh.add(orb,ring);ring.rotation.x=Math.PI/2;mesh.position.set(b.x,b.ht+7,b.z);S.add(mesh);return{name,index,spot:new THREE.Vector3(b.x,b.ht+7,b.z),mesh}});
+const finalTowerBase=bl[27][17],finalTower={x:finalTowerBase.x,z:finalTowerBase.z,top:finalTowerBase.ht+4+276};
+const towerCore=new THREE.Group(),coreRing=new THREE.Mesh(new THREE.TorusGeometry(4,.28,10,48),new THREE.MeshBasicMaterial({color:0xe5242b})),coreOrb=new THREE.Mesh(new THREE.IcosahedronGeometry(2.1,1),new THREE.MeshBasicMaterial({color:0xff333b,wireframe:true}));towerCore.add(coreRing,coreOrb);coreRing.rotation.x=Math.PI/2;towerCore.position.set(finalTower.x,finalTower.top+2,finalTower.z);S.add(towerCore);
+const towerHeli=new THREE.Group(),shardHeliBody=new THREE.Mesh(new THREE.BoxGeometry(5,2.1,9),new THREE.MeshBasicMaterial({color:0x26343d})),shardHeliGlass=new THREE.Mesh(new THREE.BoxGeometry(4.2,1.35,2.8),new THREE.MeshBasicMaterial({color:0x65c8df,transparent:true,opacity:.72}));towerHeli.add(shardHeliBody,shardHeliGlass);shardHeliGlass.position.z=-3;const shardHeliRotor=new THREE.Mesh(new THREE.BoxGeometry(15,.12,.45),new THREE.MeshBasicMaterial({color:0x111820}));shardHeliRotor.position.y=1.5;towerHeli.add(shardHeliRotor);towerHeli.visible=false;S.add(towerHeli);
+const towerSaveKey='rr_aether_relays';let towerRelaysDone=[];try{towerRelaysDone=JSON.parse(localStorage.getItem(towerSaveKey)||'[]')}catch(e){towerRelaysDone=[]}let towerRun=null,towerFinalDone=false;try{towerFinalDone=localStorage.getItem('rr_aether_finale')==='1'}catch(e){}
+function towerSave(){try{localStorage.setItem(towerSaveKey,JSON.stringify(towerRelaysDone));localStorage.setItem('rr_aether_finale',towerFinalDone?'1':'0')}catch(e){}}
+function towerUnlocked(){return completedCampaign.length>=CAMPAIGN.length}
+function towerRelayTick(dt){towerRelays.forEach((r,i)=>{const done=towerRelaysDone.includes(i);r.mesh.visible=!done;r.mesh.rotation.y+=dt*.65;r.mesh.position.y=r.spot.y+Math.sin(performance.now()*.0018+i)*.45});towerCore.rotation.y+=dt*.45;coreRing.rotation.z+=dt*.35;if(towerRun&&towerRun.stage==='escape'){towerRun.left-=dt;towerHeli.visible=true;const k=Math.max(0,Math.min(1,1-towerRun.left/18));towerHeli.position.set(finalTower.x+34-k*19,finalTower.top+24-k*7,finalTower.z+18-k*12);towerHeli.rotation.y=-.45;shardHeliRotor.rotation.y+=dt*15;if(towerRun.left<=0){towerRun=null;towerHeli.visible=false;toast('THE TOWER COLLAPSED · ESCAPE FAILED');playing=false;menu('towerFailed')}}}
+function towerInteract(){if(!towerUnlocked()&&!towerRun){toast('AETHER NETWORK LOCKED · COMPLETE THE 11-CHAPTER CAMPAIGN');return true}if(towerRun&&towerRun.stage==='hack'&&Math.hypot(p.x-finalTower.x,p.z-finalTower.z)<8&&Math.abs(p.y-finalTower.top)<9){towerRun.stage='escape';towerRun.left=18;toast('CORE BREACH · GET TO THE HELICOPTER!');beginDialogue(['AETHER: Unauthorized root access. Purge sequence initiated.','MARA: R-17! The whole structure is coming down. Helicopter, east side. NOW!']);return true}let best=null,bd=10;towerRelays.forEach((r,i)=>{if(towerRelaysDone.includes(i))return;const d=Math.hypot(p.x-r.spot.x,p.z-r.spot.z);if(d<bd&&Math.abs(p.y-r.spot.y)<10){best={r,i};bd=d}});if(best){towerRelaysDone.push(best.i);towerSave();currency+=180;saveCurrency();toast(best.r.name+' RESTORED · +180 GM');chime();if(towerRelaysDone.length===towerRelays.length)toast('ALL RELAYS ONLINE · THE SHARD IS REVEALED');return true}if(towerRelaysDone.length===towerRelays.length&&!towerFinalDone&&Math.hypot(p.x-finalTower.x,p.z-finalTower.z)<9&&Math.abs(p.y-finalTower.top)<10){towerRun={stage:'hack',left:0};toast('AETHER CROWN · HACK THE CORE');beginDialogue(['MARA: That is the original AETHER command tower. Every relay you restored led here.','UNKNOWN: You were never supposed to reach the top.']);return true}return false}
+
 // ---------- player ----------
 const r=.35,G=22,cityStart=new THREE.Vector3(startB.x,startB.ht+.02,startB.z+startB.d*.38),trainStart=new THREE.Vector3(TX-80,TY+.02,TZ+62),start=(tut.on?trainStart:cityStart).clone(),p=start.clone(),v=new THREE.Vector3(),respawn=start.clone();
 let yaw=tut.on?-Math.PI/2:0,pitch=0,h=1.8,ground=false,coyote=0,mom=0,slideT=0,rollT=0,wallT=1.6,climbT=1,wcd=0,roll=0,wallrun=false,wasWall=false,climbing=false,
@@ -1347,6 +1359,8 @@ function step(dt){
       }else{const line=m.radio[Math.min(campaignRun.step-1,m.radio.length-1)];beginDialogue([line])}
     }
   }
+  if(edge.interact&&towerInteract())edge.interact=false;
+  if(towerRun&&towerRun.stage==='escape'&&towerHeli.visible&&p.distanceTo(towerHeli.position)<10){towerRun=null;towerFinalDone=true;towerSave();towerHeli.visible=false;playing=false;touchUI.style.display='none';mouseAim.style.display='none';document.body.classList.remove('mouse-look');toast('AETHER CROWN DESTROYED · RUNNER EXTRACTED');chime();menu('towerVictory')}
   if(edge.interact&&sideDeliveryInteract())edge.interact=false;
   if(!trial){if(trialCool<=0)for(const t of trials){const q=t.pts[0];if(Math.hypot(p.x-q.x,p.z-q.z)<3.4&&p.y>q.y-4&&p.y<q.y+38){nearTrial=t;if(edge.interact){if(!trialUnlocked(t)){const remaining=Math.max(0,trials.indexOf(t)-trialUnlockCount()+1);toast('TRIAL LOCKED · COMPLETE '+remaining+' MORE CAMPAIGN '+(remaining===1?'CHAPTER':'CHAPTERS'))}else if(t.gear&&!hasGear(t.gear)){const req=GEARS.find(g=>g[0]===t.gear);toast('GEAR REQUIRED · '+(req?req[1].toUpperCase():t.gear.toUpperCase()))}else{trial={t,i:1,t0:performance.now()};respawn.copy(q);chime();toast(t.name+' · GO!')}}break}}}
   else if(edge.trialRestart){restartTrial();toast('Trial restarted')}
@@ -1441,6 +1455,18 @@ function menu(view,msg){
     P.innerHTML='<h2>ENDING · '+(campaignEnding||'FREEDOM')+'</h2><h1>UNKNOWN TRANSMISSION</h1><p class="story-copy">AETHER was not the first.<br><br>A second skyline appears on the Runner terminal. A city far beyond Veyra.<br><b>SKYLINER WILL RETURN.</b></p><button id="postBack">Return to Veyra</button>';
     P.querySelector('#postBack').onclick=()=>menu('main');return
   }
+  if(view==='towerExpansion'){
+    const unlocked=towerUnlocked();P.innerHTML='<h2>AETHER RELAY NETWORK</h2><h1>THE SHARD</h1><p class="story-copy">'+(unlocked?'The 11 campaign chapters are complete. Five dormant relays have awakened across Veyra. Restore them to expose AETHER’s original command tower.':'Complete all 11 campaign chapters to unlock the relay network.')+'</p><p><b>'+towerRelaysDone.length+'/5 RELAYS RESTORED</b></p><p>Each relay is on the roof of a major spire. Reach its beacon and interact to recover an encrypted archive and restore the signal.</p><p><b>FINAL OPERATION:</b> Climb the 276-metre AETHER Crown, breach its root core, then reach the helicopter before the tower collapses.</p><button id="towerGo" '+(unlocked?'':'disabled')+'>'+(towerFinalDone?'REPLAY THE SHARD':'ENTER VEYRA')+'</button><button id="towerBack" class="alt">Back</button>';
+    P.querySelector('#towerGo').onclick=()=>{towerRun=null;towerHeli.visible=false;start.copy(cityStart);p.copy(cityStart);respawn.copy(cityStart);safe.copy(cityStart);v.set(0,0,0);mom=0;trial=null;campaignRun=null;play();toast('AETHER RELAY NETWORK · RESTORE ALL FIVE RELAYS')};P.querySelector('#towerBack').onclick=()=>menu('main');return
+  }
+  if(view==='towerVictory'){
+    P.innerHTML='<h2>POST-CAMPAIGN FINALE</h2><h1>THE SHARD IS FALLING</h1><p class="story-copy">R-17 clears the helicopter as the AETHER Crown fractures from its core. The tower erupts above Veyra. Every relay goes dark. AETHER’s command network is gone.</p><p><b>MISSION COMPLETE · RUNNER EXTRACTED</b></p><button id="towerReturn">RETURN TO VEYRA</button><button id="towerAgain" class="alt">REPLAY THE SHARD</button>';
+    P.querySelector('#towerReturn').onclick=()=>menu('main');P.querySelector('#towerAgain').onclick=()=>{towerFinalDone=false;towerSave();towerRun=null;start.copy(cityStart);p.copy(cityStart);respawn.copy(cityStart);safe.copy(cityStart);play();menu('towerExpansion')};return
+  }
+  if(view==='towerFailed'){
+    P.innerHTML='<h2>EXTRACTION FAILED</h2><h1>THE CROWN COLLAPSED</h1><p>The helicopter left without R-17. The relay network remains active. Regroup and attempt the escape again.</p><button id="towerRetry">RETURN TO VEYRA</button>';
+    P.querySelector('#towerRetry').onclick=()=>menu('towerExpansion');return
+  }
   if(view==='set'){
     P.innerHTML='<h2>Settings</h2>'+[['sens','Mouse sensitivity',.2,3,.05],['fov','Field of view',60,110,1],['vol','Volume',0,1,.05],['bob','Head bob',0,2,.1],['mus','Music volume',0,1,.05]]
       .map(([k,l,a,b,s])=>`<label>${l}: <output>${set[k]}</output><input type=range data-k="${k}" min=${a} max=${b} step=${s} value=${set[k]}></label>`).join('')+
@@ -1459,9 +1485,9 @@ function menu(view,msg){
     P.querySelector('#bk').onclick=()=>menu('main');
   }else{
     P.innerHTML=`<h1>SKY<span>LINER</span></h1><p><b>${msg||(started?'Paused':'Ready to run')}</b></p>
-    <button id=pl>${started&&!done?'Resume':'Run'}</button><button id=gm class=alt>Game modes</button><button id=iv class=alt>Inventory</button><button id=ch class=alt>Character</button><button id=st class=alt>Settings</button><button id=ca class=alt>Campaign</button><button id=dl class=alt>Deliveries · ${currency} GM</button><button id=tg class=alt>Training grounds</button><button id=cg class=alt>City start</button><button id=tu class=alt>Tutorial: ${tut.on?'on':'off'}</button>${tut.on?'<button id=ts class=alt>Skip tutorial step</button>':''}${trial?'<button id=tr class=alt>Restart trial</button><button id=te class=alt>End trial</button>':''}<button id=vs class=alt>Runner vision: ${set.vision?'on':'off'}</button><button id=rt class=alt>Return to start roof</button>${started?'<button id=rs class=alt>Restart</button>':''}
+    <button id=pl>${started&&!done?'Resume':'Run'}</button><button id=gm class=alt>Game modes</button><button id=iv class=alt>Inventory</button><button id=ch class=alt>Character</button><button id=st class=alt>Settings</button><button id=ca class=alt>Campaign</button><button id=ae class=alt>AETHER Relay Network · ${towerRelaysDone.length}/5</button><button id=dl class=alt>Deliveries · ${currency} GM</button><button id=tg class=alt>Training grounds</button><button id=cg class=alt>City start</button><button id=tu class=alt>Tutorial: ${tut.on?'on':'off'}</button>${tut.on?'<button id=ts class=alt>Skip tutorial step</button>':''}${trial?'<button id=tr class=alt>Restart trial</button><button id=te class=alt>End trial</button>':''}<button id=vs class=alt>Runner vision: ${set.vision?'on':'off'}</button><button id=rt class=alt>Return to start roof</button>${started?'<button id=rs class=alt>Restart</button>':''}
     <p><small>Runner bags ${bagCount}/${bags.length} · ${currency} GRIDMARKS · ${storageOK?'gear, bags, character, campaign, delivery and trial records save in this browser':'saving is blocked in this browser'}</small></p>`;
-    P.querySelector('#pl').onclick=()=>{if(started&&!done)play();else menu('modes')};P.querySelector('#gm').onclick=()=>menu('modes');P.querySelector('#st').onclick=()=>menu('set');P.querySelector('#iv').onclick=()=>menu('inv');P.querySelector('#ch').onclick=()=>menu('character');P.querySelector('#ca').onclick=()=>menu('campaign');P.querySelector('#dl').onclick=()=>menu('deliveries');
+    P.querySelector('#pl').onclick=()=>{if(started&&!done)play();else menu('modes')};P.querySelector('#gm').onclick=()=>menu('modes');P.querySelector('#st').onclick=()=>menu('set');P.querySelector('#iv').onclick=()=>menu('inv');P.querySelector('#ch').onclick=()=>menu('character');P.querySelector('#ca').onclick=()=>menu('campaign');P.querySelector('#ae').onclick=()=>menu('towerExpansion');P.querySelector('#dl').onclick=()=>menu('deliveries');
     P.querySelector('#vs').onclick=()=>{set.vision=!set.vision;setVision();save();menu('main')};
     P.querySelector('#rt').onclick=()=>{p.copy(start);respawn.copy(start);safe.copy(start);v.set(0,0,0);trial=null;menu('main')};
     P.querySelector('#tu').onclick=()=>{tut.on=!tut.on;if(tut.on){tut.done={};tut.ev={}}else{try{localStorage.setItem('sr_tut','1')}catch(e){}}menu('main')};
@@ -1778,7 +1804,11 @@ function tutTick(sp){
   tutEl.style.display='block';
 }
 function promptTick(){
-  if(playing&&nearTrial&&!trial){
+  if(playing&&towerRun&&towerRun.stage==='hack') {promptEl.innerHTML='<b>AETHER CROWN · ROOT CORE</b><br>NETWORK RESTORED · HACK THE CORE<br><small>'+(set.touch?'TAP INTERACT':'PRESS '+lbl(set.binds.interact))+' TO INITIATE BREACH</small>';promptEl.style.display='block'}
+  else if(playing&&towerRun&&towerRun.stage==='escape'){promptEl.innerHTML='<b>CORE BREACH · '+Math.ceil(towerRun.left)+'s</b><br>REACH THE HELICOPTER · EAST SIDE';promptEl.style.display='block'}
+  else if(playing&&towerUnlocked()&&towerRelaysDone.length<towerRelays.length){const r=towerRelays.find((q,i)=>!towerRelaysDone.includes(i));const d=r?Math.round(Math.hypot(p.x-r.spot.x,p.z-r.spot.z)):0;promptEl.innerHTML='<b>AETHER RELAY NETWORK</b><br>'+towerRelaysDone.length+'/5 RELAYS ONLINE<br><small>'+r.name+' · '+d+'m</small>';promptEl.style.display='block'}
+  else if(playing&&towerUnlocked()&&towerRelaysDone.length===towerRelays.length&&!towerFinalDone){promptEl.innerHTML='<b>THE SHARD · AETHER CROWN</b><br>ALL RELAYS ONLINE · ASCEND THE GIANT TOWER';promptEl.style.display='block'}
+  else if(playing&&nearTrial&&!trial){
     const t=nearTrial,b=tb[t.name],req=t.gear?GEARS.find(g=>g[0]===t.gear):null,gear=req?req[1]:t.gear||null,ok=!t.gear||hasGear(t.gear),unlocked=trialUnlocked(t),remaining=Math.max(0,trials.indexOf(t)-trialUnlockCount()+1);
     const bestMed=!b?'NO MEDAL':goldUnlock.includes(t.name)&&b<=t.platinum?'PLATINUM':b<=t.gold?'GOLD':b<=t.silver?'SILVER':b<=t.bronze?'BRONZE':'NO MEDAL';
     const bestLabel=b?b.toFixed(2)+'s · '+bestMed+' MEDAL':'-- · NO MEDAL';
@@ -1901,6 +1931,7 @@ function loop(now){
   requestAnimationFrame(loop);
   const dt=Math.min(.033,(now-last)/1000);last=now;
   const live=playing&&!done&&!mapOpen;
+  towerRelayTick(dt);
   if(live&&!dialogueCutscene){const sub=Math.hypot(v.x,v.z)>16?2:1;for(let q=0;q<sub;q++)step(dt/sub)}campaignActorsTick(dialogueCutscene?0:dt);if(dialogueCutscene){const da=dialogueActorForLine(dialogueCutscene.lines[dialogueCutscene.index]||'')||dialogueCutscene.actor;if(da){da.group.visible=true;dialogueCutscene.actor=da}}deliveryTick(dt); // courier contacts and drop-off route
   if(toastT>0){toastT-=dt;if(toastT<=0)document.getElementById('toast').style.opacity=0}
   const sp=Math.hypot(v.x,v.z);
