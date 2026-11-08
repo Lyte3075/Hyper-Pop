@@ -991,19 +991,34 @@ dialogueUI.id='dialogueCutscene';
 dialogueUI.innerHTML='<div class="dialogue-shade"></div><div class="dialogue-card"><div class="dialogue-kicker">SKYLINER · LIVE COMMS</div><div class="dialogue-speaker"></div><div class="dialogue-line"></div><button class="dialogue-next">CONTINUE</button><div class="dialogue-hint">TAP TO CONTINUE</div></div>';
 document.body.appendChild(dialogueUI);
 const dialogueSpeaker=dialogueUI.querySelector('.dialogue-speaker'),dialogueLine=dialogueUI.querySelector('.dialogue-line'),dialogueNext=dialogueUI.querySelector('.dialogue-next');
+function dialogueActorForLine(raw){
+ const split=raw.indexOf(':'),name=(split>0?raw.slice(0,split).trim():'').toLowerCase();
+ if(!name)return null;
+ return storyActors.find(a=>a.name.toLowerCase()===name)||
+  storyActors.find(a=>a.name.toLowerCase().startsWith(name)||name.startsWith(a.name.toLowerCase()))||
+  storyActors.find(a=>a.name.toLowerCase().split(' ').some(part=>part.length>2&&name.includes(part)))||null;
+}
 function showDialogueLine(){
  if(!dialogueCutscene)return;
  const raw=dialogueCutscene.lines[dialogueCutscene.index]||'',split=raw.indexOf(':');
  dialogueSpeaker.textContent=split>0?raw.slice(0,split).trim():'INCOMING TRANSMISSION';
  dialogueLine.textContent=split>0?raw.slice(split+1).trim():raw;
  dialogueNext.textContent=dialogueCutscene.index>=dialogueCutscene.lines.length-1?'END CONVERSATION':'CONTINUE';
+ dialogueCutscene.cameraReady=false;
 }
 function beginDialogue(lines){
  if(!Array.isArray(lines)||!lines.length)return;
- dialogueCutscene={lines,index:0};
- // Freeze the conversation participants in place; the render loop gives them subtle
- // breathing, listening and speaking gestures while they keep eye contact with R-17.
+ dialogueCutscene={lines,index:0,cameraReady:false};
  storyActors.forEach(a=>{a.dialogueStart=a.group.position.clone();a.navPath=[]});
+ const first=dialogueActorForLine(lines[0]);
+ if(first){
+  first.group.visible=true;
+  const dx=first.group.position.x-p.x,dz=first.group.position.z-p.z,dist=Math.hypot(dx,dz);
+  if(dist>13){
+   const fx=-Math.sin(yaw),fz=-Math.cos(yaw);
+   first.group.position.set(p.x+fx*4.5+Math.cos(yaw)*1.1,p.y,p.z+fz*4.5-Math.sin(yaw)*1.1);
+  }
+ }
  dialogueUI.classList.add('active');showDialogueLine();
 }
 function advanceDialogue(){
@@ -1723,12 +1738,23 @@ function loop(now){
   C.rotation.order='YXZ';C.rotation.set(pitch-rollAng-dk*.3-(vault?Math.sin(Math.PI*vault.t/vault.dur)*.1:0)+(slideT>0?.06:0),yaw,roll+bsx+(slideT>0?.04:0)+(zip?Math.sin(now*.0035)*.05:0)+bankW+(vault?Math.sin(Math.PI*vault.t/vault.dur)*.05:0));
   if(dialogueCutscene){
    tickDialogueActors(dt);
-   const speakerName=(dialogueSpeaker.textContent||'').toLowerCase(),actor=storyActors.find(a=>a.name.toLowerCase()===speakerName);
-   const focus=actor&&actor.group.visible?actor.group.position:new THREE.Vector3(p.x+Math.sin(yaw)*3,p.y+1,p.z+Math.cos(yaw)*3);
-   const mid=new THREE.Vector3((p.x+focus.x)*.5,(p.y+1.15+focus.y+1.05)*.5,(p.z+focus.z)*.5);
-   const side=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
-   const desired=new THREE.Vector3(mid.x+side.x*7,mid.y+2.1,mid.z+side.z*7+7);
-   C.position.lerp(desired,1-Math.exp(-dt*2.8));C.lookAt(mid);
+   const raw=dialogueCutscene.lines[dialogueCutscene.index]||'';
+   const actor=dialogueActorForLine(raw)||storyActors.find(a=>a.group.visible&&a.group.position.distanceTo(p)<45);
+   if(actor){
+    actor.group.visible=true;
+    const npc=actor.group.position;
+    const playerFocus=new THREE.Vector3(p.x,p.y+1.05,p.z),npcFocus=new THREE.Vector3(npc.x,npc.y+1.05,npc.z);
+    const mid=playerFocus.clone().add(npcFocus).multiplyScalar(.5);
+    const line=npcFocus.clone().sub(playerFocus);line.y=0;
+    if(line.lengthSq()<.01)line.set(-Math.sin(yaw),0,-Math.cos(yaw));
+    line.normalize();
+    const side=new THREE.Vector3(-line.z,0,line.x);
+    const desired=mid.clone().addScaledVector(side,8.2).addScaledVector(line,1.8);
+    desired.y+=3.1;
+    if(!dialogueCutscene.cameraReady){C.position.copy(desired);dialogueCutscene.cameraReady=true}
+    else C.position.lerp(desired,1-Math.exp(-dt*4.5));
+    C.lookAt(mid.x,mid.y+.15,mid.z);
+   }
   }
   if(trial){const q=trial.t.pts[trial.i];target.visible=true;target.material.color.setHex(trial.i===trial.t.pts.length-1?0xc13cff:0x2aa8ff);target.position.set(q.x,q.y+30,q.z)}else if(campaignRun){const q=CAMPAIGN[campaignRun.index].route[campaignRun.step];target.visible=!!q;if(q){target.material.color.setHex(0xe5242b);target.position.set(q.x,q.y+26,q.z)}}else target.visible=false;
   vig.style.opacity=Math.max(0,Math.min(.9,(sp-8)/6));
