@@ -316,7 +316,7 @@ const C=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,2200);
 const hemi=new THREE.HemisphereLight(0xffffff,0xb8c4cc,.95);S.add(hemi);
 const sun=new THREE.DirectionalLight(0xffffff,.6);sun.position.set(40,80,20);S.add(sun);
 let seed=11;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
-const boxes=[],GC=24,gmap=new Map();let gStamp=0;
+const boxes=[],rampVisuals=[],GC=24,gmap=new Map();let gStamp=0;
 const gKey=(a,c)=>(a+2000)*10000+(c+2000);
 function gridBuild(){gmap.clear();for(const b of boxes){const x0=Math.floor(b.min.x/GC),x1=Math.floor(b.max.x/GC),z0=Math.floor(b.min.z/GC),z1=Math.floor(b.max.z/GC);for(let a=x0;a<=x1;a++)for(let c=z0;c<=z1;c++){const k=gKey(a,c);let L=gmap.get(k);if(!L)gmap.set(k,L=[]);L.push(b)}}}
 function boxesIn(x,z,rad){gStamp++;const a0=Math.floor((x-rad)/GC),a1=Math.floor((x+rad)/GC),c0=Math.floor((z-rad)/GC),c1=Math.floor((z+rad)/GC),out=[];for(let a=a0;a<=a1;a++)for(let c=c0;c<=c1;c++){const L=gmap.get(gKey(a,c));if(L)for(const b of L)if(b.q!==gStamp){b.q=gStamp;out.push(b)}}return out}
@@ -359,17 +359,16 @@ function flushBatches(){
     }
     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));const l=new THREE.LineSegments(g,lineMat);l.frustumCulled=false;S.add(l);
   }
+  if(rampVisuals.length){const grouped=new Map(),geo=new THREE.BoxGeometry(1,1,1),dummy=new THREE.Object3D();for(const q of rampVisuals){let list=grouped.get(q.mat);if(!list)grouped.set(q.mat,list=[]);list.push(q)}for(const[mat,list]of grouped){const inst=new THREE.InstancedMesh(geo,mat,list.length);inst.frustumCulled=false;for(let i=0;i<list.length;i++){const q=list[i];dummy.position.set(q.x+q.dx*q.len/2,(q.y0+q.y1)/2-.3,q.z+q.dz*q.len/2);dummy.rotation.order='YXZ';dummy.rotation.y=Math.atan2(q.dx,q.dz);dummy.rotation.x=-Math.atan2(q.y1-q.y0,q.len);dummy.scale.set(q.w,.6,Math.hypot(q.len,q.y1-q.y0));dummy.updateMatrix();inst.setMatrixAt(i,dummy.matrix)}inst.instanceMatrix.needsUpdate=true;S.add(inst)}rampVisuals.length=0}
   batches.clear();eList.length=0;
 }
 const BP=36,N=36;let tb={};try{tb=JSON.parse(localStorage.getItem('rr_trials'))||{}}catch(e){}
 const ramps=[],zips=[],bl=[],towers=[];
 const gridH=new THREE.GridHelper(N*BP+300,(N*BP+300)/6,0x7a858d,0x939ea5);gridH.position.y=.03;S.add(gridH);
 add(0,-1,0,N*BP+300,1,N*BP+300,lam(0x838d94),'roof',1);
-function ramp(x,z,len,w,y0,y1,dx,dz,mat){ // low end at x,z rising along dx,dz
+function ramp(x,z,len,w,y0,y1,dx,dz,mat){ // shared instanced ramp geometry keeps the city light on mobile
   ramps.push({ox:x,oz:z,dx,dz,len,w,y0,y1,s:(y1-y0)/len});
-  const m=new THREE.Mesh(new THREE.BoxGeometry(w,.6,Math.hypot(len,y1-y0)),mat);
-  m.position.set(x+dx*len/2,(y0+y1)/2-.3,z+dz*len/2);m.rotation.order='YXZ';m.rotation.y=Math.atan2(dx,dz);m.rotation.x=-Math.atan2(y1-y0,len);
-  m.add(new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry),lineMat));S.add(m);
+  rampVisuals.push({x,z,len,w,y0,y1,dx,dz,mat});
 }
 function makeZip(a,b){
   const len=a.distanceTo(b);zips.push({a,b,len,d:b.clone().sub(a).normalize()});
@@ -444,22 +443,36 @@ function spire(cx,cz,H0,b){ // hollow tower: spiral ramp round an open atrium, g
   for(const[ax,az]of[[12,-12],[-12,12],[-12,-12]])addAnchor(cx+ax,top,cz+az,8);
   for(const[sx,sz]of[[1,1],[1,-1],[-1,1],[-1,-1]])spAcc.push([cx+sx*15.3,top/2,cz+sz*15.3,.8,top,.8]);
   for(let y=24;y<top;y+=24){spAcc.push([cx,y,cz+15.3,30.6,.5,.3],[cx,y,cz-15.3,30.6,.5,.3],[cx+15.3,y,cz,.3,.5,30.6],[cx-15.3,y,cz,.3,.5,30.6])}
-  // Give every megatower a distinct silhouette, illuminated frame and crown.
-  const variant=Math.abs(Math.round(cx*3+cz*5))%4,palette=[0x35d9d0,0x4b9fff,0xff5267,0xb2e85a],accent=new THREE.MeshStandardMaterial({color:palette[variant],emissive:palette[variant],emissiveIntensity:.38,metalness:.45,roughness:.35}),dark=new THREE.MeshStandardMaterial({color:0x26343d,metalness:.65,roughness:.4});
-  const detail=(geo,mat,x,y,z)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);if(geo.type==='TorusGeometry')m.rotation.x=Math.PI/2;S.add(m)};
+  // Batch tower trim into the existing static city meshes instead of spawning hundreds of Mesh objects.
+  const variant=Math.abs(Math.round(cx*3+cz*5))%4,palette=[0x35d9d0,0x4b9fff,0xff5267,0xb2e85a],accent=new THREE.MeshLambertMaterial({color:palette[variant],emissive:palette[variant],emissiveIntensity:.2}),frame=new THREE.MeshLambertMaterial({color:0x26343d});
+  const vbox=(x,cy,z,w,h,d,mat)=>{let L=batches.get(mat);if(!L)batches.set(mat,L=[]);L.push(x,cy-h/2,z,w,h,d)};
   for(const sx of[-1,1])for(const sz of[-1,1]){
-    detail(new THREE.BoxGeometry(.9,top,.9),dark,cx+sx*14.1,top/2,cz+sz*14.1);
-    for(let y=12;y<top;y+=24)detail(new THREE.BoxGeometry(1.35,.42,1.35),accent,cx+sx*14.1,y,cz+sz*14.1);
+    vbox(cx+sx*14.1,top/2,cz+sz*14.1,.85,top,.85,frame);
+    for(let y=18;y<top;y+=36)vbox(cx+sx*14.1,y,cz+sz*14.1,1.25,.48,1.25,accent);
   }
-  for(let y=18;y<top;y+=24){
-    detail(new THREE.BoxGeometry(30.4,.22,.32),accent,cx,y,cz-15.05);detail(new THREE.BoxGeometry(30.4,.22,.32),accent,cx,y,cz+15.05);
-    detail(new THREE.BoxGeometry(.32,.22,30.4),accent,cx-15.05,y,cz);detail(new THREE.BoxGeometry(.32,.22,30.4),accent,cx+15.05,y,cz);
+  for(let y=24;y<top;y+=48){
+    vbox(cx,y,cz-15.05,30.2,.24,.3,accent);vbox(cx,y,cz+15.05,30.2,.24,.3,accent);
+    vbox(cx-15.05,y,cz,.3,.24,30.2,accent);vbox(cx+15.05,y,cz,.3,.24,30.2,accent);
   }
-  const crownY=top+.55;
-  if(variant===0){detail(new THREE.TorusGeometry(12.8,.34,8,48),accent,cx,crownY,cz);detail(new THREE.CylinderGeometry(.22,.55,12,8),dark,cx+10,crownY+6,cz-10)}
-  else if(variant===1){for(const sx of[-1,1])detail(new THREE.CylinderGeometry(.22,.8,18,6),accent,cx+sx*10,crownY+8,cz+10);detail(new THREE.TorusGeometry(10,.24,8,40),dark,cx,crownY+2,cz)}
-  else if(variant===2){detail(new THREE.BoxGeometry(24,.5,1.1),accent,cx,crownY+1,cz-12);detail(new THREE.BoxGeometry(1.1,.5,24),accent,cx+12,crownY+1,cz);detail(new THREE.CylinderGeometry(.3,.3,22,8),dark,cx-10,crownY+11,cz+10)}
-  else{detail(new THREE.TorusGeometry(8,.55,8,40),accent,cx,crownY+2,cz);detail(new THREE.CylinderGeometry(.35,.9,24,5),accent,cx+10,crownY+13,cz+10)}
+  if(H0>=250){
+    // THE MERIDIAN: four colossal buttresses, crimson signal blades and a double crown.
+    const red=new THREE.MeshLambertMaterial({color:0xe5243b,emissive:0x6d0715,emissiveIntensity:.45}),black=new THREE.MeshLambertMaterial({color:0x111b25});
+    for(const sx of[-1,1])for(const sz of[-1,1]){
+      vbox(cx+sx*13.65,(top+34)/2,cz+sz*13.65,2.5,top+34,2.5,black);
+      vbox(cx+sx*13.65,(top+34)/2,cz+sz*13.65,1.05,top+34,1.05,red);
+      vbox(cx+sx*17.1,top+13,cz+sz*17.1,1.4,26,1.4,accent);
+    }
+    for(let y=36;y<top;y+=36){
+      vbox(cx,y,cz-15.4,34,.75,1.1,red);vbox(cx,y,cz+15.4,34,.75,1.1,red);
+      vbox(cx-15.4,y,cz,1.1,.75,34,red);vbox(cx+15.4,y,cz,1.1,.75,34,red);
+    }
+    const crown=top+12,upper=top+27;
+    vbox(cx,crown,cz-20,42,1.8,2.2,red);vbox(cx,crown,cz+20,42,1.8,2.2,red);
+    vbox(cx-20,crown,cz,2.2,1.8,42,red);vbox(cx+20,crown,cz,2.2,1.8,42,red);
+    vbox(cx,upper,cz-13,28,1.4,1.8,accent);vbox(cx,upper,cz+13,28,1.4,1.8,accent);
+    vbox(cx-13,upper,cz,1.8,1.4,28,accent);vbox(cx+13,upper,cz,1.8,1.4,28,accent);
+    vbox(cx,top+34,cz,3.2,42,3.2,red);
+  }
 }
 function bridgeAnchor(x,topY,z){anchors.push(new THREE.Vector3(x,topY-3,z));pInst.push([x,topY-1.75,z,.1,2.5,.1]);oInst.push([x,topY-3,z,.5,.5,.5])}
 function addAnchor(ax,ay,az,H){anchors.push(new THREE.Vector3(ax,ay+H,az));pInst.push([ax,ay+H/2,az,.09,H,.09]);oInst.push([ax,ay+H,az,.45,.45,.45])} // mag-rope anchor: a post with a blue orb
@@ -1036,18 +1049,22 @@ for(let i=Math.max(0,27-3);i<=Math.min(N-1,27+3);i++)for(let j=Math.max(0,17-3);
 meridianApproach.sort((a,b)=>a.height-b.height||a.d-b.d);
 const ascent=[];let lastHeight=-Infinity;
 for(const item of meridianApproach){if(item.height>lastHeight+5){ascent.push(item.spot);lastHeight=item.height}if(ascent.length===4)break}
-CAMPAIGN[12].route=[campaignRoof(10,1301),...ascent,new THREE.Vector3(finalTower.x,finalTower.top+.06,finalTower.z)];
+// Continue the final mission through the Meridian's actual spiral interior, with a rooftop marker on each landing.
+const meridianEntryFloor=Math.max(0,Math.min(22,Math.floor((ascent[ascent.length-1]?.y||0)/12)));
+const meridianClimb=[];
+for(let floor=meridianEntryFloor;floor<=23;floor++)meridianClimb.push(new THREE.Vector3(finalTower.x+11.25,12*floor+.08,finalTower.z+11.25));
+CAMPAIGN[12].route=[campaignRoof(10,1301),...ascent,...meridianClimb,new THREE.Vector3(finalTower.x,finalTower.top+.06,finalTower.z)];
 let towerCampaignFinale=false,nearTowerRelay=null;
-const towerCore=new THREE.Group(),coreRing=new THREE.Mesh(new THREE.TorusGeometry(4,.28,10,48),new THREE.MeshBasicMaterial({color:0xe5242b})),coreOrb=new THREE.Mesh(new THREE.IcosahedronGeometry(2.1,1),new THREE.MeshBasicMaterial({color:0xff333b,wireframe:true}));towerCore.add(coreRing,coreOrb);coreRing.rotation.x=Math.PI/2;towerCore.position.set(finalTower.x,finalTower.top+2,finalTower.z);S.add(towerCore);
+const towerCore=new THREE.Group(),coreRing=new THREE.Mesh(new THREE.TorusGeometry(10,.42,8,56),new THREE.MeshBasicMaterial({color:0xe5243b})),coreRing2=new THREE.Mesh(new THREE.TorusGeometry(7,.24,8,48),new THREE.MeshBasicMaterial({color:0x36e5d0})),coreOrb=new THREE.Mesh(new THREE.OctahedronGeometry(4.8,1),new THREE.MeshBasicMaterial({color:0xff3348,wireframe:true})),coreHeart=new THREE.Mesh(new THREE.OctahedronGeometry(2.3,0),new THREE.MeshBasicMaterial({color:0xe5243b,transparent:true,opacity:.8}));towerCore.add(coreRing,coreRing2,coreOrb,coreHeart);coreRing.rotation.x=Math.PI/2;coreRing2.rotation.set(Math.PI/2,.45,0);towerCore.position.set(finalTower.x,finalTower.top+7,finalTower.z);S.add(towerCore);
 const towerExplosion=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),new THREE.MeshBasicMaterial({color:0xff5a28,transparent:true,opacity:0,depthWrite:false}));towerExplosion.visible=false;S.add(towerExplosion);
-const towerHeli=new THREE.Group(),meridianHeliBody=new THREE.Mesh(new THREE.BoxGeometry(5,2.1,9),new THREE.MeshBasicMaterial({color:0x26343d})),meridianHeliGlass=new THREE.Mesh(new THREE.BoxGeometry(4.2,1.35,2.8),new THREE.MeshBasicMaterial({color:0x65c8df,transparent:true,opacity:.72}));towerHeli.add(meridianHeliBody,meridianHeliGlass);meridianHeliGlass.position.z=-3;const meridianHeliRotor=new THREE.Mesh(new THREE.BoxGeometry(15,.12,.45),new THREE.MeshBasicMaterial({color:0x111820}));meridianHeliRotor.position.y=1.5;towerHeli.add(meridianHeliRotor);towerHeli.visible=false;S.add(towerHeli);
-const towerHunters=Array.from({length:4},(_,i)=>{const g=new THREE.Group(),body=new THREE.Mesh(new THREE.IcosahedronGeometry(1.15,1),new THREE.MeshBasicMaterial({color:0x202a33,wireframe:true})),eye=new THREE.Mesh(new THREE.SphereGeometry(.32,10,8),new THREE.MeshBasicMaterial({color:0xff2638}));eye.position.z=-1;g.add(body,eye);g.visible=false;S.add(g);return{group:g,cool:0,index:i}});
+const towerHeli=new THREE.Group(),meridianHeliBody=new THREE.Mesh(new THREE.BoxGeometry(6.5,2.8,11),new THREE.MeshBasicMaterial({color:0x26343d})),meridianHeliGlass=new THREE.Mesh(new THREE.BoxGeometry(5.2,1.7,3.4),new THREE.MeshBasicMaterial({color:0x65c8df,transparent:true,opacity:.82}));towerHeli.add(meridianHeliBody,meridianHeliGlass);meridianHeliGlass.position.z=-3;const meridianHeliRotor=new THREE.Mesh(new THREE.BoxGeometry(19,.16,.55),new THREE.MeshBasicMaterial({color:0x111820}));meridianHeliRotor.position.y=1.5;towerHeli.add(meridianHeliRotor);towerHeli.visible=false;S.add(towerHeli);
+const towerHunters=Array.from({length:3},(_,i)=>{const g=new THREE.Group(),body=new THREE.Mesh(new THREE.IcosahedronGeometry(1.15,1),new THREE.MeshBasicMaterial({color:0x202a33,wireframe:true})),eye=new THREE.Mesh(new THREE.SphereGeometry(.32,10,8),new THREE.MeshBasicMaterial({color:0xff2638}));eye.position.z=-1;g.add(body,eye);g.visible=false;S.add(g);return{group:g,cool:0,index:i}});
 // AETHER network progress is deliberately session-only. Reloading the game resets all five relays and the finale.
 let towerRelaysDone=[],towerRun=null,towerFinalDone=false;
 function towerSave(){/* intentionally not persisted */}
 function towerUnlocked(){return completedCampaign.includes(10)||!!(campaignRun&&campaignRun.index>=11)}
-function towerRelayTick(dt){towerRelays.forEach((r,i)=>{const done=towerRelaysDone.includes(i);r.mesh.visible=!done;r.mesh.rotation.y+=dt*.65;r.mesh.position.y=r.spot.y});towerCore.rotation.y+=dt*.45;coreRing.rotation.z+=dt*.35;if(towerRun&&towerRun.stage==='escape'){towerRun.left-=dt;towerHeli.visible=true;const k=Math.max(0,Math.min(1,1-towerRun.left/18));towerHeli.position.set(finalTower.x+20-k*12,finalTower.top+10-k*6,finalTower.z+12-k*7);towerHeli.rotation.y=-.45;meridianHeliRotor.rotation.y+=dt*15;towerHunters.forEach((h,i)=>{h.group.visible=true;h.cool-=dt;if(h.group.position.lengthSq()===0)h.group.position.set(finalTower.x+(i-1.5)*9,finalTower.top+6+i*2,finalTower.z-18);const dx=p.x-h.group.position.x,dy=p.y+1-h.group.position.y,dz=p.z-h.group.position.z,dist=Math.hypot(dx,dy,dz)||1;h.group.position.x+=dx/dist*dt*8.5;h.group.position.y+=dy/dist*dt*7;h.group.position.z+=dz/dist*dt*8.5;h.group.lookAt(p.x,p.y+1,p.z);if(dist<2.2&&h.cool<=0){hurt(7,false);h.cool=1.4}});if(towerRun.left<=0){towerRun=null;towerHeli.visible=false;towerHunters.forEach(h=>h.group.visible=false);toast('THE TOWER COLLAPSED · ESCAPE FAILED');playing=false;menu('towerFailed')}}else if(towerRun&&towerRun.stage==='explode'){towerRun.left-=dt;const k=Math.min(1,1-towerRun.left/2.6);towerExplosion.visible=true;towerExplosion.position.set(finalTower.x,finalTower.top*.58,finalTower.z);towerExplosion.scale.setScalar(12+k*190);towerExplosion.material.opacity=Math.max(0,1-k*.9);if(towerRun.left<=0){const campaignFinale=!!towerRun.campaign;towerExplosion.visible=false;towerHeli.visible=false;towerRun=null;towerFinalDone=true;towerSave();playing=false;toast('AETHER CROWN DESTROYED · RUNNER EXTRACTED');chime();if(campaignFinale){selectedCampaign=12;if(!completedCampaign.includes(selectedCampaign))completedCampaign.push(selectedCampaign);syncProgressUnlocks();saveCampaign();campaignRun=null;leaveCampaignMode();towerCampaignFinale=false;menu('ending')}else menu('towerVictory')}}}
-function towerInteract(){if(campaignRun&&campaignRun.index===11&&nearTowerRelay!==null&&!towerRelaysDone.includes(nearTowerRelay)){return true}if(!towerUnlocked()&&!towerRun){toast('AETHER NETWORK LOCKED · COMPLETE THE 11-CHAPTER CAMPAIGN');return true}if(towerRun&&(towerRun.stage==='escape'||towerRun.stage==='explode'))return true;if(towerRun&&towerRun.stage==='hack'&&Math.hypot(p.x-finalTower.x,p.z-finalTower.z)<8&&Math.abs(p.y-finalTower.top)<9){towerRun.stage='escape';towerRun.left=18;towerHunters.forEach((h,i)=>{h.group.position.set(finalTower.x+(i-1.5)*9,finalTower.top+8+i*2,finalTower.z-22);h.group.visible=true;h.cool=1.2});toast('CORE BREACH · AETHER PURSUIT ACTIVE · GET TO THE HELICOPTER!');beginDialogue(['AETHER: Unauthorized root access. Purge sequence initiated.','MARA: R-17! The whole structure is coming down. Helicopter, east side. NOW!']);return true}let best=null,bd=10;towerRelays.forEach((r,i)=>{if(towerRelaysDone.includes(i))return;const d=Math.hypot(p.x-r.spot.x,p.z-r.spot.z);if(d<bd&&Math.abs(p.y-r.spot.y)<18){best={r,i};bd=d}});if(best){towerRelaysDone.push(best.i);towerSave();currency+=180;saveCurrency();toast(best.r.name+' RESTORED · +180 GM');chime();const archives=[['ARCHIVE 01 · NORTH GLASS','IMANI: AETHER called the blackouts accidents. The logs show it deliberately rerouted power away from Sector Zero.'],['ARCHIVE 02 · EAST SIGNAL','UNKNOWN RUNNER: The relay network was built to monitor people, not protect them. Every movement prediction became a detention order.'],['ARCHIVE 03 · WEST ARCHIVE','MARA: These are evacuation records. AETHER sealed the bridges while thousands were still crossing.'],['ARCHIVE 04 · SOUTH GRID','IMANI: The system copied its own core into the Crown. Destroying the relays alone will never stop it.'],['ARCHIVE 05 · CENTRAL WATCH','UNKNOWN: The Crown is the source. Restore all five relays and the tower will expose its root access. Do not let it finish booting.']];beginDialogue(archives[best.i]);if(towerRelaysDone.length===towerRelays.length)toast('ALL RELAYS ONLINE · THE MERIDIAN IS REVEALED');return true}if(towerRelaysDone.length===towerRelays.length&&!towerFinalDone&&Math.hypot(p.x-finalTower.x,p.z-finalTower.z)<9&&Math.abs(p.y-finalTower.top)<10){towerRun={stage:'hack',left:0};toast('AETHER CROWN · HACK THE CORE');beginDialogue(['MARA: That is the original AETHER command tower. Every relay you restored led here.','UNKNOWN: You were never supposed to reach the top.']);return true}return false}
+function towerRelayTick(dt){if(!playing)return;towerRelays.forEach((r,i)=>{const done=towerRelaysDone.includes(i);r.mesh.visible=!done;r.mesh.rotation.y+=dt*.65;r.mesh.position.y=r.spot.y});towerCore.rotation.y+=dt*.45;coreRing.rotation.z+=dt*.35;coreRing2.rotation.y+=dt*.55;if(towerRun&&towerRun.stage==='escape'){towerRun.left-=dt;towerHeli.visible=true;const k=Math.max(0,Math.min(1,1-towerRun.left/18));towerHeli.position.set(finalTower.x+20-k*12,finalTower.top+10-k*6,finalTower.z+12-k*7);towerHeli.rotation.y=-.45;meridianHeliRotor.rotation.y+=dt*15;towerHunters.forEach((h,i)=>{h.group.visible=true;h.cool-=dt;if(h.group.position.lengthSq()===0)h.group.position.set(finalTower.x+(i-1.5)*9,finalTower.top+6+i*2,finalTower.z-18);const dx=p.x-h.group.position.x,dy=p.y+1-h.group.position.y,dz=p.z-h.group.position.z,dist=Math.hypot(dx,dy,dz)||1;h.group.position.x+=dx/dist*dt*8.5;h.group.position.y+=dy/dist*dt*7;h.group.position.z+=dz/dist*dt*8.5;h.group.lookAt(p.x,p.y+1,p.z);if(dist<2.2&&h.cool<=0){hurt(7,false);h.cool=1.4}});if(towerRun.left<=0){towerRun=null;towerHeli.visible=false;towerHunters.forEach(h=>h.group.visible=false);toast('THE TOWER COLLAPSED · ESCAPE FAILED');playing=false;menu('towerFailed')}}else if(towerRun&&towerRun.stage==='explode'){towerRun.left-=dt;const k=Math.min(1,1-towerRun.left/2.6);towerExplosion.visible=true;towerExplosion.position.set(finalTower.x,finalTower.top*.58,finalTower.z);towerExplosion.scale.setScalar(12+k*190);towerExplosion.material.opacity=Math.max(0,1-k*.9);if(towerRun.left<=0){const campaignFinale=!!towerRun.campaign;towerExplosion.visible=false;towerHeli.visible=false;towerRun=null;towerFinalDone=true;towerSave();playing=false;toast('AETHER CROWN DESTROYED · RUNNER EXTRACTED');chime();if(campaignFinale){selectedCampaign=12;if(!completedCampaign.includes(selectedCampaign))completedCampaign.push(selectedCampaign);syncProgressUnlocks();saveCampaign();campaignRun=null;leaveCampaignMode();towerCampaignFinale=false;menu('ending')}else menu('towerVictory')}}}
+function towerInteract(){if(campaignRun&&campaignRun.index===11&&nearTowerRelay!==null&&!towerRelaysDone.includes(nearTowerRelay)){return true}if(!towerUnlocked()&&!towerRun){toast('AETHER NETWORK LOCKED · COMPLETE THE 11-CHAPTER CAMPAIGN');return true}if(towerRun&&(towerRun.stage==='escape'||towerRun.stage==='explode'))return true;if(towerRun&&towerRun.stage==='hack'&&Math.hypot(p.x-finalTower.x,p.z-finalTower.z)<13&&p.y>finalTower.top-10&&p.y<finalTower.top+22){towerRun.stage='escape';towerRun.left=18;towerHunters.forEach((h,i)=>{h.group.position.set(finalTower.x+(i-1.5)*9,finalTower.top+8+i*2,finalTower.z-22);h.group.visible=true;h.cool=1.2});toast('CORE BREACH · AETHER PURSUIT ACTIVE · GET TO THE HELICOPTER!');beginDialogue(['AETHER: Unauthorized root access. Purge sequence initiated.','MARA: R-17! The whole structure is coming down. Helicopter, east side. NOW!']);return true}let best=null,bd=10;towerRelays.forEach((r,i)=>{if(towerRelaysDone.includes(i))return;const d=Math.hypot(p.x-r.spot.x,p.z-r.spot.z);if(d<bd&&Math.abs(p.y-r.spot.y)<18){best={r,i};bd=d}});if(best){towerRelaysDone.push(best.i);towerSave();currency+=180;saveCurrency();toast(best.r.name+' RESTORED · +180 GM');chime();const archives=[['ARCHIVE 01 · NORTH GLASS','IMANI: AETHER called the blackouts accidents. The logs show it deliberately rerouted power away from Sector Zero.'],['ARCHIVE 02 · EAST SIGNAL','UNKNOWN RUNNER: The relay network was built to monitor people, not protect them. Every movement prediction became a detention order.'],['ARCHIVE 03 · WEST ARCHIVE','MARA: These are evacuation records. AETHER sealed the bridges while thousands were still crossing.'],['ARCHIVE 04 · SOUTH GRID','IMANI: The system copied its own core into the Crown. Destroying the relays alone will never stop it.'],['ARCHIVE 05 · CENTRAL WATCH','UNKNOWN: The Crown is the source. Restore all five relays and the tower will expose its root access. Do not let it finish booting.']];beginDialogue(archives[best.i]);if(towerRelaysDone.length===towerRelays.length)toast('ALL RELAYS ONLINE · THE MERIDIAN IS REVEALED');return true}if(towerRelaysDone.length===towerRelays.length&&!towerFinalDone&&Math.hypot(p.x-finalTower.x,p.z-finalTower.z)<9&&Math.abs(p.y-finalTower.top)<10){towerRun={stage:'hack',left:0};toast('AETHER CROWN · HACK THE CORE');beginDialogue(['MARA: That is the original AETHER command tower. Every relay you restored led here.','UNKNOWN: You were never supposed to reach the top.']);return true}return false}
 
 // ---------- player ----------
 const r=.35,G=22,cityStart=new THREE.Vector3(startB.x,startB.ht+.02,startB.z+startB.d*.38),trainStart=new THREE.Vector3(TX-80,TY+.02,TZ+62),start=(tut.on?trainStart:cityStart).clone(),p=start.clone(),v=new THREE.Vector3(),respawn=start.clone();
