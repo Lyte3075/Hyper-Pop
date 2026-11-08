@@ -428,7 +428,7 @@ function spire(cx,cz,H0,b){ // hollow tower: spiral ramp round an open atrium, g
     for(let k=2;k<nl;k+=2){const wb=12*k+ro+1.7;wall(sx,sz,0,6,prev,wb-prev);addGlass(cx+sx*(S2/2-t/2),wb,cz+sz*(S2/2-t/2),sx?.3:6,4,sx?6:.3);prev=wb+4}
     wall(sx,sz,0,6,prev,top-prev);
   }
-  const layoutVariant=Math.abs(Math.round(cx*3+cz*5))%4,layoutTurn=Math.abs(Math.round(cx+cz))%4;
+  const layoutVariant=isMeridian?3:Math.abs(Math.round(cx*3+cz*5))%3,layoutTurn=Math.abs(Math.round(cx+cz))%4;
   const rotateLayout=(x,z)=>{for(let q=0;q<layoutTurn;q++){const t=x;x=-z;z=t}return[x,z]};
   const interiorAccent=new THREE.MeshLambertMaterial({color:isMeridian?0xe5243b:0x35d9d0,emissive:isMeridian?0x6d0715:0x063c3a,emissiveIntensity:.3});
   for(let k=0;k<nl;k++){const y=12*k;
