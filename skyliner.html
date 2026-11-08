@@ -11,7 +11,7 @@ canvas{display:block;touch-action:none}
 #dot{position:fixed;left:50%;top:50%;width:.4rem;height:.4rem;margin:-.2rem;border-radius:50%;background:var(--red);pointer-events:none}
 #vig{position:fixed;inset:0;pointer-events:none;background:radial-gradient(transparent 50%,rgba(255,255,255,.6));opacity:0}
 #hurt{position:fixed;inset:0;pointer-events:none;background:radial-gradient(transparent 40%,rgba(229,36,43,.7));opacity:0}
-#toast{position:fixed;top:14%;left:0;right:0;text-align:center;font-weight:800;font-size:1.7rem;color:var(--red);text-shadow:0 0 .5rem #fff;pointer-events:none;opacity:0;transition:opacity .4s;padding:0 1rem}
+#dialogueCutscene{position:fixed;inset:0;z-index:4;display:none;align-items:flex-end;justify-content:center;padding:0 1rem calc(1.2rem + var(--sb));box-sizing:border-box;pointer-events:auto;background:linear-gradient(180deg,rgba(3,8,14,.08),rgba(3,8,14,.42))}#dialogueCutscene.active{display:flex}.dialogue-shade{position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(4,9,15,.3) 65%,rgba(4,9,15,.82))}.dialogue-card{position:relative;width:min(100%,58rem);box-sizing:border-box;padding:1.15rem 1.35rem 1rem;border:1px solid rgba(255,255,255,.28);border-left:.28rem solid #e5242b;border-radius:.65rem;background:rgba(10,17,25,.94);color:#f4f7fa;text-align:left;box-shadow:0 1rem 3rem rgba(0,0,0,.38);backdrop-filter:blur(12px)}.dialogue-kicker{font-size:.7rem;letter-spacing:.2em;color:#f0787d;font-weight:800}.dialogue-speaker{font-size:1.15rem;font-weight:900;letter-spacing:.08em;margin:.4rem 0;text-transform:uppercase}.dialogue-line{font-size:1.05rem;line-height:1.5;min-height:3rem}.dialogue-next{float:right;margin:.8rem 0 .1rem;background:#e5242b;color:#fff;border:0;border-radius:.35rem;padding:.55rem 1.1rem;font-weight:800;font-size:.9rem;min-height:2.4rem}.dialogue-hint{padding-top:1.15rem;font-size:.65rem;letter-spacing:.15em;color:#aab7c2}#toast{position:fixed;top:14%;left:0;right:0;text-align:center;font-weight:800;font-size:1.7rem;color:var(--red);text-shadow:0 0 .5rem #fff;pointer-events:none;opacity:0;transition:opacity .4s;padding:0 1rem}
 #ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--fg);text-align:center;z-index:5;touch-action:pan-y}
 #panel{width:min(96vw,58rem);max-height:94vh;max-height:94dvh;overflow:auto;padding:1.2rem 1.5rem;box-sizing:border-box;-webkit-overflow-scrolling:touch}
 h1{margin:0 0 .5rem;font-size:2.6rem;letter-spacing:.04em}h1 span{color:var(--red)}h2,h3{margin:.6rem 0;font-size:1.4rem}h3{font-size:1.2rem}
@@ -898,6 +898,32 @@ function hangStep(dt){
   }
 }
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.opacity=1;toastT=2}
+let dialogueCutscene=null;
+const dialogueUI=document.createElement('div');
+dialogueUI.id='dialogueCutscene';
+dialogueUI.innerHTML='<div class="dialogue-shade"></div><div class="dialogue-card"><div class="dialogue-kicker">SKYLINER · LIVE COMMS</div><div class="dialogue-speaker"></div><div class="dialogue-line"></div><button class="dialogue-next">CONTINUE</button><div class="dialogue-hint">TAP TO CONTINUE</div></div>';
+document.body.appendChild(dialogueUI);
+const dialogueSpeaker=dialogueUI.querySelector('.dialogue-speaker'),dialogueLine=dialogueUI.querySelector('.dialogue-line'),dialogueNext=dialogueUI.querySelector('.dialogue-next');
+function showDialogueLine(){
+ if(!dialogueCutscene)return;
+ const raw=dialogueCutscene.lines[dialogueCutscene.index]||'',split=raw.indexOf(':');
+ dialogueSpeaker.textContent=split>0?raw.slice(0,split).trim():'INCOMING TRANSMISSION';
+ dialogueLine.textContent=split>0?raw.slice(split+1).trim():raw;
+ dialogueNext.textContent=dialogueCutscene.index>=dialogueCutscene.lines.length-1?'END CONVERSATION':'CONTINUE';
+}
+function beginDialogue(lines){
+ if(!Array.isArray(lines)||!lines.length)return;
+ dialogueCutscene={lines,index:0};
+ dialogueUI.classList.add('active');showDialogueLine();
+}
+function advanceDialogue(){
+ if(!dialogueCutscene)return;
+ if(dialogueCutscene.index<dialogueCutscene.lines.length-1){dialogueCutscene.index++;showDialogueLine()}
+ else{dialogueCutscene=null;dialogueUI.classList.remove('active')}
+}
+dialogueNext.addEventListener('click',advanceDialogue);
+dialogueUI.addEventListener('click',e=>{if(e.target===dialogueUI||e.target.classList.contains('dialogue-shade'))advanceDialogue()});
+
 function reset(){if(campaignTutorialWasOn!==null)leaveCampaignMode();climbTurn=false;p.copy(respawn);safe.copy(respawn);v.set(0,0,0);mom=0;slideT=rollT=0;hp=100;hang=null;vault=null;zip=null;lad=null;rope=null;stagger=0;resetCampaignPursuit()}
 
 function step(dt){
@@ -1114,7 +1140,7 @@ function step(dt){
         selectedCampaign=campaignRun.index;
         if(!completedCampaign.includes(campaignRun.index))completedCampaign.push(campaignRun.index);syncProgressUnlocks();
         saveCampaign();const last=campaignRun.index===CAMPAIGN.length-1;campaignRun=null;if(last)leaveCampaignMode();playing=false;touchUI.style.display='none';mouseFallback=false;mouseArmed=false;mouseStickX=mouseStickY=0;mouseAim.style.display='none';document.body.classList.remove('mouse-look');toast('MISSION COMPLETE');menu(last?'ending':'chapterComplete');
-      }else{const line=m.radio[Math.min(campaignRun.step-1,m.radio.length-1)];toast(line);toastT=4}
+      }else{const line=m.radio[Math.min(campaignRun.step-1,m.radio.length-1)];beginDialogue([line])}
     }
   }
   if(edge.interact&&sideDeliveryInteract())edge.interact=false;
@@ -1192,7 +1218,7 @@ function menu(view,msg){
   if(view==='briefing'){
     const m=CAMPAIGN[selectedCampaign];
     P.innerHTML='<h2>'+m.act+'</h2><h1>'+m.title+'</h1><p><b>'+m.location+' · '+m.time+'</b></p><p><b>'+m.style+'</b></p><p class="story-copy">'+m.brief+'</p><p><b>OBJECTIVE:</b> '+m.finish+'</p><button id="beginChapter">Start mission</button><button id="briefBack" class="alt">Back</button>';
-    P.querySelector('#beginChapter').onclick=()=>{if(localStorage.getItem('sr_tut')!=='1'){toast('Complete tutorial first');return}campaignEnemies.forEach(e=>{e.started=false;e.cursor=0;e.hit=0});chaseTrail=[];chaseClock=0;chaseRecord=0;chaseWarmup=0;resetPursuitHeli();if(campaignTutorialWasOn===null)campaignTutorialWasOn=tut.on;tut.on=false;campaignRun={index:selectedCampaign,step:1};const q=m.route[0];start.copy(q);p.copy(q);respawn.copy(q);safe.copy(q);v.set(0,0,0);yaw=0;pitch=0;mom=0;trial=null;play();toast(m.radio[0]);toastT=4};
+    P.querySelector('#beginChapter').onclick=()=>{if(localStorage.getItem('sr_tut')!=='1'){toast('Complete tutorial first');return}campaignEnemies.forEach(e=>{e.started=false;e.cursor=0;e.hit=0});chaseTrail=[];chaseClock=0;chaseRecord=0;chaseWarmup=0;resetPursuitHeli();if(campaignTutorialWasOn===null)campaignTutorialWasOn=tut.on;tut.on=false;campaignRun={index:selectedCampaign,step:1};const q=m.route[0];start.copy(q);p.copy(q);respawn.copy(q);safe.copy(q);v.set(0,0,0);yaw=0;pitch=0;mom=0;trial=null;play();beginDialogue(m.radio.slice(0,1))};
     P.querySelector('#briefBack').onclick=()=>menu('campaign');return
   }
   if(view==='chapterComplete'){
@@ -1592,7 +1618,7 @@ function loop(now){
   requestAnimationFrame(loop);
   const dt=Math.min(.033,(now-last)/1000);last=now;
   const live=playing&&!done;
-  if(live){const sub=Math.hypot(v.x,v.z)>16?2:1;for(let q=0;q<sub;q++)step(dt/sub)}campaignActorsTick(dt);deliveryTick(); // at high speed, two physics steps so you never tunnel through thin walls
+  if(live&&!dialogueCutscene){const sub=Math.hypot(v.x,v.z)>16?2:1;for(let q=0;q<sub;q++)step(dt/sub)}campaignActorsTick(dialogueCutscene?0:dt);deliveryTick(); // at high speed, two physics steps so you never tunnel through thin walls
   if(toastT>0){toastT-=dt;if(toastT<=0)document.getElementById('toast').style.opacity=0}
   const sp=Math.hypot(v.x,v.z);
   if(mouseFallback&&!set.touch&&mouseArmed){yaw-=mouseStickX*2.1*dt;pitch=Math.max(-1.5,Math.min(1.5,pitch+mouseStickY*1.65*dt*(set.invY?-1:1)))}
@@ -1605,6 +1631,14 @@ function loop(now){
   const ydw=(yaw-wYaw)/Math.max(dt,.001);wYaw=yaw;bankW+=((wingOn?Math.max(-.45,Math.min(.45,ydw*.1)):0)-bankW)*Math.min(1,dt*6);
   C.position.set(p.x,p.y+eyeH+bb-shake+(lad?Math.sin(lad.ph)*.03:(climbing&&!ground)?Math.sin(now*.011)*.03:0),p.z);
   C.rotation.order='YXZ';C.rotation.set(pitch-rollAng-dk*.3-(vault?Math.sin(Math.PI*vault.t/vault.dur)*.1:0)+(slideT>0?.06:0),yaw,roll+bsx+(slideT>0?.04:0)+(zip?Math.sin(now*.0035)*.05:0)+bankW+(vault?Math.sin(Math.PI*vault.t/vault.dur)*.05:0));
+  if(dialogueCutscene){
+   const speakerName=(dialogueSpeaker.textContent||'').toLowerCase(),actor=storyActors.find(a=>a.name.toLowerCase()===speakerName);
+   const focus=actor&&actor.group.visible?actor.group.position:new THREE.Vector3(p.x+Math.sin(yaw)*3,p.y+1,p.z+Math.cos(yaw)*3);
+   const mid=new THREE.Vector3((p.x+focus.x)*.5,(p.y+1.15+focus.y+1.05)*.5,(p.z+focus.z)*.5);
+   const side=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
+   const desired=new THREE.Vector3(mid.x+side.x*7,mid.y+2.1,mid.z+side.z*7+7);
+   C.position.lerp(desired,1-Math.exp(-dt*2.8));C.lookAt(mid);
+  }
   if(trial){const q=trial.t.pts[trial.i];target.visible=true;target.material.color.setHex(trial.i===trial.t.pts.length-1?0xc13cff:0x2aa8ff);target.position.set(q.x,q.y+30,q.z)}else if(campaignRun){const q=CAMPAIGN[campaignRun.index].route[campaignRun.step];target.visible=!!q;if(q){target.material.color.setHex(0xe5242b);target.position.set(q.x,q.y+26,q.z)}}else target.visible=false;
   vig.style.opacity=Math.max(0,Math.min(.9,(sp-8)/6));
   hurtT=Math.max(0,hurtT-dt);document.getElementById('hurt').style.opacity=hurtT;
