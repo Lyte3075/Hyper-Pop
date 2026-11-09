@@ -27,6 +27,14 @@ label{display:block;text-align:left;margin:.6rem 0;font-size:1rem}label input[ty
 .kb{display:grid;grid-template-columns:1fr auto;gap:.15rem .7rem;align-items:center;text-align:left;font-size:1rem}.kb button{padding:.25rem .7rem;margin:.15rem;font-size:.95rem;min-height:2rem;min-width:6rem}
 ol{text-align:left;display:inline-block;margin:.3rem;padding-left:1.6rem;font-size:1rem}
 #touch{position:fixed;inset:0;pointer-events:none;display:none;z-index:3}
+body.layout-edit #touch{pointer-events:auto!important;z-index:90}
+body.layout-edit #touch .tb,body.layout-edit #jb{pointer-events:auto!important;touch-action:none!important;outline:2px dashed #36e5d0;outline-offset:3px;opacity:.9}
+body.layout-edit #mm,body.layout-edit #cmp,body.layout-edit #tut,body.layout-edit #prompt,body.layout-edit #deliveryClock{pointer-events:auto!important;outline:2px dashed #36e5d0;outline-offset:3px;touch-action:none!important}
+#layoutEditorBar{position:fixed;z-index:120;top:calc(.5rem + var(--st));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:.45rem;max-width:96vw;padding:.45rem .6rem;background:rgba(12,20,26,.94);color:#fff;border:1px solid #36e5d0;border-radius:.5rem;font:700 .72rem system-ui;box-shadow:0 4px 18px #0006}
+#layoutEditorBar span{font-weight:400;opacity:.85}
+#layoutEditorBar button{margin:0;padding:.35rem .6rem;min-height:2rem;font-size:.7rem;white-space:nowrap}
+@media(max-width:600px){#layoutEditorBar{flex-wrap:wrap;justify-content:center;top:calc(.25rem + var(--st));gap:.25rem;padding:.3rem}#layoutEditorBar span{flex-basis:100%;text-align:center;font-size:.62rem}}
+
 .tb{position:absolute;pointer-events:auto;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(20,26,31,.4);border:2px solid rgba(255,255,255,.6);color:#fff;font-weight:800;font-size:max(.8rem,2.8vmin);letter-spacing:.04em;touch-action:none;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
 .tb.on{background:rgba(229,36,43,.8)}
 #bj{right:calc(5vmin + var(--sr));bottom:calc(7vmin + var(--sb));width:21vmin;height:21vmin;font-size:max(.9rem,3.6vmin)}
@@ -140,13 +148,14 @@ body.mouse-look,body.mouse-look canvas{cursor:none!important}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous"></script>
 <script>
 // ---------- settings ----------
-const ACT=[['fwd','Forward'],['back','Back'],['left','Left'],['right','Right'],['jump','Up (jump, kick-off)'],['slide','Down (slide, roll, drop)'],['turn','Extra (quick turn)'],['vision','Runner vision'],['respawn','Respawn'],['interact','Interact (start trial)'],['trialRestart','Restart trial'],['trialEnd','End trial'],['tskip','Skip tutorial step'],['gear','Draw / stow rope'],['rope','Fire / release rope']];
-const DEF={fwd:'KeyW',back:'KeyS',left:'KeyA',right:'KeyD',jump:'Space',slide:'ControlLeft',turn:'KeyQ',vision:'KeyV',respawn:'KeyR',interact:'KeyE',trialRestart:'KeyT',trialEnd:'KeyG',tskip:'KeyN',gear:'KeyF',rope:'KeyX'};
+const ACT=[['fwd','Forward'],['back','Back'],['left','Left'],['right','Right'],['jump','Up (jump, kick-off)'],['slide','Down (slide, roll, drop)'],['turn','Extra (quick turn)'],['vision','Runner vision'],['respawn','Respawn'],['interact','Interact (start trial)'],['trialRestart','Restart trial'],['trialEnd','End trial'],['tskip','Skip tutorial step'],['gear','Draw / stow rope'],['rope','Fire / release rope'],['map','Open city map'],['menu','Open pause menu']];
+const DEF={fwd:'KeyW',back:'KeyS',left:'KeyA',right:'KeyD',jump:'Space',slide:'ControlLeft',turn:'KeyQ',vision:'KeyV',respawn:'KeyR',interact:'KeyE',trialRestart:'KeyT',trialEnd:'KeyG',tskip:'KeyN',gear:'KeyF',rope:'KeyX',map:'KeyM',menu:'Escape'};
 const isTouch=(typeof matchMedia==='function'&&matchMedia('(pointer:coarse)').matches)||'ontouchstart' in window;
-let set={sens:1,fov:75,vol:.7,bob:1,invY:false,vision:true,body:true,mm:true,mus:.5,cycle:true,weather:true,gear:{},touch:isTouch,binds:{...DEF}};
+let set={sens:1,fov:75,vol:.7,bob:1,invY:false,vision:true,body:true,mm:true,mus:.5,cycle:true,weather:true,gear:{},touch:isTouch,cursorCam:false,layout:{},binds:{...DEF}};
 try{const s=JSON.parse(localStorage.getItem('rr_set'));if(s)set={...set,...s,binds:{...DEF,...s.binds}}}catch(e){}
 if(set.gv!==5){set.gear={};set.gv=5}
 const save=()=>{try{localStorage.setItem('rr_set',JSON.stringify(set))}catch(e){}};
+if(set.cursorCamVersion!==1){set.cursorCam=false;set.cursorCamVersion=1;save()}
 const storageOK=(()=>{try{localStorage.setItem('sr_t','1');localStorage.removeItem('sr_t');return true}catch(e){return false}})();
 const MAIN_GEAR_KEYS=['rope','dash','wingsuit','coil','veil'];
 let coilCd=0,veilT=0,veilCd=0;
@@ -1565,12 +1574,23 @@ const ovEl=document.getElementById('ov'),P=document.getElementById('panel');let 
 const touchUI=document.getElementById('touch');let playing=false,locked=false,drag=false;
 const mouseAim=document.getElementById('mouseAim'),mouseDot=document.getElementById('mouseDot'),mouseHint=document.getElementById('mouseHint');
 let mouseFallback=false,mouseArmed=false,mouseStickX=0,mouseStickY=0;
+let layoutEditing=false,layoutDragState=null;
+const layoutElements=['jb','bj','bs','bt','bg','bro','bi','bv','br','btr','bte','bp','mm','cmp','tut','prompt','deliveryClock'];
+function applySavedLayout(){for(const id of layoutElements){const el=document.getElementById(id),pos=set.layout&&set.layout[id];if(!el||!pos||!Number.isFinite(pos.x)||!Number.isFinite(pos.y))continue;el.style.left=(pos.x*100)+'%';el.style.top=(pos.y*100)+'%';el.style.right='auto';el.style.bottom='auto';el.style.margin='0';el.style.transform='translate(-50%,-50%)'}}
+function saveLayoutPosition(id,x,y){if(!set.layout)set.layout={};set.layout[id]={x:Math.max(.02,Math.min(.98,x/innerWidth)),y:Math.max(.03,Math.min(.97,y/innerHeight))};save()}
+function finishLayoutEdit(){layoutEditing=false;layoutDragState=null;document.body.classList.remove('layout-edit');const bar=document.getElementById('layoutEditorBar');if(bar)bar.remove();applySavedLayout()}
+function beginLayoutEdit(){set.touch=true;save();play();layoutEditing=true;document.body.classList.add('layout-edit');applySavedLayout();let bar=document.getElementById('layoutEditorBar');if(!bar){bar=document.createElement('div');bar.id='layoutEditorBar';bar.innerHTML='<b>LAYOUT EDITOR</b><span>Drag buttons and HUD items to move them</span><button id="layoutReset">RESET</button><button id="layoutDone">DONE</button>';document.body.appendChild(bar);bar.querySelector('#layoutDone').onclick=finishLayoutEdit;bar.querySelector('#layoutReset').onclick=()=>{set.layout={};save();for(const id of layoutElements){const el=document.getElementById(id);if(el){el.style.left='';el.style.top='';el.style.right='';el.style.bottom='';el.style.margin='';el.style.transform=''}}applySavedLayout()}}}
+function layoutPointerDown(e){if(!layoutEditing)return;const el=e.target.closest('#'+layoutElements.join(',#'));if(!el)return;e.preventDefault();e.stopPropagation();const r=el.getBoundingClientRect();layoutDragState={id:el.id,el,dx:e.clientX-(r.left+r.width/2),dy:e.clientY-(r.top+r.height/2)}}
+function layoutPointerMove(e){if(!layoutEditing||!layoutDragState)return;e.preventDefault();const x=e.clientX-layoutDragState.dx,y=e.clientY-layoutDragState.dy;const el=layoutDragState.el;el.style.left=x+'px';el.style.top=y+'px';el.style.right='auto';el.style.bottom='auto';el.style.margin='0';el.style.transform='translate(-50%,-50%)'}
+function layoutPointerUp(e){if(!layoutDragState)return;const d=layoutDragState;const r=d.el.getBoundingClientRect();saveLayoutPosition(d.id,r.left+r.width/2,r.top+r.height/2);layoutDragState=null}
+document.addEventListener('pointerdown',layoutPointerDown,true);document.addEventListener('pointermove',layoutPointerMove,{capture:true,passive:false});document.addEventListener('pointerup',layoutPointerUp,true);document.addEventListener('pointercancel',layoutPointerUp,true);applySavedLayout();
+
 function play(){ // cursor joystick camera; pointer lock is deliberately never requested
   initAudio();musicStart();if(done&&!campaignRun)reset();done=false;
   playing=true;ovEl.style.display='none';for(const k in edge)edge[k]=false;
   if(!started){started=true;t0=performance.now()}
   touchUI.style.display=set.touch?'block':'none';
-  mouseFallback=!set.touch;mouseArmed=false;mouseStickX=mouseStickY=0;
+  mouseFallback=!set.touch&&set.cursorCam;mouseArmed=false;mouseStickX=mouseStickY=0;
   mouseAim.style.display=mouseFallback?'block':'none';document.body.classList.toggle('mouse-look',mouseFallback);
   if(mouseFallback)mouseHint.textContent='MOVE CURSOR INTO THE CENTER RING TO ARM CAMERA';
 }
@@ -1649,12 +1669,14 @@ function menu(view,msg){
   if(view==='set'){
     P.innerHTML='<h2>Settings</h2>'+[['sens','Mouse sensitivity',.2,3,.05],['fov','Field of view',60,110,1],['vol','Volume',0,1,.05],['bob','Head bob',0,2,.1],['mus','Music volume',0,1,.05]]
       .map(([k,l,a,b,s])=>`<label>${l}: <output>${set[k]}</output><input type=range data-k="${k}" min=${a} max=${b} step=${s} value=${set[k]}></label>`).join('')+
-      `<label><input type=checkbox id=inv ${set.invY?'checked':''}> Invert Y axis</label><label><input type=checkbox id=bod ${set.body?'checked':''}> Show first-person body</label><label><input type=checkbox id=tch ${set.touch?'checked':''}> Touch controls</label><label><input type=checkbox id=mmc ${set.mm?'checked':''}> Show minimap</label><label><input type=checkbox id=cyc ${set.cycle?'checked':''}> Day / night cycle</label><label><input type=checkbox id=wxc ${set.weather?'checked':''}> Weather</label><label><input type=checkbox id=vis ${set.vision?'checked':''}> Runner vision (highlights your objective)</label><h3>Keybinds</h3><div class=kb>`+
+      `<label><input type=checkbox id=inv ${set.invY?'checked':''}> Invert Y axis</label><label><input type=checkbox id=bod ${set.body?'checked':''}> Show first-person body</label><label><input type=checkbox id=tch ${set.touch?'checked':''}> Touch controls</label><label><input type=checkbox id=curcam ${set.cursorCam?'checked':''}> Cursor-ring camera (no mouse lock)</label><label><input type=checkbox id=mmc ${set.mm?'checked':''}> Show minimap</label><label><input type=checkbox id=cyc ${set.cycle?'checked':''}> Day / night cycle</label><label><input type=checkbox id=wxc ${set.weather?'checked':''}> Weather</label><label><input type=checkbox id=vis ${set.vision?'checked':''}> Runner vision (highlights your objective)</label><button id=editLayout class=alt>Edit mobile buttons &amp; UI layout</button><h3>Keybinds</h3><div class=kb>`+
       ACT.map(([a,l])=>`<span>${l}</span><button class=alt data-a="${a}">${lbl(set.binds[a])}</button>`).join('')+'</div><button id=rst class=alt>Reset keys</button><button id=bk>Back</button>';
     P.querySelectorAll('input[type=range]').forEach(e=>e.oninput=()=>{set[e.dataset.k]=+e.value;e.previousElementSibling.textContent=e.value;if(master)master.gain.value=set.vol;musVol();save()});
     P.querySelector('#inv').onchange=e=>{set.invY=e.target.checked;save()};
     P.querySelector('#bod').onchange=e=>{set.body=e.target.checked;save()};
     P.querySelector('#tch').onchange=e=>{set.touch=e.target.checked;save()};
+    P.querySelector('#curcam').onchange=e=>{set.cursorCam=e.target.checked;save()};
+    P.querySelector('#editLayout').onclick=beginLayoutEdit;
     P.querySelector('#mmc').onchange=e=>{set.mm=e.target.checked;save()};
     P.querySelector('#cyc').onchange=e=>{set.cycle=e.target.checked;save()};
     P.querySelector('#wxc').onchange=e=>{set.weather=e.target.checked;save()};
@@ -1689,8 +1711,9 @@ document.addEventListener('mousemove',e=>{
   mouseStickX=d>dead?dx/d*strength:0;mouseStickY=d>dead?dy/d*strength:0;
 });
 addEventListener('keydown',e=>{
-  if(e.code==='Escape'&&playing){pause();return}
-  if(rebinding){e.preventDefault();if(e.code!=='Escape'){set.binds[rebinding]=e.code;save()}rebinding=null;menu('set');return}
+  if(rebinding){e.preventDefault();if(e.code!=='Escape'||rebinding==='menu'){set.binds[rebinding]=e.code;save()}rebinding=null;menu('set');return}
+  if(playing&&e.code===set.binds.map){e.preventDefault();mapOpenMenu();return}
+  if(playing&&e.code===set.binds.menu){e.preventDefault();pause();return}
   keys[e.code]=true;
   if(e.code==='Space')e.preventDefault();
   if(!e.repeat)for(const[a]of ACT)if(set.binds[a]===e.code)edge[a]=true;
@@ -2045,7 +2068,7 @@ function drawMap(){
 }
 // ---------- interactive Catalyst-style city map ----------
 const mapScreen=document.getElementById('mapScreen'),worldMap=document.getElementById('worldMap'),wmCtx=worldMap.getContext('2d'),mapPlaceTitle=document.getElementById('mapPlaceTitle'),mapPlaceDesc=document.getElementById('mapPlaceDesc'),mapStats=document.getElementById('mapStats'),mapPOIList=document.getElementById('mapPOIList'),mapZoomValue=document.getElementById('mapZoomValue'),mapCoords=document.getElementById('mapCoords'),mapRegion=document.getElementById('mapRegion');
-let mapOpen=false,mapZoom=1,mapCenter={x:0,z:0},mapDrag=null,mapPins=[],mapSelected=null,mapDpr=1,mapPickedPoint=null,mapNavigationTarget=null,mapNavigationPoints=[];
+let mapOpen=false,mapResumePlaying=false,mapZoom=1,mapCenter={x:0,z:0},mapDrag=null,mapPins=[],mapSelected=null,mapDpr=1,mapPickedPoint=null,mapNavigationTarget=null,mapNavigationPoints=[];
 const mapPinColors={player:'#14181b',checkpoint:'#ffa726',trial:'#1fd16b',collectible:'#858c92',courier:'#20bfa8',delivery:'#35ff9a',landmark:'#ff777c',objective:'#e5242b'};
 function mapWorldToScreen(x,z){const scale=Math.min(worldMap.width,worldMap.height)*mapZoom/MW;return {x:worldMap.width/2+(x-mapCenter.x)*scale,z:worldMap.height/2+(z-mapCenter.z)*scale}}
 function mapScreenToWorld(x,y){const scale=Math.min(worldMap.width,worldMap.height)*mapZoom/MW;return {x:mapCenter.x+(x-worldMap.width/2)/scale,z:mapCenter.z+(y-worldMap.height/2)/scale}}
@@ -2091,8 +2114,8 @@ function mapDraw(){
 }
 function mapResize(){const r=worldMap.getBoundingClientRect();mapDpr=Math.min(2,window.devicePixelRatio||1);worldMap.width=Math.max(1,Math.round(r.width*mapDpr));worldMap.height=Math.max(1,Math.round(r.height*mapDpr));wmCtx.setTransform(1,0,0,1,0,0);mapDraw()}
 function mapSelect(pin){mapSelected=pin.id;const b=mapBuildingAt({x:pin.x,z:pin.z});mapPickedPoint={x:b?b.x:pin.x,z:b?b.z:pin.z,name:pin.name,building:!!b};document.getElementById('mapNavigate').disabled=pin.type==='player';mapPlaceTitle.textContent=pin.name;mapPlaceDesc.textContent=pin.desc;mapRegion.textContent=mapRegionAt(pin.x,pin.z);const dist=Math.round(Math.hypot(pin.x-p.x,pin.z-p.z));mapStats.innerHTML='<div class="mapStat"><b>'+dist+' m</b><small>STRAIGHT-LINE DISTANCE</small></div><div class="mapStat"><b>'+mapRegionAt(pin.x,pin.z)+'</b><small>DISTRICT</small></div>';mapDraw()}
-function mapOpenMenu(){if(mapOpen)return;mapOpen=true;document.body.classList.add('map-open');mapScreen.classList.add('open');mapScreen.setAttribute('aria-hidden','false');mapCenter={x:p.x,z:p.z};mapZoom=1;mapPickedPoint=null;buildMapPins();mapResize();mapSelect(mapPins[0]);}
-function mapCloseMenu(){mapOpen=false;document.body.classList.remove('map-open');mapScreen.classList.remove('open');mapScreen.setAttribute('aria-hidden','true');mapDrag=null}
+function mapOpenMenu(){if(mapOpen)return;mapResumePlaying=playing;if(mapResumePlaying){playing=false;for(const k in keys)keys[k]=false;joy.x=joy.y=0;joyId=lookId=null;touchUI.style.display='none';mouseAim.style.display='none';document.body.classList.remove('mouse-look');mouseFallback=false;mouseArmed=false;}mapOpen=true;document.body.classList.add('map-open');mapScreen.classList.add('open');mapScreen.setAttribute('aria-hidden','false');mapCenter={x:p.x,z:p.z};mapZoom=1;mapPickedPoint=null;buildMapPins();mapResize();mapSelect(mapPins[0]);}
+function mapCloseMenu(){mapOpen=false;document.body.classList.remove('map-open');mapScreen.classList.remove('open');mapScreen.setAttribute('aria-hidden','true');mapDrag=null;const resume=mapResumePlaying;mapResumePlaying=false;if(resume)play()}
 function mapZoomAt(factor,x=worldMap.width/2,y=worldMap.height/2){const before=mapScreenToWorld(x,y);mapZoom=Math.max(.35,Math.min(8,mapZoom*factor));const after=mapScreenToWorld(x,y);mapCenter.x+=before.x-after.x;mapCenter.z+=before.z-after.z;mapDraw()}
 mmEl.addEventListener('click',e=>{e.preventDefault();mapOpenMenu()});mmEl.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();mapOpenMenu()}});
 mmEl.setAttribute('tabindex','0');mmEl.setAttribute('role','button');mmEl.setAttribute('aria-label','Open full city map');
@@ -2118,7 +2141,7 @@ function loop(now){
   if(live&&(!dialogueCutscene||(campaignRun&&campaignRun.index===12))){const sub=Math.hypot(v.x,v.z)>16?2:1;for(let q=0;q<sub;q++)step(dt/sub)}campaignActorsTick(dialogueCutscene?0:dt);if(dialogueCutscene){const da=dialogueActorForLine(dialogueCutscene.lines[dialogueCutscene.index]||'')||dialogueCutscene.actor;if(da){da.group.visible=true;dialogueCutscene.actor=da}}deliveryTick(dt); // courier contacts and drop-off route
   if(toastT>0){toastT-=dt;if(toastT<=0)document.getElementById('toast').style.opacity=0}
   const sp=Math.hypot(v.x,v.z);
-  if(mouseFallback&&!set.touch&&mouseArmed){yaw-=mouseStickX*2.1*dt;pitch=Math.max(-1.5,Math.min(1.5,pitch+mouseStickY*1.65*dt*(set.invY?-1:1)))}
+  if(mouseFallback&&!set.touch&&mouseArmed){yaw-=mouseStickX*2.1*dt;pitch=Math.max(-1.5,Math.min(1.5,pitch-mouseStickY*1.65*dt*(set.invY?-1:1)))}
   fov+=((set.fov+Math.min(34,sp*1.2)+(slideT>0?4:0)+(wingOn?10:0))-fov)*Math.min(1,dt*5);C.fov=fov;C.updateProjectionMatrix();
   bob+=sp*dt*((ground||wallrun)?1:0);shake*=1-Math.min(1,dt*9);
   const run2=Math.min(1,sp/9),ph2=bob*STR,stepOn=(ground||wallrun)&&slideT<=0&&rollT<=0;
