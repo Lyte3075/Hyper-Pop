@@ -151,10 +151,11 @@ body.mouse-look,body.mouse-look canvas{cursor:none!important}
 const ACT=[['fwd','Forward'],['back','Back'],['left','Left'],['right','Right'],['jump','Up (jump, kick-off)'],['slide','Down (slide, roll, drop)'],['turn','Extra (quick turn)'],['vision','Runner vision'],['respawn','Respawn'],['interact','Interact (start trial)'],['trialRestart','Restart trial'],['trialEnd','End trial'],['tskip','Skip tutorial step'],['gear','Draw / stow rope'],['rope','Fire / release rope'],['map','Open city map'],['menu','Open pause menu']];
 const DEF={fwd:'KeyW',back:'KeyS',left:'KeyA',right:'KeyD',jump:'Space',slide:'ControlLeft',turn:'KeyQ',vision:'KeyV',respawn:'KeyR',interact:'KeyE',trialRestart:'KeyT',trialEnd:'KeyG',tskip:'KeyN',gear:'KeyF',rope:'KeyX',map:'KeyM',menu:'Escape'};
 const isTouch=(typeof matchMedia==='function'&&matchMedia('(pointer:coarse)').matches)||'ontouchstart' in window;
-let set={sens:1,fov:75,vol:.7,bob:1,invY:false,vision:true,body:true,mm:true,mus:.5,cycle:true,weather:true,gear:{},touch:isTouch,cursorCam:true,layout:{},binds:{...DEF}};
+let set={sens:1,fov:75,vol:.7,bob:1,invY:false,vision:true,body:true,mm:true,mus:.5,cycle:true,weather:true,gear:{},touch:isTouch,cursorCam:false,layout:{},binds:{...DEF}};
 try{const s=JSON.parse(localStorage.getItem('rr_set'));if(s)set={...set,...s,binds:{...DEF,...s.binds}}}catch(e){}
 if(set.gv!==5){set.gear={};set.gv=5}
 const save=()=>{try{localStorage.setItem('rr_set',JSON.stringify(set))}catch(e){}};
+if(set.cursorCamVersion!==1){set.cursorCam=false;set.cursorCamVersion=1;save()}
 const storageOK=(()=>{try{localStorage.setItem('sr_t','1');localStorage.removeItem('sr_t');return true}catch(e){return false}})();
 const MAIN_GEAR_KEYS=['rope','dash','wingsuit','coil','veil'];
 let coilCd=0,veilT=0,veilCd=0;
@@ -2140,7 +2141,7 @@ function loop(now){
   if(live&&(!dialogueCutscene||(campaignRun&&campaignRun.index===12))){const sub=Math.hypot(v.x,v.z)>16?2:1;for(let q=0;q<sub;q++)step(dt/sub)}campaignActorsTick(dialogueCutscene?0:dt);if(dialogueCutscene){const da=dialogueActorForLine(dialogueCutscene.lines[dialogueCutscene.index]||'')||dialogueCutscene.actor;if(da){da.group.visible=true;dialogueCutscene.actor=da}}deliveryTick(dt); // courier contacts and drop-off route
   if(toastT>0){toastT-=dt;if(toastT<=0)document.getElementById('toast').style.opacity=0}
   const sp=Math.hypot(v.x,v.z);
-  if(mouseFallback&&!set.touch&&mouseArmed){yaw-=mouseStickX*2.1*dt;pitch=Math.max(-1.5,Math.min(1.5,pitch+mouseStickY*1.65*dt*(set.invY?-1:1)))}
+  if(mouseFallback&&!set.touch&&mouseArmed){yaw-=mouseStickX*2.1*dt;pitch=Math.max(-1.5,Math.min(1.5,pitch-mouseStickY*1.65*dt*(set.invY?-1:1)))}
   fov+=((set.fov+Math.min(34,sp*1.2)+(slideT>0?4:0)+(wingOn?10:0))-fov)*Math.min(1,dt*5);C.fov=fov;C.updateProjectionMatrix();
   bob+=sp*dt*((ground||wallrun)?1:0);shake*=1-Math.min(1,dt*9);
   const run2=Math.min(1,sp/9),ph2=bob*STR,stepOn=(ground||wallrun)&&slideT<=0&&rollT<=0;
