@@ -140,8 +140,8 @@ body.mouse-look,body.mouse-look canvas{cursor:none!important}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous"></script>
 <script>
 // ---------- settings ----------
-const ACT=[['fwd','Forward'],['back','Back'],['left','Left'],['right','Right'],['jump','Up (jump, kick-off)'],['slide','Down (slide, roll, drop)'],['turn','Extra (quick turn)'],['vision','Runner vision'],['respawn','Respawn'],['interact','Interact (start trial)'],['trialRestart','Restart trial'],['trialEnd','End trial'],['tskip','Skip tutorial step'],['gear','Draw / stow rope'],['rope','Fire / release rope'],['menu','Open pause menu']];
-const DEF={fwd:'KeyW',back:'KeyS',left:'KeyA',right:'KeyD',jump:'Space',slide:'ControlLeft',turn:'KeyQ',vision:'KeyV',respawn:'KeyR',interact:'KeyE',trialRestart:'KeyT',trialEnd:'KeyG',tskip:'KeyN',gear:'KeyF',rope:'KeyX',menu:'Escape'};
+const ACT=[['fwd','Forward'],['back','Back'],['left','Left'],['right','Right'],['jump','Up (jump, kick-off)'],['slide','Down (slide, roll, drop)'],['turn','Extra (quick turn)'],['vision','Runner vision'],['respawn','Respawn'],['interact','Interact (start trial)'],['trialRestart','Restart trial'],['trialEnd','End trial'],['tskip','Skip tutorial step'],['gear','Draw / stow rope'],['rope','Fire / release rope'],['map','Open city map'],['menu','Open pause menu']];
+const DEF={fwd:'KeyW',back:'KeyS',left:'KeyA',right:'KeyD',jump:'Space',slide:'ControlLeft',turn:'KeyQ',vision:'KeyV',respawn:'KeyR',interact:'KeyE',trialRestart:'KeyT',trialEnd:'KeyG',tskip:'KeyN',gear:'KeyF',rope:'KeyX',map:'KeyM',menu:'Escape'};
 const isTouch=(typeof matchMedia==='function'&&matchMedia('(pointer:coarse)').matches)||'ontouchstart' in window;
 let set={sens:1,fov:75,vol:.7,bob:1,invY:false,vision:true,body:true,mm:true,mus:.5,cycle:true,weather:true,gear:{},touch:isTouch,binds:{...DEF}};
 try{const s=JSON.parse(localStorage.getItem('rr_set'));if(s)set={...set,...s,binds:{...DEF,...s.binds}}}catch(e){}
@@ -1690,6 +1690,7 @@ document.addEventListener('mousemove',e=>{
 });
 addEventListener('keydown',e=>{
   if(rebinding){e.preventDefault();if(e.code!=='Escape'||rebinding==='menu'){set.binds[rebinding]=e.code;save()}rebinding=null;menu('set');return}
+  if(playing&&e.code===set.binds.map){e.preventDefault();mapOpenMenu();return}
   if(playing&&e.code===set.binds.menu){e.preventDefault();pause();return}
   keys[e.code]=true;
   if(e.code==='Space')e.preventDefault();
@@ -2045,7 +2046,7 @@ function drawMap(){
 }
 // ---------- interactive Catalyst-style city map ----------
 const mapScreen=document.getElementById('mapScreen'),worldMap=document.getElementById('worldMap'),wmCtx=worldMap.getContext('2d'),mapPlaceTitle=document.getElementById('mapPlaceTitle'),mapPlaceDesc=document.getElementById('mapPlaceDesc'),mapStats=document.getElementById('mapStats'),mapPOIList=document.getElementById('mapPOIList'),mapZoomValue=document.getElementById('mapZoomValue'),mapCoords=document.getElementById('mapCoords'),mapRegion=document.getElementById('mapRegion');
-let mapOpen=false,mapZoom=1,mapCenter={x:0,z:0},mapDrag=null,mapPins=[],mapSelected=null,mapDpr=1,mapPickedPoint=null,mapNavigationTarget=null,mapNavigationPoints=[];
+let mapOpen=false,mapResumePlaying=false,mapZoom=1,mapCenter={x:0,z:0},mapDrag=null,mapPins=[],mapSelected=null,mapDpr=1,mapPickedPoint=null,mapNavigationTarget=null,mapNavigationPoints=[];
 const mapPinColors={player:'#14181b',checkpoint:'#ffa726',trial:'#1fd16b',collectible:'#858c92',courier:'#20bfa8',delivery:'#35ff9a',landmark:'#ff777c',objective:'#e5242b'};
 function mapWorldToScreen(x,z){const scale=Math.min(worldMap.width,worldMap.height)*mapZoom/MW;return {x:worldMap.width/2+(x-mapCenter.x)*scale,z:worldMap.height/2+(z-mapCenter.z)*scale}}
 function mapScreenToWorld(x,y){const scale=Math.min(worldMap.width,worldMap.height)*mapZoom/MW;return {x:mapCenter.x+(x-worldMap.width/2)/scale,z:mapCenter.z+(y-worldMap.height/2)/scale}}
@@ -2091,8 +2092,8 @@ function mapDraw(){
 }
 function mapResize(){const r=worldMap.getBoundingClientRect();mapDpr=Math.min(2,window.devicePixelRatio||1);worldMap.width=Math.max(1,Math.round(r.width*mapDpr));worldMap.height=Math.max(1,Math.round(r.height*mapDpr));wmCtx.setTransform(1,0,0,1,0,0);mapDraw()}
 function mapSelect(pin){mapSelected=pin.id;const b=mapBuildingAt({x:pin.x,z:pin.z});mapPickedPoint={x:b?b.x:pin.x,z:b?b.z:pin.z,name:pin.name,building:!!b};document.getElementById('mapNavigate').disabled=pin.type==='player';mapPlaceTitle.textContent=pin.name;mapPlaceDesc.textContent=pin.desc;mapRegion.textContent=mapRegionAt(pin.x,pin.z);const dist=Math.round(Math.hypot(pin.x-p.x,pin.z-p.z));mapStats.innerHTML='<div class="mapStat"><b>'+dist+' m</b><small>STRAIGHT-LINE DISTANCE</small></div><div class="mapStat"><b>'+mapRegionAt(pin.x,pin.z)+'</b><small>DISTRICT</small></div>';mapDraw()}
-function mapOpenMenu(){if(mapOpen)return;mapOpen=true;document.body.classList.add('map-open');mapScreen.classList.add('open');mapScreen.setAttribute('aria-hidden','false');mapCenter={x:p.x,z:p.z};mapZoom=1;mapPickedPoint=null;buildMapPins();mapResize();mapSelect(mapPins[0]);}
-function mapCloseMenu(){mapOpen=false;document.body.classList.remove('map-open');mapScreen.classList.remove('open');mapScreen.setAttribute('aria-hidden','true');mapDrag=null}
+function mapOpenMenu(){if(mapOpen)return;mapResumePlaying=playing;if(mapResumePlaying){playing=false;for(const k in keys)keys[k]=false;joy.x=joy.y=0;joyId=lookId=null;touchUI.style.display='none';mouseAim.style.display='none';document.body.classList.remove('mouse-look');mouseFallback=false;mouseArmed=false;}mapOpen=true;document.body.classList.add('map-open');mapScreen.classList.add('open');mapScreen.setAttribute('aria-hidden','false');mapCenter={x:p.x,z:p.z};mapZoom=1;mapPickedPoint=null;buildMapPins();mapResize();mapSelect(mapPins[0]);}
+function mapCloseMenu(){mapOpen=false;document.body.classList.remove('map-open');mapScreen.classList.remove('open');mapScreen.setAttribute('aria-hidden','true');mapDrag=null;const resume=mapResumePlaying;mapResumePlaying=false;if(resume)play()}
 function mapZoomAt(factor,x=worldMap.width/2,y=worldMap.height/2){const before=mapScreenToWorld(x,y);mapZoom=Math.max(.35,Math.min(8,mapZoom*factor));const after=mapScreenToWorld(x,y);mapCenter.x+=before.x-after.x;mapCenter.z+=before.z-after.z;mapDraw()}
 mmEl.addEventListener('click',e=>{e.preventDefault();mapOpenMenu()});mmEl.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();mapOpenMenu()}});
 mmEl.setAttribute('tabindex','0');mmEl.setAttribute('role','button');mmEl.setAttribute('aria-label','Open full city map');
