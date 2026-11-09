@@ -140,8 +140,8 @@ body.mouse-look,body.mouse-look canvas{cursor:none!important}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous"></script>
 <script>
 // ---------- settings ----------
-const ACT=[['fwd','Forward'],['back','Back'],['left','Left'],['right','Right'],['jump','Up (jump, kick-off)'],['slide','Down (slide, roll, drop)'],['turn','Extra (quick turn)'],['vision','Runner vision'],['respawn','Respawn'],['interact','Interact (start trial)'],['trialRestart','Restart trial'],['trialEnd','End trial'],['tskip','Skip tutorial step'],['gear','Draw / stow rope'],['rope','Fire / release rope']];
-const DEF={fwd:'KeyW',back:'KeyS',left:'KeyA',right:'KeyD',jump:'Space',slide:'ControlLeft',turn:'KeyQ',vision:'KeyV',respawn:'KeyR',interact:'KeyE',trialRestart:'KeyT',trialEnd:'KeyG',tskip:'KeyN',gear:'KeyF',rope:'KeyX'};
+const ACT=[['fwd','Forward'],['back','Back'],['left','Left'],['right','Right'],['jump','Up (jump, kick-off)'],['slide','Down (slide, roll, drop)'],['turn','Extra (quick turn)'],['vision','Runner vision'],['respawn','Respawn'],['interact','Interact (start trial)'],['trialRestart','Restart trial'],['trialEnd','End trial'],['tskip','Skip tutorial step'],['gear','Draw / stow rope'],['rope','Fire / release rope'],['menu','Open pause menu']];
+const DEF={fwd:'KeyW',back:'KeyS',left:'KeyA',right:'KeyD',jump:'Space',slide:'ControlLeft',turn:'KeyQ',vision:'KeyV',respawn:'KeyR',interact:'KeyE',trialRestart:'KeyT',trialEnd:'KeyG',tskip:'KeyN',gear:'KeyF',rope:'KeyX',menu:'Escape'};
 const isTouch=(typeof matchMedia==='function'&&matchMedia('(pointer:coarse)').matches)||'ontouchstart' in window;
 let set={sens:1,fov:75,vol:.7,bob:1,invY:false,vision:true,body:true,mm:true,mus:.5,cycle:true,weather:true,gear:{},touch:isTouch,binds:{...DEF}};
 try{const s=JSON.parse(localStorage.getItem('rr_set'));if(s)set={...set,...s,binds:{...DEF,...s.binds}}}catch(e){}
@@ -1689,8 +1689,8 @@ document.addEventListener('mousemove',e=>{
   mouseStickX=d>dead?dx/d*strength:0;mouseStickY=d>dead?dy/d*strength:0;
 });
 addEventListener('keydown',e=>{
-  if(e.code==='Escape'&&playing){pause();return}
-  if(rebinding){e.preventDefault();if(e.code!=='Escape'){set.binds[rebinding]=e.code;save()}rebinding=null;menu('set');return}
+  if(rebinding){e.preventDefault();if(e.code!=='Escape'||rebinding==='menu'){set.binds[rebinding]=e.code;save()}rebinding=null;menu('set');return}
+  if(playing&&e.code===set.binds.menu){e.preventDefault();pause();return}
   keys[e.code]=true;
   if(e.code==='Space')e.preventDefault();
   if(!e.repeat)for(const[a]of ACT)if(set.binds[a]===e.code)edge[a]=true;
