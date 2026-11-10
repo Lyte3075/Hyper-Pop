@@ -59,7 +59,7 @@ TIP: /js is the universal cheat and can be used for game-specific cheats too.`;
 
 //Link/Page Commands
 if(cmd==='/astra'){location.href='dragonx-astra/logo.svg';return}
-if(cmd==='/geography-lessons'){location.href='geography-lessons/index.html';return}
+if(cmd==='/geography-lessons'){location.href='gl/index.html';return}
 if(cmd==='/gust'){location.href='GUST/index.html';return}
 if(cmd==='/helios'){location.href='Helios/index.html';return}
 if(cmd==='/ugum'){location.href='ugum/index.html';return}
