@@ -306,12 +306,12 @@ function wantDist(){ // each district has its own playlist; the training tower h
   const i=Math.max(0,Math.min(N-1,Math.floor((p.x+N*BP/2)/BP))),j=Math.max(0,Math.min(N-1,Math.floor((p.z+N*BP/2)/BP))),c=bl[i][j];return c&&c.dst!==undefined?c.dst:0;
 }
 let chaseMusicMode=false;
-const chaseAlert=document.createElement('div');chaseAlert.id='chaseAlert';chaseAlert.textContent='AETHER PURSUIT · RUN';chaseAlert.style.cssText='position:fixed;z-index:12;top:calc(1rem + var(--st));left:50%;transform:translateX(-50%) translateY(-12px);padding:.65rem 1.2rem;border:1px solid rgba(255,90,100,.8);background:rgba(48,5,12,.88);color:#fff;font:900 .78rem system-ui,sans-serif;letter-spacing:.2em;text-align:center;box-shadow:0 0 2rem rgba(255,25,45,.35);opacity:0;pointer-events:none;transition:opacity .35s,transform .35s';document.body.appendChild(chaseAlert);
+const chaseAlert=document.createElement('div');chaseAlert.id='chaseAlert';chaseAlert.textContent='AETHER PURSUIT · RUN';chaseAlert.style.cssText='position:fixed;z-index:12;top:calc(3.8rem + var(--st));right:calc(1rem + var(--sr));left:auto;transform:translateY(-12px);width:max-content;max-width:min(46vw,22rem);box-sizing:border-box;padding:.6rem .85rem;border:1px solid rgba(255,90,100,.8);background:rgba(48,5,12,.88);color:#fff;font:900 .72rem system-ui,sans-serif;letter-spacing:.14em;text-align:center;box-shadow:0 0 2rem rgba(255,25,45,.35);opacity:0;pointer-events:none;transition:opacity .35s,transform .35s';document.body.appendChild(chaseAlert);
 function musicTick(dt,sp){
   if(!AC||!mLay)return;
   const chaseActive=!!(campaignRun&&CAMPAIGN[campaignRun.index]?.chase);
-  if(chaseActive&&!chaseMusicMode){chaseMusicMode=true;mTrk=2;mStep=0;mNext=AC.currentTime+.05;mSwap=false;mFade=0;mInt=1;mCap=1;chaseAlert.style.opacity='1';chaseAlert.style.transform='translateX(-50%) translateY(0)';tone(92,.45,'sawtooth',.12,48);puff(900,.32,.16);toast('AETHER PURSUIT · RUNNER DETECTED')}
-  else if(!chaseActive&&chaseMusicMode){chaseMusicMode=false;chaseAlert.style.opacity='0';chaseAlert.style.transform='translateX(-50%) translateY(-12px)';mInt=Math.max(.25,mInt);mSwitchT=0}
+  if(chaseActive&&!chaseMusicMode){chaseMusicMode=true;mTrk=2;mStep=0;mNext=AC.currentTime+.05;mSwap=false;mFade=0;mInt=1;mCap=1;chaseAlert.style.opacity='1';chaseAlert.style.transform='translateY(0)';tone(92,.45,'sawtooth',.12,48);puff(900,.32,.16);toast('AETHER PURSUIT · RUNNER DETECTED')}
+  else if(!chaseActive&&chaseMusicMode){chaseMusicMode=false;chaseAlert.style.opacity='0';chaseAlert.style.transform='translateY(-12px)';mInt=Math.max(.25,mInt);mSwitchT=0}
   const T0=MT[mTrk],tg=chaseActive?1:(playing?Math.max(0,Math.min(1,(sp-3.5)/11)):0);mInt+=(tg-mInt)*Math.min(1,dt*(tg>mInt?2.8:.35)); // chase locks the soundtrack at full intensity
   if(chaseActive)mCap=1;else mCap+=(mCapFor(Math.floor(mStep/64),songBlocks(T0))-mCap)*Math.min(1,dt*.8);
   const I=mInt*mCap,t=AC.currentTime,sm=(a,b)=>Math.max(0,Math.min(1,(I-a)/(b-a)));
