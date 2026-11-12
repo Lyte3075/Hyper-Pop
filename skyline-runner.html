@@ -1585,19 +1585,33 @@ function layoutPointerMove(e){if(!layoutEditing||!layoutDragState)return;e.preve
 function layoutPointerUp(e){if(!layoutDragState)return;const d=layoutDragState;const r=d.el.getBoundingClientRect();saveLayoutPosition(d.id,r.left+r.width/2,r.top+r.height/2);layoutDragState=null}
 document.addEventListener('pointerdown',layoutPointerDown,true);document.addEventListener('pointermove',layoutPointerMove,{capture:true,passive:false});document.addEventListener('pointerup',layoutPointerUp,true);document.addEventListener('pointercancel',layoutPointerUp,true);applySavedLayout();
 
-function play(){ // cursor joystick camera; pointer lock is deliberately never requested
+function requestGamePointerLock(){
+  if(!playing||set.touch||set.cursorCam)return;
+  const target=R.domElement;
+  if(!target||!target.requestPointerLock){toast('Pointer Lock is unavailable in this browser');return}
+  try{const result=target.requestPointerLock();if(result&&typeof result.catch==='function')result.catch(()=>toast('Click the game view to capture the mouse'))}catch(e){toast('Click the game view to capture the mouse')}
+}
+document.addEventListener('pointerlockchange',()=>{
+  locked=document.pointerLockElement===R.domElement;
+  if(locked){mouseHint.textContent='MOUSE LOCKED · MOVE TO LOOK';mouseAim.style.display='none'}
+  else if(playing&&!set.touch&&!set.cursorCam){mouseHint.textContent='CLICK THE GAME TO LOCK THE MOUSE';}
+});
+document.addEventListener('pointerlockerror',()=>{locked=false;toast('Mouse lock failed. Click the game view to retry.')});
+R.domElement.addEventListener('click',()=>{if(playing&&!set.touch&&!set.cursorCam&&!locked)requestGamePointerLock()});
+function play(){
   initAudio();musicStart();if(done&&!campaignRun)reset();done=false;
   playing=true;ovEl.style.display='none';for(const k in edge)edge[k]=false;
   if(!started){started=true;t0=performance.now()}
   touchUI.style.display=set.touch?'block':'none';
   mouseFallback=!set.touch&&set.cursorCam;mouseArmed=false;mouseStickX=mouseStickY=0;
   mouseAim.style.display=mouseFallback?'block':'none';document.body.classList.toggle('mouse-look',mouseFallback);
-  if(mouseFallback)mouseHint.textContent='MOVE CURSOR INTO THE CENTER RING TO ARM CAMERA';
+  if(mouseFallback){if(document.pointerLockElement)document.exitPointerLock();locked=false;mouseHint.textContent='MOVE CURSOR INTO THE CENTER RING TO ARM CAMERA'}
+  else if(!set.touch)requestGamePointerLock();
 }
 function restartTrial(){if(!trial)return;trial.i=1;trial.t0=performance.now();p.copy(trial.t.pts[0]);v.set(0,0,0);mom=0;respawn.copy(trial.t.pts[0])}
 function endTrial(){if(!trial)return;trial=null;trialCool=1.5;respawn.copy(start)}
 function pause(){
-  playing=false;locked=false;mouseFallback=false;mouseArmed=false;mouseStickX=mouseStickY=0;mouseAim.style.display='none';document.body.classList.remove('mouse-look');
+  playing=false;if(document.pointerLockElement===R.domElement)document.exitPointerLock();locked=false;mouseFallback=false;mouseArmed=false;mouseStickX=mouseStickY=0;mouseAim.style.display='none';document.body.classList.remove('mouse-look');
   for(const k in keys)keys[k]=false;joy.x=joy.y=0;joyId=lookId=null;touchUI.style.display='none';menu('main');
 }
 const openGearAddons=new Set();
@@ -1703,7 +1717,9 @@ function menu(view,msg){
 playing=false;ovEl.style.display='flex';touchUI.style.display='none';mouseAim.style.display='none';document.body.classList.remove('mouse-look');
 menu('main');
 document.addEventListener('mousemove',e=>{
-  if(!playing||!mouseFallback||set.touch)return;
+  if(!playing||set.touch)return;
+  if(locked&&!set.cursorCam){yaw-=e.movementX*.0025*set.sens;pitch=Math.max(-1.5,Math.min(1.5,pitch-e.movementY*.0025*set.sens*(set.invY?-1:1)));return}
+  if(!mouseFallback)return;
   mouseDot.style.left=e.clientX+'px';mouseDot.style.top=e.clientY+'px';
   const dx=e.clientX-innerWidth/2,dy=e.clientY-innerHeight/2,d=Math.hypot(dx,dy),dead=42,max=Math.max(150,Math.min(innerWidth,innerHeight)*.38);
   if(!mouseArmed){if(d<=dead){mouseArmed=true;mouseHint.textContent='CAMERA READY · MOVE OUTSIDE THE RING TO LOOK'}else{mouseStickX=mouseStickY=0;return}}
