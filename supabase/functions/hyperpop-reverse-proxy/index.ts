@@ -91,7 +91,8 @@ function isPrivateIPv6(value: string) {
   const ip = value.toLowerCase().split("%")[0];
   return ip === "::" || ip === "::1" || ip.startsWith("fc") || ip.startsWith("fd") ||
     /^fe[89ab]/.test(ip) || ip.startsWith("ff") || ip.startsWith("2001:db8:") ||
-    ip.startsWith("::ffff:");
+    /^2001:[0-7]:/.test(ip) || ip.startsWith("2002:") || ip.startsWith("3fff:") ||
+    ip.startsWith("64:ff9b:") || ip.startsWith("100:") || ip.startsWith("::ffff:");
 }
 
 function validateHostname(hostname: string) {
