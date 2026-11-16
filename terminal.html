@@ -58,7 +58,7 @@ button{font:inherit;color:var(--fg);background:#101010;border:1px solid #333;bor
 'use strict';
 const screen=document.getElementById('screen'),form=document.getElementById('form'),input=document.getElementById('input'),cwdLabel=document.getElementById('cwd'),state=document.getElementById('state');
 const editor=document.getElementById('editor'),editorText=document.getElementById('editorText'),editorTitle=document.getElementById('editorTitle'),editorStatus=document.getElementById('editorStatus'),editorGutter=document.getElementById('editorGutter'),editorSaveButton=document.getElementById('editorSave');
-let editorPath=null,editorOriginal='',root=null,cwd=['home','guest'],history=[],historyIndex=0;const envVars={HOME:'/home/guest',USER:'guest',SHELL:'/bin/hp-sh',TERM:'xterm-hp',PATH:'/bin:/usr/bin'};const startedAt=Date.now();
+let editorPath=null,editorOriginal='',root=null,cwd=['home','guest'],history=[],historyIndex=0,terminalInputResolver=null;const envVars={HOME:'/home/guest',USER:'guest',SHELL:'/bin/hp-sh',TERM:'xterm-hp',PATH:'/bin:/usr/bin'};const startedAt=Date.now();
 const HOME=['home','guest'];
 function line(text='',kind=''){const el=document.createElement('div');el.className='line '+kind;el.textContent=String(text);screen.appendChild(el);screen.scrollTop=screen.scrollHeight}
 function status(text,kind){state.textContent=text;state.className=kind||''}
@@ -129,16 +129,220 @@ function calc(expression){let s=expression.replace(/\s+/g,'');let i=0;function a
 // JavaScript and Python runtimes
 let pyodidePromise=null;
 const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
+function terminalInput(promptText=''){return new Promise(resolve=>{if(terminalInputResolver)throw Error('Terminal input is already being requested.');if(promptText)line(promptText,'dim');terminalInputResolver=resolve;cwdLabel.textContent='input';document.querySelector('.prompt').textContent='>';input.placeholder='type your answer and press enter';status('WAITING FOR INPUT','warn');input.focus()})}
+function finishTerminalInput(value){terminalInputResolver=null;document.querySelector('.prompt').textContent='
+async function loadPyodideRuntime(){
+ if(pyodidePromise)return pyodidePromise;
+ pyodidePromise=(async()=>{
+  const versions=['314.0.8','0.29.5','0.27.7'];
+  let lastError=null;
+  for(const version of versions){
+   const base='https://cdn.jsdelivr.net/pyodide/v'+version+'/full/';
+   try{
+    if(!window.loadPyodide){
+     await new Promise((resolve,reject)=>{
+      const script=document.createElement('script');
+      script.src=base+'pyodide.js';
+      script.onload=()=>resolve();
+      script.onerror=()=>reject(Error('Could not download '+script.src+' (network, content blocker, or CDN error).'));
+      document.head.appendChild(script);
+     });
+    }
+    const py=await window.loadPyodide({indexURL:base});
+    return py;
+   }catch(e){lastError=e;window.loadPyodide=undefined;}
+  }
+  throw Error('All Pyodide CDN versions failed. Last error: '+(lastError?.message||String(lastError)));
+ })();
+ try{return await pyodidePromise}catch(e){pyodidePromise=null;throw e}
+}
+async function executePython(source,label){
+ line('Loading Python WebAssembly runtime…','dim');
+ try{
+  const py=await loadPyodideRuntime();
+  py.setStdout({batched:x=>line(x)});
+  py.setStderr({batched:x=>line(x,'err')});
+  py.globals.set('terminal_input',async promptText=>await terminalInput(String(promptText||'')));
+  try{await py.runPythonAsync(source)}catch(e){line('Python error: '+e.message,'err')}
+  line((label||'Python')+' finished.','ok');
+ }catch(e){line('Python runtime unavailable: '+e.message,'err')}
+}
+async function previewHtml(path){
+ const source=await readFile(path),blob=new Blob([source],{type:'text/html'}),url=URL.createObjectURL(blob);
+ const tab=window.open(url,'_blank','noopener');
+ if(!tab){URL.revokeObjectURL(url);throw Error('Pop-up blocked. Allow pop-ups for this site and try again.')}
+ line('Opened HTML preview in a new tab.','ok');
+ setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+
+function bytesToBase64(textValue){const bytes=new TextEncoder().encode(textValue);let binary='';bytes.forEach(b=>binary+=String.fromCharCode(b));return btoa(binary)}
+function base64ToText(value){const binary=atob(value),bytes=Uint8Array.from(binary,c=>c.charCodeAt(0));return new TextDecoder().decode(bytes)}
+
+async function tree(parts,depth,prefix){if(depth>5)return;const d=await directory(parts,false),items=[];for await(const [name,h] of d.entries())items.push({name,dir:h.kind==='directory'});items.sort((a,b)=>Number(b.dir)-Number(a.dir)||a.name.localeCompare(b.name));for(let i=0;i<items.length;i++){const x=items[i],last=i===items.length-1;line(prefix+(last?'└── ':'├── ')+x.name+(x.dir?'/':''));if(x.dir)await tree(parts.concat(x.name),depth+1,prefix+(last?'    ':'│   '))}}
+async function run(raw){const args=tokenize(raw),cmd=(args.shift()||'').toLowerCase(),arg=args[0];if(!cmd)return;
+line((cwd.length===2?'~':pathString(cwd))+' $ '+raw,'cmd');
+try{
+switch(cmd){
+case 'help':case '?':
+line('HYPER-POP TERMINAL / HP-SH 0.3','ok');
+line('Browser-local shell environment. Not a full Linux or iOS shell.','dim');
+line('');
+line('FILESYSTEM');
+line('  pwd                         Show current directory');
+line('  ls [path]                   List files and folders');
+line('  cd [path]                   Change directory');
+line('  mkdir [-p] <name>           Create a folder');
+line('  touch <file>                Create an empty file');
+line('  cat <file>                  Print a text file');
+line('  nano <file>                 Open the interactive text editor');
+line('  write <file> <text>         Replace a file with text');
+line('  append <file> <text>        Add text to a file');
+line('  rm [-r] <path>              Delete a file or folder');
+line('  rmdir <folder>              Delete an empty folder');
+line('  tree [path]                 Show a directory tree');
+line('  download <file>             Download a copy of a file');
+line('  cp [-r] <src> <dest>        Copy a file or folder');
+line('  mv [-r] <src> <dest>        Move or rename a file or folder');
+line('  find [path] [name]          Find matching files and folders');
+line('  stat <path>                 Show file or folder information');
+line('  du [path]                   Show stored file size');
+line('  head <file> [n]             Print first n lines');
+line('  tail <file> [n]             Print last n lines');
+line('  wc <file>                   Count lines, words and bytes');
+line('  grep <text> <file>          Search lines in a text file');
+line('  sort <file>                 Sort lines');
+line('  uniq <file>                 Remove adjacent duplicate lines');
+line('  rev <text>                  Reverse text');
+line('  nl <file>                   Number lines');
+line('  base64 <text>               Encode text as Base64');
+line('  unbase64 <data>             Decode Base64 text');
+line('  seq <end> or <start> <end>  Print a number sequence');
+line('  calc <expression>           Calculate arithmetic');
+line('  js <code|file.js>            Run JavaScript code or a script file (await input() for answers)');
+line('  run <file.js>               Execute a JavaScript file');
+line('  python [file.py|-c code]    Run Python (await terminal_input() for answers)');
+line('  pip install <package>       Install a Python package (Pyodide-compatible)');
+line('  preview <file.html>         Preview a saved HTML file');
+line('  node / npm                  Node.js needs cross-origin isolation headers');
+line('  upload                      Import a file you select');
+line('  open <https-url>            Open a web address');
+line('  export [name=value]         List or set session variables');
+line('  env                         List session variables');
+line('  unset <name>                Remove a session variable');
+line('  which <command>             Locate a built-in command');
+line('  man <command>               Show command help');
+line('  hostname, id, uptime, free  Show runtime information');
+line('  version, about              Show terminal details');
+line('');
+line('SHELL');
+line('  echo <text>                 Print text');
+line('  clear                       Clear the screen');
+line('  history                     Show command history');
+line('  date                        Show local date and time');
+line('  whoami                      Show local user');
+line('  uname                       Show runtime information');
+line('  storage                     Show OPFS availability');
+line('  js, run, python, pip        JavaScript and Python runtimes');
+line('  preview                     Preview saved HTML');
+line('  help                        Show this help');
+line('  exit                        Return to Hyper-Pop');
+line('');
+line('TIP: Use quotes for names or text containing spaces.','dim');break;
+case 'pwd':line(pathString(cwd),'ok');break;
+case 'ls':await list(arg?resolve(arg):cwd);break;
+case 'cd':{const next=resolve(arg||'~');await directory(next,false);cwd=next;updatePrompt();}break;
+case 'mkdir':{const p=args[0]==='-p'?args[1]:arg;if(!p)throw Error('Usage: mkdir [-p] <name>');await directory(resolve(p),true);line('Created directory: '+p,'ok')}break;
+case 'touch':if(!arg)throw Error('Usage: touch <file>');await writeFile(resolve(arg),'',true);line('Created file: '+arg,'ok');break;
+case 'cat':if(!arg)throw Error('Usage: cat <file>');line(await readFile(resolve(arg)));break;
+case 'nano':await openEditor(arg);break;
+case 'write':if(!arg||args.length<2)throw Error('Usage: write <file> <text>');{const file=resolve(arg);await writeFile(file,args.slice(1).join(' '),false);line('Wrote '+arg,'ok')}break;
+case 'append':if(!arg||args.length<2)throw Error('Usage: append <file> <text>');{const file=resolve(arg);await writeFile(file,args.slice(1).join(' '),true);line('Appended to '+arg,'ok')}break;
+case 'rm':{const recursive=args[0]==='-r'||args[0]==='-rf'||args[0]==='-fr',force=args[0]==='-f'||args[0]==='-rf'||args[0]==='-fr',target=recursive||force?args[1]:arg;if(!target)throw Error('Usage: rm [-r] <file-or-folder>');try{const [p,n]=await parentAndName(resolve(target));await p.removeEntry(n,{recursive})}catch(e){if(!force)throw e}line('Removed: '+target,'ok')}break;
+case 'rmdir':if(!arg)throw Error('Usage: rmdir <folder>');{const [p,n]=await parentAndName(resolve(arg));await p.removeEntry(n);line('Deleted empty directory: '+arg,'ok')}break;
+case 'tree':await tree(arg?resolve(arg):cwd,0,'');break;
+case 'echo':line(args.join(' '));break;
+case 'clear':screen.textContent='';break;
+case 'history':history.forEach((x,i)=>line((i+1)+'  '+x,'dim'));break;
+case 'date':line(new Date().toString());break;
+case 'whoami':line('guest','ok');break;
+case 'uname':line('Hyper-Pop Browser Runtime / JavaScript / OPFS');break;
+case 'storage':line('Origin Private File System: '+(root?'available':'unavailable'),root?'ok':'err');line('Storage is private to this browser profile and this website origin.','dim');break;
+case 'download':if(!arg)throw Error('Usage: download <file>');{const blob=new Blob([await readFile(resolve(arg))],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=resolve(arg).pop();a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);line('Download started: '+arg,'ok')}break;
+case 'cp':case 'mv':{const recursive=args[0]==='-r'||args[0]==='-R',offset=recursive?1:0;if(args.length<offset+2)throw Error('Usage: '+cmd+' [-r] <source> <destination>');const src=resolve(args[offset]),dst=resolve(args[offset+1]);if(pathString(src)===pathString(dst)||pathString(dst).startsWith(pathString(src)+'/'))throw Error('Invalid source/destination relationship.');let isDir=false;try{await directory(src,false);isDir=true}catch(_){}if(isDir){if(!recursive)throw Error('Use '+cmd+' -r for directories.');await copyDirectory(src,dst)}else{const data=await readFile(src);await writeFile(dst,data,false)}if(cmd==='mv'){const [p,n]=await parentAndName(src);await p.removeEntry(n,{recursive:isDir})}line((cmd==='cp'?'Copied ':'Moved ')+args[offset]+' → '+args[offset+1],'ok')}break;
+case 'find':{const base=arg?resolve(arg):cwd,needle=(args[1]||'').toLowerCase();let found=0;async function walk(p){const d=await directory(p,false);for await(const [name,h] of d.entries()){const full=pathString(p.concat(name));if(!needle||name.toLowerCase().includes(needle)){line(full+(h.kind==='directory'?'/':''));found++}if(h.kind==='directory')await walk(p.concat(name))}}await walk(base);if(!found)line('No matches.','dim')}break;
+case 'stat':{if(!arg)throw Error('Usage: stat <path>');const p=resolve(arg);try{const d=await directory(p,false);let count=0;for await(const _ of d.entries())count++;line('Directory: '+pathString(p));line('Entries: '+count)}catch(_){const f=await readFile(p);line('File: '+pathString(p));line('Size: '+new TextEncoder().encode(f).length+' bytes');line('Lines: '+(f?f.split('\n').length:0))}}break;
+case 'du':{const p=resolve(arg||'.');let n;try{n=await countBytes(p)}catch(_){n=new TextEncoder().encode(await readFile(p)).length}line(formatSize(n)+'  '+pathString(p),'ok')}break;
+case 'head':case 'tail':{if(!arg)throw Error('Usage: '+cmd+' <file> [lines]');const rows=(await readFile(resolve(arg))).split('\n'),n=Math.max(1,Math.min(500,Number(args[1])||10));(cmd==='head'?rows.slice(0,n):rows.slice(-n)).forEach(x=>line(x))}break;
+case 'wc':{if(!arg)throw Error('Usage: wc <file>');const s=await readFile(resolve(arg));line(s.split('\n').length+' lines  '+(s.trim()?s.trim().split(/\s+/).length:0)+' words  '+new TextEncoder().encode(s).length+' bytes')}break;
+case 'grep':{if(args.length<2)throw Error('Usage: grep <text> <file>');const needle=args[0].toLowerCase(),rows=(await readFile(resolve(args[1]))).split('\n');let n=0;rows.forEach((x,i)=>{if(x.toLowerCase().includes(needle)){line((i+1)+': '+x);n++}});if(!n)line('No matches.','dim')}break;
+case 'sort':case 'uniq':case 'nl':{if(!arg)throw Error('Usage: '+cmd+' <file>');let rows=(await readFile(resolve(arg))).split('\n');if(cmd==='sort')rows.sort((a,b)=>a.localeCompare(b));if(cmd==='uniq')rows=rows.filter((x,i)=>i===0||x!==rows[i-1]);if(cmd==='nl')rows=rows.map((x,i)=>String(i+1).padStart(4)+'  '+x);rows.forEach(x=>line(x))}break;
+case 'rev':line(args.join(' ').split('').reverse().join(''));break;
+case 'base64':line(bytesToBase64(args.join(' ')),'ok');break;
+case 'unbase64':line(base64ToText(args.join(' ')));break;
+case 'seq':{if(!arg)throw Error('Usage: seq <end> or seq <start> <end>');const a=args.length>1?Number(args[0]):1,b=Number(args[args.length-1]);if(!Number.isInteger(a)||!Number.isInteger(b)||Math.abs(b-a)>1000)throw Error('Sequence must be integers with at most 1001 values.');for(let n=a;n<=b;n++)line(n)}break;
+case 'calc':if(!args.length)throw Error('Usage: calc <expression>');line(String(calc(args.join(' '))),'ok');break;
+case 'js':{
+ const source=raw.slice(raw.indexOf(' ')+1).trim();
+ if(!source){line('Usage: js <code>  |  js <file.js>','dim');line('Example: js console.log("Hello from JavaScript")');break}
+ if(/^(['"]).*\\1$/.test(source)&&source[0]===source[source.length-1]){await executeJavaScript(source.slice(1,-1),'JavaScript')}
+ else if(source.toLowerCase().endsWith('.js')&&!/[();{}=]/.test(source)){await executeJavaScript(await readFile(resolve(source)),source)}
+ else await executeJavaScript(source,'JavaScript');
+ break;
+}
+case 'run':if(!arg)throw Error('Usage: run <file.js>');if(!arg.toLowerCase().endsWith('.js'))throw Error('The run command currently executes .js files.');await executeJavaScript(await readFile(resolve(arg)),arg);break;
+case 'python':case 'py':if(!arg){line('Usage: python <file.py>  |  python -c <code>','dim');line('Example: python -c print(2 ** 10)');break}else if(arg==='-c'){if(args.length<2)throw Error('Usage: python -c <code>');await executePython((()=>{let code=raw.slice(raw.indexOf('-c')+2).trim();if((code[0]==='"'&&code.at(-1)==='"')||(code[0]==="'"&&code.at(-1)==="'"))code=code.slice(1,-1);return code})(),'Python command')}else await executePython(await readFile(resolve(arg)),arg);break;
+case 'pip':if(args[0]!=='install'||!args[1])throw Error('Usage: pip install <package>');{const py=await loadPyodideRuntime();line('Installing '+args[1]+'…','dim');await py.loadPackage('micropip');await py.runPythonAsync("import micropip\\nawait micropip.install("+JSON.stringify(args[1])+")");line('Installed '+args[1]+' (if compatible with Pyodide).','ok')}break;
+case 'preview':if(!arg||!arg.toLowerCase().endsWith('.html'))throw Error('Usage: preview <file.html>');await previewHtml(resolve(arg));break;
+case 'node':case 'npm':line(cmd.toUpperCase()+' is not available in this GitHub Pages environment. Full Node.js/WebContainers requires cross-origin isolation headers (COOP/COEP), which this static host does not currently configure.','warn');line('JavaScript files can be run with: run <file.js>','dim');break;
+case 'upload':{const picker=document.createElement('input');picker.type='file';picker.multiple=true;picker.onchange=async()=>{for(const f of picker.files){const dest=cwd.concat(f.name);await writeFile(dest,await f.text(),false);line('Imported '+f.name+' ('+formatSize(f.size)+')','ok')}};picker.click()}break;
+case 'open':{if(!arg)throw Error('Usage: open <https-url>');const u=new URL(arg,location.href);if(u.protocol!=='https:')throw Error('Only HTTPS addresses can be opened.');window.open(u.href,'_blank','noopener')}break;
+case 'export':if(!arg)Object.keys(envVars).sort().forEach(k=>line(k+'='+envVars[k]));else{const m=raw.slice(raw.indexOf(' ')+1).match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);if(!m)throw Error('Usage: export NAME=value');envVars[m[1]]=m[2];line(m[1]+' exported','ok')}break;
+case 'env':Object.keys(envVars).sort().forEach(k=>line(k+'='+envVars[k]));break;
+case 'unset':if(!arg)throw Error('Usage: unset <name>');delete envVars[arg];line('Unset '+arg,'ok');break;
+case 'which':if(!arg)throw Error('Usage: which <command>');line(['js','run','python','py','pip','preview','node','npm','help','pwd','ls','cd','mkdir','touch','cat','nano','write','append','rm','rmdir','tree','echo','clear','history','date','whoami','uname','storage','download','cp','mv','find','stat','du','head','tail','wc','grep','sort','uniq','rev','nl','base64','unbase64','seq','calc','upload','open','export','env','unset','which','man','hostname','id','uptime','free','version','about','exit'].includes(arg)?'/bin/'+arg:'not found',arg? 'ok':'');break;
+case 'man':line('Built-in command: '+(arg||'help'));line('Use help for the command index. Most file commands accept absolute or relative paths.');break;
+case 'hostname':line('hyper-pop-browser');break;
+case 'id':line('uid=1000(guest) gid=1000(guest) groups=1000(guest)');break;
+case 'uptime':line('Session uptime: '+Math.floor((Date.now()-startedAt)/1000)+' seconds');break;
+case 'free':line('Browser-managed memory is not fully exposed to web pages.','warn');if(performance.memory)line('JS heap: '+formatSize(performance.memory.usedJSHeapSize)+' / '+formatSize(performance.memory.jsHeapSizeLimit));break;
+case 'version':line('Hyper-Pop Terminal 0.3 / HP-SH + JavaScript + Python WebAssembly','ok');break;
+case 'about':line('A static, browser-local command environment. Files live in this site origin’s OPFS storage.');line('No Supabase, no server shell, no unrestricted system access.','dim');
+line('JavaScript runs in the page runtime. Python runs in Pyodide/WebAssembly (downloaded on first use).','dim');
+line('Node.js/npm and native C/C++ compilation need host/runtime support not provided by this static deployment.','dim');break;
+case 'reset':screen.textContent='';line('Terminal display reset. Files were not changed.','ok');break;
+case 'exit':location.href='index.html';break;
+default:line('Command not found: '+cmd+'. Type help.','err');
+}
+}catch(e){line('ERROR: '+(e&&e.message?e.message:String(e)),'err')}
+}
+async function init(){try{if(!navigator.storage||!navigator.storage.getDirectory)throw Error('This browser does not support OPFS. Try an up-to-date Safari or another modern browser.');root=await navigator.storage.getDirectory();await directory(HOME,true);status('OPFS READY','good');line('Hyper-Pop Terminal [HP-SH 0.3]','ok');line('Persistent browser-local filesystem initialized.','dim');line('No Supabase connection. No access to private device files.','dim');line('Type help to see available commands.','');line('');updatePrompt()}catch(e){status('FILESYSTEM UNAVAILABLE','bad');line('Could not initialize browser storage: '+e.message,'err');line('This terminal requires a secure HTTPS page and browser OPFS support.','warn')}}
+form.addEventListener('submit',async e=>{e.preventDefault();const raw=input.value;input.value='';if(terminalInputResolver){line('> '+raw,'cmd');const resolve=terminalInputResolver;finishTerminalInput(raw);resolve(raw);return}if(raw.trim()){history.push(raw);historyIndex=history.length;await run(raw)}});
+input.addEventListener('keydown',e=>{if(e.key==='ArrowUp'){e.preventDefault();historyIndex=Math.max(0,historyIndex-1);input.value=history[historyIndex]||''}else if(e.key==='ArrowDown'){e.preventDefault();historyIndex=Math.min(history.length,historyIndex+1);input.value=history[historyIndex]||''}});
+document.getElementById('clear').addEventListener('click',()=>{screen.textContent='';input.focus()});
+editorSaveButton.addEventListener('click',async()=>{try{await saveEditor()}catch(e){line('ERROR: '+e.message,'err')}});
+document.getElementById('editorExit').addEventListener('click',closeEditor);
+editorText.addEventListener('input',()=>{updateLineNumbers();updateEditorStatus();});
+editorText.addEventListener('scroll',()=>{editorGutter.scrollTop=editorText.scrollTop});
+editorText.addEventListener('keydown',async e=>{
+ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='o'){e.preventDefault();try{await saveEditor()}catch(err){line('ERROR: '+err.message,'err')}}
+ else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='x'){e.preventDefault();await closeEditor()}
+ else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='w'){e.preventDefault();const term=prompt('Search for:');if(term){const at=editorText.value.indexOf(term,editorText.selectionEnd);if(at>=0){editorText.focus();editorText.setSelectionRange(at,at+term.length)}else editorStatus.textContent='NOT FOUND'}}
+});
+screen.addEventListener('click',()=>input.focus());
+init();
+})();
+</script>
+</body>
+</html>;input.placeholder='type help and press enter';updatePrompt();status('OPFS READY','good');return value}
 async function executeJavaScript(source,label){
- const output=[];
- const print=(...values)=>output.push(values.map(v=>typeof v==='string'?v:JSON.stringify(v)).join(' '));
+ let outputCount=0;
+ const print=(...values)=>{const value=values.map(v=>typeof v==='string'?v:JSON.stringify(v)).join(' ');outputCount++;line(value)};
  try{
   const terminalConsole={log:(...v)=>print(...v),info:(...v)=>print(...v),warn:(...v)=>print(...v),error:(...v)=>print(...v),clear:()=>{}};
-  const runner=new AsyncFunction('print','args','console', '"use strict";\n'+source);
-  const result=await runner(print,[],terminalConsole);
+  const runner=new AsyncFunction('print','args','console','input', '"use strict";\n'+source);
+  const result=await runner(print,[],terminalConsole,terminalInput);
   if(result!==undefined)print(result);
-  output.forEach(x=>line(x));
-  line((label||'JavaScript')+' completed'+(output.length?'':' (no output).'),'ok');
+  line((label||'JavaScript')+' completed'+(outputCount?'':' (no output).'),'ok');
  }catch(e){line('JavaScript error: '+e.message,'err')}
 }
 async function loadPyodideRuntime(){
