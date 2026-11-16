@@ -203,6 +203,130 @@ async function previewHtml(path){
  setTimeout(()=>URL.revokeObjectURL(url),60000);
 }
 
+
+const nodePackages={};
+async function loadNodePackages(){try{const data=JSON.parse(await readFile(['home','guest','.hp-node-packages.json']));Object.assign(nodePackages,data)}catch(_){}}
+function nodeBuffer(value,encoding='utf8'){
+ const bytes=typeof value==='string'?new TextEncoder().encode(value):new Uint8Array(value||[]);
+ if(encoding==='hex')return Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
+ if(encoding==='base64'){let b='';bytes.forEach(x=>b+=String.fromCharCode(x));return btoa(b)}
+ return new TextDecoder().decode(bytes);
+}
+function nodeRuntime(source,label){
+ return executeNode(source,label);
+}
+async function executeNode(source,label){
+ let outputCount=0;
+ const print=(...v)=>{outputCount++;line(v.map(x=>typeof x==='string'?x:JSON.stringify(x)).join(' '))};
+ const nodeProcess={argv:[label||'node'],env:{...envVars},platform:'browser',version:'v22.0.0-hp',versions:{node:'22.0.0-hp'},cwd:()=>pathString(cwd),hrtime:{bigint:()=>BigInt(Math.floor(performance.now()*1e6))},nextTick:fn=>queueMicrotask(fn),exit:code=>{throw Object.assign(Error('Process exited with code '+(code||0)),{nodeExit:true})}};
+ const nodePath={join:(...p)=>p.join('/').replace(/\\/+/g,'/'),resolve:(...p)=>pathString(resolve(p.join('/'))),basename:p=>String(p).split('/').pop(),dirname:p=>String(p).split('/').slice(0,-1).join('/')||'.',extname:p=>{const n=String(p).split('/').pop(),i=n.lastIndexOf('.');return i>0?n.slice(i):''},sep:'/'};
+ const nodeFs={promises:{readFile:async p=>await readFile(resolve(String(p))),writeFile:async(p,d)=>await writeFile(resolve(String(p)),String(d),false),appendFile:async(p,d)=>await writeFile(resolve(String(p)),String(d),true),mkdir:async p=>await directory(resolve(String(p)),true),readdir:async p=>{const d=await directory(resolve(String(p)),false),a=[];for await(const [n] of d.entries())a.push(n);return a},stat:async p=>{const v=await entry(resolve(String(p)));return {isFile:()=>v.handle.kind==='file',isDirectory:()=>v.handle.kind==='directory',size:v.handle.kind==='file'?(await v.handle.getFile()).size:0}},unlink:async p=>{const [d,n]=await parentAndName(resolve(String(p)));await d.removeEntry(n)},access:async p=>{await entry(resolve(String(p)))}}};
+ const builtins={path:nodePath,process:nodeProcess,buffer:{Buffer:{from:(v,e)=>nodeBuffer(v,e),isBuffer:()=>false}},util:{promisify:f=>f},assert:{ok:(v,m)=>{if(!v)throw Error(m||'Assertion failed')},equal:(a,b)=>{if(a!=b)throw Error(a+' != '+b)},strictEqual:(a,b)=>{if(a!==b)throw Error(a+' !== '+b)}},crypto:{webcrypto:crypto},url:{URL,URLSearchParams},fs:nodeFs};
+ const requireFn=async name=>{if(builtins[name])return builtins[name];if(name.startsWith('node:')&&builtins[name.slice(5)])return builtins[name.slice(5)];const pkg=name.replace(/^\\//,'');if(!nodePackages[pkg])throw Error("Cannot find package '"+name+"'. Try: npm install "+name);return await import('https://esm.sh/'+encodeURIComponent(pkg)+'?bundle')};
+ const nodeConsole={log:print,info:print,warn:(...v)=>{outputCount++;line(v.join(' '),'warn')},error:(...v)=>{outputCount++;line(v.join(' '),'err')},table:v=>print(v),clear:()=>{}};
+ try{
+  const runner=new AsyncFunction('require','module','exports','__filename','__dirname','process','Buffer','console','fetch','URL','URLSearchParams','setTimeout','clearTimeout','setInterval','clearInterval','global','globalThis','input','"use strict";\\n'+source);
+  const file=label&&label.endsWith('.js')?pathString(resolve(label)):pathString(cwd.concat('index.js'));
+  await runner(requireFn,{exports:{}},{},file,file.split('/').slice(0,-1).join('/')||'/',nodeProcess,{from:(v,e)=>nodeBuffer(v,e)},nodeConsole,fetch,URL,URLSearchParams,setTimeout,clearTimeout,setInterval,clearInterval,globalThis,globalThis,terminalInput);
+  line((label||'Node script')+' finished'+(outputCount?'':' (no output).'),'ok');
+ }catch(e){line(e.nodeExit?'Node '+e.message:'Node error: '+e.message,e.nodeExit?'warn':'err')}
+}
+async function npmCommand(args){
+ const sub=args[0];
+ if(sub==='install'){
+  if(!args[1])throw Error('Usage: npm install <package>');
+  const name=args[1].replace(/@latest$/,'');
+  line('Resolving '+name+' from esm.sh…','dim');
+  const response=await fetch('https://esm.sh/'+encodeURIComponent(name)+'?bundle',{method:'HEAD'});
+  if(!response.ok)throw Error('Package could not be resolved ('+response.status+'). Check the name and browser compatibility.');
+  nodePackages[name]='https://esm.sh/'+encodeURIComponent(name)+'?bundle';
+  await writeFile(['home','guest','.hp-node-packages.json'],JSON.stringify(nodePackages,null,2),false);
+  line('Added '+name+' to the browser package registry. Import it with await require("'+name+'").','ok');
+ }else if(sub==='list'){
+  const names=Object.keys(nodePackages);line(names.length?names.map(x=>x+' (esm.sh)').join('\\n'):'(no packages installed)','ok');
+ }else if(sub==='uninstall'){
+  if(!args[1])throw Error('Usage: npm uninstall <package>');
+  delete nodePackages[args[1]];await writeFile(['home','guest','.hp-node-packages.json'],JSON.stringify(nodePackages,null,2),false);line('Removed '+args[1],'ok');
+ }else if(sub==='help'){line('npm install <package> | npm list | npm uninstall <package>')}
+ else throw Error('Supported npm commands: install, list, uninstall, help');
+}
+function parseGitHubUrl(url){
+ const m=String(url).match(/(?:https?:\\/\\/github\\.com\\/|git@github\\.com:)([^/]+)\\/([^/.]+)(?:\\.git)?/i);
+ if(!m)throw Error('Use a GitHub repository URL, e.g. https://github.com/user/repo');
+ return {owner:m[1],repo:m[2]};
+}
+async function githubApi(url){
+ const r=await fetch(url,{headers:{Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}});
+ if(!r.ok)throw Error('GitHub API '+r.status+': '+(await r.text()).slice(0,180));
+ return await r.json();
+}
+async function gitClone(url,destination){
+ const {owner,repo}=parseGitHubUrl(url),meta=await githubApi('https://api.github.com/repos/'+owner+'/'+repo),branch=meta.default_branch;
+ line('Cloning '+owner+'/'+repo+' ('+branch+')…','dim');
+ const tree=await githubApi('https://api.github.com/repos/'+owner+'/'+repo+'/git/trees/'+encodeURIComponent(branch)+'?recursive=1');
+ if(tree.truncated)throw Error('Repository is too large for browser cloning (GitHub truncated its file tree).');
+ const base=resolve(destination||repo);
+ await directory(base,true);
+ const files=tree.tree.filter(x=>x.type==='blob'&&!x.path.startsWith('.git/')&&x.size<=1500000);
+ let done=0,skipped=0;
+ for(const item of files){
+  const parts=base.concat(item.path.split('/'));
+  await directory(parts.slice(0,-1),true);
+  try{
+   const r=await fetch('https://raw.githubusercontent.com/'+owner+'/'+repo+'/'+branch+'/'+item.path);
+   if(!r.ok){skipped++;continue}
+   const textData=await r.text();
+   if(textData.includes('\\u0000')){skipped++;continue}
+   await writeFile(parts,textData,false);done++;
+  }catch(_){skipped++}
+ }
+ const gitDir=base.concat('.git');await directory(gitDir,true);
+ await writeFile(gitDir.concat('hp-config.json'),JSON.stringify({owner,repo,branch,sha:tree.sha,remote:'https://github.com/'+owner+'/'+repo+'.git'},null,2),false);
+ await writeFile(gitDir.concat('hp-index.json'),JSON.stringify(files.map(x=>({path:x.path,sha:x.sha,size:x.size})),null,2),false);
+ line('Cloned '+done+' text files into '+pathString(base)+(skipped?' ('+skipped+' skipped)':''),'ok');
+}
+async function gitConfig(){
+ const p=resolve('.git');
+ return JSON.parse(await readFile(p.concat('hp-config.json')));
+}
+async function gitStatus(){
+ const cfg=await gitConfig(),index=JSON.parse(await readFile(resolve('.git/hp-index.json')));
+ let changed=0,missing=0;
+ for(const item of index){
+  try{const now=await readFile(resolve(item.path));const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-1',new TextEncoder().encode('blob '+new TextEncoder().encode(now).length+'\\0'+now))),b=>b.toString(16).padStart(2,'0')).join('');if(digest!==item.sha)changed++}
+  catch(_){missing++}
+ }
+ line('On branch '+cfg.branch);line('Your branch is connected to '+cfg.owner+'/'+cfg.repo+'.','dim');
+ line(changed?'Modified tracked files: '+changed:'Working tree clean.',changed?'warn':'ok');
+ if(missing)line('Missing tracked files: '+missing,'warn');
+ line('Note: this browser GitHub workspace supports clone/status/log/pull. It is not a full Git object database; local commits and pushes are not implemented.','dim');
+}
+async function gitLog(){
+ const c=await gitConfig(),items=await githubApi('https://api.github.com/repos/'+c.owner+'/'+c.repo+'/commits?sha='+encodeURIComponent(c.branch)+'&per_page=10');
+ for(const x of items)line(x.sha.slice(0,7)+' '+x.commit.message.split('\\n')[0]+' ('+x.commit.author.date.slice(0,10)+')');
+}
+async function gitPull(){
+ const cfg=await gitConfig(),tree=await githubApi('https://api.github.com/repos/'+cfg.owner+'/'+cfg.repo+'/git/trees/'+encodeURIComponent(cfg.branch)+'?recursive=1');
+ const index=JSON.parse(await readFile(resolve('.git/hp-index.json'))),old=new Map(index.map(x=>[x.path,x]));
+ let updated=0,conflicts=0;
+ for(const item of tree.tree.filter(x=>x.type==='blob'&&x.size<=1500000&&!x.path.startsWith('.git/'))){
+  const prior=old.get(item.path);let safe=!prior;
+  if(prior){try{const now=await readFile(resolve(item.path));const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-1',new TextEncoder().encode('blob '+new TextEncoder().encode(now).length+'\\0'+now))),b=>b.toString(16).padStart(2,'0')).join('');safe=hash===prior.sha}catch(_){safe=true}}
+  if(!safe){conflicts++;continue}
+  const r=await fetch('https://raw.githubusercontent.com/'+cfg.owner+'/'+cfg.repo+'/'+cfg.branch+'/'+item.path);if(!r.ok)continue;
+  const data=await r.text();const parts=resolve(item.path);await directory(parts.slice(0,-1),true);await writeFile(parts,data,false);updated++;
+ }
+ cfg.sha=tree.sha;await writeFile(resolve('.git/hp-config.json'),JSON.stringify(cfg,null,2),false);
+ await writeFile(resolve('.git/hp-index.json'),JSON.stringify(tree.tree.filter(x=>x.type==='blob').map(x=>({path:x.path,sha:x.sha,size:x.size})),null,2),false);
+ line('Pull complete: '+updated+' files updated'+(conflicts?', '+conflicts+' local changes preserved as conflicts':''),'ok');
+}
+async function webFetch(url,method='GET'){
+ const u=new URL(url,location.href);if(!['http:','https:'].includes(u.protocol))throw Error('Only HTTP(S) URLs are supported.');
+ const r=await fetch(u.href,{method,redirect:'follow'});const textData=await r.text();
+ line('HTTP '+r.status+' '+r.statusText+' · '+r.url,r.ok?'ok':'warn');
+ line('Content-Type: '+(r.headers.get('content-type')||'unknown'));line(textData.slice(0,12000)+(textData.length>12000?'\\n… output truncated':'')); 
+}
+
 function bytesToBase64(textValue){const bytes=new TextEncoder().encode(textValue);let binary='';bytes.forEach(b=>binary+=String.fromCharCode(b));return btoa(binary)}
 function base64ToText(value){const binary=atob(value),bytes=Uint8Array.from(binary,c=>c.charCodeAt(0));return new TextDecoder().decode(bytes)}
 
@@ -251,7 +375,13 @@ line('  run <file.js>               Execute a JavaScript file');
 line('  python [file.py|-c code]    Run Python (await terminal_input() for answers)');
 line('  pip install <package>       Install a Python package (Pyodide-compatible)');
 line('  preview <file.html>         Preview a saved HTML file');
-line('  node / npm                  Node.js needs cross-origin isolation headers');
+line('  node <file.js>              Run JS with Node-compatible browser APIs');
+line('  npm install <package>       Add a browser-compatible npm package');
+line('  git clone <github-url>      Clone a public GitHub repository');
+line('  git status / log / pull     Inspect and update a GitHub workspace');
+line('  curl / wget <url>           Fetch a web resource (CORS permitting)');
+line('  json <file>                 Pretty-print a JSON file');
+line('  url <https-url>             Inspect a URL');
 line('  upload                      Import a file you select');
 line('  open <https-url>            Open a web address');
 line('  export [name=value]         List or set session variables');
@@ -270,7 +400,7 @@ line('  date                        Show local date and time');
 line('  whoami                      Show local user');
 line('  uname                       Show runtime information');
 line('  storage                     Show OPFS availability');
-line('  js, run, python, pip        JavaScript and Python runtimes');
+line('  js, run, node, python, pip  JavaScript, Node-compatible and Python runtimes');
 line('  preview                     Preview saved HTML');
 line('  help                        Show this help');
 line('  exit                        Return to Hyper-Pop');
@@ -321,6 +451,28 @@ case 'run':if(!arg)throw Error('Usage: run <file.js>');if(!arg.toLowerCase().end
 case 'python':case 'py':if(!arg){line('Usage: python <file.py>  |  python -c <code>','dim');line('Example: python -c print(2 ** 10)');break}else if(arg==='-c'){if(args.length<2)throw Error('Usage: python -c <code>');await executePython((()=>{let code=raw.slice(raw.indexOf('-c')+2).trim();if((code[0]==='"'&&code.at(-1)==='"')||(code[0]==="'"&&code.at(-1)==="'"))code=code.slice(1,-1);return code})(),'Python command')}else await executePython(await readFile(resolve(arg)),arg);break;
 case 'pip':if(args[0]!=='install'||!args[1])throw Error('Usage: pip install <package>');{const py=await loadPyodideRuntime();line('Installing '+args[1]+'…','dim');await py.loadPackage('micropip');await py.runPythonAsync("import micropip\\nawait micropip.install("+JSON.stringify(args[1])+")");line('Installed '+args[1]+' (if compatible with Pyodide).','ok')}break;
 case 'preview':if(!arg||!arg.toLowerCase().endsWith('.html'))throw Error('Usage: preview <file.html>');await previewHtml(resolve(arg));break;
+case 'node':{
+ if(!arg){line('HP Node-compatible runtime. Usage: node <file.js> | node -e <code>','dim');line('This is not native Node.js; browser-compatible packages only.','warn');break}
+ if(arg==='-e'||arg==='--eval'){const code=raw.slice(raw.indexOf(arg)+arg.length).trim().replace(/^(['"])(.*)\\1$/,'$2');if(!code)throw Error('Usage: node -e <code>');await executeNode(code,'node -e');break}
+ if(arg.toLowerCase().endsWith('.js'))await executeNode(await readFile(resolve(arg)),arg);
+ else throw Error('Usage: node <file.js> or node -e <code>');
+ break;
+}
+case 'npm':await npmCommand(args);break;
+case 'git':{
+ const sub=args[0];
+ if(sub==='clone'){if(!args[1])throw Error('Usage: git clone <github-url> [folder]');await gitClone(args[1],args[2]);break}
+ if(sub==='status'){await gitStatus();break}
+ if(sub==='log'){await gitLog();break}
+ if(sub==='pull'){await gitPull();break}
+ if(sub==='remote'){const c=await gitConfig();line('origin '+c.remote+' (fetch)');line('origin '+c.remote+' (push)');break}
+ if(sub==='help'||!sub){line('GitHub workspace commands: git clone <url> [folder], git status, git log, git pull, git remote');line('Local commit/push and arbitrary Git transports are not implemented yet.','warn');break}
+ throw Error('Unsupported Git command. Try git help.');
+}
+case 'curl':case 'wget':if(!arg)throw Error('Usage: '+cmd+' <https-url>');await webFetch(arg,cmd==='wget'?'GET':'GET');break;
+case 'fetch':if(!arg)throw Error('Usage: fetch <https-url>');await webFetch(arg);break;
+case 'json':if(!arg)throw Error('Usage: json <file.json>');line(JSON.stringify(JSON.parse(await readFile(resolve(arg))),null,2));break;
+case 'url':if(!arg)throw Error('Usage: url <https-url>');{const u=new URL(arg);line('Protocol: '+u.protocol);line('Host: '+u.host);line('Path: '+u.pathname);line('Query: '+u.search);line('Hash: '+u.hash)}break;
 case 'node':case 'npm':line(cmd.toUpperCase()+' is not available in this GitHub Pages environment. Full Node.js/WebContainers requires cross-origin isolation headers (COOP/COEP), which this static host does not currently configure.','warn');line('JavaScript files can be run with: run <file.js>','dim');break;
 case 'upload':{const picker=document.createElement('input');picker.type='file';picker.multiple=true;picker.onchange=async()=>{for(const f of picker.files){const dest=cwd.concat(f.name);await writeFile(dest,await f.text(),false);line('Imported '+f.name+' ('+formatSize(f.size)+')','ok')}};picker.click()}break;
 case 'open':{if(!arg)throw Error('Usage: open <https-url>');const u=new URL(arg,location.href);if(u.protocol!=='https:')throw Error('Only HTTPS addresses can be opened.');window.open(u.href,'_blank','noopener')}break;
@@ -336,14 +488,14 @@ case 'free':line('Browser-managed memory is not fully exposed to web pages.','wa
 case 'version':line('Hyper-Pop Terminal 0.3 / HP-SH + JavaScript + Python WebAssembly','ok');break;
 case 'about':line('A static, browser-local command environment. Files live in this site origin’s OPFS storage.');line('No Supabase, no server shell, no unrestricted system access.','dim');
 line('JavaScript runs in the page runtime. Python runs in Pyodide/WebAssembly (downloaded on first use).','dim');
-line('Node.js/npm and native C/C++ compilation need host/runtime support not provided by this static deployment.','dim');break;
+line('Node commands use a browser-side Node compatibility layer, not native Node.js. npm packages load from esm.sh and must support browsers. Git commands connect to public GitHub repositories; they are not a full Git implementation.','dim');break;
 case 'reset':screen.textContent='';line('Terminal display reset. Files were not changed.','ok');break;
 case 'exit':location.href='index.html';break;
 default:line('Command not found: '+cmd+'. Type help.','err');
 }
 }catch(e){line('ERROR: '+(e&&e.message?e.message:String(e)),'err')}
 }
-async function init(){try{if(!navigator.storage||!navigator.storage.getDirectory)throw Error('This browser does not support OPFS. Try an up-to-date Safari or another modern browser.');root=await navigator.storage.getDirectory();await directory(HOME,true);status('OPFS READY','good');line('Hyper-Pop Terminal [HP-SH 0.3]','ok');line('Persistent browser-local filesystem initialized.','dim');line('No Supabase connection. No access to private device files.','dim');line('Type help to see available commands.','');line('');updatePrompt()}catch(e){status('FILESYSTEM UNAVAILABLE','bad');line('Could not initialize browser storage: '+e.message,'err');line('This terminal requires a secure HTTPS page and browser OPFS support.','warn')}}
+async function init(){try{await loadNodePackages();if(!navigator.storage||!navigator.storage.getDirectory)throw Error('This browser does not support OPFS. Try an up-to-date Safari or another modern browser.');root=await navigator.storage.getDirectory();await directory(HOME,true);status('OPFS READY','good');line('Hyper-Pop Terminal [HP-SH 0.3]','ok');line('Persistent browser-local filesystem initialized.','dim');line('No Supabase connection. No access to private device files.','dim');line('Type help to see available commands.','');line('');updatePrompt()}catch(e){status('FILESYSTEM UNAVAILABLE','bad');line('Could not initialize browser storage: '+e.message,'err');line('This terminal requires a secure HTTPS page and browser OPFS support.','warn')}}
 form.addEventListener('submit',async e=>{e.preventDefault();const raw=input.value;input.value='';if(terminalInputResolver){line('> '+raw,'cmd');const resolve=terminalInputResolver;finishTerminalInput(raw);resolve(raw);return}if(raw.trim()){history.push(raw);historyIndex=history.length;await run(raw)}});
 input.addEventListener('keydown',e=>{if(e.key==='ArrowUp'){e.preventDefault();historyIndex=Math.max(0,historyIndex-1);input.value=history[historyIndex]||''}else if(e.key==='ArrowDown'){e.preventDefault();historyIndex=Math.min(history.length,historyIndex+1);input.value=history[historyIndex]||''}});
 document.getElementById('clear').addEventListener('click',()=>{screen.textContent='';input.focus()});
