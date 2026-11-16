@@ -154,7 +154,7 @@ async function executeJavaScript(source,label){
  const print=(...values)=>{const value=values.map(v=>typeof v==='string'?v:JSON.stringify(v)).join(' ');outputCount++;line(value)};
  try{
   const terminalConsole={log:(...v)=>print(...v),info:(...v)=>print(...v),warn:(...v)=>print(...v),error:(...v)=>print(...v),clear:()=>{}};
-  const runner=new AsyncFunction('print','args','console','input','"use strict";\n'+source);
+  const runner=new AsyncFunction('print','args','console','input',source);
   const result=await runner(print,[],terminalConsole,terminalInput);
   if(result!==undefined)print(result);
   line((label||'JavaScript')+' completed'+(outputCount?'':' (no output).'),'ok');
@@ -492,7 +492,7 @@ async function executeNode(source,label){
  const nodeConsole={log:print,info:print,warn:(...v)=>{outputCount++;line(v.join(' '),'warn')},error:(...v)=>{outputCount++;line(v.join(' '),'err')},table:v=>print(v),clear:()=>{}};
  const module={exports:{}},exports=module.exports;
  try{
-  const runner=new AsyncFunction('require','module','exports','__filename','__dirname','process','Buffer','console','fetch','URL','URLSearchParams','setTimeout','clearTimeout','setInterval','clearInterval','WebSocket','global','globalThis','input','"use strict";\n'+nodeSource);
+  const runner=new AsyncFunction('require','module','exports','__filename','__dirname','process','Buffer','console','fetch','URL','URLSearchParams','setTimeout','clearTimeout','setInterval','clearInterval','WebSocket','global','globalThis','input',nodeSource);
   const file=label&&label.endsWith('.js')?pathString(resolve(label)):pathString(cwd.concat('index.js'));
   await runner(requireFn,module,exports,file,file.split('/').slice(0,-1).join('/')||'/',nodeProcess,NodeBuffer,nodeConsole,nodeFetch,URL,URLSearchParams,setTimeout,clearTimeout,setInterval,clearInterval,createVirtualWebSocket(),globalThis,globalThis,terminalInput);
   if(module.exports!==exports&&Object.keys(module.exports||{}).length)print(module.exports);
@@ -633,7 +633,7 @@ function bytesToBase64(textValue){const bytes=new TextEncoder().encode(textValue
 function base64ToText(value){const binary=atob(value),bytes=Uint8Array.from(binary,c=>c.charCodeAt(0));return new TextDecoder().decode(bytes)}
 
 async function tree(parts,depth,prefix){if(depth>5)return;const d=await directory(parts,false),items=[];for await(const [name,h] of d.entries())items.push({name,dir:h.kind==='directory'});items.sort((a,b)=>Number(b.dir)-Number(a.dir)||a.name.localeCompare(b.name));for(let i=0;i<items.length;i++){const x=items[i],last=i===items.length-1;line(prefix+(last?'└── ':'├── ')+x.name+(x.dir?'/':''));if(x.dir)await tree(parts.concat(x.name),depth+1,prefix+(last?'    ':'│   '))}}
-async function run(raw){const trimmed=raw.trim(),args=tokenize(raw),cmd=(args.shift()||'').toLowerCase(),arg=args[0];if(!cmd)return;
+async function runSingle(raw){const trimmed=raw.trim(),args=tokenize(raw),cmd=(args.shift()||'').toLowerCase(),arg=args[0];if(!cmd)return;
 line((cwd.length===2?'~':pathString(cwd))+' $ '+raw,'cmd');
  const looksLikeJavaScript=/^(?:const|let|var|function|class|async\s+function|import\s|export\s|require\s*\(|console\.|process\.|module\.|exports\.|await\s|fetch\s*\(|https?\.(?:get|request)\s*\(|Promise\.|throw\s|try\s*\{|if\s*\(|for\s*\(|while\s*\(|\/\*|\/\/)/.test(trimmed)||/;\s*(?:const|let|var)\s/.test(trimmed);
  if(looksLikeJavaScript){await executeNode(raw,'pasted JavaScript');return;}
@@ -686,6 +686,9 @@ line('  python [file.py|-c code]    Run Python (await terminal_input() for answe
 line('  pip install <package>       Install a Python package (Pyodide-compatible)');
 line('  preview <file.html>         Preview a saved HTML file');
 line('  node <file.js>              Run JS with Node-compatible browser APIs');
+line('  ts <file.ts>                Transpile and run TypeScript');
+line('  Paste multiple shell commands separated by newlines or semicolons');
+line('  JavaScript runs non-strict by default; add \'use strict\' to opt in');
 line('  require / https / http      Node module and HTTP client compatibility');
 line('  server list                 List virtual HTTP servers');
 line('  express                     Express routes, middleware, static files and JSON APIs');
@@ -860,6 +863,64 @@ default:if(/^(?:#!|(?:sudo\s+)?(?:apt|apt-get|apk|dnf|yum|pacman|brew|systemctl|
 }
 }catch(e){line('ERROR: '+(e&&e.message?e.message:String(e)),'err')}
 }
+async function loadTypeScript(){
+ if(typeScriptPromise)return typeScriptPromise;
+ typeScriptPromise=(async()=>{
+  const mod=await import('https://esm.sh/typescript@5.8.3?bundle');
+  const compiler=mod.transpileModule?mod:(mod.default&&mod.default.transpileModule?mod.default:null);
+  if(!compiler)throw Error('The TypeScript compiler did not expose transpileModule.');
+  return compiler;
+ })();
+ try{return await typeScriptPromise}catch(e){typeScriptPromise=null;throw Error('Could not load TypeScript compiler: '+e.message)}
+}
+let typeScriptPromise=null;
+async function executeTypeScript(source,label){
+ line('Transpiling TypeScript…','dim');
+ try{
+  const ts=await loadTypeScript();
+  const result=ts.transpileModule(source,{fileName:label&&label.endsWith('.ts')?label:'terminal.ts',reportDiagnostics:true,compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true,allowJs:false}});
+  const errors=(result.diagnostics||[]).filter(d=>d.category===ts.DiagnosticCategory.Error);
+  if(errors.length){for(const d of errors)line('TypeScript: '+ts.flattenDiagnosticMessageText(d.messageText,' '),'err');return}
+  await executeNode(result.outputText,label||'TypeScript');
+ }catch(e){line('TypeScript error: '+e.message,'err')}
+}
+function splitShellBatch(source){
+ const out=[];let part='',quote='',escape=false;
+ for(let i=0;i<source.length;i++){
+  const ch=source[i];
+  if(escape){part+=ch;escape=false;continue}
+  if(ch==='\\'&&quote!=="'"){part+=ch;escape=true;continue}
+  if(quote){part+=ch;if(ch===quote)quote='';continue}
+  if(ch==='"'||ch==="'"){quote=ch;part+=ch;continue}
+  if(ch===';'||ch==='\n'||ch==='\r'){
+   if(part.trim())out.push(part.trim());part='';
+   if(ch==='\r'&&source[i+1]==='\n')i++;
+   continue;
+  }
+  part+=ch;
+ }
+ if(part.trim())out.push(part.trim());
+ return out;
+}
+async function run(raw){
+ const trimmed=raw.trim();if(!trimmed)return;
+ const first=trimmed.split(/\r?\n/,1)[0].trim();
+ const isTypeScript=/^(?:interface|type\s+[A-Za-z_$]|enum\s+[A-Za-z_$]|namespace\s+[A-Za-z_$]|declare\s|abstract\s+class\s)/.test(trimmed)||/^(?:const|let|var)\s+[A-Za-z_$][\w$]*\s*:\s*(?:string|number|boolean|any|unknown|object|[A-Z_$][\w$]*(?:<[^;=]+>)?|\{)/.test(trimmed);
+ if(isTypeScript){await executeTypeScript(raw,'TypeScript');return}
+ if(/^(?:ts|tsc)\s+/.test(first)){
+  const args=tokenize(first);
+  if(args[0]==='tsc'){line('TypeScript compiler mode: use ts <file.ts> or paste TypeScript directly.','dim');return}
+  if(args[1]&&args[1].toLowerCase().endsWith('.ts')){try{await executeTypeScript(await readFile(resolve(args[1])),args[1])}catch(e){line('TypeScript error: '+e.message,'err')}return}
+  await executeTypeScript(raw.slice(raw.indexOf(' ')+1),'TypeScript');return;
+ }
+ if(/^[\s\S]*\.ts$/.test(trimmed)&&!/\s/.test(trimmed)){try{await executeTypeScript(await readFile(resolve(trimmed)),trimmed)}catch(e){line('TypeScript error: '+e.message,'err')}return}
+ const looksLikeJavaScript=/^(?:const|let|var|function|class|async\s+function|import\s|export\s|require\s*\(|console\.|process\.|module\.|exports\.|await\s|fetch\s*\(|https?\.(?:get|request)\s*\(|Promise\.|throw\s|try\s*\{|if\s*\(|for\s*\(|while\s*\(|\/\*|\/\/)/.test(trimmed);
+ if(looksLikeJavaScript){await executeNode(raw,'pasted JavaScript');return}
+ const commands=splitShellBatch(raw);
+ if(commands.length>1){for(const command of commands)await runSingle(command);return}
+ await runSingle(trimmed);
+}
+
 async function init(){try{if(!navigator.storage||!navigator.storage.getDirectory)throw Error('This browser does not support OPFS. Try an up-to-date Safari or another modern browser.');root=await navigator.storage.getDirectory();await directory(HOME,true);await loadNodePackages();status('OPFS READY','good');line('Hyper-Pop Terminal [HP-SH 0.4]','ok');line('Persistent browser-local filesystem initialized.','dim');line('Authenticated Hyper-Pop proxy networking is available. No access to private device files.','dim');line('Type help to see available commands.','');line('');updatePrompt()}catch(e){status('FILESYSTEM UNAVAILABLE','bad');line('Could not initialize browser storage: '+e.message,'err');line('This terminal requires a secure HTTPS page and browser OPFS support.','warn')}}
 form.addEventListener('submit',async e=>{e.preventDefault();const raw=input.value;input.value='';input.style.height='auto';if(terminalInputResolver){line('> '+raw,'cmd');const resolve=terminalInputResolver;finishTerminalInput(raw);resolve(raw);return}if(raw.trim()){history.push(raw);historyIndex=history.length;await run(raw)}});
 input.addEventListener('input',()=>{input.style.height='auto';input.style.height=Math.min(input.scrollHeight,window.innerHeight*.38)+'px'});
