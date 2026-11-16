@@ -211,7 +211,7 @@ async function localAssetUrl(baseParts,relative){
  const pathname=clean.split(/[?#]/)[0];
  if(!pathname)return clean;
  let parts;
- try{parts=resolve(pathname.startsWith('/')?pathname:pathString(baseParts)+'/'+pathname)}catch(_){return clean}
+ try{parts=pathname.startsWith('/')?baseParts.concat(pathname.slice(1).split('/').filter(Boolean)):resolve(pathString(baseParts)+'/'+pathname)}catch(_){return clean}
  try{
   const bytes=await readFileBytes(parts),mime=previewMime(parts[parts.length-1]);
   if(bytes.length>8*1024*1024)throw Error('Asset exceeds the 8 MB preview limit.');
@@ -232,7 +232,7 @@ async function rewriteCssAssets(css,baseParts){
  return css;
 }
 async function buildHtmlPreview(path){
- const source=await readFile(path),base=path.slice(0,-1),folder=base.slice(0,-1);
+ const source=await readFile(path),folder=path.slice(0,-1);
  let html=source;
  const attrs=[...html.matchAll(/\b(src|href|poster|data-src)\s*=\s*(["'])(.*?)\2/gi)];
  for(const m of attrs.reverse()){
@@ -875,7 +875,7 @@ case 'js':{
 case 'run':if(!arg)throw Error('Usage: run <file.js>');if(!arg.toLowerCase().endsWith('.js'))throw Error('The run command currently executes .js files.');await executeJavaScript(await readFile(resolve(arg)),arg);break;
 case 'python':case 'py':if(!arg){line('Usage: python <file.py>  |  python -c <code>','dim');line('Example: python -c print(2 ** 10)');break}else if(arg==='-c'){if(args.length<2)throw Error('Usage: python -c <code>');await executePython((()=>{let code=raw.slice(raw.indexOf('-c')+2).trim();if((code[0]==='"'&&code.at(-1)==='"')||(code[0]==="'"&&code.at(-1)==="'"))code=code.slice(1,-1);return code})(),'Python command')}else await executePython(await readFile(resolve(arg)),arg);break;
 case 'pip':if(args[0]!=='install'||!args[1])throw Error('Usage: pip install <package>');{const py=await loadPyodideRuntime();line('Installing '+args[1]+'…','dim');await py.loadPackage('micropip');await py.runPythonAsync("import micropip\\nawait micropip.install("+JSON.stringify(args[1])+")");line('Installed '+args[1]+' (if compatible with Pyodide).','ok')}break;
-case 'preview':if(!arg)throw Error('Usage: preview <file-or-folder>');{const p=resolve(arg);try{await directory(p,false);const index=p.concat('index.html');await previewHtml(index)}catch(e){if(e&&e.name==='NotFoundError')await previewFile(p);else if(String(e.message||'').includes('NotFound'))await previewFile(p);else throw e}}break;
+case 'preview':if(!arg)throw Error('Usage: preview <file-or-folder>');{const p=resolve(arg);let isDir=false;try{await directory(p,false);isDir=true}catch(_){}if(isDir){const d=await directory(p,false),names=[];for await(const [name,h] of d.entries())if(h.kind==='file'&&/\.html?$/i.test(name))names.push(name);const chosen=names.find(x=>x.toLowerCase()==='index.html')||names[0];if(!chosen)throw Error('This folder has no HTML entry point. Preview an individual file instead.');await previewHtml(p.concat(chosen))}else await previewFile(p)}break;
 case 'image':if(!arg)throw Error('Usage: image <image-file>');{const p=resolve(arg);if(!previewMime(arg).startsWith('image/'))throw Error('That file does not look like a supported image.');await previewFile(p)}break;
 case 'node':{
  if(!arg){line('HP Node-compatible runtime. Usage: node <file.js> | node -e <code>','dim');line('This is not native Node.js; browser-compatible packages only.','warn');break}
