@@ -456,7 +456,7 @@ case 'pip':if(args[0]!=='install'||!args[1])throw Error('Usage: pip install <pac
 case 'preview':if(!arg||!arg.toLowerCase().endsWith('.html'))throw Error('Usage: preview <file.html>');await previewHtml(resolve(arg));break;
 case 'node':{
  if(!arg){line('HP Node-compatible runtime. Usage: node <file.js> | node -e <code>','dim');line('This is not native Node.js; browser-compatible packages only.','warn');break}
- if(arg==='-e'||arg==='--eval'){const code=raw.slice(raw.indexOf(arg)+arg.length).trim().replace(/^(['"])(.*)\\1$/,'$2');if(!code)throw Error('Usage: node -e <code>');await executeNode(code,'node -e');break}
+ if(arg==='-e'||arg==='--eval'){const code=args.slice(1).join(' ');if(!code)throw Error('Usage: node -e <code>');await executeNode(code,'node -e');break}
  if(arg.toLowerCase().endsWith('.js'))await executeNode(await readFile(resolve(arg)),arg);
  else throw Error('Usage: node <file.js> or node -e <code>');
  break;
