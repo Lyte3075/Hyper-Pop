@@ -5,7 +5,7 @@ const cors = {
   "Access-Control-Max-Age": "600",
   "Vary": "Origin"
 };
-const CLAIM_HASH = "100ef4ed9ef69d56cabc1c34ad7e938ac9aa362808126d8a1318e7228265a97b";
+const CLAIM_HASH = "c0d0a0f36aca562a9361d3e46b76b8bef52f413f51de2278434e85302f25dd80";
 const MAX_FILE_BYTES = 262144;
 function reply(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" } });
