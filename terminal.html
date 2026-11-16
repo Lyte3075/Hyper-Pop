@@ -133,8 +133,9 @@ async function executeJavaScript(source,label){
  const output=[];
  const print=(...values)=>output.push(values.map(v=>typeof v==='string'?v:JSON.stringify(v)).join(' '));
  try{
-  const runner=new AsyncFunction('print','args', '"use strict";\\n'+source);
-  const result=await runner(print,[]);
+  const terminalConsole={log:(...v)=>print(...v),info:(...v)=>print(...v),warn:(...v)=>print(...v),error:(...v)=>print(...v),clear:()=>{}};
+  const runner=new AsyncFunction('print','args','console', '"use strict";\\n'+source);
+  const result=await runner(print,[],terminalConsole);
   if(result!==undefined)print(result);
   line((label||'JavaScript')+' completed'+(output.length?'':' (no output).'),'ok');
   output.forEach(x=>line(x));
@@ -281,9 +282,9 @@ case 'base64':line(bytesToBase64(args.join(' ')),'ok');break;
 case 'unbase64':line(base64ToText(args.join(' ')));break;
 case 'seq':{if(!arg)throw Error('Usage: seq <end> or seq <start> <end>');const a=args.length>1?Number(args[0]):1,b=Number(args[args.length-1]);if(!Number.isInteger(a)||!Number.isInteger(b)||Math.abs(b-a)>1000)throw Error('Sequence must be integers with at most 1001 values.');for(let n=a;n<=b;n++)line(n)}break;
 case 'calc':if(!args.length)throw Error('Usage: calc <expression>');line(String(calc(args.join(' '))),'ok');break;
-case 'js':if(!args.length){line('Usage: js <JavaScript code>  |  run <file.js>','dim');line('Example: js console.log("Hello from JavaScript")');break}else await executeJavaScript(args.join(' '),'JavaScript');break;
+case 'js':if(!args.length){line('Usage: js <JavaScript code>  |  run <file.js>','dim');line('Example: js console.log("Hello from JavaScript")');break}else await executeJavaScript(raw.slice(raw.indexOf(' ')+1),'JavaScript');break;
 case 'run':if(!arg)throw Error('Usage: run <file.js>');if(!arg.toLowerCase().endsWith('.js'))throw Error('The run command currently executes .js files.');await executeJavaScript(await readFile(resolve(arg)),arg);break;
-case 'python':case 'py':if(!arg){line('Usage: python <file.py>  |  python -c <code>','dim');line('Example: python -c print(2 ** 10)');break}else if(arg==='-c'){if(args.length<2)throw Error('Usage: python -c <code>');await executePython(args.slice(1).join(' '),'Python command')}else await executePython(await readFile(resolve(arg)),arg);break;
+case 'python':case 'py':if(!arg){line('Usage: python <file.py>  |  python -c <code>','dim');line('Example: python -c print(2 ** 10)');break}else if(arg==='-c'){if(args.length<2)throw Error('Usage: python -c <code>');await executePython(raw.slice(raw.indexOf('-c')+2).trim(),'Python command')}else await executePython(await readFile(resolve(arg)),arg);break;
 case 'pip':if(args[0]!=='install'||!args[1])throw Error('Usage: pip install <package>');{const py=await loadPyodideRuntime();line('Installing '+args[1]+'…','dim');await py.loadPackage('micropip');await py.runPythonAsync("import micropip\\nawait micropip.install("+JSON.stringify(args[1])+")");line('Installed '+args[1]+' (if compatible with Pyodide).','ok')}break;
 case 'preview':if(!arg||!arg.toLowerCase().endsWith('.html'))throw Error('Usage: preview <file.html>');await previewHtml(resolve(arg));break;
 case 'node':case 'npm':line(cmd.toUpperCase()+' is not available in this GitHub Pages environment. Full Node.js/WebContainers requires cross-origin isolation headers (COOP/COEP), which this static host does not currently configure.','warn');line('JavaScript files can be run with: run <file.js>','dim');break;
