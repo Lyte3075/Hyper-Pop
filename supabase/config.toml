@@ -1,2 +1,8 @@
 [functions.hyperpop-proxy]
 verify_jwt = false
+
+[functions.hyperpop-cors]
+verify_jwt = false
+
+[functions.hyperpop-reverse-proxy]
+verify_jwt = false

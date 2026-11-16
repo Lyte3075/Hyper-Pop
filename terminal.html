@@ -205,7 +205,7 @@ async function previewHtml(path){
 }
 
 
-const browserDatabase=(()=>{const file=['home','guest','.hp-database.json'];let remote=null;const load=async()=>{try{return JSON.parse(await readFile(file))}catch(_){return {collections:{}}}};const save=async d=>writeFile(file,JSON.stringify(d),false);const matches=(doc,filter={})=>Object.entries(filter).every(([k,v])=>v&&typeof v==='object'&&!Array.isArray(v)?Object.entries(v).every(([op,x])=>op==='$gt'?doc[k]>x:op==='$gte'?doc[k]>=x:op==='$lt'?doc[k]<x:op==='$lte'?doc[k]<=x:op==='$ne'?doc[k]!==x:op==='$in'?x.includes(doc[k]):false):doc[k]===v);const api={async collections(){return Object.keys((await load()).collections)},async connect(url,options={}){remote={url:String(url).replace(/\/$/,''),headers:options.headers||{}};return api},async request(path,init={}){if(!remote)throw Error('Call db.connect(baseUrl, options) first.');return fetch(remote.url+'/'+String(path||'').replace(/^\//,''),{...init,headers:{...remote.headers,...(init.headers||{})}})},collection(name){name=String(name);if(!/^[a-zA-Z0-9_-]{1,64}$/.test(name))throw Error('Invalid collection name.');return {async create(){const d=await load();d.collections[name]??=[];await save(d);return this},async insertOne(doc){const d=await load();d.collections[name]??=[];const value={...doc,_id:doc&&doc._id||crypto.randomUUID()};d.collections[name].push(value);await save(d);return {acknowledged:true,insertedId:value._id}},async insertMany(docs){const ids=[];for(const doc of docs)ids.push((await this.insertOne(doc)).insertedId);return {acknowledged:true,insertedCount:ids.length,insertedIds:ids}},async find(filter={}){return ((await load()).collections[name]||[]).filter(x=>matches(x,filter)).map(x=>({...x}))},async findOne(filter={}){return (await this.find(filter))[0]||null},async updateOne(filter,update){const d=await load(),rows=d.collections[name]||[],i=rows.findIndex(x=>matches(x,filter));if(i<0)return {matchedCount:0,modifiedCount:0};rows[i]={...rows[i],...(update.$set||update)};await save(d);return {matchedCount:1,modifiedCount:1}},async deleteMany(filter={},one=false){const d=await load(),rows=d.collections[name]||[],kept=[];let deleted=0;for(const row of rows){if(matches(row,filter)&&(!one||!deleted))deleted++;else kept.push(row)}d.collections[name]=kept;await save(d);return {acknowledged:true,deletedCount:deleted}},async deleteOne(filter){return this.deleteMany(filter,true)},async countDocuments(filter={}){return (await this.find(filter)).length}}}};return api})();
+const browserDatabase=(()=>{const file=['home','guest','.hp-database.json'];let remote=null;const load=async()=>{try{return JSON.parse(await readFile(file))}catch(_){return {collections:{}}}};const save=async d=>writeFile(file,JSON.stringify(d),false);const matches=(doc,filter={})=>Object.entries(filter).every(([k,v])=>v&&typeof v==='object'&&!Array.isArray(v)?Object.entries(v).every(([op,x])=>op==='$gt'?doc[k]>x:op==='$gte'?doc[k]>=x:op==='$lt'?doc[k]<x:op==='$lte'?doc[k]<=x:op==='$ne'?doc[k]!==x:op==='$in'?x.includes(doc[k]):false):doc[k]===v);const api={async collections(){return Object.keys((await load()).collections)},async connect(url,options={}){remote={url:String(url).replace(/\/$/,''),headers:options.headers||{}};return api},async request(path,init={}){if(!remote)throw Error('Call db.connect(baseUrl, options) first.');return terminalFetch(remote.url+'/'+String(path||'').replace(/^\//,''),{...init,headers:{...remote.headers,...(init.headers||{})}})},collection(name){name=String(name);if(!/^[a-zA-Z0-9_-]{1,64}$/.test(name))throw Error('Invalid collection name.');return {async create(){const d=await load();d.collections[name]??=[];await save(d);return this},async insertOne(doc){const d=await load();d.collections[name]??=[];const value={...doc,_id:doc&&doc._id||crypto.randomUUID()};d.collections[name].push(value);await save(d);return {acknowledged:true,insertedId:value._id}},async insertMany(docs){const ids=[];for(const doc of docs)ids.push((await this.insertOne(doc)).insertedId);return {acknowledged:true,insertedCount:ids.length,insertedIds:ids}},async find(filter={}){return ((await load()).collections[name]||[]).filter(x=>matches(x,filter)).map(x=>({...x}))},async findOne(filter={}){return (await this.find(filter))[0]||null},async updateOne(filter,update){const d=await load(),rows=d.collections[name]||[],i=rows.findIndex(x=>matches(x,filter));if(i<0)return {matchedCount:0,modifiedCount:0};rows[i]={...rows[i],...(update.$set||update)};await save(d);return {matchedCount:1,modifiedCount:1}},async deleteMany(filter={},one=false){const d=await load(),rows=d.collections[name]||[],kept=[];let deleted=0;for(const row of rows){if(matches(row,filter)&&(!one||!deleted))deleted++;else kept.push(row)}d.collections[name]=kept;await save(d);return {acknowledged:true,deletedCount:deleted}},async deleteOne(filter){return this.deleteMany(filter,true)},async countDocuments(filter={}){return (await this.find(filter)).length}}}};return api})();
 const nodePackages={};
 async function loadNodePackages(){try{const data=JSON.parse(await readFile(['home','guest','.hp-node-packages.json']));Object.assign(nodePackages,data)}catch(_){}}
 function nodeBuffer(value,encoding='utf8'){
@@ -263,9 +263,56 @@ async function virtualRequest(url,init={}){
  return await server.dispatch(u.href,init);
 }
 function createVirtualWebSocket(){return class VirtualWebSocket{constructor(url){this.url=String(url);this.readyState=0;this.onopen=this.onmessage=this.onerror=this.onclose=null;this.listeners={};const u=new URL(this.url);if(!['ws:','wss:'].includes(u.protocol))throw Error('Use a ws:// or wss:// URL');const server=['localhost','127.0.0.1'].includes(u.hostname)?virtualServers.get(Number(u.port||80)):null;if(!server){this.readyState=3;queueMicrotask(()=>this._emit('error',{type:'error',message:'No local virtual WebSocket server is available'}));return}this.peer={onmessage:null,onclose:null,listeners:{},send:data=>this._receive(data),close:()=>this.close(),addEventListener:(n,fn)=>(this.peer.listeners[n]||(this.peer.listeners[n]=[])).push(fn)};queueMicrotask(()=>{this.readyState=1;this._emit('open',{type:'open',target:this});const req={url:u.pathname+u.search,path:u.pathname,query:Object.fromEntries(u.searchParams.entries())};const route=server.wsHandlers.find(x=>x.path==='*'||x.path===u.pathname);try{if(route)route.handler(this.peer,req);server.emit('websocket',this.peer,req)}catch(e){this._emit('error',{type:'error',message:e.message})}})}addEventListener(n,fn){(this.listeners[n]||(this.listeners[n]=[])).push(fn)}removeEventListener(n,fn){this.listeners[n]=(this.listeners[n]||[]).filter(x=>x!==fn)}_emit(n,e){if(typeof this['on'+n]==='function')this['on'+n](e);for(const fn of this.listeners[n]||[])fn(e)}_receive(data){if(this.readyState===1)queueMicrotask(()=>this._emit('message',{type:'message',data,target:this}))}send(data){if(this.readyState!==1)throw Error('WebSocket is not open');queueMicrotask(()=>{if(this.peer.onmessage)this.peer.onmessage({type:'message',data,target:this.peer});for(const fn of this.peer.listeners.message||[])fn({type:'message',data,target:this.peer})})}close(code=1000,reason=''){if(this.readyState===3)return;this.readyState=3;const e={type:'close',code,reason,wasClean:true};this._emit('close',e);if(this.peer.onclose)this.peer.onclose(e)}static get CONNECTING(){return 0}static get OPEN(){return 1}static get CLOSING(){return 2}static get CLOSED(){return 3}}}
+const HP_REVERSE_PROXY='https://iapnejlttsqqefkpmelp.supabase.co/functions/v1/hyperpop-reverse-proxy';
+const HP_CORS_PROXY='https://iapnejlttsqqefkpmelp.supabase.co/functions/v1/hyperpop-cors';
+const HP_PROXY_MAP_KEY='hyperpop_terminal_proxy_routes';
+function getTerminalProxyMap(){try{const value=JSON.parse(localStorage.getItem(HP_PROXY_MAP_KEY)||'{}');return value&&typeof value==='object'&&!Array.isArray(value)?value:{}}catch(_){return {}}}
+async function corsProxyFetch(input,init={},sourceUrl=''){
+ const source=input instanceof Request?input.url:String(input),target=new URL(source,location.href);
+ const method=(init.method||(input instanceof Request?input.method:'GET')).toUpperCase();
+ if(!['GET','HEAD','POST'].includes(method))throw Error('This request needs a saved Reverse Proxy route. The CORS proxy supports GET, HEAD and POST.');
+ const token=localStorage.getItem('hyperpop_token')||'';
+ if(!token)throw Error('Sign in to Hyper-Pop to use the CORS proxy fallback.');
+ const headers=new Headers(input instanceof Request?input.headers:undefined);
+ new Headers(init.headers||{}).forEach((value,key)=>headers.set(key,value));
+ let body=init.body;
+ if(body===undefined&&input instanceof Request&&!['GET','HEAD'].includes(method))body=await input.clone().text();
+ if(body!==undefined&&body!==null&&typeof body!=='string'){
+  if(body instanceof URLSearchParams)body=body.toString();
+  else if(body instanceof Blob)body=await body.text();
+  else if(body instanceof ArrayBuffer)body=new TextDecoder().decode(body);
+  else body=JSON.stringify(body);
+ }
+ const payload={url:target.href,method,headers:Object.fromEntries(headers.entries()),body:method==='POST'?body:undefined};
+ return fetch(HP_CORS_PROXY,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(payload)});
+}
+async function terminalFetch(input,init={}){
+ const source=input instanceof Request?input.url:String(input);
+ const target=new URL(source,location.href);
+ const slug=getTerminalProxyMap()[target.hostname.toLowerCase()];
+ if(slug){
+  const token=localStorage.getItem('hyperpop_token')||'';
+  if(!token)throw Error('A Hyper-Pop account session is required for proxy routes. Sign in, then run proxy open.');
+  const path=target.pathname.startsWith('/')?target.pathname.slice(1):target.pathname;
+  const proxyUrl=HP_REVERSE_PROXY+'/r/'+encodeURIComponent(slug)+'/'+path+target.search;
+  const headers=new Headers(input instanceof Request?input.headers:undefined);
+  new Headers(init.headers||{}).forEach((value,key)=>headers.set(key,value));
+  headers.set('Authorization','Bearer '+token);
+  let body=init.body;
+  if(body===undefined&&input instanceof Request&&!['GET','HEAD'].includes((init.method||input.method).toUpperCase()))body=await input.clone().arrayBuffer();
+  return fetch(proxyUrl,{...init,method:init.method||(input instanceof Request?input.method:undefined),headers,body,redirect:'follow'});
+ }
+ try{return await fetch(input,init)}
+ catch(error){
+  const method=(init.method||(input instanceof Request?input.method:'GET')).toUpperCase();
+  if(!['GET','HEAD','POST'].includes(method))throw error;
+  try{return await corsProxyFetch(input,init,target.href)}
+  catch(proxyError){throw Error((error?.message||'Direct network request failed.')+' CORS proxy fallback: '+(proxyError?.message||String(proxyError)))}
+ }
+}
 async function nodeFetch(url,init={}){
  const local=await virtualRequest(url,init);
- return local||fetch(url,init);
+ return local||terminalFetch(url,init);
 }
 // Express-compatible routing, middleware and JSON helpers for virtual servers.
 function createVirtualExpress(){
@@ -357,7 +404,7 @@ async function npmCommand(args){
   if(!args[1])throw Error('Usage: npm install <package>');
   const name=args[1].replace(/@latest$/,'');
   line('Resolving '+name+' from esm.sh…','dim');
-  const response=await fetch('https://esm.sh/'+encodeURIComponent(name)+'?bundle',{method:'HEAD'});
+  const response=await terminalFetch('https://esm.sh/'+encodeURIComponent(name)+'?bundle',{method:'HEAD'});
   if(!response.ok)throw Error('Package could not be resolved ('+response.status+'). Check the name and browser compatibility.');
   nodePackages[name]='https://esm.sh/'+encodeURIComponent(name)+'?bundle';
   await writeFile(['home','guest','.hp-node-packages.json'],JSON.stringify(nodePackages,null,2),false);
@@ -379,7 +426,7 @@ function parseGitHubUrl(url){
  return {owner:parts[0],repo:parts[1].replace(/\\.git$/,'')};
 }
 async function githubApi(url){
- const r=await fetch(url,{headers:{Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}});
+ const r=await terminalFetch(url,{headers:{Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}});
  if(!r.ok)throw Error('GitHub API '+r.status+': '+(await r.text()).slice(0,180));
  return await r.json();
 }
@@ -396,7 +443,7 @@ async function gitClone(url,destination){
   const parts=base.concat(item.path.split('/'));
   await directory(parts.slice(0,-1),true);
   try{
-   const r=await fetch('https://raw.githubusercontent.com/'+owner+'/'+repo+'/'+branch+'/'+item.path);
+   const r=await terminalFetch('https://raw.githubusercontent.com/'+owner+'/'+repo+'/'+branch+'/'+item.path);
    if(!r.ok){skipped++;continue}
    const textData=await r.text();
    if(textData.includes('\\u0000')){skipped++;continue}
@@ -436,7 +483,7 @@ async function gitPull(){
   const prior=old.get(item.path);let safe=!prior;
   if(prior){try{const now=await readFile(resolve(item.path));const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-1',new TextEncoder().encode('blob '+new TextEncoder().encode(now).length+'\\0'+now))),b=>b.toString(16).padStart(2,'0')).join('');safe=hash===prior.sha}catch(_){safe=true}}
   if(!safe){conflicts++;continue}
-  const r=await fetch('https://raw.githubusercontent.com/'+cfg.owner+'/'+cfg.repo+'/'+cfg.branch+'/'+item.path);if(!r.ok)continue;
+  const r=await terminalFetch('https://raw.githubusercontent.com/'+cfg.owner+'/'+cfg.repo+'/'+cfg.branch+'/'+item.path);if(!r.ok)continue;
   const data=await r.text();const parts=resolve(item.path);await directory(parts.slice(0,-1),true);await writeFile(parts,data,false);updated++;
  }
  cfg.sha=tree.sha;await writeFile(resolve('.git/hp-config.json'),JSON.stringify(cfg,null,2),false);
@@ -445,7 +492,7 @@ async function gitPull(){
 }
 async function webFetch(url,method='GET'){
  const u=new URL(url,location.href);if(!['http:','https:'].includes(u.protocol))throw Error('Only HTTP(S) URLs are supported.');
- const local=await virtualRequest(u.href,{method});const r=local||await fetch(u.href,{method,redirect:'follow'});const textData=await r.text();
+ const local=await virtualRequest(u.href,{method});const r=local||await terminalFetch(u.href,{method,redirect:'follow'});const textData=await r.text();
  line('HTTP '+r.status+' '+r.statusText+' · '+r.url,r.ok?'ok':'warn');
  line('Content-Type: '+(r.headers.get('content-type')||'unknown'));line(textData.slice(0,12000)+(textData.length>12000?'\\n… output truncated':'')); 
 }
@@ -504,6 +551,11 @@ line('  express                     Express routes, middleware, static files and
  line('  db help                     Local database and remote REST API help');
 line('  npm install <package>       Add a browser-compatible npm package');
 line('  git clone <github-url>      Clone a public GitHub repository');
+line('  proxy open                  Open your account proxy route manager');
+line('  proxy map <host> <slug>     Route a hostname through a saved proxy route');
+line('  proxy unmap <host>          Remove a hostname mapping');
+line('  proxy list                  Show terminal proxy mappings');
+line('  proxy fetch <https-url>     Test a mapped route and print its response');
 line('  git status / log / pull     Inspect and update a GitHub workspace');
 line('  server list/stop/open       Manage virtual HTTP servers');
 line('  curl / wget <url>           Fetch a web resource or localhost server');
@@ -608,8 +660,18 @@ case 'server':{
  if(sub==='help'||!sub){line('server list | server stop <port> | server open <port>');line('Servers are virtual and accessible only inside this Hyper-Pop terminal tab.','warn');break}
  throw Error('Usage: server list | server stop <port> | server open <port>');
 }
+case 'proxy':{
+ const sub=args[0];
+ if(sub==='open'){window.open(new URL('reverse-proxy.html',location.href).href,'_blank','noopener');line('Opened the Hyper-Pop reverse proxy manager.','ok');break}
+ if(sub==='list'){const map=getTerminalProxyMap(),entries=Object.entries(map);if(!entries.length)line('No hostname mappings yet. Use proxy map <host> <route-slug>.','dim');else entries.forEach(([host,slug])=>line(host+' → /'+slug,'ok'));break}
+ if(sub==='map'){const host=String(args[1]||'').toLowerCase().replace('https://','').replace('http://','').split('/')[0];const slug=String(args[2]||'').toLowerCase();if(!/^(?=.{1,253}$)[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/.test(host)||host.includes('..'))throw Error('Usage: proxy map <hostname> <saved-route-slug>');if(!/^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/.test(slug))throw Error('Route slug must match a saved Hyper-Pop route.');const map=getTerminalProxyMap();map[host]=slug;localStorage.setItem(HP_PROXY_MAP_KEY,JSON.stringify(map));line(host+' now uses reverse proxy route /'+slug+'.','ok');line('Make sure that saved route points to '+host+' in the Reverse Proxy manager.','dim');break}
+ if(sub==='unmap'){const host=String(args[1]||'').toLowerCase();if(!host)throw Error('Usage: proxy unmap <hostname>');const map=getTerminalProxyMap();if(!map[host]){line('No mapping for '+host+'.','warn');break}delete map[host];localStorage.setItem(HP_PROXY_MAP_KEY,JSON.stringify(map));line('Removed proxy mapping for '+host+'.','ok');break}
+ if(sub==='fetch'||sub==='test'){if(!args[1])throw Error('Usage: proxy fetch <https-url>');const u=new URL(args[1]);if(u.protocol!=='https:')throw Error('Only HTTPS URLs can use account proxy routes.');const response=await terminalFetch(u.href);const body=await response.text();line('HTTP '+response.status+' '+response.statusText+' · '+response.url,response.ok?'ok':'warn');line(body.slice(0,12000)+(body.length>12000?'\\n… output truncated':''));break}
+ if(sub==='help'||!sub){line('proxy open | proxy list | proxy map <hostname> <route-slug> | proxy unmap <hostname> | proxy fetch <https-url>');line('Mappings connect terminal network requests to your own saved HTTPS routes.','dim');break}
+ throw Error('Try proxy help.');
+}
 case 'curl':if(!arg)throw Error('Usage: curl <https-url>');await webFetch(arg);break;
-case 'wget':if(!arg)throw Error('Usage: wget <https-url> [filename]');{const r=await fetch(new URL(arg,location.href).href);if(!r.ok)throw Error('HTTP '+r.status+' '+r.statusText);const data=await r.text(),name=args[1]||new URL(arg).pathname.split('/').filter(Boolean).pop()||'download.txt';const parts=resolve(name);await directory(parts.slice(0,-1),true);await writeFile(parts,data,false);line('Downloaded '+name+' ('+formatSize(new TextEncoder().encode(data).length)+')','ok')}break;
+case 'wget':if(!arg)throw Error('Usage: wget <https-url> [filename]');{const r=await terminalFetch(new URL(arg,location.href).href);if(!r.ok)throw Error('HTTP '+r.status+' '+r.statusText);const data=await r.text(),name=args[1]||new URL(arg).pathname.split('/').filter(Boolean).pop()||'download.txt';const parts=resolve(name);await directory(parts.slice(0,-1),true);await writeFile(parts,data,false);line('Downloaded '+name+' ('+formatSize(new TextEncoder().encode(data).length)+')','ok')}break;
 case 'fetch':if(!arg)throw Error('Usage: fetch <https-url>');await webFetch(arg);break;
 case 'json':if(!arg)throw Error('Usage: json <file.json>');line(JSON.stringify(JSON.parse(await readFile(resolve(arg))),null,2));break;
 case 'url':if(!arg)throw Error('Usage: url <https-url>');{const u=new URL(arg);line('Protocol: '+u.protocol);line('Host: '+u.host);line('Path: '+u.pathname);line('Query: '+u.search);line('Hash: '+u.hash)}break;
@@ -619,7 +681,7 @@ case 'open':{if(!arg)throw Error('Usage: open <https-url>');const u=new URL(arg,
 case 'export':if(!arg)Object.keys(envVars).sort().forEach(k=>line(k+'='+envVars[k]));else{const m=raw.slice(raw.indexOf(' ')+1).match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);if(!m)throw Error('Usage: export NAME=value');envVars[m[1]]=m[2];line(m[1]+' exported','ok')}break;
 case 'env':Object.keys(envVars).sort().forEach(k=>line(k+'='+envVars[k]));break;
 case 'unset':if(!arg)throw Error('Usage: unset <name>');delete envVars[arg];line('Unset '+arg,'ok');break;
-case 'which':if(!arg)throw Error('Usage: which <command>');line(['js','run','python','py','pip','preview','node','npm','help','pwd','ls','cd','mkdir','touch','cat','nano','write','append','rm','rmdir','tree','echo','clear','history','date','whoami','uname','storage','download','cp','mv','find','stat','du','head','tail','wc','grep','sort','uniq','rev','nl','base64','unbase64','seq','calc','upload','open','export','env','unset','which','man','hostname','id','uptime','free','version','about','exit'].includes(arg)?'/bin/'+arg:'not found',arg? 'ok':'');break;
+case 'which':if(!arg)throw Error('Usage: which <command>');line(['js','run','python','py','pip','preview','node','npm','help','pwd','ls','cd','mkdir','touch','cat','nano','write','append','rm','rmdir','tree','echo','clear','history','date','whoami','uname','storage','download','cp','mv','find','stat','du','head','tail','wc','grep','sort','uniq','rev','nl','base64','unbase64','seq','calc','upload','open','proxy','export','env','unset','which','man','hostname','id','uptime','free','version','about','exit'].includes(arg)?'/bin/'+arg:'not found',arg? 'ok':'');break;
 case 'man':line('Built-in command: '+(arg||'help'));line('Use help for the command index. Most file commands accept absolute or relative paths.');break;
 case 'hostname':line('hyper-pop-browser');break;
 case 'id':line('uid=1000(guest) gid=1000(guest) groups=1000(guest)');break;
@@ -627,16 +689,16 @@ case 'uptime':line('Session uptime: '+Math.floor((Date.now()-startedAt)/1000)+' 
 case 'free':line('Browser-managed memory is not fully exposed to web pages.','warn');if(performance.memory)line('JS heap: '+formatSize(performance.memory.usedJSHeapSize)+' / '+formatSize(performance.memory.jsHeapSizeLimit));break;
 case 'db':{const sub=args[0];if(sub==='help'||!sub){line('Local OPFS document database commands:');line('  db collections');line('  db create <collection>');line('  db insert <collection> <json>');line('  db find <collection> [json-filter]');line('  db delete <collection> <json-filter>');line("Node API: const db=await require(\"database\"); const users=db.collection(\"users\");");line("Remote REST: await db.connect(\"https://api.example\",{headers:{Authorization:\"Bearer TOKEN\"}}); await db.request(\"/records\");")}else if(sub==='collections'){const names=await browserDatabase.collections();line(names.length?names.join('\\n'):'(no collections)','ok')}else if(sub==='create'){if(!args[1])throw Error('Usage: db create <collection>');await browserDatabase.collection(args[1]).create();line('Created '+args[1],'ok')}else if(sub==='insert'){if(!args[1]||!args[2])throw Error('Usage: db insert <collection> <json>');const result=await browserDatabase.collection(args[1]).insertOne(JSON.parse(args.slice(2).join(' ')));line('Inserted document '+result.insertedId,'ok')}else if(sub==='find'){if(!args[1])throw Error('Usage: db find <collection> [json-filter]');line(JSON.stringify(await browserDatabase.collection(args[1]).find(args[2]?JSON.parse(args.slice(2).join(' ')):{}),null,2),'ok')}else if(sub==='delete'){if(!args[1]||!args[2])throw Error('Usage: db delete <collection> <json-filter>');const result=await browserDatabase.collection(args[1]).deleteMany(JSON.parse(args.slice(2).join(' ')));line('Deleted '+result.deletedCount+' document(s)','ok')}else throw Error('Try db help.');break}
  case 'version':line('Hyper-Pop Terminal 0.4 / HP-SH + JavaScript + Python WebAssembly','ok');break;
-case 'about':line('A static, browser-local command environment. Files live in this site origin’s OPFS storage.');line('No Supabase, no server shell, no unrestricted system access.','dim');
+case 'about':line('A browser-local command environment. Files live in this site origin’s OPFS storage.');line('Network requests can use the authenticated Hyper-Pop CORS proxy or your account-owned Reverse Proxy routes.','dim');
 line('JavaScript runs in the page runtime. Python runs in Pyodide/WebAssembly (downloaded on first use).','dim');
-line('Node commands use a browser-side Node compatibility layer, not native Node.js. npm packages load from esm.sh and must support browsers. Git commands connect to public GitHub repositories; they are not a full Git implementation.','dim');break;
+line('Node commands use a browser-side Node compatibility layer, not native Node.js. npm packages must support browsers. Git commands connect to public GitHub repositories; this is not a full Git object database and local commits/pushes are not implemented.','dim');break;
 case 'reset':screen.textContent='';line('Terminal display reset. Files were not changed.','ok');break;
 case 'exit':location.href='index.html';break;
 default:line('Command not found: '+cmd+'. Type help.','err');
 }
 }catch(e){line('ERROR: '+(e&&e.message?e.message:String(e)),'err')}
 }
-async function init(){try{if(!navigator.storage||!navigator.storage.getDirectory)throw Error('This browser does not support OPFS. Try an up-to-date Safari or another modern browser.');root=await navigator.storage.getDirectory();await directory(HOME,true);await loadNodePackages();status('OPFS READY','good');line('Hyper-Pop Terminal [HP-SH 0.4]','ok');line('Persistent browser-local filesystem initialized.','dim');line('No Supabase connection. No access to private device files.','dim');line('Type help to see available commands.','');line('');updatePrompt()}catch(e){status('FILESYSTEM UNAVAILABLE','bad');line('Could not initialize browser storage: '+e.message,'err');line('This terminal requires a secure HTTPS page and browser OPFS support.','warn')}}
+async function init(){try{if(!navigator.storage||!navigator.storage.getDirectory)throw Error('This browser does not support OPFS. Try an up-to-date Safari or another modern browser.');root=await navigator.storage.getDirectory();await directory(HOME,true);await loadNodePackages();status('OPFS READY','good');line('Hyper-Pop Terminal [HP-SH 0.4]','ok');line('Persistent browser-local filesystem initialized.','dim');line('Authenticated Hyper-Pop proxy networking is available. No access to private device files.','dim');line('Type help to see available commands.','');line('');updatePrompt()}catch(e){status('FILESYSTEM UNAVAILABLE','bad');line('Could not initialize browser storage: '+e.message,'err');line('This terminal requires a secure HTTPS page and browser OPFS support.','warn')}}
 form.addEventListener('submit',async e=>{e.preventDefault();const raw=input.value;input.value='';if(terminalInputResolver){line('> '+raw,'cmd');const resolve=terminalInputResolver;finishTerminalInput(raw);resolve(raw);return}if(raw.trim()){history.push(raw);historyIndex=history.length;await run(raw)}});
 input.addEventListener('keydown',e=>{if(e.key==='ArrowUp'){e.preventDefault();historyIndex=Math.max(0,historyIndex-1);input.value=history[historyIndex]||''}else if(e.key==='ArrowDown'){e.preventDefault();historyIndex=Math.min(history.length,historyIndex+1);input.value=history[historyIndex]||''}});
 document.getElementById('clear').addEventListener('click',()=>{screen.textContent='';input.focus()});
