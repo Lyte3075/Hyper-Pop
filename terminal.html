@@ -235,11 +235,11 @@ function makeVirtualHttp(){
   async dispatch(url,init={}){
    if(!this.listening)throw Error('Server is not listening.');
    const parsed=new URL(url,'http://localhost:'+this.port);
-   const req={url:parsed.pathname+parsed.search,originalUrl:parsed.pathname+parsed.search,method:String(init.method||'GET').toUpperCase(),headers:Object.fromEntries(new Headers(init.headers||{}).entries()),body:init.body||null,hostname:parsed.hostname,protocol:parsed.protocol,params:{},query:Object.fromEntries(parsed.searchParams.entries()),on(){return this}};
+   const req={url:parsed.pathname+parsed.search,originalUrl:parsed.pathname+parsed.search,path:parsed.pathname,method:String(init.method||'GET').toUpperCase(),headers:Object.fromEntries(new Headers(init.headers||{}).entries()),rawBody:typeof init.body==='string'?init.body:'',body:undefined,hostname:parsed.hostname,protocol:parsed.protocol,secure:parsed.protocol==='https:',ip:'127.0.0.1',baseUrl:'',params:{},query:Object.fromEntries(parsed.searchParams.entries()),get(name){return this.headers[String(name).toLowerCase()]},header(name){return this.get(name)},on(){return this}};
    return await new Promise((resolve,reject)=>{
     let chunks=[],finished=false,statusCode=200,statusMessage='',headers=new Headers();
     const done=()=>{if(finished)return;finished=true;resolve(new Response(chunks.join(''),{status:statusCode,statusText:statusMessage||undefined,headers}))};
-    const res={get statusCode(){return statusCode},set statusCode(value){statusCode=Number(value)||200},headersSent:false,writeHead:(code,messageOrHeaders,maybeHeaders)=>{statusCode=Number(code)||200;res.statusCode=statusCode;const h=typeof messageOrHeaders==='string'?maybeHeaders:messageOrHeaders;if(h)for(const [k,v] of Object.entries(h))headers.set(k,String(v));res.headersSent=true;return res},setHeader:(k,v)=>{headers.set(k,String(v));return res},getHeader:k=>headers.get(k),removeHeader:k=>headers.delete(k),write:chunk=>{chunks.push(String(chunk));return true},end:chunk=>{if(chunk!==undefined&&chunk!==null)chunks.push(String(chunk));done();return res},status(code){res.statusCode=statusCode=Number(code);return res},send(body){if(body!==undefined&&body!==null)chunks.push(typeof body==='string'?body:JSON.stringify(body));if(!headers.has('content-type'))headers.set('content-type',typeof body==='string'?'text/html; charset=utf-8':'application/json; charset=utf-8');done();return res},json(body){headers.set('content-type','application/json; charset=utf-8');chunks.push(JSON.stringify(body));done();return res}};
+    const res={get statusCode(){return statusCode},set statusCode(value){statusCode=Number(value)||200},get writableEnded(){return finished},headersSent:false,locals:{},writeHead:(code,messageOrHeaders,maybeHeaders)=>{statusCode=Number(code)||200;res.statusCode=statusCode;const h=typeof messageOrHeaders==='string'?maybeHeaders:messageOrHeaders;if(h)for(const [k,v] of Object.entries(h))headers.set(k,String(v));res.headersSent=true;return res},setHeader:(k,v)=>{headers.set(k,String(v));return res},getHeader:k=>headers.get(k),removeHeader:k=>headers.delete(k),write:chunk=>{chunks.push(String(chunk));return true},end:chunk=>{if(chunk!==undefined&&chunk!==null)chunks.push(String(chunk));done();return res},status(code){res.statusCode=statusCode=Number(code);return res},send(body){if(body!==undefined&&body!==null)chunks.push(typeof body==='string'?body:JSON.stringify(body));if(!headers.has('content-type'))headers.set('content-type',typeof body==='string'?'text/html; charset=utf-8':'application/json; charset=utf-8');done();return res},json(body){headers.set('content-type','application/json; charset=utf-8');chunks.push(JSON.stringify(body));done();return res},sendStatus(code){statusCode=Number(code);chunks.push(({200:'OK',201:'Created',204:'No Content',400:'Bad Request',401:'Unauthorized',403:'Forbidden',404:'Not Found',500:'Internal Server Error'})[statusCode]||'');done();return res},sendFile(){return res.status(501).send('sendFile is not implemented in the virtual server')},set(name,value){if(typeof name==='object')Object.entries(name).forEach(([k,v])=>headers.set(k,String(v)));else headers.set(name,String(value));return res},header(name,value){return res.set(name,value)},type(value){headers.set('content-type',String(value).includes('/')?value:({html:'text/html',json:'application/json',txt:'text/plain',css:'text/css',js:'text/javascript'})[String(value).replace(/^\\./,'')]||'application/octet-stream');return res},redirect(url){statusCode=302;headers.set('location',url);done();return res}};
     try{
      this.emit('request',req,res);
      const result=this.handler(req,res);
@@ -263,6 +263,69 @@ async function nodeFetch(url,init={}){
  const local=await virtualRequest(url,init);
  return local||fetch(url,init);
 }
+// Express-compatible routing, middleware and JSON helpers for virtual servers.
+function createVirtualExpress(){
+ const methods=['get','post','put','patch','delete','options','head','all'];
+ const matchPath=(pattern,path)=>{
+  if(pattern instanceof RegExp)return pattern.test(path)?{params:{}}:null;
+  const p=String(pattern||'/').split('/').filter(Boolean),v=String(path||'/').split('/').filter(Boolean),params={};
+  if(p.length===1&&p[0]==='*')return {params:{0:path}};
+  let i=0;
+  for(;i<p.length;i++){
+   if(p[i]==='*'){params[0]=v.slice(i).join('/');return {params}}
+   if(p[i][0]===':'){const optional=p[i].endsWith('?'),key=p[i].slice(1,optional?-1:undefined);if(v[i]===undefined){if(optional)continue;return null}params[key]=decodeURIComponent(v[i]);continue}
+   if(p[i]!==v[i])return null;
+  }
+  return v.length===p.length?{params}:null;
+ };
+ function createRouter(){
+  const stack=[];
+  const router=async function(req,res,nextOuter){
+   let index=0;
+   const run=async err=>{
+    if(res.writableEnded)return;
+    if(err){if(nextOuter)return nextOuter(err);return res.status(500).json({error:err.message||'Internal Server Error'})}
+    if(index>=stack.length){if(nextOuter)return nextOuter();return res.status(404).send('Cannot '+req.method+' '+req.path)}
+    const layer=stack[index++],path=req.path||'/';
+    if(layer.method&&layer.method!=='ALL'&&layer.method!==req.method&&!(req.method==='HEAD'&&layer.method==='GET'))return run();
+    const match=layer.match(path);if(!match)return run();
+    const old={url:req.url,path:req.path,baseUrl:req.baseUrl,params:req.params};
+    if(layer.kind==='middleware'&&layer.path!=='/'){
+     req.baseUrl=(req.baseUrl||'')+layer.path;
+     req.url=req.url.slice(layer.path.length)||'/';
+     req.path=new URL(req.url,'http://localhost').pathname;
+    }
+    if(layer.kind==='route')req.params={...req.params,...match.params};
+    let hi=0;
+    const invoke=async error=>{
+     if(res.writableEnded)return;
+     if(error)return run(error);
+     if(hi>=layer.handlers.length){req.url=old.url;req.path=old.path;req.baseUrl=old.baseUrl;req.params=old.params;return run()}
+     const fn=layer.handlers[hi++];
+     try{let advanced=false;await fn(req,res,async e=>{if(advanced)return;advanced=true;await invoke(e)})}catch(e){await run(e)}
+    };
+    await invoke();
+   };
+   await run();
+  };
+  router.stack=stack;
+  router.use=(path,...handlers)=>{if(typeof path!=='string'&&!(path instanceof RegExp)){handlers.unshift(path);path='/'}stack.push({kind:'middleware',path:path||'/',match:p=>(String(path||'/')==='/'||p===path||p.startsWith(String(path||'/').replace(/\/$/,'')+'/'))?{params:{}}:null,handlers:handlers.flat()});return router};
+  for(const method of methods)router[method]=(path,...handlers)=>{stack.push({kind:'route',method:method==='all'?'ALL':method.toUpperCase(),match:p=>matchPath(path,p),handlers:handlers.flat()});return router};
+  router.route=path=>{const chain={};for(const m of methods.filter(x=>x!=='all'))chain[m]=(...h)=>{router[m](path,...h);return chain};return chain};
+  router.listen=(port,...args)=>makeVirtualHttp().createServer(router).listen(port,...args);
+  router.handle=router;
+  return router;
+ }
+ const express=()=>createRouter();
+ express.Router=createRouter;
+ express.json=()=>async(req,res,next)=>{if(!(req.headers['content-type']||'').toLowerCase().includes('application/json'))return next();try{req.body=req.rawBody&&req.rawBody.trim()?JSON.parse(req.rawBody):{};await next()}catch(e){res.status(400).json({error:'Invalid JSON body',details:e.message})}};
+ express.urlencoded=()=>async(req,res,next)=>{if(!(req.headers['content-type']||'').toLowerCase().includes('application/x-www-form-urlencoded'))return next();req.body=Object.fromEntries(new URLSearchParams(req.rawBody||''));await next()};
+ express.text=()=>async(req,res,next)=>{req.body=req.rawBody;await next()};
+ express.raw=()=>async(req,res,next)=>{req.body=req.rawBody;await next()};
+ express.static=()=>async(req,res,next)=>next();
+ express.version='4.18-hp';
+ return express;
+}
 function nodeRuntime(source,label){
  return executeNode(source,label);
 }
@@ -272,7 +335,7 @@ async function executeNode(source,label){
  const nodeProcess={argv:[label||'node'],env:{...envVars},platform:'browser',version:'v22.0.0-hp',versions:{node:'22.0.0-hp'},cwd:()=>pathString(cwd),hrtime:{bigint:()=>BigInt(Math.floor(performance.now()*1e6))},nextTick:fn=>queueMicrotask(fn),exit:code=>{throw Object.assign(Error('Process exited with code '+(code||0)),{nodeExit:true})}};
  const nodePath={join:(...p)=>p.join('/').split('/').filter(Boolean).join('/'),resolve:(...p)=>pathString(resolve(p.join('/'))),basename:p=>String(p).split('/').pop(),dirname:p=>String(p).split('/').slice(0,-1).join('/')||'.',extname:p=>{const n=String(p).split('/').pop(),i=n.lastIndexOf('.');return i>0?n.slice(i):''},sep:'/'};
  const nodeFs={promises:{readFile:async p=>await readFile(resolve(String(p))),writeFile:async(p,d)=>await writeFile(resolve(String(p)),String(d),false),appendFile:async(p,d)=>await writeFile(resolve(String(p)),String(d),true),mkdir:async p=>await directory(resolve(String(p)),true),readdir:async p=>{const d=await directory(resolve(String(p)),false),a=[];for await(const [n] of d.entries())a.push(n);return a},stat:async p=>{const v=await entry(resolve(String(p)));return {isFile:()=>v.handle.kind==='file',isDirectory:()=>v.handle.kind==='directory',size:v.handle.kind==='file'?(await v.handle.getFile()).size:0}},unlink:async p=>{const [d,n]=await parentAndName(resolve(String(p)));await d.removeEntry(n)},access:async p=>{await entry(resolve(String(p)))}}};
- const builtins={path:nodePath,process:nodeProcess,buffer:{Buffer:{from:(v,e)=>nodeBuffer(v,e),isBuffer:()=>false}},util:{promisify:f=>f},assert:{ok:(v,m)=>{if(!v)throw Error(m||'Assertion failed')},equal:(a,b)=>{if(a!=b)throw Error(a+' != '+b)},strictEqual:(a,b)=>{if(a!==b)throw Error(a+' !== '+b)}},crypto:{webcrypto:crypto},url:{URL,URLSearchParams},fs:nodeFs,http:makeVirtualHttp(),https:makeVirtualHttp()};
+ const builtins={express:createVirtualExpress(),path:nodePath,process:nodeProcess,buffer:{Buffer:{from:(v,e)=>nodeBuffer(v,e),isBuffer:()=>false}},util:{promisify:f=>f},assert:{ok:(v,m)=>{if(!v)throw Error(m||'Assertion failed')},equal:(a,b)=>{if(a!=b)throw Error(a+' != '+b)},strictEqual:(a,b)=>{if(a!==b)throw Error(a+' !== '+b)}},crypto:{webcrypto:crypto},url:{URL,URLSearchParams},fs:nodeFs,http:makeVirtualHttp(),https:makeVirtualHttp()};
  const requireFn=async name=>{if(builtins[name])return builtins[name];if(name.startsWith('node:')&&builtins[name.slice(5)])return builtins[name.slice(5)];const pkg=name.startsWith('/')?name.slice(1):name;if(!nodePackages[pkg])throw Error("Cannot find package '"+name+"'. Try: npm install "+name);return await import('https://esm.sh/'+encodeURIComponent(pkg)+'?bundle')};
  const nodeConsole={log:print,info:print,warn:(...v)=>{outputCount++;line(v.join(' '),'warn')},error:(...v)=>{outputCount++;line(v.join(' '),'err')},table:v=>print(v),clear:()=>{}};
  try{
