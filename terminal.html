@@ -463,7 +463,7 @@ async function executeNode(source,label){
  const nodeFs={promises:fsPromises,readFile:(p,opts,cb)=>{if(typeof opts==='function'){cb=opts;opts={}}fsPromises.readFile(p,opts).then(v=>cb&&cb(null,v),e=>cb&&cb(e))},writeFile:(p,d,opts,cb)=>{if(typeof opts==='function'){cb=opts}fsPromises.writeFile(p,d).then(()=>cb&&cb(null),e=>cb&&cb(e))},appendFile:(p,d,opts,cb)=>{if(typeof opts==='function')cb=opts;fsPromises.appendFile(p,d).then(()=>cb&&cb(null),e=>cb&&cb(e))},mkdir:(p,opts,cb)=>{if(typeof opts==='function')cb=opts;fsPromises.mkdir(p).then(v=>cb&&cb(null,v),e=>cb&&cb(e))},readdir:(p,opts,cb)=>{if(typeof opts==='function')cb=opts;fsPromises.readdir(p).then(v=>cb&&cb(null,v),e=>cb&&cb(e))},stat:(p,cb)=>fsPromises.stat(p).then(v=>cb&&cb(null,v),e=>cb&&cb(e)),unlink:(p,cb)=>fsPromises.unlink(p).then(()=>cb&&cb(null),e=>cb&&cb(e)),existsSync:()=>false};
 
  const loadedModules={};
- const packageNames=[...new Set([...String(source).matchAll(/(?:require\s*\(\s*|from\s*)['"]([^'"]+)['"]/g)].map(m=>m[1]).filter(n=>!n.startsWith('.')&&!n.startsWith('/')&&!n.startsWith('node:')&&!['express','database','db','WebSocket','path','process','buffer','util','assert','crypto','url','fs','http','https','os','events'].includes(n)))];
+ const packageNames=[...new Set([...String(source).matchAll(/(?:require\s*\(\s*|from\s*|import\s*\(\s*)['"]([^'"]+)['"]/g)].map(m=>m[1]).filter(n=>!n.startsWith('.')&&!n.startsWith('/')&&!n.startsWith('node:')&&!['express','database','db','WebSocket','path','process','buffer','util','assert','crypto','url','fs','http','https','os','events'].includes(n)))];
  for(const name of packageNames){
   const record=nodePackages[name];
   if(!record)throw Error("Cannot find module '"+name+"'. Run npm install "+name+" first.");
