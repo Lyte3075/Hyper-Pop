@@ -219,10 +219,10 @@ async function executeNode(source,label){
  let outputCount=0;
  const print=(...v)=>{outputCount++;line(v.map(x=>typeof x==='string'?x:JSON.stringify(x)).join(' '))};
  const nodeProcess={argv:[label||'node'],env:{...envVars},platform:'browser',version:'v22.0.0-hp',versions:{node:'22.0.0-hp'},cwd:()=>pathString(cwd),hrtime:{bigint:()=>BigInt(Math.floor(performance.now()*1e6))},nextTick:fn=>queueMicrotask(fn),exit:code=>{throw Object.assign(Error('Process exited with code '+(code||0)),{nodeExit:true})}};
- const nodePath={join:(...p)=>p.join('/').replace(/\\/+/g,'/'),resolve:(...p)=>pathString(resolve(p.join('/'))),basename:p=>String(p).split('/').pop(),dirname:p=>String(p).split('/').slice(0,-1).join('/')||'.',extname:p=>{const n=String(p).split('/').pop(),i=n.lastIndexOf('.');return i>0?n.slice(i):''},sep:'/'};
+ const nodePath={join:(...p)=>p.join('/').split('/').filter(Boolean).join('/'),resolve:(...p)=>pathString(resolve(p.join('/'))),basename:p=>String(p).split('/').pop(),dirname:p=>String(p).split('/').slice(0,-1).join('/')||'.',extname:p=>{const n=String(p).split('/').pop(),i=n.lastIndexOf('.');return i>0?n.slice(i):''},sep:'/'};
  const nodeFs={promises:{readFile:async p=>await readFile(resolve(String(p))),writeFile:async(p,d)=>await writeFile(resolve(String(p)),String(d),false),appendFile:async(p,d)=>await writeFile(resolve(String(p)),String(d),true),mkdir:async p=>await directory(resolve(String(p)),true),readdir:async p=>{const d=await directory(resolve(String(p)),false),a=[];for await(const [n] of d.entries())a.push(n);return a},stat:async p=>{const v=await entry(resolve(String(p)));return {isFile:()=>v.handle.kind==='file',isDirectory:()=>v.handle.kind==='directory',size:v.handle.kind==='file'?(await v.handle.getFile()).size:0}},unlink:async p=>{const [d,n]=await parentAndName(resolve(String(p)));await d.removeEntry(n)},access:async p=>{await entry(resolve(String(p)))}}};
  const builtins={path:nodePath,process:nodeProcess,buffer:{Buffer:{from:(v,e)=>nodeBuffer(v,e),isBuffer:()=>false}},util:{promisify:f=>f},assert:{ok:(v,m)=>{if(!v)throw Error(m||'Assertion failed')},equal:(a,b)=>{if(a!=b)throw Error(a+' != '+b)},strictEqual:(a,b)=>{if(a!==b)throw Error(a+' !== '+b)}},crypto:{webcrypto:crypto},url:{URL,URLSearchParams},fs:nodeFs};
- const requireFn=async name=>{if(builtins[name])return builtins[name];if(name.startsWith('node:')&&builtins[name.slice(5)])return builtins[name.slice(5)];const pkg=name.replace(/^\\//,'');if(!nodePackages[pkg])throw Error("Cannot find package '"+name+"'. Try: npm install "+name);return await import('https://esm.sh/'+encodeURIComponent(pkg)+'?bundle')};
+ const requireFn=async name=>{if(builtins[name])return builtins[name];if(name.startsWith('node:')&&builtins[name.slice(5)])return builtins[name.slice(5)];const pkg=name.startsWith('/')?name.slice(1):name;if(!nodePackages[pkg])throw Error("Cannot find package '"+name+"'. Try: npm install "+name);return await import('https://esm.sh/'+encodeURIComponent(pkg)+'?bundle')};
  const nodeConsole={log:print,info:print,warn:(...v)=>{outputCount++;line(v.join(' '),'warn')},error:(...v)=>{outputCount++;line(v.join(' '),'err')},table:v=>print(v),clear:()=>{}};
  try{
   const runner=new AsyncFunction('require','module','exports','__filename','__dirname','process','Buffer','console','fetch','URL','URLSearchParams','setTimeout','clearTimeout','setInterval','clearInterval','global','globalThis','input','"use strict";\\n'+source);
@@ -251,9 +251,12 @@ async function npmCommand(args){
  else throw Error('Supported npm commands: install, list, uninstall, help');
 }
 function parseGitHubUrl(url){
- const m=String(url).match(/(?:https?:\\/\\/github\\.com\\/|git@github\\.com:)([^/]+)\\/([^/.]+)(?:\\.git)?/i);
- if(!m)throw Error('Use a GitHub repository URL, e.g. https://github.com/user/repo');
- return {owner:m[1],repo:m[2]};
+ const normalized=String(url).replace(/^git@github\\.com:/,'https://github.com/');
+ const u=new URL(normalized);
+ if(u.hostname.toLowerCase()!=='github.com')throw Error('Only public GitHub repository URLs are supported.');
+ const parts=u.pathname.split('/').filter(Boolean);
+ if(parts.length<2)throw Error('Use a GitHub repository URL, e.g. https://github.com/user/repo');
+ return {owner:parts[0],repo:parts[1].replace(/\\.git$/,'')};
 }
 async function githubApi(url){
  const r=await fetch(url,{headers:{Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}});
