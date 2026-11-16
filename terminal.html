@@ -154,7 +154,7 @@ async function executeJavaScript(source,label){
  const print=(...values)=>{const value=values.map(v=>typeof v==='string'?v:JSON.stringify(v)).join(' ');outputCount++;line(value)};
  try{
   const terminalConsole={log:(...v)=>print(...v),info:(...v)=>print(...v),warn:(...v)=>print(...v),error:(...v)=>print(...v),clear:()=>{}};
-  const runner=new AsyncFunction('print','args','console','input','"use strict";\n'+source);
+  const runner=new AsyncFunction('print','args','console','input','"use strict";\n'+nodeSource);
   const result=await runner(print,[],terminalConsole,terminalInput);
   if(result!==undefined)print(result);
   line((label||'JavaScript')+' completed'+(outputCount?'':' (no output).'),'ok');
@@ -208,6 +208,7 @@ async function previewHtml(path){
 const browserDatabase=(()=>{const file=['home','guest','.hp-database.json'];let remote=null;const load=async()=>{try{return JSON.parse(await readFile(file))}catch(_){return {collections:{}}}};const save=async d=>writeFile(file,JSON.stringify(d),false);const matches=(doc,filter={})=>Object.entries(filter).every(([k,v])=>v&&typeof v==='object'&&!Array.isArray(v)?Object.entries(v).every(([op,x])=>op==='$gt'?doc[k]>x:op==='$gte'?doc[k]>=x:op==='$lt'?doc[k]<x:op==='$lte'?doc[k]<=x:op==='$ne'?doc[k]!==x:op==='$in'?x.includes(doc[k]):false):doc[k]===v);const api={async collections(){return Object.keys((await load()).collections)},async connect(url,options={}){remote={url:String(url).replace(/\/$/,''),headers:options.headers||{}};return api},async request(path,init={}){if(!remote)throw Error('Call db.connect(baseUrl, options) first.');return terminalFetch(remote.url+'/'+String(path||'').replace(/^\//,''),{...init,headers:{...remote.headers,...(init.headers||{})}})},collection(name){name=String(name);if(!/^[a-zA-Z0-9_-]{1,64}$/.test(name))throw Error('Invalid collection name.');return {async create(){const d=await load();d.collections[name]??=[];await save(d);return this},async insertOne(doc){const d=await load();d.collections[name]??=[];const value={...doc,_id:doc&&doc._id||crypto.randomUUID()};d.collections[name].push(value);await save(d);return {acknowledged:true,insertedId:value._id}},async insertMany(docs){const ids=[];for(const doc of docs)ids.push((await this.insertOne(doc)).insertedId);return {acknowledged:true,insertedCount:ids.length,insertedIds:ids}},async find(filter={}){return ((await load()).collections[name]||[]).filter(x=>matches(x,filter)).map(x=>({...x}))},async findOne(filter={}){return (await this.find(filter))[0]||null},async updateOne(filter,update){const d=await load(),rows=d.collections[name]||[],i=rows.findIndex(x=>matches(x,filter));if(i<0)return {matchedCount:0,modifiedCount:0};rows[i]={...rows[i],...(update.$set||update)};await save(d);return {matchedCount:1,modifiedCount:1}},async deleteMany(filter={},one=false){const d=await load(),rows=d.collections[name]||[],kept=[];let deleted=0;for(const row of rows){if(matches(row,filter)&&(!one||!deleted))deleted++;else kept.push(row)}d.collections[name]=kept;await save(d);return {acknowledged:true,deletedCount:deleted}},async deleteOne(filter){return this.deleteMany(filter,true)},async countDocuments(filter={}){return (await this.find(filter)).length}}}};return api})();
 const nodePackages={};
 const nodePackageModules={};
+function unwrapNodeModule(mod){if(!mod||!('default'in mod))return mod;const value=mod.default;if(value&&(typeof value==='object'||typeof value==='function')){for(const [key,item] of Object.entries(mod)){if(key!=='default'&&value[key]===undefined)try{value[key]=item}catch(_){}}return value}return value}
 async function loadNodePackages(){try{const data=JSON.parse(await readFile(['home','guest','.hp-node-packages.json']));Object.assign(nodePackages,data)}catch(_){}}
 class NodeBuffer extends Uint8Array{
  static from(value,encoding='utf8'){
@@ -462,16 +463,30 @@ async function executeNode(source,label){
  const nodeFs={promises:fsPromises,readFile:(p,opts,cb)=>{if(typeof opts==='function'){cb=opts;opts={}}fsPromises.readFile(p,opts).then(v=>cb&&cb(null,v),e=>cb&&cb(e))},writeFile:(p,d,opts,cb)=>{if(typeof opts==='function'){cb=opts}fsPromises.writeFile(p,d).then(()=>cb&&cb(null),e=>cb&&cb(e))},appendFile:(p,d,opts,cb)=>{if(typeof opts==='function')cb=opts;fsPromises.appendFile(p,d).then(()=>cb&&cb(null),e=>cb&&cb(e))},mkdir:(p,opts,cb)=>{if(typeof opts==='function')cb=opts;fsPromises.mkdir(p).then(v=>cb&&cb(null,v),e=>cb&&cb(e))},readdir:(p,opts,cb)=>{if(typeof opts==='function')cb=opts;fsPromises.readdir(p).then(v=>cb&&cb(null,v),e=>cb&&cb(e))},stat:(p,cb)=>fsPromises.stat(p).then(v=>cb&&cb(null,v),e=>cb&&cb(e)),unlink:(p,cb)=>fsPromises.unlink(p).then(()=>cb&&cb(null),e=>cb&&cb(e)),existsSync:()=>false};
 
  const loadedModules={};
- const packageNames=[...new Set([...String(source).matchAll(/require\s*\(\s*['"]([^'"]+)['"]\s*\)/g)].map(m=>m[1]).filter(n=>!n.startsWith('.')&&!n.startsWith('/')&&!n.startsWith('node:')&&!['express','database','db','WebSocket','path','process','buffer','util','assert','crypto','url','fs','http','https','os','events'].includes(n)))];
+ const packageNames=[...new Set([...String(source).matchAll(/(?:require\s*\(\s*|from\s*)['"]([^'"]+)['"]/g)].map(m=>m[1]).filter(n=>!n.startsWith('.')&&!n.startsWith('/')&&!n.startsWith('node:')&&!['express','database','db','WebSocket','path','process','buffer','util','assert','crypto','url','fs','http','https','os','events'].includes(n)))];
  for(const name of packageNames){
   const record=nodePackages[name];
   if(!record)throw Error("Cannot find module '"+name+"'. Run npm install "+name+" first.");
   const packageUrl=typeof record==='string'?record:record.url;
   if(!packageUrl)throw Error("Package '"+name+"' has no install URL. Reinstall it with npm install "+name+".");
-  try{const mod=await import(packageUrl);loadedModules[name]=mod&&Object.keys(mod).length===1&&'default'in mod?mod.default:mod}
+  try{const mod=await import(packageUrl);loadedModules[name]=unwrapNodeModule(mod)}
   catch(e){throw Error("Could not load installed package '"+name+"': "+e.message)}
  }
  Object.assign(nodePackageModules,loadedModules);
+ const builtinsForTransform=new Set(['express','database','db','WebSocket','path','process','buffer','util','assert','crypto','url','fs','http','https','os','events']);
+ const moduleUrl=spec=>{const name=String(spec);if(builtinsForTransform.has(name.replace(/^node:/,'')))return null;const record=nodePackages[name];return record?(typeof record==='string'?record:record.url):null};
+ let nodeSource=String(source);
+ nodeSource=nodeSource.replace(/(^|\n)\s*import\s+(\*\s+as\s+[A-Za-z_$][\w$]*|\{[^}]+\}|[A-Za-z_$][\w$]*)\s+from\s+(['"])([^'"]+)\3\s*;?/g,(all,lead,binding,q,spec)=>{
+  const url=moduleUrl(spec);
+  if(!url){const name=binding.startsWith('*')?binding.replace(/^\*\s+as\s+/,''):binding;return lead+'const '+name+' = require('+JSON.stringify(spec)+');'}
+  if(binding.startsWith('*'))return lead+'const '+binding.replace(/^\*\s+as\s+/,'')+' = await import('+JSON.stringify(url)+');';
+  if(binding.startsWith('{'))return lead+'const '+binding+' = await import('+JSON.stringify(url)+');';
+  return lead+'const '+binding+' = (await import('+JSON.stringify(url)+')).default;';
+ });
+ nodeSource=nodeSource.replace(/\bimport\s*\(\s*(['"])([^'"]+)\1\s*\)/g,(all,q,spec)=>{
+  const url=moduleUrl(spec);
+  return url?'import('+JSON.stringify(url)+')':"Promise.resolve(require("+JSON.stringify(spec)+"))";
+ });
  const builtins={express:createVirtualExpress(),database:browserDatabase,db:browserDatabase,WebSocket:createVirtualWebSocket(),path:nodePath,process:nodeProcess,buffer:{Buffer:NodeBuffer},util:{promisify:f=>f},assert:{ok:(v,m)=>{if(!v)throw Error(m||'Assertion failed')},equal:(a,b)=>{if(a!=b)throw Error(a+' != '+b)},strictEqual:(a,b)=>{if(a!==b)throw Error(a+' !== '+b)}},crypto:{webcrypto:crypto},url:{URL,URLSearchParams},fs:nodeFs,http:nodeHttp,https:nodeHttps,os:{platform:()=>'browser',arch:()=>'wasm32',homedir:()=>'/home/guest',tmpdir:()=>'/tmp',EOL:'\n'},events:{EventEmitter:class{constructor(){this._events={}}on(n,f){(this._events[n]??=[]).push(f);return this}addListener(n,f){return this.on(n,f)}once(n,f){const w=(...a)=>{this.off(n,w);f(...a)};return this.on(n,w)}off(n,f){this._events[n]=(this._events[n]||[]).filter(x=>x!==f);return this}removeListener(n,f){return this.off(n,f)}emit(n,...a){for(const f of [...(this._events[n]||[])])f(...a);return !!(this._events[n]||[]).length}}}};
  const requireFn=name=>{const key=String(name).replace(/^node:/,'');if(builtins[key])return builtins[key];if(nodePackageModules[name])return nodePackageModules[name];throw Error("Cannot find module '"+name+"'. Run npm install "+name+" first, then rerun the script.")};
  const nodeConsole={log:print,info:print,warn:(...v)=>{outputCount++;line(v.join(' '),'warn')},error:(...v)=>{outputCount++;line(v.join(' '),'err')},table:v=>print(v),clear:()=>{}};
