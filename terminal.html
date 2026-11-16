@@ -225,7 +225,7 @@ async function executeNode(source,label){
  const requireFn=async name=>{if(builtins[name])return builtins[name];if(name.startsWith('node:')&&builtins[name.slice(5)])return builtins[name.slice(5)];const pkg=name.startsWith('/')?name.slice(1):name;if(!nodePackages[pkg])throw Error("Cannot find package '"+name+"'. Try: npm install "+name);return await import('https://esm.sh/'+encodeURIComponent(pkg)+'?bundle')};
  const nodeConsole={log:print,info:print,warn:(...v)=>{outputCount++;line(v.join(' '),'warn')},error:(...v)=>{outputCount++;line(v.join(' '),'err')},table:v=>print(v),clear:()=>{}};
  try{
-  const runner=new AsyncFunction('require','module','exports','__filename','__dirname','process','Buffer','console','fetch','URL','URLSearchParams','setTimeout','clearTimeout','setInterval','clearInterval','global','globalThis','input','"use strict";\\n'+source);
+  const runner=new AsyncFunction('require','module','exports','__filename','__dirname','process','Buffer','console','fetch','URL','URLSearchParams','setTimeout','clearTimeout','setInterval','clearInterval','global','globalThis','input','"use strict";\n'+source);
   const file=label&&label.endsWith('.js')?pathString(resolve(label)):pathString(cwd.concat('index.js'));
   await runner(requireFn,{exports:{}},{},file,file.split('/').slice(0,-1).join('/')||'/',nodeProcess,{from:(v,e)=>nodeBuffer(v,e)},nodeConsole,fetch,URL,URLSearchParams,setTimeout,clearTimeout,setInterval,clearInterval,globalThis,globalThis,terminalInput);
   line((label||'Node script')+' finished'+(outputCount?'':' (no output).'),'ok');
