@@ -18,7 +18,7 @@ header{height:48px;flex:0 0 48px;display:flex;align-items:center;justify-content
 .line{min-height:1.55em}.dim{color:var(--muted)}.ok{color:var(--green)}.warn{color:var(--yellow)}.err{color:var(--red)}.prompt{color:var(--green)}.cmd{color:var(--cmd)}
 form{flex:0 0 auto;display:flex;align-items:center;gap:9px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:#000}
 #cwd{color:var(--green)!important;max-width:38%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--fg);font:16pt ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;caret-color:var(--green);padding:4px 0;min-height:2em}
+#input{flex:1;min-width:0;min-height:2em;max-height:38vh;resize:none;overflow-y:auto;border:0;outline:0;background:transparent;color:var(--fg);font:16pt/1.35 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;caret-color:var(--green);padding:4px 0;white-space:pre-wrap;}
 #input::placeholder{color:#555}
 button{font:inherit;color:var(--fg);background:#101010;border:1px solid #333;border-radius:5px;padding:5px 9px}
 #tools{display:flex;gap:6px}
@@ -44,7 +44,7 @@ button{font:inherit;color:var(--fg);background:#101010;border:1px solid #333;bor
 <main id="screen" role="log" aria-live="polite" aria-label="Terminal output"></main>
 <form id="form" autocomplete="off">
 <span id="cwd">~</span><span class="prompt">$</span>
-<input id="input" aria-label="Terminal command" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="type help and press enter">
+<textarea id="input" aria-label="Terminal command" autocomplete="off" autocapitalize="off" spellcheck="false" rows="1" placeholder="type help and press enter"></textarea>
 <div id="tools"><button id="clear" type="button" title="Clear output">CLR</button></div>
 </form>
 <section id="editor" hidden aria-label="Nano text editor">
@@ -154,7 +154,7 @@ async function executeJavaScript(source,label){
  const print=(...values)=>{const value=values.map(v=>typeof v==='string'?v:JSON.stringify(v)).join(' ');outputCount++;line(value)};
  try{
   const terminalConsole={log:(...v)=>print(...v),info:(...v)=>print(...v),warn:(...v)=>print(...v),error:(...v)=>print(...v),clear:()=>{}};
-  const runner=new AsyncFunction('print','args','console','input','"use strict";\n'+source);
+  const runner=new AsyncFunction('print','args','console','input','"use strict";\n'+nodeSource);
   const result=await runner(print,[],terminalConsole,terminalInput);
   if(result!==undefined)print(result);
   line((label||'JavaScript')+' completed'+(outputCount?'':' (no output).'),'ok');
@@ -207,13 +207,33 @@ async function previewHtml(path){
 
 const browserDatabase=(()=>{const file=['home','guest','.hp-database.json'];let remote=null;const load=async()=>{try{return JSON.parse(await readFile(file))}catch(_){return {collections:{}}}};const save=async d=>writeFile(file,JSON.stringify(d),false);const matches=(doc,filter={})=>Object.entries(filter).every(([k,v])=>v&&typeof v==='object'&&!Array.isArray(v)?Object.entries(v).every(([op,x])=>op==='$gt'?doc[k]>x:op==='$gte'?doc[k]>=x:op==='$lt'?doc[k]<x:op==='$lte'?doc[k]<=x:op==='$ne'?doc[k]!==x:op==='$in'?x.includes(doc[k]):false):doc[k]===v);const api={async collections(){return Object.keys((await load()).collections)},async connect(url,options={}){remote={url:String(url).replace(/\/$/,''),headers:options.headers||{}};return api},async request(path,init={}){if(!remote)throw Error('Call db.connect(baseUrl, options) first.');return terminalFetch(remote.url+'/'+String(path||'').replace(/^\//,''),{...init,headers:{...remote.headers,...(init.headers||{})}})},collection(name){name=String(name);if(!/^[a-zA-Z0-9_-]{1,64}$/.test(name))throw Error('Invalid collection name.');return {async create(){const d=await load();d.collections[name]??=[];await save(d);return this},async insertOne(doc){const d=await load();d.collections[name]??=[];const value={...doc,_id:doc&&doc._id||crypto.randomUUID()};d.collections[name].push(value);await save(d);return {acknowledged:true,insertedId:value._id}},async insertMany(docs){const ids=[];for(const doc of docs)ids.push((await this.insertOne(doc)).insertedId);return {acknowledged:true,insertedCount:ids.length,insertedIds:ids}},async find(filter={}){return ((await load()).collections[name]||[]).filter(x=>matches(x,filter)).map(x=>({...x}))},async findOne(filter={}){return (await this.find(filter))[0]||null},async updateOne(filter,update){const d=await load(),rows=d.collections[name]||[],i=rows.findIndex(x=>matches(x,filter));if(i<0)return {matchedCount:0,modifiedCount:0};rows[i]={...rows[i],...(update.$set||update)};await save(d);return {matchedCount:1,modifiedCount:1}},async deleteMany(filter={},one=false){const d=await load(),rows=d.collections[name]||[],kept=[];let deleted=0;for(const row of rows){if(matches(row,filter)&&(!one||!deleted))deleted++;else kept.push(row)}d.collections[name]=kept;await save(d);return {acknowledged:true,deletedCount:deleted}},async deleteOne(filter){return this.deleteMany(filter,true)},async countDocuments(filter={}){return (await this.find(filter)).length}}}};return api})();
 const nodePackages={};
+const nodePackageModules={};
+function unwrapNodeModule(mod){if(!mod||!('default'in mod))return mod;const value=mod.default;if(value&&(typeof value==='object'||typeof value==='function')){for(const [key,item] of Object.entries(mod)){if(key!=='default'&&value[key]===undefined)try{value[key]=item}catch(_){}}return value}return value}
 async function loadNodePackages(){try{const data=JSON.parse(await readFile(['home','guest','.hp-node-packages.json']));Object.assign(nodePackages,data)}catch(_){}}
-function nodeBuffer(value,encoding='utf8'){
- const bytes=typeof value==='string'?new TextEncoder().encode(value):new Uint8Array(value||[]);
- if(encoding==='hex')return Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
- if(encoding==='base64'){let b='';bytes.forEach(x=>b+=String.fromCharCode(x));return btoa(b)}
- return new TextDecoder().decode(bytes);
+class NodeBuffer extends Uint8Array{
+ static from(value,encoding='utf8'){
+  let bytes;
+  if(typeof value==='string'){
+   if(encoding==='hex'){const clean=value.replace(/[^a-f0-9]/gi,'');bytes=Uint8Array.from(clean.match(/.{1,2}/g)||[],x=>parseInt(x,16))}
+   else if(encoding==='base64'){const raw=atob(value);bytes=Uint8Array.from(raw,c=>c.charCodeAt(0))}
+   else if(encoding==='base64url'){const raw=atob(value.replace(/-/g,'+').replace(/_/g,'/'));bytes=Uint8Array.from(raw,c=>c.charCodeAt(0))}
+   else bytes=new TextEncoder().encode(value);
+  }else if(value instanceof ArrayBuffer)bytes=new Uint8Array(value);
+  else if(ArrayBuffer.isView(value))bytes=new Uint8Array(value.buffer,value.byteOffset,value.byteLength);
+  else if(Array.isArray(value))bytes=Uint8Array.from(value);
+  else if(value&&typeof value==='object'&&Array.isArray(value.data))bytes=Uint8Array.from(value.data);
+  else bytes=new Uint8Array();
+  return new NodeBuffer(bytes);
+ }
+ static alloc(size,fill=0){const b=new NodeBuffer(Math.max(0,Number(size)||0));if(fill)b.fill(typeof fill==='number'?fill:NodeBuffer.from(fill)[0]||0);return b}
+ static allocUnsafe(size){return NodeBuffer.alloc(size)}
+ static concat(list,totalLength){const arrays=list.map(x=>NodeBuffer.from(x));const length=totalLength===undefined?arrays.reduce((n,x)=>n+x.length,0):totalLength;const out=new NodeBuffer(length);let offset=0;for(const x of arrays){out.set(x.subarray(0,Math.max(0,length-offset)),offset);offset+=x.length;if(offset>=length)break}return out}
+ static isBuffer(value){return value instanceof NodeBuffer}
+ static byteLength(value,encoding='utf8'){return NodeBuffer.from(value,encoding).length}
+ toString(encoding='utf8',start=0,end=this.length){const bytes=this.subarray(start,end);if(encoding==='hex')return Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');if(encoding==='base64'||encoding==='base64url'){let raw='';bytes.forEach(x=>raw+=String.fromCharCode(x));const out=btoa(raw);return encoding==='base64url'?out.replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_'):out}return new TextDecoder(encoding==='utf8'?'utf-8':encoding).decode(bytes)}
+ equals(other){const b=NodeBuffer.from(other);return this.length===b.length&&this.every((x,i)=>x===b[i])}
 }
+function nodeBuffer(value,encoding='utf8'){return NodeBuffer.from(value,encoding)}
 // In-browser virtual HTTP servers. These routes exist only inside this terminal tab.
 const virtualServers=new Map();
 function makeVirtualHttp(){
@@ -382,40 +402,152 @@ function createVirtualExpress(){
 function nodeRuntime(source,label){
  return executeNode(source,label);
 }
+function makeNodeHttpClient(protocol){
+ const makeRequest=(input,options,callback)=>{
+  if(typeof options==='function'){callback=options;options={}}
+  options=options||{};
+  let url;
+  if(input instanceof URL)url=new URL(input.href);
+  else if(typeof input==='string')url=new URL(input,location.href);
+  else{
+   const host=options.hostname||options.host||'localhost';
+   const port=options.port?':'+options.port:'';
+   const path=options.path||options.pathname||'/';
+   url=new URL(protocol+'//'+host+port+path);
+  }
+  if(!/^https?:$/.test(url.protocol))url=new URL(protocol+'//'+url.host+url.pathname+url.search);
+  const method=String(options.method||'GET').toUpperCase();
+  const headers=new Headers(options.headers||{});
+  let body='',aborted=false,settled=false;
+  const listeners={};
+  const emit=(name,...args)=>{for(const fn of [...(listeners[name]||[])]){try{fn(...args)}catch(e){line('HTTP callback error: '+e.message,'err')}}};
+  const request={
+   on(name,fn){(listeners[name]??=[]).push(fn);return this},
+   once(name,fn){const wrap=(...a)=>{this.off(name,wrap);fn(...a)};return this.on(name,wrap)},
+   off(name,fn){listeners[name]=(listeners[name]||[]).filter(x=>x!==fn);return this},
+   setHeader(name,value){headers.set(name,String(value));return this},
+   getHeader(name){return headers.get(name)},
+   removeHeader(name){headers.delete(name);return this},
+   write(chunk,encoding){if(chunk!==undefined&&chunk!==null)body+=typeof chunk==='string'?chunk:new TextDecoder().decode(chunk);return true},
+   abort(){aborted=true;emit('abort');return this},
+   destroy(error){aborted=true;if(error)emit('error',error);return this},
+   end(chunk){if(chunk!==undefined&&chunk!==null)this.write(chunk);if(settled)return this;settled=true;
+    (async()=>{try{
+     if(aborted)return;
+     const response=await nodeFetch(url.href,{method,headers,body:['GET','HEAD'].includes(method)?undefined:body,redirect:'follow'});
+     const responseHeaders=Object.fromEntries(response.headers.entries());
+     const incoming={statusCode:response.status,statusMessage:response.statusText,headers:responseHeaders,url:url.href,rawHeaders:Object.entries(responseHeaders).flat(),httpVersion:'1.1',complete:true,aborted:false,_encoding:'utf-8',setEncoding(enc){this._encoding=enc;return this},on(name,fn){(this._events??={})[name]??=[];this._events[name].push(fn);return this},once(name,fn){const w=(...a)=>{this.off(name,w);fn(...a)};return this},off(name,fn){this._events[name]=(this._events[name]||[]).filter(x=>x!==fn);return this},destroy(){this.aborted=true;return this}};
+     const responseEmit=(name,...a)=>{for(const fn of [...(incoming._events?.[name]||[])])fn(...a)};
+     if(callback)callback(incoming);
+     emit('response',incoming);
+     if(method==='HEAD'||response.status===204||response.status===304){responseEmit('end');return}
+     const reader=response.body?.getReader();
+     if(reader){while(true){const part=await reader.read();if(part.done)break;const chunk=part.value;const data=incoming._encoding==='buffer'?chunk:new TextDecoder(incoming._encoding).decode(chunk);responseEmit('data',data)}}
+     responseEmit('end');
+    }catch(error){emit('error',error)} })();
+    return this
+   }
+  };
+  return request;
+ };
+ return {request:(input,options,cb)=>makeRequest(input,options,cb),get:(input,options,cb)=>makeRequest(input,options,cb).end(),Agent:class{},globalAgent:{},METHODS:['GET','POST','PUT','PATCH','DELETE','HEAD','OPTIONS'],STATUS_CODES:{200:'OK',201:'Created',204:'No Content',301:'Moved Permanently',302:'Found',400:'Bad Request',401:'Unauthorized',403:'Forbidden',404:'Not Found',500:'Internal Server Error'}};
+}
+const nodeHttp=Object.assign(makeVirtualHttp(),makeNodeHttpClient('http:'));
+const nodeHttps=Object.assign(makeVirtualHttp(),makeNodeHttpClient('https:'));
 async function executeNode(source,label){
  let outputCount=0;
  const print=(...v)=>{outputCount++;line(v.map(x=>typeof x==='string'?x:JSON.stringify(x)).join(' '))};
- const nodeProcess={argv:[label||'node'],env:{...envVars},platform:'browser',version:'v22.0.0-hp',versions:{node:'22.0.0-hp'},cwd:()=>pathString(cwd),hrtime:{bigint:()=>BigInt(Math.floor(performance.now()*1e6))},nextTick:fn=>queueMicrotask(fn),exit:code=>{throw Object.assign(Error('Process exited with code '+(code||0)),{nodeExit:true})}};
- const nodePath={join:(...p)=>p.join('/').split('/').filter(Boolean).join('/'),resolve:(...p)=>pathString(resolve(p.join('/'))),basename:p=>String(p).split('/').pop(),dirname:p=>String(p).split('/').slice(0,-1).join('/')||'.',extname:p=>{const n=String(p).split('/').pop(),i=n.lastIndexOf('.');return i>0?n.slice(i):''},sep:'/'};
- const nodeFs={promises:{readFile:async p=>await readFile(resolve(String(p))),writeFile:async(p,d)=>await writeFile(resolve(String(p)),String(d),false),appendFile:async(p,d)=>await writeFile(resolve(String(p)),String(d),true),mkdir:async p=>await directory(resolve(String(p)),true),readdir:async p=>{const d=await directory(resolve(String(p)),false),a=[];for await(const [n] of d.entries())a.push(n);return a},stat:async p=>{const v=await entry(resolve(String(p)));return {isFile:()=>v.handle.kind==='file',isDirectory:()=>v.handle.kind==='directory',size:v.handle.kind==='file'?(await v.handle.getFile()).size:0}},unlink:async p=>{const [d,n]=await parentAndName(resolve(String(p)));await d.removeEntry(n)},access:async p=>{await entry(resolve(String(p)))}}};
- const builtins={express:createVirtualExpress(),database:browserDatabase,db:browserDatabase,WebSocket:createVirtualWebSocket(),path:nodePath,process:nodeProcess,buffer:{Buffer:{from:(v,e)=>nodeBuffer(v,e),isBuffer:()=>false}},util:{promisify:f=>f},assert:{ok:(v,m)=>{if(!v)throw Error(m||'Assertion failed')},equal:(a,b)=>{if(a!=b)throw Error(a+' != '+b)},strictEqual:(a,b)=>{if(a!==b)throw Error(a+' !== '+b)}},crypto:{webcrypto:crypto},url:{URL,URLSearchParams},fs:nodeFs,http:makeVirtualHttp(),https:makeVirtualHttp()};
- const requireFn=async name=>{if(builtins[name])return builtins[name];if(name.startsWith('node:')&&builtins[name.slice(5)])return builtins[name.slice(5)];const pkg=name.startsWith('/')?name.slice(1):name;if(!nodePackages[pkg])throw Error("Cannot find package '"+name+"'. Try: npm install "+name);return await import('https://esm.sh/'+encodeURIComponent(pkg)+'?bundle')};
+ const nodeProcess={argv:['node',...(label?[label]:[])],env:{...envVars},platform:'browser',arch:'wasm32',version:'v22.0.0-hp',versions:{node:'22.0.0-hp',v8:'browser'},cwd:()=>pathString(cwd),hrtime:{bigint:()=>BigInt(Math.floor(performance.now()*1e6))},nextTick:fn=>queueMicrotask(fn),exit:code=>{throw Object.assign(Error('Process exited with code '+(code||0)),{nodeExit:true})},chdir:p=>{cwd=resolve(p);updatePrompt()}};
+ const nodePath={join:(...p)=>p.join('/').replace(/\/+/g,'/'),resolve:(...p)=>pathString(resolve(p.join('/'))),basename:p=>String(p).split('/').filter(Boolean).pop()||'/',dirname:p=>String(p).split('/').slice(0,-1).join('/')||'.',extname:p=>{const n=String(p).split('/').pop(),i=n.lastIndexOf('.');return i>0?n.slice(i):''},isAbsolute:p=>String(p).startsWith('/'),normalize:p=>String(p).replace(/\/+/g,'/'),sep:'/'};
+ const fsPromises={readFile:async(p,opts)=>{const b=await readFileBytes(resolve(String(p)));return opts?.encoding||typeof opts==='string'?new TextDecoder(typeof opts==='string'?opts:opts.encoding).decode(b):NodeBuffer.from(b)},writeFile:async(p,d)=>await writeFile(resolve(String(p)),d,false),appendFile:async(p,d)=>await writeFile(resolve(String(p)),d,true),mkdir:async(p)=>await directory(resolve(String(p)),true),readdir:async p=>{const d=await directory(resolve(String(p)),false),a=[];for await(const [n] of d.entries())a.push(n);return a},stat:async p=>{const v=await entry(resolve(String(p)));return {isFile:()=>v.handle.kind==='file',isDirectory:()=>v.handle.kind==='directory',size:v.handle.kind==='file'?(await v.handle.getFile()).size:0,mtime:new Date(),mtimeMs:Date.now()}},unlink:async p=>{const [d,n]=await parentAndName(resolve(String(p)));await d.removeEntry(n)},access:async p=>{await entry(resolve(String(p)))},rm:async(p,o={})=>{const [d,n]=await parentAndName(resolve(String(p)));await d.removeEntry(n,{recursive:!!o.recursive})},copyFile:async(a,b)=>writeFile(resolve(String(b)),await readFileBytes(resolve(String(a))),false),rename:async(a,b)=>{const data=await readFileBytes(resolve(String(a)));await writeFile(resolve(String(b)),data,false);const [d,n]=await parentAndName(resolve(String(a)));await d.removeEntry(n)}};
+ const nodeFs={promises:fsPromises,readFile:(p,opts,cb)=>{if(typeof opts==='function'){cb=opts;opts={}}fsPromises.readFile(p,opts).then(v=>cb&&cb(null,v),e=>cb&&cb(e))},writeFile:(p,d,opts,cb)=>{if(typeof opts==='function'){cb=opts}fsPromises.writeFile(p,d).then(()=>cb&&cb(null),e=>cb&&cb(e))},appendFile:(p,d,opts,cb)=>{if(typeof opts==='function')cb=opts;fsPromises.appendFile(p,d).then(()=>cb&&cb(null),e=>cb&&cb(e))},mkdir:(p,opts,cb)=>{if(typeof opts==='function')cb=opts;fsPromises.mkdir(p).then(v=>cb&&cb(null,v),e=>cb&&cb(e))},readdir:(p,opts,cb)=>{if(typeof opts==='function')cb=opts;fsPromises.readdir(p).then(v=>cb&&cb(null,v),e=>cb&&cb(e))},stat:(p,cb)=>fsPromises.stat(p).then(v=>cb&&cb(null,v),e=>cb&&cb(e)),unlink:(p,cb)=>fsPromises.unlink(p).then(()=>cb&&cb(null),e=>cb&&cb(e)),existsSync:()=>false};
+
+ const loadedModules={};
+ const packageNames=[...new Set([...String(source).matchAll(/(?:require\s*\(\s*|from\s*|import\s*\(\s*)['"]([^'"]+)['"]/g)].map(m=>m[1]).filter(n=>!n.startsWith('.')&&!n.startsWith('/')&&!n.startsWith('node:')&&!['express','database','db','WebSocket','path','process','buffer','util','assert','crypto','url','fs','http','https','os','events'].includes(n)))];
+ for(const name of packageNames){
+  const record=nodePackages[name];
+  if(!record)throw Error("Cannot find module '"+name+"'. Run npm install "+name+" first.");
+  const packageUrl=typeof record==='string'?record:record.url;
+  if(!packageUrl)throw Error("Package '"+name+"' has no install URL. Reinstall it with npm install "+name+".");
+  try{const mod=await import(packageUrl);loadedModules[name]=unwrapNodeModule(mod)}
+  catch(e){throw Error("Could not load installed package '"+name+"': "+e.message)}
+ }
+ Object.assign(nodePackageModules,loadedModules);
+ const builtinsForTransform=new Set(['express','database','db','WebSocket','path','process','buffer','util','assert','crypto','url','fs','http','https','os','events']);
+ const moduleUrl=spec=>{const name=String(spec);if(builtinsForTransform.has(name.replace(/^node:/,'')))return null;const record=nodePackages[name];return record?(typeof record==='string'?record:record.url):null};
+ let nodeSource=String(source);
+ nodeSource=nodeSource.replace(/(^|\n)\s*import\s+(\*\s+as\s+[A-Za-z_$][\w$]*|\{[^}]+\}|[A-Za-z_$][\w$]*)\s+from\s+(['"])([^'"]+)\3\s*;?/g,(all,lead,binding,q,spec)=>{
+  const url=moduleUrl(spec);
+  if(!url){const name=binding.startsWith('*')?binding.replace(/^\*\s+as\s+/,''):binding;return lead+'const '+name+' = require('+JSON.stringify(spec)+');'}
+  if(binding.startsWith('*'))return lead+'const '+binding.replace(/^\*\s+as\s+/,'')+' = await import('+JSON.stringify(url)+');';
+  if(binding.startsWith('{'))return lead+'const '+binding+' = await import('+JSON.stringify(url)+');';
+  return lead+'const '+binding+' = (await import('+JSON.stringify(url)+')).default;';
+ });
+ nodeSource=nodeSource.replace(/\bimport\s*\(\s*(['"])([^'"]+)\1\s*\)/g,(all,q,spec)=>{
+  const url=moduleUrl(spec);
+  return url?'import('+JSON.stringify(url)+')':"Promise.resolve(require("+JSON.stringify(spec)+"))";
+ });
+ const builtins={express:createVirtualExpress(),database:browserDatabase,db:browserDatabase,WebSocket:createVirtualWebSocket(),path:nodePath,process:nodeProcess,buffer:{Buffer:NodeBuffer},util:{promisify:f=>f},assert:{ok:(v,m)=>{if(!v)throw Error(m||'Assertion failed')},equal:(a,b)=>{if(a!=b)throw Error(a+' != '+b)},strictEqual:(a,b)=>{if(a!==b)throw Error(a+' !== '+b)}},crypto:{webcrypto:crypto},url:{URL,URLSearchParams},fs:nodeFs,http:nodeHttp,https:nodeHttps,os:{platform:()=>'browser',arch:()=>'wasm32',homedir:()=>'/home/guest',tmpdir:()=>'/tmp',EOL:'\n'},events:{EventEmitter:class{constructor(){this._events={}}on(n,f){(this._events[n]??=[]).push(f);return this}addListener(n,f){return this.on(n,f)}once(n,f){const w=(...a)=>{this.off(n,w);f(...a)};return this.on(n,w)}off(n,f){this._events[n]=(this._events[n]||[]).filter(x=>x!==f);return this}removeListener(n,f){return this.off(n,f)}emit(n,...a){for(const f of [...(this._events[n]||[])])f(...a);return !!(this._events[n]||[]).length}}}};
+ const requireFn=name=>{const key=String(name).replace(/^node:/,'');if(builtins[key])return builtins[key];if(nodePackageModules[name])return nodePackageModules[name];throw Error("Cannot find module '"+name+"'. Run npm install "+name+" first, then rerun the script.")};
  const nodeConsole={log:print,info:print,warn:(...v)=>{outputCount++;line(v.join(' '),'warn')},error:(...v)=>{outputCount++;line(v.join(' '),'err')},table:v=>print(v),clear:()=>{}};
+ const module={exports:{}},exports=module.exports;
  try{
-  const runner=new AsyncFunction('require','module','exports','__filename','__dirname','process','Buffer','console','fetch','URL','URLSearchParams','setTimeout','clearTimeout','setInterval','clearInterval','WebSocket','global','globalThis','input','"use strict";\n'+source);
+  const runner=new AsyncFunction('require','module','exports','__filename','__dirname','process','Buffer','console','fetch','URL','URLSearchParams','setTimeout','clearTimeout','setInterval','clearInterval','WebSocket','global','globalThis','input','"use strict";\n'+nodeSource);
   const file=label&&label.endsWith('.js')?pathString(resolve(label)):pathString(cwd.concat('index.js'));
-  await runner(requireFn,{exports:{}},{},file,file.split('/').slice(0,-1).join('/')||'/',nodeProcess,{from:(v,e)=>nodeBuffer(v,e)},nodeConsole,nodeFetch,URL,URLSearchParams,setTimeout,clearTimeout,setInterval,clearInterval,createVirtualWebSocket(),globalThis,globalThis,terminalInput);
+  await runner(requireFn,module,exports,file,file.split('/').slice(0,-1).join('/')||'/',nodeProcess,NodeBuffer,nodeConsole,nodeFetch,URL,URLSearchParams,setTimeout,clearTimeout,setInterval,clearInterval,createVirtualWebSocket(),globalThis,globalThis,terminalInput);
+  if(module.exports!==exports&&Object.keys(module.exports||{}).length)print(module.exports);
   line((label||'Node script')+' finished'+(outputCount?'':' (no output).'),'ok');
  }catch(e){line(e.nodeExit?'Node '+e.message:'Node error: '+e.message,e.nodeExit?'warn':'err')}
 }
 async function npmCommand(args){
  const sub=args[0];
- if(sub==='install'){
-  if(!args[1])throw Error('Usage: npm install <package>');
-  const name=args[1].replace(/@latest$/,'');
-  line('Resolving '+name+' from esm.sh…','dim');
-  const response=await terminalFetch('https://esm.sh/'+encodeURIComponent(name)+'?bundle',{method:'HEAD'});
-  if(!response.ok)throw Error('Package could not be resolved ('+response.status+'). Check the name and browser compatibility.');
-  nodePackages[name]='https://esm.sh/'+encodeURIComponent(name)+'?bundle';
+ const packageFile=['home','guest','package.json'];
+ const readPackage=async()=>{try{return JSON.parse(await readFile(packageFile))}catch(_){return {name:'hp-project',version:'1.0.0',scripts:{},dependencies:{}}}};
+ if(sub==='install'||(!sub&&args.length)){
+  const requested=args.slice(1).filter(x=>!x.startsWith('-'));
+  if(!requested.length)throw Error('Usage: npm install <package> [package...]');
+  const registryDir=['home','guest','.hp-node-modules'];await directory(registryDir,true);
+  for(const spec of requested){
+   const match=spec.match(/^(@[^/]+\/[^@]+|[^@]+)(?:@(.+))?$/);
+   if(!match)throw Error('Invalid package name: '+spec);
+   const name=match[1],version=match[2]||'latest';
+   if(!/^(?:@[a-z0-9._-]+\/)?[a-z0-9._-]+$/i.test(name))throw Error('Invalid package name: '+name);
+   const url='https://esm.sh/'+name+(version==='latest'?'':'@'+version)+'?bundle&target=es2022';
+   line('Downloading '+name+'@'+version+'…','dim');
+   const response=await terminalFetch(url,{headers:{Accept:'application/javascript, text/javascript, */*'}});
+   if(!response.ok)throw Error('npm install '+name+' failed: registry returned HTTP '+response.status+'.');
+   const code=await response.text();
+   if(!code||code.length<20||/^(?:<!doctype html|<html)/i.test(code.slice(0,200)))throw Error('Registry did not return a JavaScript package for '+name+'.');
+   const safe=name.replace(/[^a-z0-9._-]/gi,'_');
+   await writeFile(registryDir.concat(safe+'.mjs'),code,false);
+   nodePackages[name]={url,version,cache:'/home/guest/.hp-node-modules/'+safe+'.mjs',installedAt:new Date().toISOString()};
+   try{const mod=await import(url);nodePackageModules[name]=mod&&Object.keys(mod).length===1&&'default'in mod?mod.default:mod}
+   catch(e){throw Error('Downloaded '+name+', but it cannot run in this browser runtime: '+e.message+'. It may require native Node APIs or unsupported module features.')}
+   line('Installed '+name+'@'+version+' and cached its package bundle.','ok');
+  }
   await writeFile(['home','guest','.hp-node-packages.json'],JSON.stringify(nodePackages,null,2),false);
-  line('Added '+name+' to the browser package registry. Import it with await require("'+name+'").','ok');
- }else if(sub==='list'){
-  const names=Object.keys(nodePackages);line(names.length?names.map(x=>x+' (esm.sh)').join('\\n'):'(no packages installed)','ok');
+  const pkg=await readPackage();pkg.dependencies={...(pkg.dependencies||{})};
+  for(const spec of requested){const m=spec.match(/^(@[^/]+\/[^@]+|[^@]+)(?:@(.+))?$/);pkg.dependencies[m[1]]=m[2]||'latest'}
+  await writeFile(packageFile,JSON.stringify(pkg,null,2),false);
+  line('Packages are available with require("package-name") in Node scripts.','ok');
+ }else if(sub==='list'||sub==='ls'){
+  const names=Object.keys(nodePackages);line(names.length?names.map(x=>x+'@'+(nodePackages[x].version||'latest')+' (cached)').join('\n'):'(no packages installed)','ok');
  }else if(sub==='uninstall'){
   if(!args[1])throw Error('Usage: npm uninstall <package>');
-  delete nodePackages[args[1]];await writeFile(['home','guest','.hp-node-packages.json'],JSON.stringify(nodePackages,null,2),false);line('Removed '+args[1],'ok');
- }else if(sub==='help'){line('npm install <package> | npm list | npm uninstall <package>')}
- else throw Error('Supported npm commands: install, list, uninstall, help');
+  const name=args[1];delete nodePackages[name];delete nodePackageModules[name];
+  await writeFile(['home','guest','.hp-node-packages.json'],JSON.stringify(nodePackages,null,2),false);
+  const pkg=await readPackage();if(pkg.dependencies)delete pkg.dependencies[name];await writeFile(packageFile,JSON.stringify(pkg,null,2),false);
+  line('Removed '+name+' from the project package registry.','ok');
+ }else if(sub==='init'){
+  const pkg=await readPackage();await writeFile(packageFile,JSON.stringify(pkg,null,2),false);line('Created package.json','ok');
+ }else if(sub==='run'){
+  if(!args[1])throw Error('Usage: npm run <script>');
+  const pkg=await readPackage(),script=pkg.scripts?.[args[1]];
+  if(!script)throw Error('Missing script: '+args[1]);
+  line('> '+pkg.name+' '+args[1]+'\n> '+script,'dim');
+  await executeNode(script,'npm run '+args[1]);
+ }else if(sub==='help'){line('npm init | npm install <package> [package...] | npm list | npm uninstall <package> | npm run <script>')}
+ else throw Error('Supported npm commands: init, install, list, uninstall, run, help');
 }
 function parseGitHubUrl(url){
  const normalized=String(url).replace(/^git@github\\.com:/,'https://github.com/');
@@ -501,8 +633,10 @@ function bytesToBase64(textValue){const bytes=new TextEncoder().encode(textValue
 function base64ToText(value){const binary=atob(value),bytes=Uint8Array.from(binary,c=>c.charCodeAt(0));return new TextDecoder().decode(bytes)}
 
 async function tree(parts,depth,prefix){if(depth>5)return;const d=await directory(parts,false),items=[];for await(const [name,h] of d.entries())items.push({name,dir:h.kind==='directory'});items.sort((a,b)=>Number(b.dir)-Number(a.dir)||a.name.localeCompare(b.name));for(let i=0;i<items.length;i++){const x=items[i],last=i===items.length-1;line(prefix+(last?'└── ':'├── ')+x.name+(x.dir?'/':''));if(x.dir)await tree(parts.concat(x.name),depth+1,prefix+(last?'    ':'│   '))}}
-async function run(raw){const args=tokenize(raw),cmd=(args.shift()||'').toLowerCase(),arg=args[0];if(!cmd)return;
+async function run(raw){const trimmed=raw.trim(),args=tokenize(raw),cmd=(args.shift()||'').toLowerCase(),arg=args[0];if(!cmd)return;
 line((cwd.length===2?'~':pathString(cwd))+' $ '+raw,'cmd');
+ const looksLikeJavaScript=/^(?:const|let|var|function|class|async\s+function|import\s|export\s|require\s*\(|console\.|process\.|module\.|exports\.|await\s|fetch\s*\(|https?\.(?:get|request)\s*\(|Promise\.|throw\s|try\s*\{|if\s*\(|for\s*\(|while\s*\(|\/\*|\/\/)/.test(trimmed)||/;\s*(?:const|let|var)\s/.test(trimmed);
+ if(looksLikeJavaScript){await executeNode(raw,'pasted JavaScript');return;}
 try{
 switch(cmd){
 case 'help':case '?':
@@ -546,10 +680,14 @@ line('  python [file.py|-c code]    Run Python (await terminal_input() for answe
 line('  pip install <package>       Install a Python package (Pyodide-compatible)');
 line('  preview <file.html>         Preview a saved HTML file');
 line('  node <file.js>              Run JS with Node-compatible browser APIs');
+line('  require / https / http      Node module and HTTP client compatibility');
 line('  server list                 List virtual HTTP servers');
 line('  express                     Express routes, middleware, static files and JSON APIs');
  line('  db help                     Local database and remote REST API help');
-line('  npm install <package>       Add a browser-compatible npm package');
+line('  npm init                    Create package.json');
+line('  npm install <package>       Download and cache an npm package');
+line('  npm run <script>            Run a package.json script');
+line('  npm list                    List installed packages');
 line('  git clone <github-url>      Clone a public GitHub repository');
 line('  proxy open                  Open your account proxy route manager');
 line('  proxy map <host> <slug>     Route a hostname through a saved proxy route');
@@ -675,7 +813,6 @@ case 'wget':if(!arg)throw Error('Usage: wget <https-url> [filename]');{const r=a
 case 'fetch':if(!arg)throw Error('Usage: fetch <https-url>');await webFetch(arg);break;
 case 'json':if(!arg)throw Error('Usage: json <file.json>');line(JSON.stringify(JSON.parse(await readFile(resolve(arg))),null,2));break;
 case 'url':if(!arg)throw Error('Usage: url <https-url>');{const u=new URL(arg);line('Protocol: '+u.protocol);line('Host: '+u.host);line('Path: '+u.pathname);line('Query: '+u.search);line('Hash: '+u.hash)}break;
-case 'node':case 'npm':line(cmd.toUpperCase()+' is not available in this GitHub Pages environment. Full Node.js/WebContainers requires cross-origin isolation headers (COOP/COEP), which this static host does not currently configure.','warn');line('JavaScript files can be run with: run <file.js>','dim');break;
 case 'upload':{const picker=document.createElement('input');picker.type='file';picker.multiple=true;picker.onchange=async()=>{for(const f of picker.files){const dest=cwd.concat(f.name);await writeFile(dest,await f.text(),false);line('Imported '+f.name+' ('+formatSize(f.size)+')','ok')}};picker.click()}break;
 case 'open':{if(!arg)throw Error('Usage: open <https-url>');const u=new URL(arg,location.href);if(u.protocol!=='https:')throw Error('Only HTTPS addresses can be opened.');window.open(u.href,'_blank','noopener')}break;
 case 'export':if(!arg)Object.keys(envVars).sort().forEach(k=>line(k+'='+envVars[k]));else{const m=raw.slice(raw.indexOf(' ')+1).match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);if(!m)throw Error('Usage: export NAME=value');envVars[m[1]]=m[2];line(m[1]+' exported','ok')}break;
@@ -691,16 +828,22 @@ case 'db':{const sub=args[0];if(sub==='help'||!sub){line('Local OPFS document da
  case 'version':line('Hyper-Pop Terminal 0.4 / HP-SH + JavaScript + Python WebAssembly','ok');break;
 case 'about':line('A browser-local command environment. Files live in this site origin’s OPFS storage.');line('Network requests can use the authenticated Hyper-Pop CORS proxy or your account-owned Reverse Proxy routes.','dim');
 line('JavaScript runs in the page runtime. Python runs in Pyodide/WebAssembly (downloaded on first use).','dim');
-line('Node commands use a browser-side Node compatibility layer, not native Node.js. npm packages must support browsers. Git commands connect to public GitHub repositories; this is not a full Git object database and local commits/pushes are not implemented.','dim');break;
+line('Node scripts support CommonJS require for built-ins and installed browser-compatible npm bundles. http/https clients use authenticated proxy-aware fetch.','dim');
+line('Node commands use a browser-side compatibility runtime, not native Node.js. npm downloads and caches ESM bundles; native addons, child processes, raw sockets and OS binaries are not available. http/https requests use proxy-aware fetch. Git commands connect to public GitHub repositories; this is not a full Git object database and local commits/pushes are not implemented.','dim');break;
 case 'reset':screen.textContent='';line('Terminal display reset. Files were not changed.','ok');break;
 case 'exit':location.href='index.html';break;
-default:line('Command not found: '+cmd+'. Type help.','err');
+default:if(/^(?:#!|(?:sudo\s+)?(?:apt|apt-get|apk|dnf|yum|pacman|brew|systemctl|service|chmod|chown|make|gcc|g\+\+|python3?|pip3?|node|npm|npx|yarn|pnpm|bun|deno|git|curl|wget|bash|sh|zsh|ls|cd|pwd|cat|grep|find|mkdir|rm|cp|mv|touch|echo|export|env|which|uname|whoami|tar|zip|unzip|ssh|scp|docker|podman)\b)/.test(trimmed)){line('This looks like a shell command, but this browser terminal does not have a Linux host process to execute it.','warn');line('Use supported HP-SH commands, or run it inside a compatible WebAssembly runtime.','dim')}else line('Command not found: '+cmd+'. Type help. For JavaScript, paste code directly or use node <file.js>.','err');
 }
 }catch(e){line('ERROR: '+(e&&e.message?e.message:String(e)),'err')}
 }
 async function init(){try{if(!navigator.storage||!navigator.storage.getDirectory)throw Error('This browser does not support OPFS. Try an up-to-date Safari or another modern browser.');root=await navigator.storage.getDirectory();await directory(HOME,true);await loadNodePackages();status('OPFS READY','good');line('Hyper-Pop Terminal [HP-SH 0.4]','ok');line('Persistent browser-local filesystem initialized.','dim');line('Authenticated Hyper-Pop proxy networking is available. No access to private device files.','dim');line('Type help to see available commands.','');line('');updatePrompt()}catch(e){status('FILESYSTEM UNAVAILABLE','bad');line('Could not initialize browser storage: '+e.message,'err');line('This terminal requires a secure HTTPS page and browser OPFS support.','warn')}}
-form.addEventListener('submit',async e=>{e.preventDefault();const raw=input.value;input.value='';if(terminalInputResolver){line('> '+raw,'cmd');const resolve=terminalInputResolver;finishTerminalInput(raw);resolve(raw);return}if(raw.trim()){history.push(raw);historyIndex=history.length;await run(raw)}});
-input.addEventListener('keydown',e=>{if(e.key==='ArrowUp'){e.preventDefault();historyIndex=Math.max(0,historyIndex-1);input.value=history[historyIndex]||''}else if(e.key==='ArrowDown'){e.preventDefault();historyIndex=Math.min(history.length,historyIndex+1);input.value=history[historyIndex]||''}});
+form.addEventListener('submit',async e=>{e.preventDefault();const raw=input.value;input.value='';input.style.height='auto';if(terminalInputResolver){line('> '+raw,'cmd');const resolve=terminalInputResolver;finishTerminalInput(raw);resolve(raw);return}if(raw.trim()){history.push(raw);historyIndex=history.length;await run(raw)}});
+input.addEventListener('input',()=>{input.style.height='auto';input.style.height=Math.min(input.scrollHeight,window.innerHeight*.38)+'px'});
+input.addEventListener('keydown',e=>{
+ if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();form.requestSubmit();return}
+ if(e.key==='ArrowUp'&&!e.shiftKey&&input.selectionStart===0){e.preventDefault();historyIndex=Math.max(0,historyIndex-1);input.value=history[historyIndex]||'';input.setSelectionRange(input.value.length,input.value.length)}
+ else if(e.key==='ArrowDown'&&!e.shiftKey&&input.selectionEnd===input.value.length){e.preventDefault();historyIndex=Math.min(history.length,historyIndex+1);input.value=history[historyIndex]||'';input.setSelectionRange(input.value.length,input.value.length)}
+});
 document.getElementById('clear').addEventListener('click',()=>{screen.textContent='';input.focus()});
 editorSaveButton.addEventListener('click',async()=>{try{await saveEditor()}catch(e){line('ERROR: '+e.message,'err')}});
 document.getElementById('editorExit').addEventListener('click',closeEditor);
