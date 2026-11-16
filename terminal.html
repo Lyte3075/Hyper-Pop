@@ -28,7 +28,7 @@ button{font:inherit;color:var(--fg);background:#101010;border:1px solid #333;bor
 #editorTitle{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--green)}
 #editorStatus{color:var(--muted);font-size:12px;white-space:nowrap}
 #editorBody{display:flex;flex:1;min-height:0;min-width:0;overflow:hidden;background:#000}
-#editorGutter{flex:0 0 auto;min-width:3.5em;padding:14px 9px;text-align:right;overflow:hidden;border-right:1px solid var(--line);background:#080808;color:#666;font:16pt/1.5 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;white-space:pre;user-select:none;-webkit-user-select:none}
+#editorGutter{flex:0 0 auto;min-width:3.5em;height:100%;min-height:0;margin:0;padding:14px 9px;text-align:right;overflow:hidden;border-right:1px solid var(--line);background:#080808;color:#666;font:16pt/1.5 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;white-space:pre;user-select:none;-webkit-user-select:none}
 #editorText{display:block;flex:1;min-height:0;min-width:0;width:0;resize:none;border:0;outline:0;border-radius:0;background:#000;color:var(--fg);padding:14px 12px;font:16pt/1.5 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;white-space:pre;overflow:auto;tab-size:4;caret-color:var(--green);-webkit-overflow-scrolling:touch}
 #editorStatus.success{color:var(--green)}#editorStatus.error{color:var(--red)}#editorStatus.modified{color:var(--yellow)}
 #editorToolbar{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;border-top:1px solid var(--line);background:#080808}
@@ -80,6 +80,7 @@ function updateLineNumbers(){
 function updateEditorStatus(label){
  editorStatus.textContent=(label?label+' · ':'')+(editorDirty()?'UNSAVED CHANGES':'ALL CHANGES SAVED');
  editorStatus.className=editorDirty()?'modified':(label&&/FAILED|ERROR/i.test(label)?'error':'success');
+ if(editorSaveButton&&!editorSaveButton.disabled)editorSaveButton.textContent=editorDirty()?'Save *':'Saved ✓';
 }
 async function openEditor(path){
  if(!path)throw Error('Usage: nano <file>');
