@@ -196,12 +196,85 @@ async function executePython(source,label){
   line((label||'Python')+' finished.','ok');
  }catch(e){line('Python runtime unavailable: '+e.message,'err')}
 }
-async function previewHtml(path){
- const source=await readFile(path),blob=new Blob([source],{type:'text/html'}),url=URL.createObjectURL(blob);
- const tab=window.open(url,'_blank','noopener');
+function previewMime(path){
+ const ext=String(path).split('.').pop().toLowerCase();
+ return ({html:'text/html',htm:'text/html',css:'text/css',js:'text/javascript',mjs:'text/javascript',cjs:'text/javascript',ts:'text/plain',tsx:'text/plain',jsx:'text/plain',json:'application/json',map:'application/json',md:'text/markdown',txt:'text/plain',log:'text/plain',xml:'application/xml',svg:'image/svg+xml',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp',avif:'image/avif',ico:'image/x-icon',bmp:'image/bmp',pdf:'application/pdf',mp3:'audio/mpeg',wav:'audio/wav',ogg:'audio/ogg',m4a:'audio/mp4',aac:'audio/aac',flac:'audio/flac',mp4:'video/mp4',webm:'video/webm',mov:'video/quicktime',m4v:'video/mp4',wasm:'application/wasm',woff:'font/woff',woff2:'font/woff2',ttf:'font/ttf',otf:'font/otf',zip:'application/zip',gz:'application/gzip'})[ext]||'application/octet-stream';
+}
+function bytesToDataUrl(bytes,mime){
+ let binary='';const step=0x8000;
+ for(let i=0;i<bytes.length;i+=step)binary+=String.fromCharCode(...bytes.subarray(i,i+step));
+ return 'data:'+mime+';base64,'+btoa(binary);
+}
+async function localAssetUrl(baseParts,relative){
+ const clean=String(relative||'').trim();
+ if(!clean||clean.startsWith('#')||/^(?:[a-z]+:|\/\/|data:|blob:)/i.test(clean))return clean;
+ const pathname=clean.split(/[?#]/)[0];
+ if(!pathname)return clean;
+ let parts;
+ try{parts=pathname.startsWith('/')?baseParts.concat(pathname.slice(1).split('/').filter(Boolean)):resolve(pathString(baseParts)+'/'+pathname)}catch(_){return clean}
+ try{
+  const bytes=await readFileBytes(parts),mime=previewMime(parts[parts.length-1]);
+  if(bytes.length>8*1024*1024)throw Error('Asset exceeds the 8 MB preview limit.');
+  if(mime==='text/css'){
+   let css=new TextDecoder().decode(bytes);
+   css=await rewriteCssAssets(css,parts.slice(0,-1));
+   return 'data:text/css;charset=utf-8,'+encodeURIComponent(css);
+  }
+  return bytesToDataUrl(bytes,mime);
+ }catch(e){line('Preview asset skipped: '+relative+' ('+e.message+')','warn');return clean}
+}
+async function rewriteCssAssets(css,baseParts){
+ const matches=[...css.matchAll(/url\(\s*(['"]?)([^'")]+)\1\s*\)/gi)];
+ for(const m of matches.reverse()){
+  const replacement=await localAssetUrl(baseParts,m[2]);
+  css=css.slice(0,m.index)+'url("'+replacement.replace(/"/g,'%22')+'")'+css.slice(m.index+m[0].length);
+ }
+ return css;
+}
+async function buildHtmlPreview(path){
+ const source=await readFile(path),folder=path.slice(0,-1);
+ let html=source;
+ const attrs=[...html.matchAll(/\b(src|href|poster|data-src)\s*=\s*(["'])(.*?)\2/gi)];
+ for(const m of attrs.reverse()){
+  const attr=m[1].toLowerCase(),value=m[3];
+  if(attr==='href'&&!/\.css(?:[?#]|$)/i.test(value)&&!/(?:^|\/)favicon(?:\.|$)/i.test(value))continue;
+  if(attr==='src'&&/^https?:/i.test(value))continue;
+  const replacement=await localAssetUrl(folder,value);
+  html=html.slice(0,m.index)+m[0].slice(0,m[0].indexOf(m[3]))+replacement+m[0].slice(m[0].indexOf(m[3])+m[3].length)+html.slice(m.index+m[0].length);
+ }
+ const styles=[...html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)];
+ for(const m of styles.reverse()){
+  const css=await rewriteCssAssets(m[1],folder);
+  html=html.slice(0,m.index)+m[0].replace(m[1],css)+html.slice(m.index+m[0].length);
+ }
+ return html;
+}
+async function openBlobPreview(blob,name){
+ const url=URL.createObjectURL(blob),tab=window.open(url,'_blank');
  if(!tab){URL.revokeObjectURL(url);throw Error('Pop-up blocked. Allow pop-ups for this site and try again.')}
- line('Opened HTML preview in a new tab.','ok');
- setTimeout(()=>URL.revokeObjectURL(url),60000);
+ line('Opened preview: '+name,'ok');
+ setTimeout(()=>URL.revokeObjectURL(url),5*60*1000);
+}
+async function previewHtml(path){
+ const source=await buildHtmlPreview(path);
+ await openBlobPreview(new Blob([source],{type:'text/html;charset=utf-8'}),pathString(path));
+}
+async function previewFile(path){
+ const parts=Array.isArray(path)?path:resolve(path),name=parts[parts.length-1],mime=previewMime(name);
+ if(mime==='text/html'){await previewHtml(parts);return}
+ if(mime.startsWith('image/')||mime==='application/pdf'||mime.startsWith('audio/')||mime.startsWith('video/')||mime==='application/octet-stream'||mime==='application/zip'||mime==='application/gzip'){
+  const bytes=await readFileBytes(parts);
+  if(bytes.length>32*1024*1024)throw Error('Preview is limited to 32 MB. Use download for larger files.');
+  const blob=new Blob([bytes],{type:mime});
+  await openBlobPreview(blob,name);
+  return;
+ }
+ let textData;
+ try{textData=new TextDecoder('utf-8',{fatal:true}).decode(await readFileBytes(parts))}
+ catch(_){throw Error('This file is binary or uses an unsupported encoding. Try download <file>.')}
+ const safe=textData.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+ const html='<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+name.replace(/[&<>"]/g,'')+'</title><style>body{margin:0;background:#080808;color:#eee;font:14px/1.6 ui-monospace,monospace}header{position:sticky;top:0;padding:12px 16px;background:#151515;border-bottom:1px solid #333}pre{white-space:pre-wrap;overflow-wrap:anywhere;padding:16px;margin:0}</style><header>'+name.replace(/[&<>"]/g,'')+' · '+mime+'</header><pre>'+safe+'</pre>';
+ await openBlobPreview(new Blob([html],{type:'text/html;charset=utf-8'}),name);
 }
 
 
@@ -684,7 +757,9 @@ line('  js <code|file.js>            Run JavaScript code or a script file (await
 line('  run <file.js>               Execute a JavaScript file');
 line('  python [file.py|-c code]    Run Python (await terminal_input() for answers)');
 line('  pip install <package>       Install a Python package (Pyodide-compatible)');
-line('  preview <file.html>         Preview a saved HTML file');
+line('  preview <file|folder>       Preview files or a complete website folder');
+line('  image <file>                Open an image preview');
+line('  upload                      Import text and binary files (including images)');
 line('  node <file.js>              Run JS with Node-compatible browser APIs');
 line('  ts <file.ts>                Transpile and run TypeScript');
 line('  Paste multiple shell commands separated by newlines or semicolons');
@@ -697,6 +772,11 @@ line('  npm init                    Create package.json');
 line('  npm install <package>       Download and cache an npm package');
 line('  npm run <script>            Run a package.json script');
 line('  npm list                    List installed packages');
+line('  github profile <user>       Inspect a public GitHub profile');
+line('  github repo <owner/repo>    Show repository information');
+line('  github files <owner/repo>   List repository files');
+line('  github cat <owner/repo> <path> [ref]  Read a repository file');
+line('  github raw <raw-url>         Fetch raw GitHub user/repository content');
 line('  git clone <github-url>      Clone a public GitHub repository');
 line('  proxy open                  Open your account proxy route manager');
 line('  proxy map <host> <slug>     Route a hostname through a saved proxy route');
@@ -770,8 +850,8 @@ case 'date':{const d=new Date(),fmt=args[0]||'';if(!fmt.startsWith('+'))line(d.t
 case 'whoami':line('guest','ok');break;
 case 'uname':line('Hyper-Pop Browser Runtime / JavaScript / OPFS');break;
 case 'storage':line('Origin Private File System: '+(root?'available':'unavailable'),root?'ok':'err');line('Storage is private to this browser profile and this website origin.','dim');break;
-case 'download':if(!arg)throw Error('Usage: download <file>');{const blob=new Blob([await readFile(resolve(arg))],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=resolve(arg).pop();a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);line('Download started: '+arg,'ok')}break;
-case 'cp':case 'mv':{const recursive=args[0]==='-r'||args[0]==='-R',offset=recursive?1:0;if(args.length<offset+2)throw Error('Usage: '+cmd+' [-r] <source> <destination>');const src=resolve(args[offset]),dst=resolve(args[offset+1]);if(pathString(src)===pathString(dst)||pathString(dst).startsWith(pathString(src)+'/'))throw Error('Invalid source/destination relationship.');let isDir=false;try{await directory(src,false);isDir=true}catch(_){}if(isDir){if(!recursive)throw Error('Use '+cmd+' -r for directories.');await copyDirectory(src,dst)}else{const data=await readFile(src);await writeFile(dst,data,false)}if(cmd==='mv'){const [p,n]=await parentAndName(src);await p.removeEntry(n,{recursive:isDir})}line((cmd==='cp'?'Copied ':'Moved ')+args[offset]+' → '+args[offset+1],'ok')}break;
+case 'download':if(!arg)throw Error('Usage: download <file>');{const blob=new Blob([await readFileBytes(resolve(arg))],{type:previewMime(arg)}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=resolve(arg).pop();a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);line('Download started: '+arg,'ok')}break;
+case 'cp':case 'mv':{const recursive=args[0]==='-r'||args[0]==='-R',offset=recursive?1:0;if(args.length<offset+2)throw Error('Usage: '+cmd+' [-r] <source> <destination>');const src=resolve(args[offset]),dst=resolve(args[offset+1]);if(pathString(src)===pathString(dst)||pathString(dst).startsWith(pathString(src)+'/'))throw Error('Invalid source/destination relationship.');let isDir=false;try{await directory(src,false);isDir=true}catch(_){}if(isDir){if(!recursive)throw Error('Use '+cmd+' -r for directories.');await copyDirectory(src,dst)}else{const data=await readFileBytes(src);await writeFile(dst,data,false)}if(cmd==='mv'){const [p,n]=await parentAndName(src);await p.removeEntry(n,{recursive:isDir})}line((cmd==='cp'?'Copied ':'Moved ')+args[offset]+' → '+args[offset+1],'ok')}break;
 case 'find':{const base=arg?resolve(arg):cwd,needle=(args[1]||'').toLowerCase();let found=0;async function walk(p){const d=await directory(p,false);for await(const [name,h] of d.entries()){const full=pathString(p.concat(name));if(!needle||name.toLowerCase().includes(needle)){line(full+(h.kind==='directory'?'/':''));found++}if(h.kind==='directory')await walk(p.concat(name))}}await walk(base);if(!found)line('No matches.','dim')}break;
 case 'stat':{if(!arg)throw Error('Usage: stat <path>');const p=resolve(arg);try{const d=await directory(p,false);let count=0;for await(const _ of d.entries())count++;line('Directory: '+pathString(p));line('Entries: '+count)}catch(_){const f=await readFile(p);line('File: '+pathString(p));line('Size: '+new TextEncoder().encode(f).length+' bytes');line('Lines: '+(f?f.split('\n').length:0))}}break;
 case 'du':{const p=resolve(arg||'.');let n;try{n=await countBytes(p)}catch(_){n=new TextEncoder().encode(await readFile(p)).length}line(formatSize(n)+'  '+pathString(p),'ok')}break;
@@ -795,7 +875,8 @@ case 'js':{
 case 'run':if(!arg)throw Error('Usage: run <file.js>');if(!arg.toLowerCase().endsWith('.js'))throw Error('The run command currently executes .js files.');await executeJavaScript(await readFile(resolve(arg)),arg);break;
 case 'python':case 'py':if(!arg){line('Usage: python <file.py>  |  python -c <code>','dim');line('Example: python -c print(2 ** 10)');break}else if(arg==='-c'){if(args.length<2)throw Error('Usage: python -c <code>');await executePython((()=>{let code=raw.slice(raw.indexOf('-c')+2).trim();if((code[0]==='"'&&code.at(-1)==='"')||(code[0]==="'"&&code.at(-1)==="'"))code=code.slice(1,-1);return code})(),'Python command')}else await executePython(await readFile(resolve(arg)),arg);break;
 case 'pip':if(args[0]!=='install'||!args[1])throw Error('Usage: pip install <package>');{const py=await loadPyodideRuntime();line('Installing '+args[1]+'…','dim');await py.loadPackage('micropip');await py.runPythonAsync("import micropip\\nawait micropip.install("+JSON.stringify(args[1])+")");line('Installed '+args[1]+' (if compatible with Pyodide).','ok')}break;
-case 'preview':if(!arg||!arg.toLowerCase().endsWith('.html'))throw Error('Usage: preview <file.html>');await previewHtml(resolve(arg));break;
+case 'preview':if(!arg)throw Error('Usage: preview <file-or-folder>');{const p=resolve(arg);let isDir=false;try{await directory(p,false);isDir=true}catch(_){}if(isDir){const d=await directory(p,false),names=[];for await(const [name,h] of d.entries())if(h.kind==='file'&&/\.html?$/i.test(name))names.push(name);const chosen=names.find(x=>x.toLowerCase()==='index.html')||names[0];if(!chosen)throw Error('This folder has no HTML entry point. Preview an individual file instead.');await previewHtml(p.concat(chosen))}else await previewFile(p)}break;
+case 'image':if(!arg)throw Error('Usage: image <image-file>');{const p=resolve(arg);if(!previewMime(arg).startsWith('image/'))throw Error('That file does not look like a supported image.');await previewFile(p)}break;
 case 'node':{
  if(!arg){line('HP Node-compatible runtime. Usage: node <file.js> | node -e <code>','dim');line('This is not native Node.js; browser-compatible packages only.','warn');break}
  if(arg==='-e'||arg==='--eval'){const code=args.slice(1).join(' ');if(!code)throw Error('Usage: node -e <code>');await executeNode(code,'node -e');break}
@@ -840,12 +921,12 @@ case 'wget':if(!arg)throw Error('Usage: wget <https-url> [filename]');{const r=a
 case 'fetch':if(!arg)throw Error('Usage: fetch <https-url>');await webFetch(arg);break;
 case 'json':if(!arg)throw Error('Usage: json <file.json>');line(JSON.stringify(JSON.parse(await readFile(resolve(arg))),null,2));break;
 case 'url':if(!arg)throw Error('Usage: url <https-url>');{const u=new URL(arg);line('Protocol: '+u.protocol);line('Host: '+u.host);line('Path: '+u.pathname);line('Query: '+u.search);line('Hash: '+u.hash)}break;
-case 'upload':{const picker=document.createElement('input');picker.type='file';picker.multiple=true;picker.onchange=async()=>{for(const f of picker.files){const dest=cwd.concat(f.name);await writeFile(dest,await f.text(),false);line('Imported '+f.name+' ('+formatSize(f.size)+')','ok')}};picker.click()}break;
+case 'upload':{const picker=document.createElement('input');picker.type='file';picker.multiple=true;picker.onchange=async()=>{for(const f of picker.files){const dest=cwd.concat(f.name);await writeFile(dest,new Uint8Array(await f.arrayBuffer()),false);line('Imported '+f.name+' ('+formatSize(f.size)+')','ok')}};picker.click()}break;
 case 'open':{if(!arg)throw Error('Usage: open <https-url>');const u=new URL(arg,location.href);if(u.protocol!=='https:')throw Error('Only HTTPS addresses can be opened.');window.open(u.href,'_blank','noopener')}break;
 case 'export':if(!arg)Object.keys(envVars).sort().forEach(k=>line(k+'='+envVars[k]));else{const m=raw.slice(raw.indexOf(' ')+1).match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);if(!m)throw Error('Usage: export NAME=value');envVars[m[1]]=m[2];line(m[1]+' exported','ok')}break;
 case 'env':Object.keys(envVars).sort().forEach(k=>line(k+'='+envVars[k]));break;
 case 'unset':if(!arg)throw Error('Usage: unset <name>');delete envVars[arg];line('Unset '+arg,'ok');break;
-case 'which':if(!arg)throw Error('Usage: which <command>');line(['js','run','python','py','pip','preview','node','npm','help','pwd','ls','cd','mkdir','touch','cat','nano','write','append','rm','rmdir','tree','echo','clear','history','date','whoami','uname','storage','download','cp','mv','find','stat','du','head','tail','wc','grep','sort','uniq','rev','nl','base64','unbase64','seq','calc','printf','basename','dirname','realpath','file','sha256sum','cmp','diff','cut','tr','sed','awk','source','sh','test','true','false','sleep','upload','open','proxy','export','env','unset','which','man','hostname','id','uptime','free','version','about','exit'].includes(arg)?'/bin/'+arg:'not found',arg? 'ok':'');break;
+case 'which':if(!arg)throw Error('Usage: which <command>');line(['js','run','python','py','pip','preview','image','github','node','npm','help','pwd','ls','cd','mkdir','touch','cat','nano','write','append','rm','rmdir','tree','echo','clear','history','date','whoami','uname','storage','download','cp','mv','find','stat','du','head','tail','wc','grep','sort','uniq','rev','nl','base64','unbase64','seq','calc','printf','basename','dirname','realpath','file','sha256sum','cmp','diff','cut','tr','sed','awk','source','sh','test','true','false','sleep','upload','open','proxy','export','env','unset','which','man','hostname','id','uptime','free','version','about','exit'].includes(arg)?'/bin/'+arg:'not found',arg? 'ok':'');break;
 case 'man':line('Built-in command: '+(arg||'help'));line('Use help for the command index. Most file commands accept absolute or relative paths.');break;
 case 'hostname':line('hyper-pop-browser');break;
 case 'id':line('uid=1000(guest) gid=1000(guest) groups=1000(guest)');break;
