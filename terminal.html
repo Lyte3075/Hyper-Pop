@@ -273,7 +273,7 @@ async function terminalFetch(input,init={}){
  if(!slug)return fetch(input,init);
  const token=localStorage.getItem('hyperpop_token')||'';
  if(!token)throw Error('A Hyper-Pop account session is required for proxy routes. Sign in, then run proxy open.');
- const path=target.pathname.replace(/^\\//,'');
+ const path=target.pathname.startsWith('/')?target.pathname.slice(1):target.pathname;
  const proxyUrl=HP_REVERSE_PROXY+'/r/'+encodeURIComponent(slug)+'/'+path+target.search;
  const headers=new Headers(input instanceof Request?input.headers:undefined);
  new Headers(init.headers||{}).forEach((value,key)=>headers.set(key,value));
