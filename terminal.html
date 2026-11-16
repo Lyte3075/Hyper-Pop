@@ -129,8 +129,36 @@ function calc(expression){let s=expression.replace(/\s+/g,'');let i=0;function a
 // JavaScript and Python runtimes
 let pyodidePromise=null;
 const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
-function terminalInput(promptText=''){return new Promise(resolve=>{if(terminalInputResolver)throw Error('Terminal input is already being requested.');if(promptText)line(promptText,'dim');terminalInputResolver=resolve;cwdLabel.textContent='input';document.querySelector('.prompt').textContent='>';input.placeholder='type your answer and press enter';status('WAITING FOR INPUT','warn');input.focus()})}
-function finishTerminalInput(value){terminalInputResolver=null;document.querySelector('.prompt').textContent='
+function terminalInput(promptText=''){
+ return new Promise(resolve=>{
+  if(terminalInputResolver)throw Error('Terminal input is already being requested.');
+  if(promptText)line(promptText,'dim');
+  terminalInputResolver=resolve;
+  cwdLabel.textContent='input';
+  document.querySelector('.prompt').textContent='>';
+  input.placeholder='type your answer and press enter';
+  status('WAITING FOR INPUT','warn');
+  input.focus();
+ });
+}
+function finishTerminalInput(){
+ terminalInputResolver=null;
+ document.querySelector('.prompt').textContent='$';
+ input.placeholder='type help and press enter';
+ updatePrompt();
+ status('OPFS READY','good');
+}
+async function executeJavaScript(source,label){
+ let outputCount=0;
+ const print=(...values)=>{const value=values.map(v=>typeof v==='string'?v:JSON.stringify(v)).join(' ');outputCount++;line(value)};
+ try{
+  const terminalConsole={log:(...v)=>print(...v),info:(...v)=>print(...v),warn:(...v)=>print(...v),error:(...v)=>print(...v),clear:()=>{}};
+  const runner=new AsyncFunction('print','args','console','input','"use strict";\n'+source);
+  const result=await runner(print,[],terminalConsole,terminalInput);
+  if(result!==undefined)print(result);
+  line((label||'JavaScript')+' completed'+(outputCount?'':' (no output).'),'ok');
+ }catch(e){line('JavaScript error: '+e.message,'err')}
+}
 async function loadPyodideRuntime(){
  if(pyodidePromise)return pyodidePromise;
  pyodidePromise=(async()=>{
@@ -374,11 +402,10 @@ async function executePython(source,label){
  line('Loading Python WebAssembly runtime…','dim');
  try{
   const py=await loadPyodideRuntime();
-  const output=[];
-  py.setStdout({batched:x=>output.push(x)});
-  py.setStderr({batched:x=>output.push(x)});
+  py.setStdout({batched:x=>line(x)});
+  py.setStderr({batched:x=>line(x,'err')});
+  py.globals.set('terminal_input',async promptText=>await terminalInput(String(promptText||'')));
   try{await py.runPythonAsync(source)}catch(e){line('Python error: '+e.message,'err')}
-  output.forEach(x=>line(x));
   line((label||'Python')+' finished.','ok');
  }catch(e){line('Python runtime unavailable: '+e.message,'err')}
 }
@@ -531,7 +558,19 @@ default:line('Command not found: '+cmd+'. Type help.','err');
 }catch(e){line('ERROR: '+(e&&e.message?e.message:String(e)),'err')}
 }
 async function init(){try{if(!navigator.storage||!navigator.storage.getDirectory)throw Error('This browser does not support OPFS. Try an up-to-date Safari or another modern browser.');root=await navigator.storage.getDirectory();await directory(HOME,true);status('OPFS READY','good');line('Hyper-Pop Terminal [HP-SH 0.3]','ok');line('Persistent browser-local filesystem initialized.','dim');line('No Supabase connection. No access to private device files.','dim');line('Type help to see available commands.','');line('');updatePrompt()}catch(e){status('FILESYSTEM UNAVAILABLE','bad');line('Could not initialize browser storage: '+e.message,'err');line('This terminal requires a secure HTTPS page and browser OPFS support.','warn')}}
-form.addEventListener('submit',async e=>{e.preventDefault();const raw=input.value;input.value='';if(raw.trim()){history.push(raw);historyIndex=history.length;await run(raw)}});
+form.addEventListener('submit',async e=>{
+ e.preventDefault();
+ const raw=input.value;
+ input.value='';
+ if(terminalInputResolver){
+  line('> '+raw,'cmd');
+  const resolveInput=terminalInputResolver;
+  finishTerminalInput();
+  resolveInput(raw);
+  return;
+ }
+ if(raw.trim()){history.push(raw);historyIndex=history.length;await run(raw)}
+});
 input.addEventListener('keydown',e=>{if(e.key==='ArrowUp'){e.preventDefault();historyIndex=Math.max(0,historyIndex-1);input.value=history[historyIndex]||''}else if(e.key==='ArrowDown'){e.preventDefault();historyIndex=Math.min(history.length,historyIndex+1);input.value=history[historyIndex]||''}});
 document.getElementById('clear').addEventListener('click',()=>{screen.textContent='';input.focus()});
 editorSaveButton.addEventListener('click',async()=>{try{await saveEditor()}catch(e){line('ERROR: '+e.message,'err')}});
