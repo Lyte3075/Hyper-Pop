@@ -18,11 +18,21 @@ header{height:48px;flex:0 0 48px;display:flex;align-items:center;justify-content
 .line{min-height:1.55em}.dim{color:var(--muted)}.ok{color:var(--green)}.warn{color:var(--yellow)}.err{color:var(--red)}.prompt{color:var(--green)}.cmd{color:var(--fg)}
 form{flex:0 0 auto;display:flex;align-items:center;gap:9px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:#000}
 #cwd{color:var(--green);max-width:38%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--fg);font:inherit;caret-color:var(--green);padding:4px 0}
+#input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--fg);font:16pt ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;caret-color:var(--green);padding:4px 0;min-height:2em}
 #input::placeholder{color:#555}
 button{font:inherit;color:var(--fg);background:#101010;border:1px solid #333;border-radius:5px;padding:5px 9px}
 #tools{display:flex;gap:6px}
-@media(max-width:520px){body{font-size:13px}header{height:42px;flex-basis:42px}#screen{padding:12px}#tools button{padding:5px 7px}}
+#editor{position:fixed;inset:0;z-index:20;background:#000;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+#editor[hidden]{display:none}
+#editorHeader{height:auto;min-height:48px;flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line)}
+#editorTitle{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--green)}
+#editorStatus{color:var(--muted);font-size:12px;white-space:nowrap}
+#editorText{display:block;flex:1;min-height:0;width:100%;resize:none;border:0;outline:0;border-radius:0;background:#000;color:var(--fg);padding:14px;font:16pt/1.5 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;white-space:pre;overflow:auto;tab-size:4;caret-color:var(--green);-webkit-overflow-scrolling:touch}
+#editorToolbar{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;border-top:1px solid var(--line);background:#080808}
+#editorToolbar small{color:var(--muted);font-size:11px}
+#editorToolbar button{padding:8px 12px}
+#editorToolbar .save{color:var(--green);border-color:#28543b}
+@media(max-width:520px){body{font-size:13px}header{height:42px;flex-basis:42px}#screen{padding:12px}#tools button{padding:5px 7px}#editorHeader{min-height:44px}#editorText{padding:12px;font-size:16pt}#editorToolbar{padding:8px}#editorToolbar small{display:none}}
 </style>
 </head>
 <body>
@@ -34,12 +44,18 @@ button{font:inherit;color:var(--fg);background:#101010;border:1px solid #333;bor
 <input id="input" aria-label="Terminal command" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="type help and press enter">
 <div id="tools"><button id="clear" type="button" title="Clear output">CLR</button></div>
 </form>
+<section id="editor" hidden aria-label="Nano text editor">
+  <div id="editorHeader"><strong id="editorTitle">nano</strong><span id="editorStatus">NEW FILE</span></div>
+  <textarea id="editorText" aria-label="File contents" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" wrap="off"></textarea>
+  <div id="editorToolbar"><small>^O Save · ^X Exit · ^W Find</small><div style="display:flex;gap:7px"><button id="editorExit" type="button">Exit</button><button id="editorSave" class="save" type="button">Save</button></div></div>
+</section>
 </div>
 <script>
 (function(){
 'use strict';
 const screen=document.getElementById('screen'),form=document.getElementById('form'),input=document.getElementById('input'),cwdLabel=document.getElementById('cwd'),state=document.getElementById('state');
-let root=null,cwd=['home','guest'],history=[],historyIndex=0;const envVars={HOME:'/home/guest',USER:'guest',SHELL:'/bin/hp-sh',TERM:'xterm-hp',PATH:'/bin:/usr/bin'};const startedAt=Date.now();
+const editor=document.getElementById('editor'),editorText=document.getElementById('editorText'),editorTitle=document.getElementById('editorTitle'),editorStatus=document.getElementById('editorStatus');
+let editorPath=null,editorOriginal='',root=null,cwd=['home','guest'],history=[],historyIndex=0;const envVars={HOME:'/home/guest',USER:'guest',SHELL:'/bin/hp-sh',TERM:'xterm-hp',PATH:'/bin:/usr/bin'};const startedAt=Date.now();
 const HOME=['home','guest'];
 function line(text='',kind=''){const el=document.createElement('div');el.className='line '+kind;el.textContent=String(text);screen.appendChild(el);screen.scrollTop=screen.scrollHeight}
 function status(text,kind){state.textContent=text;state.className=kind||''}
@@ -52,6 +68,30 @@ async function parentAndName(parts){if(!parts.length)throw Error('Cannot modify 
 async function readFile(parts){const [p,n]=await parentAndName(parts);const h=await p.getFileHandle(n);return await (await h.getFile()).text()}
 async function writeFile(parts,data,append){const [p,n]=await parentAndName(parts);const h=await p.getFileHandle(n,{create:true});const w=await h.createWritable({keepExistingData:!!append});if(append){const f=await h.getFile();await w.seek(f.size)}else await w.truncate(0);await w.write(data);await w.close()}
 async function list(parts){const d=await directory(parts,false),rows=[];for await(const [name,handle] of d.entries()){rows.push({name,dir:handle.kind==='directory'})}rows.sort((a,b)=>Number(b.dir)-Number(a.dir)||a.name.localeCompare(b.name));if(!rows.length)line('(empty)','dim');for(const x of rows)line((x.dir?'[DIR] ':'      ')+x.name,x.dir?'ok':'')}
+function editorDirty(){return editorText.value!==editorOriginal}
+function updateEditorStatus(label){editorStatus.textContent=(label?label+' · ':'')+(editorDirty()?'MODIFIED':'SAVED')}
+async function openEditor(path){
+ if(!path)throw Error('Usage: nano <file>');
+ const target=resolve(path);
+ if(!target.length)throw Error('Cannot edit a directory.');
+ const [parent,name]=await parentAndName(target);
+ const handle=await parent.getFileHandle(name,{create:true});
+ editorPath=target;editorOriginal=await (await handle.getFile()).text();
+ editorTitle.textContent='nano  '+pathString(target);
+ editorText.value=editorOriginal;updateEditorStatus(editorOriginal?'':'NEW FILE');
+ editor.hidden=false;
+ editorText.focus();
+}
+async function saveEditor(){
+ if(!editorPath) return;
+ await writeFile(editorPath,editorText.value,false);
+ editorOriginal=editorText.value;updateEditorStatus('WROTE');
+}
+function closeEditor(){
+ if(editorDirty()&&!confirm('Save changes before exiting nano?'))return;
+ if(editorDirty())return;
+ editor.hidden=true;editorPath=null;editorText.value='';input.focus();
+}
 function formatSize(n){if(n<1024)return n+' B';if(n<1048576)return (n/1024).toFixed(1)+' KB';if(n<1073741824)return (n/1048576).toFixed(2)+' MB';return (n/1073741824).toFixed(2)+' GB'}
 async function entry(parts){const [p,n]=await parentAndName(parts);try{return {parent:p,name:n,handle:await p.getFileHandle(n)}}catch(e){return {parent:p,name:n,handle:await p.getDirectoryHandle(n)}}}
 async function copyDirectory(from,to){const src=await directory(from,false),dst=await directory(to,true);for await(const [name,h] of src.entries()){if(h.kind==='directory')await copyDirectory(from.concat(name),to.concat(name));else{const file=await h.getFile(),target=await dst.getFileHandle(name,{create:true}),w=await target.createWritable();await w.write(await file.arrayBuffer());await w.close()}}}
@@ -76,6 +116,7 @@ line('  cd [path]                   Change directory');
 line('  mkdir [-p] <name>           Create a folder');
 line('  touch <file>                Create an empty file');
 line('  cat <file>                  Print a text file');
+line('  nano <file>                 Open the interactive text editor');
 line('  write <file> <text>         Replace a file with text');
 line('  append <file> <text>        Add text to a file');
 line('  rm [-r] <path>              Delete a file or folder');
@@ -127,6 +168,7 @@ case 'cd':{const next=resolve(arg||'~');await directory(next,false);cwd=next;upd
 case 'mkdir':{const p=args[0]==='-p'?args[1]:arg;if(!p)throw Error('Usage: mkdir [-p] <name>');await directory(resolve(p),true);line('Created directory: '+p,'ok')}break;
 case 'touch':if(!arg)throw Error('Usage: touch <file>');await writeFile(resolve(arg),'',true);line('Created file: '+arg,'ok');break;
 case 'cat':if(!arg)throw Error('Usage: cat <file>');line(await readFile(resolve(arg)));break;
+case 'nano':await openEditor(arg);break;
 case 'write':if(!arg||args.length<2)throw Error('Usage: write <file> <text>');{const file=resolve(arg);await writeFile(file,args.slice(1).join(' '),false);line('Wrote '+arg,'ok')}break;
 case 'append':if(!arg||args.length<2)throw Error('Usage: append <file> <text>');{const file=resolve(arg);await writeFile(file,args.slice(1).join(' '),true);line('Appended to '+arg,'ok')}break;
 case 'rm':{const recursive=args[0]==='-r'||args[0]==='-rf'||args[0]==='-fr',force=args[0]==='-f'||args[0]==='-rf'||args[0]==='-fr',target=recursive||force?args[1]:arg;if(!target)throw Error('Usage: rm [-r] <file-or-folder>');try{const [p,n]=await parentAndName(resolve(target));await p.removeEntry(n,{recursive})}catch(e){if(!force)throw e}line('Removed: '+target,'ok')}break;
@@ -158,7 +200,7 @@ case 'open':{if(!arg)throw Error('Usage: open <https-url>');const u=new URL(arg,
 case 'export':if(!arg)Object.keys(envVars).sort().forEach(k=>line(k+'='+envVars[k]));else{const m=raw.slice(raw.indexOf(' ')+1).match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);if(!m)throw Error('Usage: export NAME=value');envVars[m[1]]=m[2];line(m[1]+' exported','ok')}break;
 case 'env':Object.keys(envVars).sort().forEach(k=>line(k+'='+envVars[k]));break;
 case 'unset':if(!arg)throw Error('Usage: unset <name>');delete envVars[arg];line('Unset '+arg,'ok');break;
-case 'which':if(!arg)throw Error('Usage: which <command>');line(['help','pwd','ls','cd','mkdir','touch','cat','write','append','rm','rmdir','tree','echo','clear','history','date','whoami','uname','storage','download','cp','mv','find','stat','du','head','tail','wc','grep','sort','uniq','rev','nl','base64','unbase64','seq','calc','upload','open','export','env','unset','which','man','hostname','id','uptime','free','version','about','exit'].includes(arg)?'/bin/'+arg:'not found',arg? 'ok':'');break;
+case 'which':if(!arg)throw Error('Usage: which <command>');line(['help','pwd','ls','cd','mkdir','touch','cat','nano','write','append','rm','rmdir','tree','echo','clear','history','date','whoami','uname','storage','download','cp','mv','find','stat','du','head','tail','wc','grep','sort','uniq','rev','nl','base64','unbase64','seq','calc','upload','open','export','env','unset','which','man','hostname','id','uptime','free','version','about','exit'].includes(arg)?'/bin/'+arg:'not found',arg? 'ok':'');break;
 case 'man':line('Built-in command: '+(arg||'help'));line('Use help for the command index. Most file commands accept absolute or relative paths.');break;
 case 'hostname':line('hyper-pop-browser');break;
 case 'id':line('uid=1000(guest) gid=1000(guest) groups=1000(guest)');break;
@@ -176,6 +218,14 @@ async function init(){try{if(!navigator.storage||!navigator.storage.getDirectory
 form.addEventListener('submit',async e=>{e.preventDefault();const raw=input.value;input.value='';if(raw.trim()){history.push(raw);historyIndex=history.length;await run(raw)}});
 input.addEventListener('keydown',e=>{if(e.key==='ArrowUp'){e.preventDefault();historyIndex=Math.max(0,historyIndex-1);input.value=history[historyIndex]||''}else if(e.key==='ArrowDown'){e.preventDefault();historyIndex=Math.min(history.length,historyIndex+1);input.value=history[historyIndex]||''}});
 document.getElementById('clear').addEventListener('click',()=>{screen.textContent='';input.focus()});
+document.getElementById('editorSave').addEventListener('click',async()=>{try{await saveEditor()}catch(e){editorStatus.textContent='SAVE FAILED';line('ERROR: '+e.message,'err')}});
+document.getElementById('editorExit').addEventListener('click',closeEditor);
+editorText.addEventListener('input',()=>updateEditorStatus());
+editorText.addEventListener('keydown',async e=>{
+ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='o'){e.preventDefault();try{await saveEditor()}catch(err){editorStatus.textContent='SAVE FAILED'}}
+ else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='x'){e.preventDefault();if(editorDirty()){if(confirm('Save changes before exiting nano?')){try{await saveEditor();closeEditor()}catch(err){editorStatus.textContent='SAVE FAILED'}}else{editorOriginal=editorText.value;closeEditor()}}else closeEditor()}
+ else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='w'){e.preventDefault();const term=prompt('Search for:');if(term){const at=editorText.value.indexOf(term,editorText.selectionEnd);if(at>=0){editorText.focus();editorText.setSelectionRange(at,at+term.length)}else editorStatus.textContent='NOT FOUND'}}
+});
 screen.addEventListener('click',()=>input.focus());
 init();
 })();
