@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0b16">
+<title>CORS Proxy ✦ Hyper-Pop</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+:root{--bg:#0b0b16;--panel:#111222;--ink:#f7f4ff;--muted:#aaa7c1;--cyan:#4be0e3;--pink:#ff5db1;--purple:#9b7bff;--line:#ffffff18;--green:#54e38e;--red:#ff7272}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:radial-gradient(circle at 12% 5%,#382052 0,transparent 30%),radial-gradient(circle at 90% 18%,#064450 0,transparent 28%),var(--bg);color:var(--ink);font-family:"Space Grotesk",system-ui,sans-serif}
+body{padding:0 18px 60px}
+a{color:inherit;text-decoration:none}
+nav{max-width:1040px;margin:auto;height:72px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.back{color:var(--muted);font-size:13px}
+.accountbar{display:flex;align-items:center;gap:8px}
+.accountbar a{display:flex;align-items:center;gap:7px;padding:7px 11px;border:1px solid var(--line);border-radius:999px;background:#ffffff08;font-size:12px}
+.profile-img,.profile-dot{width:24px;height:24px;border-radius:50%;object-fit:cover}
+.profile-dot{display:grid;place-items:center;background:linear-gradient(135deg,var(--pink),var(--purple),var(--cyan));font-weight:800}
+main{max-width:900px;margin:36px auto 0}
+.eyebrow{font:11px "DM Mono",monospace;letter-spacing:.16em;color:var(--cyan);text-transform:uppercase}
+h1{font-size:clamp(38px,8vw,72px);line-height:.98;letter-spacing:-.065em;margin:14px 0}
+.intro{max-width:680px;color:var(--muted);font-size:16px;line-height:1.65;margin:0 0 28px}
+.panel{padding:clamp(16px,3vw,28px);border:1px solid var(--line);border-radius:22px;background:#111222dd;box-shadow:0 22px 70px #0005;backdrop-filter:blur(18px)}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}
+.panel-head h2{margin:0;font-size:18px}
+.pill{font:11px "DM Mono",monospace;color:var(--green);border:1px solid #54e38e55;border-radius:999px;padding:6px 9px}
+label{display:block;color:#d9d6e8;font-size:12px;font-weight:600;margin:15px 0 7px}
+input,select,textarea{width:100%;border:1px solid #ffffff20;border-radius:12px;background:#090a14;color:var(--ink);padding:13px 14px;font:14px "DM Mono",monospace;outline:none}
+input:focus,select:focus,textarea:focus{border-color:#4be0e3a0;box-shadow:0 0 0 3px #4be0e315}
+textarea{min-height:105px;resize:vertical;line-height:1.5}
+#target{font-size:14px}
+.row{display:grid;grid-template-columns:150px 1fr;gap:12px}
+.actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:18px}
+button{border:0;border-radius:12px;padding:12px 18px;background:linear-gradient(110deg,var(--cyan),#a4f5e9);color:#071117;font-weight:800;font-family:inherit;cursor:pointer}
+button:disabled{opacity:.45;cursor:not-allowed}
+.note{font-size:12px;color:var(--muted);line-height:1.6}
+#auth{margin:0 0 18px;padding:12px 14px;border-radius:12px;background:#ffffff08;color:var(--muted);font-size:13px}
+#auth a{color:var(--cyan);text-decoration:underline}
+#result{margin-top:24px;border-top:1px solid var(--line);padding-top:20px}
+.result-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px}
+#resultStatus{font:12px "DM Mono",monospace;color:var(--muted)}
+#resultStatus.good{color:var(--green)}#resultStatus.bad{color:var(--red)}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:440px;overflow:auto;padding:14px;border-radius:12px;background:#070810;border:1px solid var(--line);font:12px/1.6 "DM Mono",monospace;color:#d8e8ed;margin:0}
+footer{max-width:900px;margin:22px auto;color:#77748c;font-size:11px;text-align:center}
+@media(max-width:600px){body{padding:0 12px 42px}nav{height:60px}main{margin-top:28px}.row{grid-template-columns:1fr}.panel{border-radius:17px}.intro{font-size:14px}}
+</style>
+</head>
+<body>
+<nav><a class="back" href="index.html">← Hyper-Pop</a><div id="account-slot"></div></nav>
+<main>
+  <div class="eyebrow">HYPER-POP NETWORK / 01</div>
+  <h1>CORS Proxy<span style="color:var(--cyan)">.</span></h1>
+  <p class="intro">Make API requests through Hyper-Pop's cloud proxy when a destination blocks browser-origin requests. Your Hyper-Pop account is your access key.</p>
+  <section class="panel">
+    <div class="panel-head"><h2>API Playground</h2><span class="pill">BETA · AUTH REQUIRED</span></div>
+    <div id="auth">Checking your Hyper-Pop account…</div>
+    <form id="requestForm">
+      <label for="target">Destination URL</label>
+      <input id="target" type="url" inputmode="url" autocomplete="url" placeholder="https://api.github.com/repos/owner/repo" required>
+      <div class="row">
+        <div><label for="method">Method</label><select id="method"><option>GET</option><option>HEAD</option><option>POST</option></select></div>
+        <div><label for="headers">Destination headers (JSON)</label><input id="headers" value='{"Accept":"application/json"}' autocapitalize="off" spellcheck="false"></div>
+      </div>
+      <label for="body">Request body (POST only, optional)</label>
+      <textarea id="body" placeholder='{"hello":"world"}' autocapitalize="off" spellcheck="false"></textarea>
+      <div class="actions"><button id="send" type="submit" disabled>Send request ↗</button><span class="note">HTTPS only · 30 requests/min · 500/day · max 2 MB response</span></div>
+    </form>
+    <div id="result">
+      <div class="result-head"><strong>Response</strong><span id="resultStatus">Waiting for a request</span></div>
+      <pre id="resultBody">Your response will appear here.</pre>
+    </div>
+  </section>
+  <p class="note" style="margin:18px 4px 0">Security limits: private and reserved network addresses are blocked, redirects are rechecked, and destination cookies are not forwarded. Do not paste passwords or private account credentials into this playground.</p>
+</main>
+<footer>Hyper-Pop ✦ Curiosity, Go.</footer>
+<script src="app.js?v=proxy-network-1"></script>
+<script src="account.js?v=proxy-network-1"></script>
+<script>
+const API="https://iapnejlttsqqefkpmelp.supabase.co/functions/v1/hyperpop-cors";
+const authNote=document.getElementById("auth"),form=document.getElementById("requestForm"),send=document.getElementById("send");
+const resultStatus=document.getElementById("resultStatus"),resultBody=document.getElementById("resultBody");
+let accountReady=false;
+async function checkAccount(){
+  try{
+    const token=localStorage.getItem("hyperpop_token");
+    if(!token){authNote.innerHTML='Sign in to a <a href="accounts.html">Hyper-Pop account</a> to use the proxy.';return}
+    const me=typeof hpMe==="function"?await hpMe():null;
+    if(!me){authNote.innerHTML='Your session is invalid or expired. <a href="accounts.html">Sign in again</a>.';return}
+    authNote.textContent="Signed in as @"+me.username+". Your account is authorized.";
+    authNote.style.color="var(--green)";
+    accountReady=true;send.disabled=false;
+  }catch(e){authNote.textContent="Could not verify your account. Please refresh and try again."}
+}
+form.addEventListener("submit",async event=>{
+  event.preventDefault();
+  if(!accountReady)return;
+  const token=localStorage.getItem("hyperpop_token");
+  let headers={};
+  try{headers=JSON.parse(document.getElementById("headers").value||"{}");if(!headers||typeof headers!=="object"||Array.isArray(headers))throw new Error()}catch{resultStatus.textContent="Invalid headers JSON";resultStatus.className="bad";return}
+  const method=document.getElementById("method").value;
+  const rawBody=document.getElementById("body").value;
+  let body=rawBody;
+  if(rawBody.trim()){try{body=JSON.parse(rawBody)}catch{body=rawBody}}
+  const payload={url:document.getElementById("target").value.trim(),method,headers};
+  if(method==="POST"&&rawBody.trim())payload.body=body;
+  send.disabled=true;send.textContent="Sending…";resultStatus.textContent="Request in progress…";resultStatus.className="";resultBody.textContent="";
+  try{
+    const response=await fetch(API,{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    const type=response.headers.get("content-type")||"";
+    const bytes=await response.arrayBuffer();
+    resultStatus.textContent="HTTP "+response.status+(response.headers.get("x-proxy-target-status")?" · upstream "+response.headers.get("x-proxy-target-status"):"");
+    resultStatus.className=response.ok?"good":"bad";
+    if(/json|text|xml|javascript|svg/i.test(type)){
+      const text=new TextDecoder().decode(bytes);
+      if(type.includes("json")){try{resultBody.textContent=JSON.stringify(JSON.parse(text),null,2)}catch{resultBody.textContent=text}}
+      else resultBody.textContent=text;
+    }else resultBody.textContent="Binary response · "+bytes.byteLength.toLocaleString()+" bytes · "+type;
+  }catch(error){resultStatus.textContent="Network error";resultStatus.className="bad";resultBody.textContent=error?.message||"The request could not be completed."}
+  finally{send.disabled=!accountReady;send.textContent="Send request ↗"}
+});
+checkAccount();
+</script>
+</body>
+</html>
