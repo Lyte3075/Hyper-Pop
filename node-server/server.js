@@ -19,6 +19,13 @@ const previews = new Map();
 const logs = new Map();
 
 app.disable("x-powered-by");
+app.use((req,res,next) => {
+  res.setHeader("Access-Control-Allow-Origin","*");
+  res.setHeader("Access-Control-Allow-Headers","Authorization, Content-Type");
+  res.setHeader("Access-Control-Allow-Methods","GET, POST, PUT, DELETE, OPTIONS");
+  if(req.method === "OPTIONS") return res.status(204).end();
+  next();
+});
 app.use(express.json({ limit: "300kb" }));
 app.use((req,res,next) => {
   res.setHeader("X-Content-Type-Options","nosniff");
@@ -149,8 +156,8 @@ app.post("/api/projects",async(req,res)=>{
     const name=String(req.body?.name||slug).slice(0,80);
     const data=await storage(req.hpToken,{action:"create-project",slug,name});
     await fs.mkdir(projectDir(slug),{recursive:true});
-    const packageJson=JSON.stringify({name:slug,version:"1.0.0",private:true,scripts:{start:"node index.js"},dependencies:{}},null,2);
-    const starter='import express from "express";\nconst app = express();\napp.get("/", (req,res) => res.send("<h1>It works! 🚀</h1><p>Your Hyper-Pop Node.js project is running.</p>"));\nconst port = process.env.PORT || 3000;\napp.listen(port, "0.0.0.0", () => console.log("Project listening on " + port));\n';
+    const packageJson=JSON.stringify({name:slug,version:"1.0.0",private:true,scripts:{start:"node index.js"},dependencies:{express:"^5.1.0"}},null,2);
+    const starter='const express = require("express");\nconst app = express();\napp.get("/", (req,res) => res.send("<h1>It works! 🚀</h1><p>Your Hyper-Pop Node.js project is running.</p>"));\nconst port = process.env.PORT || 3000;\napp.listen(port, "0.0.0.0", () => console.log("Project listening on " + port));\n';
     await storage(req.hpToken,{action:"put-file",slug,path:"package.json",content:packageJson});
     await storage(req.hpToken,{action:"put-file",slug,path:"index.js",content:starter});
     await writeProjectFile(slug,"package.json",packageJson);
