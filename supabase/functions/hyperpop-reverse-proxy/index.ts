@@ -140,7 +140,7 @@ function validatePathPrefix(value: unknown) {
   if (!path.startsWith("/")) path = "/" + path;
   let decoded = path;
   try { decoded = decodeURIComponent(path); } catch { throw new Error("The upstream path prefix contains invalid encoding."); }
-  if (decoded.includes("\\") || decoded.split("/").some(part => part === "." || part === "..") || path.includes("//")) {
+  if (decoded.includes("\\") || decoded.includes("//") || decoded.includes("?") || decoded.includes("#") || decoded.split("/").some(part => part === "." || part === "..") || path.includes("//")) {
     throw new Error("The upstream path prefix contains an unsafe path segment.");
   }
   return path.replace(/\/$/, "");
@@ -327,11 +327,11 @@ async function handleProxy(req: Request, userId: string, routePath: string) {
   const responseHeaders = new Headers(corsHeaders);
   responseHeaders.set("Cache-Control", "no-store");
   responseHeaders.set("X-Hyper-Pop-Upstream-Status", String(upstream.status));
-  for (const name of ["content-type", "etag", "last-modified", "accept-ranges"]) {
+  for (const name of ["content-type", "etag", "last-modified", "accept-ranges", "content-range"]) {
     const value = upstream.headers.get(name);
     if (value) responseHeaders.set(name, value);
   }
-  responseHeaders.set("Access-Control-Expose-Headers", "Content-Type, ETag, Last-Modified, Accept-Ranges, X-Hyper-Pop-Upstream-Status");
+  responseHeaders.set("Access-Control-Expose-Headers", "Content-Type, ETag, Last-Modified, Accept-Ranges, Content-Range, X-Hyper-Pop-Upstream-Status");
   return new Response(bytes.length ? bytes : null, { status: upstream.status, headers: responseHeaders });
 }
 
