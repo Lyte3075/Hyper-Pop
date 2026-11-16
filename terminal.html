@@ -87,9 +87,11 @@ async function saveEditor(){
  await writeFile(editorPath,editorText.value,false);
  editorOriginal=editorText.value;updateEditorStatus('WROTE');
 }
-function closeEditor(){
- if(editorDirty()&&!confirm('Save changes before exiting nano?'))return;
- if(editorDirty())return;
+async function closeEditor(){
+ if(editorDirty()){
+  if(!confirm('Save changes before exiting nano?'))return;
+  try{await saveEditor()}catch(e){editorStatus.textContent='SAVE FAILED';return}
+ }
  editor.hidden=true;editorPath=null;editorText.value='';input.focus();
 }
 function formatSize(n){if(n<1024)return n+' B';if(n<1048576)return (n/1024).toFixed(1)+' KB';if(n<1073741824)return (n/1048576).toFixed(2)+' MB';return (n/1073741824).toFixed(2)+' GB'}
