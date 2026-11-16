@@ -125,6 +125,56 @@ async function entry(parts){const [p,n]=await parentAndName(parts);try{return {p
 async function copyDirectory(from,to){const src=await directory(from,false),dst=await directory(to,true);for await(const [name,h] of src.entries()){if(h.kind==='directory')await copyDirectory(from.concat(name),to.concat(name));else{const file=await h.getFile(),target=await dst.getFileHandle(name,{create:true}),w=await target.createWritable();await w.write(await file.arrayBuffer());await w.close()}}}
 async function countBytes(parts){const d=await directory(parts,false);let total=0;for await(const [name,h] of d.entries()){if(h.kind==='directory')total+=await countBytes(parts.concat(name));else total+=(await h.getFile()).size}return total}
 function calc(expression){let s=expression.replace(/\s+/g,'');let i=0;function atom(){if(s[i]==='+'){i++;return atom()}if(s[i]==='-'){i++;return -atom()}if(s[i]==='('){i++;const v=add();if(s[i++]!==')')throw Error('Missing closing parenthesis.');return v}const m=s.slice(i).match(/^(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?/i);if(!m)throw Error('Invalid expression.');i+=m[0].length;return Number(m[0])}function power(){let v=atom();if(s[i]==='^'){i++;v=Math.pow(v,power())}return v}function mul(){let v=power();while(['*','/','%'].includes(s[i])){const op=s[i++],r=power();v=op==='*'?v*r:op==='/'?v/r:v%r}return v}function add(){let v=mul();while(s[i]==='+'||s[i]==='-'){const op=s[i++],r=mul();v=op==='+'?v+r:v-r}return v}const result=add();if(i!==s.length||!Number.isFinite(result))throw Error('Invalid or non-finite calculation.');return result}
+
+// JavaScript and Python runtimes
+let pyodidePromise=null;
+const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
+async function executeJavaScript(source,label){
+ const output=[];
+ const print=(...values)=>output.push(values.map(v=>typeof v==='string'?v:JSON.stringify(v)).join(' '));
+ try{
+  const runner=new AsyncFunction('print','args', '"use strict";\\n'+source);
+  const result=await runner(print,[]);
+  if(result!==undefined)print(result);
+  line((label||'JavaScript')+' completed'+(output.length?'':' (no output).'),'ok');
+  output.forEach(x=>line(x));
+ }catch(e){line('JavaScript error: '+e.message,'err')}
+}
+async function loadPyodideRuntime(){
+ if(pyodidePromise)return pyodidePromise;
+ pyodidePromise=(async()=>{
+  if(!window.loadPyodide){
+   await new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src='https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js';
+    script.onload=resolve;script.onerror=()=>reject(Error('Could not load Pyodide from its CDN.'));
+    document.head.appendChild(script);
+   });
+  }
+  return await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.27.7/full/'});
+ })();
+ try{return await pyodidePromise}catch(e){pyodidePromise=null;throw e}
+}
+async function executePython(source,label){
+ line('Loading Python WebAssembly runtime…','dim');
+ try{
+  const py=await loadPyodideRuntime();
+  const output=[];
+  py.setStdout({batched:x=>output.push(x)});
+  py.setStderr({batched:x=>output.push(x)});
+  try{await py.runPythonAsync(source)}catch(e){line('Python error: '+e.message,'err')}
+  output.forEach(x=>line(x));
+  line((label||'Python')+' finished.','ok');
+ }catch(e){line('Python runtime unavailable: '+e.message,'err')}
+}
+async function previewHtml(path){
+ const source=await readFile(path),blob=new Blob([source],{type:'text/html'}),url=URL.createObjectURL(blob);
+ const tab=window.open(url,'_blank','noopener');
+ if(!tab){URL.revokeObjectURL(url);throw Error('Pop-up blocked. Allow pop-ups for this site and try again.')}
+ line('Opened HTML preview in a new tab.','ok');
+ setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+
 function bytesToBase64(textValue){const bytes=new TextEncoder().encode(textValue);let binary='';bytes.forEach(b=>binary+=String.fromCharCode(b));return btoa(binary)}
 function base64ToText(value){const binary=atob(value),bytes=Uint8Array.from(binary,c=>c.charCodeAt(0));return new TextDecoder().decode(bytes)}
 
@@ -168,6 +218,12 @@ line('  base64 <text>               Encode text as Base64');
 line('  unbase64 <data>             Decode Base64 text');
 line('  seq <end> or <start> <end>  Print a number sequence');
 line('  calc <expression>           Calculate arithmetic');
+line('  js [code]                   Run JavaScript or open the JS prompt');
+line('  run <file.js>               Execute a JavaScript file');
+line('  python [file.py|-c code]    Run Python with Pyodide/WebAssembly');
+line('  pip install <package>       Install a Python package (Pyodide-compatible)');
+line('  preview <file.html>         Preview a saved HTML file');
+line('  node / npm                  Node.js needs cross-origin isolation headers');
 line('  upload                      Import a file you select');
 line('  open <https-url>            Open a web address');
 line('  export [name=value]         List or set session variables');
@@ -186,6 +242,8 @@ line('  date                        Show local date and time');
 line('  whoami                      Show local user');
 line('  uname                       Show runtime information');
 line('  storage                     Show OPFS availability');
+line('  js, run, python, pip        JavaScript and Python runtimes');
+line('  preview                     Preview saved HTML');
 line('  help                        Show this help');
 line('  exit                        Return to Hyper-Pop');
 line('');
@@ -223,19 +281,27 @@ case 'base64':line(bytesToBase64(args.join(' ')),'ok');break;
 case 'unbase64':line(base64ToText(args.join(' ')));break;
 case 'seq':{if(!arg)throw Error('Usage: seq <end> or seq <start> <end>');const a=args.length>1?Number(args[0]):1,b=Number(args[args.length-1]);if(!Number.isInteger(a)||!Number.isInteger(b)||Math.abs(b-a)>1000)throw Error('Sequence must be integers with at most 1001 values.');for(let n=a;n<=b;n++)line(n)}break;
 case 'calc':if(!args.length)throw Error('Usage: calc <expression>');line(String(calc(args.join(' '))),'ok');break;
+case 'js':if(!args.length){line('Usage: js <JavaScript code>  |  run <file.js>','dim');line('Example: js console.log("Hello from JavaScript")');break}else await executeJavaScript(args.join(' '),'JavaScript');break;
+case 'run':if(!arg)throw Error('Usage: run <file.js>');if(!arg.toLowerCase().endsWith('.js'))throw Error('The run command currently executes .js files.');await executeJavaScript(await readFile(resolve(arg)),arg);break;
+case 'python':case 'py':if(!arg){line('Usage: python <file.py>  |  python -c <code>','dim');line('Example: python -c print(2 ** 10)');break}else if(arg==='-c'){if(args.length<2)throw Error('Usage: python -c <code>');await executePython(args.slice(1).join(' '),'Python command')}else await executePython(await readFile(resolve(arg)),arg);break;
+case 'pip':if(args[0]!=='install'||!args[1])throw Error('Usage: pip install <package>');{const py=await loadPyodideRuntime();line('Installing '+args[1]+'…','dim');await py.loadPackage('micropip');await py.runPythonAsync("import micropip\\nawait micropip.install("+JSON.stringify(args[1])+")");line('Installed '+args[1]+' (if compatible with Pyodide).','ok')}break;
+case 'preview':if(!arg||!arg.toLowerCase().endsWith('.html'))throw Error('Usage: preview <file.html>');await previewHtml(resolve(arg));break;
+case 'node':case 'npm':line(cmd.toUpperCase()+' is not available in this GitHub Pages environment. Full Node.js/WebContainers requires cross-origin isolation headers (COOP/COEP), which this static host does not currently configure.','warn');line('JavaScript files can be run with: run <file.js>','dim');break;
 case 'upload':{const picker=document.createElement('input');picker.type='file';picker.multiple=true;picker.onchange=async()=>{for(const f of picker.files){const dest=cwd.concat(f.name);await writeFile(dest,await f.text(),false);line('Imported '+f.name+' ('+formatSize(f.size)+')','ok')}};picker.click()}break;
 case 'open':{if(!arg)throw Error('Usage: open <https-url>');const u=new URL(arg,location.href);if(u.protocol!=='https:')throw Error('Only HTTPS addresses can be opened.');window.open(u.href,'_blank','noopener')}break;
 case 'export':if(!arg)Object.keys(envVars).sort().forEach(k=>line(k+'='+envVars[k]));else{const m=raw.slice(raw.indexOf(' ')+1).match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);if(!m)throw Error('Usage: export NAME=value');envVars[m[1]]=m[2];line(m[1]+' exported','ok')}break;
 case 'env':Object.keys(envVars).sort().forEach(k=>line(k+'='+envVars[k]));break;
 case 'unset':if(!arg)throw Error('Usage: unset <name>');delete envVars[arg];line('Unset '+arg,'ok');break;
-case 'which':if(!arg)throw Error('Usage: which <command>');line(['help','pwd','ls','cd','mkdir','touch','cat','nano','write','append','rm','rmdir','tree','echo','clear','history','date','whoami','uname','storage','download','cp','mv','find','stat','du','head','tail','wc','grep','sort','uniq','rev','nl','base64','unbase64','seq','calc','upload','open','export','env','unset','which','man','hostname','id','uptime','free','version','about','exit'].includes(arg)?'/bin/'+arg:'not found',arg? 'ok':'');break;
+case 'which':if(!arg)throw Error('Usage: which <command>');line(['js','run','python','py','pip','preview','node','npm','help','pwd','ls','cd','mkdir','touch','cat','nano','write','append','rm','rmdir','tree','echo','clear','history','date','whoami','uname','storage','download','cp','mv','find','stat','du','head','tail','wc','grep','sort','uniq','rev','nl','base64','unbase64','seq','calc','upload','open','export','env','unset','which','man','hostname','id','uptime','free','version','about','exit'].includes(arg)?'/bin/'+arg:'not found',arg? 'ok':'');break;
 case 'man':line('Built-in command: '+(arg||'help'));line('Use help for the command index. Most file commands accept absolute or relative paths.');break;
 case 'hostname':line('hyper-pop-browser');break;
 case 'id':line('uid=1000(guest) gid=1000(guest) groups=1000(guest)');break;
 case 'uptime':line('Session uptime: '+Math.floor((Date.now()-startedAt)/1000)+' seconds');break;
 case 'free':line('Browser-managed memory is not fully exposed to web pages.','warn');if(performance.memory)line('JS heap: '+formatSize(performance.memory.usedJSHeapSize)+' / '+formatSize(performance.memory.jsHeapSizeLimit));break;
-case 'version':line('Hyper-Pop Terminal 0.2 / HP-SH','ok');break;
-case 'about':line('A static, browser-local command environment. Files live in this site origin’s OPFS storage.');line('No Supabase, no server shell, no unrestricted system access.','dim');break;
+case 'version':line('Hyper-Pop Terminal 0.3 / HP-SH + JavaScript + Python WebAssembly','ok');break;
+case 'about':line('A static, browser-local command environment. Files live in this site origin’s OPFS storage.');line('No Supabase, no server shell, no unrestricted system access.','dim');
+line('JavaScript runs in the page runtime. Python runs in Pyodide/WebAssembly (downloaded on first use).','dim');
+line('Node.js/npm and native C/C++ compilation need host/runtime support not provided by this static deployment.','dim');break;
 case 'reset':screen.textContent='';line('Terminal display reset. Files were not changed.','ok');break;
 case 'exit':location.href='index.html';break;
 default:line('Command not found: '+cmd+'. Type help.','err');
