@@ -119,7 +119,7 @@ function appendLog(slug,chunk) {
 }
 function runNpm(slug,args,timeoutMs=180000) {
   return new Promise((resolve,reject) => {
-    const child = spawn("npm",args,{cwd:projectDir(slug),env:{...process.env,CI:"1",FORCE_COLOR:"0"},stdio:["ignore","pipe","pipe"],shell:false});
+    const child = spawn("npm",args,{cwd:projectDir(slug),env:{PATH:process.env.PATH||"",HOME:projectDir(slug),TMPDIR:os.tmpdir(),CI:"1",FORCE_COLOR:"0",NODE_ENV:"production"},stdio:["ignore","pipe","pipe"],shell:false});
     let output = "";
     const collect = data => { output += data.toString(); output = output.slice(-20000); appendLog(slug,data.toString()); };
     child.stdout.on("data",collect); child.stderr.on("data",collect);
@@ -233,7 +233,11 @@ app.post("/api/projects/:slug/start",async(req,res)=>{
     const command=parts.shift();
     const args=parts.map(x=>x.replace(/^"|"$/g,""));
     if (!command || !/^(node|npm)$/.test(command)) return jsonError(res,400,"Start scripts must begin with node or npm.");
-    const child=spawn(command,args,{cwd:projectDir(slug),env:{...process.env,PORT:String(port),HOST:"127.0.0.1",NODE_ENV:"production"},stdio:["ignore","pipe","pipe"],shell:false});
+    if (!await fs.stat(path.join(projectDir(slug),"node_modules")).then(()=>true).catch(()=>false)) {
+      const install = await runNpm(slug,["install"],180000);
+      if (install.code !== 0) return jsonError(res,500,"npm install failed before startup. Check node logs for output.");
+    }
+    const child=spawn(command,args,{cwd:projectDir(slug),env:{PATH:process.env.PATH||"",HOME:projectDir(slug),TMPDIR:os.tmpdir(),PORT:String(port),HOST:"127.0.0.1",NODE_ENV:"production"},stdio:["ignore","pipe","pipe"],shell:false});
     child.hpSlug=slug; child.hpPort=port;
     const previewKey=randomBytes(24).toString("hex");
     const base=process.env.RENDER_EXTERNAL_URL || ("https://" + req.get("host"));
