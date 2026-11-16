@@ -264,23 +264,51 @@ async function virtualRequest(url,init={}){
 }
 function createVirtualWebSocket(){return class VirtualWebSocket{constructor(url){this.url=String(url);this.readyState=0;this.onopen=this.onmessage=this.onerror=this.onclose=null;this.listeners={};const u=new URL(this.url);if(!['ws:','wss:'].includes(u.protocol))throw Error('Use a ws:// or wss:// URL');const server=['localhost','127.0.0.1'].includes(u.hostname)?virtualServers.get(Number(u.port||80)):null;if(!server){this.readyState=3;queueMicrotask(()=>this._emit('error',{type:'error',message:'No local virtual WebSocket server is available'}));return}this.peer={onmessage:null,onclose:null,listeners:{},send:data=>this._receive(data),close:()=>this.close(),addEventListener:(n,fn)=>(this.peer.listeners[n]||(this.peer.listeners[n]=[])).push(fn)};queueMicrotask(()=>{this.readyState=1;this._emit('open',{type:'open',target:this});const req={url:u.pathname+u.search,path:u.pathname,query:Object.fromEntries(u.searchParams.entries())};const route=server.wsHandlers.find(x=>x.path==='*'||x.path===u.pathname);try{if(route)route.handler(this.peer,req);server.emit('websocket',this.peer,req)}catch(e){this._emit('error',{type:'error',message:e.message})}})}addEventListener(n,fn){(this.listeners[n]||(this.listeners[n]=[])).push(fn)}removeEventListener(n,fn){this.listeners[n]=(this.listeners[n]||[]).filter(x=>x!==fn)}_emit(n,e){if(typeof this['on'+n]==='function')this['on'+n](e);for(const fn of this.listeners[n]||[])fn(e)}_receive(data){if(this.readyState===1)queueMicrotask(()=>this._emit('message',{type:'message',data,target:this}))}send(data){if(this.readyState!==1)throw Error('WebSocket is not open');queueMicrotask(()=>{if(this.peer.onmessage)this.peer.onmessage({type:'message',data,target:this.peer});for(const fn of this.peer.listeners.message||[])fn({type:'message',data,target:this.peer})})}close(code=1000,reason=''){if(this.readyState===3)return;this.readyState=3;const e={type:'close',code,reason,wasClean:true};this._emit('close',e);if(this.peer.onclose)this.peer.onclose(e)}static get CONNECTING(){return 0}static get OPEN(){return 1}static get CLOSING(){return 2}static get CLOSED(){return 3}}}
 const HP_REVERSE_PROXY='https://iapnejlttsqqefkpmelp.supabase.co/functions/v1/hyperpop-reverse-proxy';
+const HP_CORS_PROXY='https://iapnejlttsqqefkpmelp.supabase.co/functions/v1/hyperpop-cors';
 const HP_PROXY_MAP_KEY='hyperpop_terminal_proxy_routes';
 function getTerminalProxyMap(){try{const value=JSON.parse(localStorage.getItem(HP_PROXY_MAP_KEY)||'{}');return value&&typeof value==='object'&&!Array.isArray(value)?value:{}}catch(_){return {}}}
+async function corsProxyFetch(input,init={},sourceUrl=''){
+ const source=input instanceof Request?input.url:String(input),target=new URL(source,location.href);
+ const method=(init.method||(input instanceof Request?input.method:'GET')).toUpperCase();
+ if(!['GET','HEAD','POST'].includes(method))throw Error('This request needs a saved Reverse Proxy route. The CORS proxy supports GET, HEAD and POST.');
+ const token=localStorage.getItem('hyperpop_token')||'';
+ if(!token)throw Error('Sign in to Hyper-Pop to use the CORS proxy fallback.');
+ const headers=new Headers(input instanceof Request?input.headers:undefined);
+ new Headers(init.headers||{}).forEach((value,key)=>headers.set(key,value));
+ let body=init.body;
+ if(body===undefined&&input instanceof Request&&!['GET','HEAD'].includes(method))body=await input.clone().text();
+ if(body!==undefined&&body!==null&&typeof body!=='string'){
+  if(body instanceof URLSearchParams)body=body.toString();
+  else if(body instanceof Blob)body=await body.text();
+  else if(body instanceof ArrayBuffer)body=new TextDecoder().decode(body);
+  else body=JSON.stringify(body);
+ }
+ const payload={url:target.href,method,headers:Object.fromEntries(headers.entries()),body:method==='POST'?body:undefined};
+ return fetch(HP_CORS_PROXY,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(payload)});
+}
 async function terminalFetch(input,init={}){
  const source=input instanceof Request?input.url:String(input);
  const target=new URL(source,location.href);
  const slug=getTerminalProxyMap()[target.hostname.toLowerCase()];
- if(!slug)return fetch(input,init);
- const token=localStorage.getItem('hyperpop_token')||'';
- if(!token)throw Error('A Hyper-Pop account session is required for proxy routes. Sign in, then run proxy open.');
- const path=target.pathname.startsWith('/')?target.pathname.slice(1):target.pathname;
- const proxyUrl=HP_REVERSE_PROXY+'/r/'+encodeURIComponent(slug)+'/'+path+target.search;
- const headers=new Headers(input instanceof Request?input.headers:undefined);
- new Headers(init.headers||{}).forEach((value,key)=>headers.set(key,value));
- headers.set('Authorization','Bearer '+token);
- let body=init.body;
- if(body===undefined&&input instanceof Request&&!['GET','HEAD'].includes((init.method||input.method).toUpperCase()))body=await input.clone().arrayBuffer();
- return fetch(proxyUrl,{...init,method:init.method||(input instanceof Request?input.method:undefined),headers,body,redirect:'follow'});
+ if(slug){
+  const token=localStorage.getItem('hyperpop_token')||'';
+  if(!token)throw Error('A Hyper-Pop account session is required for proxy routes. Sign in, then run proxy open.');
+  const path=target.pathname.startsWith('/')?target.pathname.slice(1):target.pathname;
+  const proxyUrl=HP_REVERSE_PROXY+'/r/'+encodeURIComponent(slug)+'/'+path+target.search;
+  const headers=new Headers(input instanceof Request?input.headers:undefined);
+  new Headers(init.headers||{}).forEach((value,key)=>headers.set(key,value));
+  headers.set('Authorization','Bearer '+token);
+  let body=init.body;
+  if(body===undefined&&input instanceof Request&&!['GET','HEAD'].includes((init.method||input.method).toUpperCase()))body=await input.clone().arrayBuffer();
+  return fetch(proxyUrl,{...init,method:init.method||(input instanceof Request?input.method:undefined),headers,body,redirect:'follow'});
+ }
+ try{return await fetch(input,init)}
+ catch(error){
+  const method=(init.method||(input instanceof Request?input.method:'GET')).toUpperCase();
+  if(!['GET','HEAD','POST'].includes(method))throw error;
+  try{return await corsProxyFetch(input,init,target.href)}
+  catch(proxyError){throw Error((error?.message||'Direct network request failed.')+' CORS proxy fallback: '+(proxyError?.message||String(proxyError)))}
+ }
 }
 async function nodeFetch(url,init={}){
  const local=await virtualRequest(url,init);
