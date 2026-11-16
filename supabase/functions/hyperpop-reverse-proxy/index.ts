@@ -159,6 +159,27 @@ function validateSecretHeaders(value: unknown) {
   return result;
 }
 
+async function readRequestLimited(req: Request, limit: number) {
+  if (!req.body) return new Uint8Array();
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > limit) {
+      await reader.cancel();
+      throw new Error("Request body is too large.");
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  return bytes;
+}
+
 async function readLimited(response: Response, limit: number) {
   const declared = Number(response.headers.get("content-length") || "0");
   if (declared > limit) throw new Error("The upstream response is too large.");
@@ -190,8 +211,7 @@ function getFunctionPath(url: URL) {
 
 async function handleManage(req: Request, userId: string) {
   if (req.method !== "POST") return json({ ok: false, error: "POST is required for route management." }, 405);
-  const raw = await req.text();
-  if (new TextEncoder().encode(raw).byteLength > 64 * 1024) return json({ ok: false, error: "Request is too large." }, 413);
+  const raw = new TextDecoder().decode(await readRequestLimited(req, 64 * 1024));
   let input: any;
   try { input = JSON.parse(raw); } catch { return json({ ok: false, error: "A JSON request body is required." }, 400); }
 
@@ -224,7 +244,7 @@ async function handleManage(req: Request, userId: string) {
 }
 
 async function handleProxy(req: Request, userId: string, routePath: string) {
-  const parts = routePath.slice(3).split("/");
+  const parts = routePath.slice(2).split("/");
   const slug = decodeURIComponent(parts.shift() || "");
   if (!/^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/.test(slug)) return json({ ok: false, error: "Invalid route." }, 404);
   const method = req.method.toUpperCase();
@@ -261,12 +281,13 @@ async function handleProxy(req: Request, userId: string, routePath: string) {
 
   let body: Uint8Array | undefined;
   if (!["GET", "HEAD"].includes(method)) {
-    const bytes = new Uint8Array(await req.arrayBuffer());
-    if (bytes.byteLength > MAX_REQUEST_BYTES) return json({ ok: false, error: "Request body is too large." }, 413);
+    const bytes = await readRequestLimited(req, MAX_REQUEST_BYTES);
     if (bytes.byteLength) body = bytes;
   }
 
   let current = target;
+  let currentMethod = method;
+  let currentBody = body;
   let upstream: Response | null = null;
   for (let attempt = 0; attempt <= MAX_REDIRECTS; attempt++) {
     await assertPublicDns(validateHostname(current.hostname));
@@ -274,7 +295,7 @@ async function handleProxy(req: Request, userId: string, routePath: string) {
     const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
     try {
       upstream = await fetch(current, {
-        method, headers, body: ["GET", "HEAD"].includes(method) ? undefined : body,
+        method: currentMethod, headers, body: ["GET", "HEAD"].includes(currentMethod) ? undefined : currentBody,
         redirect: "manual", signal: controller.signal
       });
     } finally { clearTimeout(timer); }
@@ -287,6 +308,11 @@ async function handleProxy(req: Request, userId: string, routePath: string) {
       if (next.protocol !== "https:" || next.hostname.toLowerCase() !== origin.hostname.toLowerCase() ||
           next.port && next.port !== "443" || next.username || next.password) {
         return json({ ok: false, error: "The upstream redirect left the configured domain." }, 502);
+      }
+      if (upstream.status === 303 || ((upstream.status === 301 || upstream.status === 302) && currentMethod === "POST")) {
+        currentMethod = "GET";
+        currentBody = undefined;
+        headers.delete("content-type");
       }
       current = next;
       continue;
