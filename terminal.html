@@ -154,7 +154,7 @@ async function executeJavaScript(source,label){
  const print=(...values)=>{const value=values.map(v=>typeof v==='string'?v:JSON.stringify(v)).join(' ');outputCount++;line(value)};
  try{
   const terminalConsole={log:(...v)=>print(...v),info:(...v)=>print(...v),warn:(...v)=>print(...v),error:(...v)=>print(...v),clear:()=>{}};
-  const runner=new AsyncFunction('print','args','console','input','"use strict";\n'+nodeSource);
+  const runner=new AsyncFunction('print','args','console','input',source);
   const result=await runner(print,[],terminalConsole,terminalInput);
   if(result!==undefined)print(result);
   line((label||'JavaScript')+' completed'+(outputCount?'':' (no output).'),'ok');
@@ -492,7 +492,7 @@ async function executeNode(source,label){
  const nodeConsole={log:print,info:print,warn:(...v)=>{outputCount++;line(v.join(' '),'warn')},error:(...v)=>{outputCount++;line(v.join(' '),'err')},table:v=>print(v),clear:()=>{}};
  const module={exports:{}},exports=module.exports;
  try{
-  const runner=new AsyncFunction('require','module','exports','__filename','__dirname','process','Buffer','console','fetch','URL','URLSearchParams','setTimeout','clearTimeout','setInterval','clearInterval','WebSocket','global','globalThis','input','"use strict";\n'+nodeSource);
+  const runner=new AsyncFunction('require','module','exports','__filename','__dirname','process','Buffer','console','fetch','URL','URLSearchParams','setTimeout','clearTimeout','setInterval','clearInterval','WebSocket','global','globalThis','input',nodeSource);
   const file=label&&label.endsWith('.js')?pathString(resolve(label)):pathString(cwd.concat('index.js'));
   await runner(requireFn,module,exports,file,file.split('/').slice(0,-1).join('/')||'/',nodeProcess,NodeBuffer,nodeConsole,nodeFetch,URL,URLSearchParams,setTimeout,clearTimeout,setInterval,clearInterval,createVirtualWebSocket(),globalThis,globalThis,terminalInput);
   if(module.exports!==exports&&Object.keys(module.exports||{}).length)print(module.exports);
@@ -633,7 +633,7 @@ function bytesToBase64(textValue){const bytes=new TextEncoder().encode(textValue
 function base64ToText(value){const binary=atob(value),bytes=Uint8Array.from(binary,c=>c.charCodeAt(0));return new TextDecoder().decode(bytes)}
 
 async function tree(parts,depth,prefix){if(depth>5)return;const d=await directory(parts,false),items=[];for await(const [name,h] of d.entries())items.push({name,dir:h.kind==='directory'});items.sort((a,b)=>Number(b.dir)-Number(a.dir)||a.name.localeCompare(b.name));for(let i=0;i<items.length;i++){const x=items[i],last=i===items.length-1;line(prefix+(last?'└── ':'├── ')+x.name+(x.dir?'/':''));if(x.dir)await tree(parts.concat(x.name),depth+1,prefix+(last?'    ':'│   '))}}
-async function run(raw){const trimmed=raw.trim(),args=tokenize(raw),cmd=(args.shift()||'').toLowerCase(),arg=args[0];if(!cmd)return;
+async function runSingle(raw){const trimmed=raw.trim(),args=tokenize(raw),cmd=(args.shift()||'').toLowerCase(),arg=args[0];if(!cmd)return;
 line((cwd.length===2?'~':pathString(cwd))+' $ '+raw,'cmd');
  const looksLikeJavaScript=/^(?:const|let|var|function|class|async\s+function|import\s|export\s|require\s*\(|console\.|process\.|module\.|exports\.|await\s|fetch\s*\(|https?\.(?:get|request)\s*\(|Promise\.|throw\s|try\s*\{|if\s*\(|for\s*\(|while\s*\(|\/\*|\/\/)/.test(trimmed)||/;\s*(?:const|let|var)\s/.test(trimmed);
  if(looksLikeJavaScript){await executeNode(raw,'pasted JavaScript');return;}
@@ -674,12 +674,21 @@ line('  base64 <text>               Encode text as Base64');
 line('  unbase64 <data>             Decode Base64 text');
 line('  seq <end> or <start> <end>  Print a number sequence');
 line('  calc <expression>           Calculate arithmetic');
+line('  printf / basename / dirname Formatted output and path tools');
+line('  realpath / file / sha256sum Inspect files and checksums');
+line('  cmp / diff / cut / tr       Compare and extract text');
+line('  sed / awk                   Basic stream text processing');
+line('  source / sh <script.sh>    Run shell scripts line by line');
+line('  test / true / false / sleep Basic shell utilities');
 line('  js <code|file.js>            Run JavaScript code or a script file (await input() for answers)');
 line('  run <file.js>               Execute a JavaScript file');
 line('  python [file.py|-c code]    Run Python (await terminal_input() for answers)');
 line('  pip install <package>       Install a Python package (Pyodide-compatible)');
 line('  preview <file.html>         Preview a saved HTML file');
 line('  node <file.js>              Run JS with Node-compatible browser APIs');
+line('  ts <file.ts>                Transpile and run TypeScript');
+line('  Paste multiple shell commands separated by newlines or semicolons');
+line('  JavaScript runs non-strict by default; add \'use strict\' to opt in');
 line('  require / https / http      Node module and HTTP client compatibility');
 line('  server list                 List virtual HTTP servers');
 line('  express                     Express routes, middleware, static files and JSON APIs');
@@ -737,9 +746,27 @@ case 'rm':{const recursive=args[0]==='-r'||args[0]==='-rf'||args[0]==='-fr',forc
 case 'rmdir':if(!arg)throw Error('Usage: rmdir <folder>');{const [p,n]=await parentAndName(resolve(arg));await p.removeEntry(n);line('Deleted empty directory: '+arg,'ok')}break;
 case 'tree':await tree(arg?resolve(arg):cwd,0,'');break;
 case 'echo':line(args.join(' '));break;
+case 'printf':{if(!arg)throw Error('Usage: printf <format> [values]');let i=0;const vals=args.slice(1);const s=arg.replace(/\\n/g,'\n').replace(/\\t/g,'\t').replace(/%%|%[sdifjo]/g,m=>{if(m==='%%')return '%';const v=vals[i++]??'';return m==='%d'||m==='%i'?String(parseInt(v,10)||0):m==='%f'?String(Number(v)||0):m==='%j'?JSON.stringify(v):String(v)});s.split('\n').forEach((x,n,a)=>{if(x||n<a.length-1)line(x)});break}
+case 'basename':if(!arg)throw Error('Usage: basename <path> [suffix]');{let n=arg.replace(/\/$/,'').split('/').pop()||'/';if(args[1]&&n.endsWith(args[1]))n=n.slice(0,-args[1].length);line(n)}break;
+case 'dirname':if(!arg)throw Error('Usage: dirname <path>');line(arg.replace(/\/$/,'').split('/').slice(0,-1).join('/')||'.');break;
+case 'realpath':if(!arg)throw Error('Usage: realpath <path>');{const p=resolve(arg);await entry(p);line(pathString(p),'ok')}break;
+case 'file':if(!arg)throw Error('Usage: file <path>');{const p=resolve(arg);try{const d=await directory(p,false);let n=0;for await(const _ of d.entries())n++;line(arg+': directory ('+n+' entries)')}catch(_){const b=await readFileBytes(p),s=new TextDecoder().decode(b.slice(0,200));line(arg+': '+(b.some(x=>x===0)?'binary data':s.trimStart().startsWith('<')?'HTML or XML text':s.trimStart().startsWith('{')||s.trimStart().startsWith('[')?'JSON text':'UTF-8 text')+' ('+formatSize(b.length)+')')}}break;
+case 'sha256sum':if(!arg)throw Error('Usage: sha256sum <file>');{const b=await readFileBytes(resolve(arg)),h=await crypto.subtle.digest('SHA-256',b);line(Array.from(new Uint8Array(h),x=>x.toString(16).padStart(2,'0')).join('')+'  '+arg,'ok')}break;
+case 'cmp':if(args.length<2)throw Error('Usage: cmp <file1> <file2>');{const a=await readFileBytes(resolve(args[0])),b=await readFileBytes(resolve(args[1]));let i=0;while(i<Math.min(a.length,b.length)&&a[i]===b[i])i++;line(i===a.length&&i===b.length?'Files are identical.':args[0]+' '+args[1]+' differ: byte '+(i+1),i===a.length&&i===b.length?'ok':'warn')}break;
+case 'diff':if(args.length<2)throw Error('Usage: diff <file1> <file2>');{const a=(await readFile(resolve(args[0]))).split('\n'),b=(await readFile(resolve(args[1]))).split('\n');let i=0;while(i<Math.max(a.length,b.length)&&a[i]===b[i])i++;if(i===Math.max(a.length,b.length))line('Files are identical.','ok');else{line('--- '+args[0]);line('+++ '+args[1]);for(let n=Math.max(0,i-2);n<Math.min(Math.max(a.length,b.length),i+8);n++){if(a[n]!==b[n]){if(a[n]!==undefined)line('- '+a[n],'err');if(b[n]!==undefined)line('+ '+b[n],'ok')}else if(a[n]!==undefined)line('  '+a[n])}}}break;
+case 'cut':{const file=args[args.length-1],f=args.find(x=>x.startsWith('-f')),ch=args.find(x=>x.startsWith('-c')),d=args.find(x=>x.startsWith('-d'));if(!file||(!f&&!ch))throw Error('Usage: cut -f1,2 [-d,] <file> or cut -c1-5 <file>');const rows=(await readFile(resolve(file))).split('\n'),indices=spec=>{const out=[];for(const p of spec.split(',')){const m=p.match(/^(\d+)(?:-(\d*))?$/);if(m){const a=+m[1],b=m[2]?(+m[2]||10000):m[2]===''?10000:a;for(let n=a;n<=Math.min(b,10000);n++)out.push(n-1)}}return [...new Set(out)]};if(ch){const ix=indices(ch.slice(2));rows.forEach(r=>line(ix.map(n=>r[n]||'').join('')))}else{const sep=d?d.slice(2):'\t',ix=indices(f.slice(2));rows.forEach(r=>line(ix.map(n=>r.split(sep)[n]||'').join(sep)))}break}
+case 'tr':if(args.length<2)throw Error('Usage: tr <from> <to> [file]');{const from=args[0],to=args[1],src=args[2]?await readFile(resolve(args[2])):args.slice(2).join(' '),map=new Map([...from].map((x,i)=>[x,to[Math.min(i,to.length-1)]||'']));line([...src].map(x=>map.has(x)?map.get(x):x).join(''))}break;
+case 'sed':{if(args.length<2)throw Error('Usage: sed s/old/new/[g] <file>');const m=args[0].match(/^s([^a-zA-Z0-9\s])([\s\S]*?)\1([\s\S]*?)\1(g?)$/);if(!m)throw Error('Supports sed s/old/new/g');const special='.*+?^{}()|[]\\';const old=m[2].split('').map(x=>special.includes(x)||x.charCodeAt(0)===36?'\\'+x:x).join('');line((await readFile(resolve(args[1]))).replace(new RegExp(old,m[4]?'g':''),m[3]));break}
+case 'awk':{if(args.length<2)throw Error("Usage: awk '{print $1}' <file>");const m=args[0].match(/^\{\s*print\s+(.+?)\s*\}$/);if(!m)throw Error('Supports {print $N}, {print $0}, {print NR}');(await readFile(resolve(args[1]))).split('\n').forEach((r,i)=>{const fs=r.trim().split(/\s+/);line(m[1].split(/\s*,\s*/).map(x=>x==='$0'?r:x==='NR'?i+1:/^\$\d+$/.test(x)?fs[+x.slice(1)-1]||'':x.replace(/^['"]|['"]$/g,'')).join(' '))});break}
+case 'test':case '[':{const x=args.filter(v=>v!==']');let ok=false;if(x.length===2&&x[0]==='-f'){try{await readFile(resolve(x[1]));ok=true}catch(_){}}else if(x.length===2&&x[0]==='-d'){try{await directory(resolve(x[1]),false);ok=true}catch(_){}}else if(x.length===3)ok=x[1]==='='?x[0]===x[2]:x[1]==='!='?x[0]!==x[2]:x[1]==='-eq'?+x[0]===+x[2]:x[1]==='-gt'?+x[0]>+x[2]:x[1]==='-lt'?+x[0]<+x[2]:false;else if(x.length===1)ok=!!x[0];if(!ok)throw Error('test returned false (exit status 1)');break}
+case 'true':break;
+case 'false':throw Error('false (exit status 1)');
+case 'sleep':{const n=Number(arg);if(!Number.isFinite(n)||n<0||n>30)throw Error('Usage: sleep <seconds> (maximum 30)');await new Promise(r=>setTimeout(r,n*1000));line('Slept '+n+' second(s).','dim');break}
+case 'source':case '.':case 'sh':{if(!arg)throw Error('Usage: sh <script.sh>');const src=await readFile(resolve(arg));for(const s of src.split(/\r?\n/)){const t=s.trim();if(t&&!t.startsWith('#'))await run(t)}break}
+
 case 'clear':screen.textContent='';break;
-case 'history':history.forEach((x,i)=>line((i+1)+'  '+x,'dim'));break;
-case 'date':line(new Date().toString());break;
+case 'history':if(args[0]==='-c'){history.length=0;historyIndex=0;line('History cleared.','ok')}else history.forEach((x,i)=>line((i+1)+'  '+x,'dim'));break;
+case 'date':{const d=new Date(),fmt=args[0]||'';if(!fmt.startsWith('+'))line(d.toString());else{const p=n=>String(n).padStart(2,'0'),v={'%Y':d.getFullYear(),'%m':p(d.getMonth()+1),'%d':p(d.getDate()),'%H':p(d.getHours()),'%M':p(d.getMinutes()),'%S':p(d.getSeconds()),'%s':Math.floor(d.getTime()/1000)};line(fmt.slice(1).replace(/%[YmdHMSs]/g,k=>v[k]??k))}}break;
 case 'whoami':line('guest','ok');break;
 case 'uname':line('Hyper-Pop Browser Runtime / JavaScript / OPFS');break;
 case 'storage':line('Origin Private File System: '+(root?'available':'unavailable'),root?'ok':'err');line('Storage is private to this browser profile and this website origin.','dim');break;
@@ -818,7 +845,7 @@ case 'open':{if(!arg)throw Error('Usage: open <https-url>');const u=new URL(arg,
 case 'export':if(!arg)Object.keys(envVars).sort().forEach(k=>line(k+'='+envVars[k]));else{const m=raw.slice(raw.indexOf(' ')+1).match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);if(!m)throw Error('Usage: export NAME=value');envVars[m[1]]=m[2];line(m[1]+' exported','ok')}break;
 case 'env':Object.keys(envVars).sort().forEach(k=>line(k+'='+envVars[k]));break;
 case 'unset':if(!arg)throw Error('Usage: unset <name>');delete envVars[arg];line('Unset '+arg,'ok');break;
-case 'which':if(!arg)throw Error('Usage: which <command>');line(['js','run','python','py','pip','preview','node','npm','help','pwd','ls','cd','mkdir','touch','cat','nano','write','append','rm','rmdir','tree','echo','clear','history','date','whoami','uname','storage','download','cp','mv','find','stat','du','head','tail','wc','grep','sort','uniq','rev','nl','base64','unbase64','seq','calc','upload','open','proxy','export','env','unset','which','man','hostname','id','uptime','free','version','about','exit'].includes(arg)?'/bin/'+arg:'not found',arg? 'ok':'');break;
+case 'which':if(!arg)throw Error('Usage: which <command>');line(['js','run','python','py','pip','preview','node','npm','help','pwd','ls','cd','mkdir','touch','cat','nano','write','append','rm','rmdir','tree','echo','clear','history','date','whoami','uname','storage','download','cp','mv','find','stat','du','head','tail','wc','grep','sort','uniq','rev','nl','base64','unbase64','seq','calc','printf','basename','dirname','realpath','file','sha256sum','cmp','diff','cut','tr','sed','awk','source','sh','test','true','false','sleep','upload','open','proxy','export','env','unset','which','man','hostname','id','uptime','free','version','about','exit'].includes(arg)?'/bin/'+arg:'not found',arg? 'ok':'');break;
 case 'man':line('Built-in command: '+(arg||'help'));line('Use help for the command index. Most file commands accept absolute or relative paths.');break;
 case 'hostname':line('hyper-pop-browser');break;
 case 'id':line('uid=1000(guest) gid=1000(guest) groups=1000(guest)');break;
@@ -836,6 +863,64 @@ default:if(/^(?:#!|(?:sudo\s+)?(?:apt|apt-get|apk|dnf|yum|pacman|brew|systemctl|
 }
 }catch(e){line('ERROR: '+(e&&e.message?e.message:String(e)),'err')}
 }
+async function loadTypeScript(){
+ if(typeScriptPromise)return typeScriptPromise;
+ typeScriptPromise=(async()=>{
+  const mod=await import('https://esm.sh/typescript@5.8.3?bundle');
+  const compiler=mod.transpileModule?mod:(mod.default&&mod.default.transpileModule?mod.default:null);
+  if(!compiler)throw Error('The TypeScript compiler did not expose transpileModule.');
+  return compiler;
+ })();
+ try{return await typeScriptPromise}catch(e){typeScriptPromise=null;throw Error('Could not load TypeScript compiler: '+e.message)}
+}
+let typeScriptPromise=null;
+async function executeTypeScript(source,label){
+ line('Transpiling TypeScript…','dim');
+ try{
+  const ts=await loadTypeScript();
+  const result=ts.transpileModule(source,{fileName:label&&label.endsWith('.ts')?label:'terminal.ts',reportDiagnostics:true,compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true,allowJs:false}});
+  const errors=(result.diagnostics||[]).filter(d=>d.category===ts.DiagnosticCategory.Error);
+  if(errors.length){for(const d of errors)line('TypeScript: '+ts.flattenDiagnosticMessageText(d.messageText,' '),'err');return}
+  await executeNode(result.outputText,label||'TypeScript');
+ }catch(e){line('TypeScript error: '+e.message,'err')}
+}
+function splitShellBatch(source){
+ const out=[];let part='',quote='',escape=false;
+ for(let i=0;i<source.length;i++){
+  const ch=source[i];
+  if(escape){part+=ch;escape=false;continue}
+  if(ch==='\\'&&quote!=="'"){part+=ch;escape=true;continue}
+  if(quote){part+=ch;if(ch===quote)quote='';continue}
+  if(ch==='"'||ch==="'"){quote=ch;part+=ch;continue}
+  if(ch===';'||ch==='\n'||ch==='\r'){
+   if(part.trim())out.push(part.trim());part='';
+   if(ch==='\r'&&source[i+1]==='\n')i++;
+   continue;
+  }
+  part+=ch;
+ }
+ if(part.trim())out.push(part.trim());
+ return out;
+}
+async function run(raw){
+ const trimmed=raw.trim();if(!trimmed)return;
+ const first=trimmed.split(/\r?\n/,1)[0].trim();
+ const isTypeScript=/^(?:interface|type\s+[A-Za-z_$]|enum\s+[A-Za-z_$]|namespace\s+[A-Za-z_$]|declare\s|abstract\s+class\s)/.test(trimmed)||/^(?:const|let|var)\s+[A-Za-z_$][\w$]*\s*:\s*(?:string|number|boolean|any|unknown|object|[A-Z_$][\w$]*(?:<[^;=]+>)?|\{)/.test(trimmed);
+ if(isTypeScript){await executeTypeScript(raw,'TypeScript');return}
+ if(/^(?:ts|tsc)\s+/.test(first)){
+  const args=tokenize(first);
+  if(args[0]==='tsc'){line('TypeScript compiler mode: use ts <file.ts> or paste TypeScript directly.','dim');return}
+  if(args[1]&&args[1].toLowerCase().endsWith('.ts')){try{await executeTypeScript(await readFile(resolve(args[1])),args[1])}catch(e){line('TypeScript error: '+e.message,'err')}return}
+  await executeTypeScript(raw.slice(raw.indexOf(' ')+1),'TypeScript');return;
+ }
+ if(/^[\s\S]*\.ts$/.test(trimmed)&&!/\s/.test(trimmed)){try{await executeTypeScript(await readFile(resolve(trimmed)),trimmed)}catch(e){line('TypeScript error: '+e.message,'err')}return}
+ const looksLikeJavaScript=/^(?:const|let|var|function|class|async\s+function|import\s|export\s|require\s*\(|console\.|process\.|module\.|exports\.|await\s|fetch\s*\(|https?\.(?:get|request)\s*\(|Promise\.|throw\s|try\s*\{|if\s*\(|for\s*\(|while\s*\(|\/\*|\/\/)/.test(trimmed);
+ if(looksLikeJavaScript){await executeNode(raw,'pasted JavaScript');return}
+ const commands=splitShellBatch(raw);
+ if(commands.length>1){for(const command of commands)await runSingle(command);return}
+ await runSingle(trimmed);
+}
+
 async function init(){try{if(!navigator.storage||!navigator.storage.getDirectory)throw Error('This browser does not support OPFS. Try an up-to-date Safari or another modern browser.');root=await navigator.storage.getDirectory();await directory(HOME,true);await loadNodePackages();status('OPFS READY','good');line('Hyper-Pop Terminal [HP-SH 0.4]','ok');line('Persistent browser-local filesystem initialized.','dim');line('Authenticated Hyper-Pop proxy networking is available. No access to private device files.','dim');line('Type help to see available commands.','');line('');updatePrompt()}catch(e){status('FILESYSTEM UNAVAILABLE','bad');line('Could not initialize browser storage: '+e.message,'err');line('This terminal requires a secure HTTPS page and browser OPFS support.','warn')}}
 form.addEventListener('submit',async e=>{e.preventDefault();const raw=input.value;input.value='';input.style.height='auto';if(terminalInputResolver){line('> '+raw,'cmd');const resolve=terminalInputResolver;finishTerminalInput(raw);resolve(raw);return}if(raw.trim()){history.push(raw);historyIndex=history.length;await run(raw)}});
 input.addEventListener('input',()=>{input.style.height='auto';input.style.height=Math.min(input.scrollHeight,window.innerHeight*.38)+'px'});
