@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#000000">
 <title>Hyper-Pop Terminal</title>
 <style>
-:root{color-scheme:dark;--bg:#000;--fg:#f2f2f2;--muted:#858585;--red:#ff5555;--yellow:#ffd84d;--green:#54e38e;--line:#242424}
+:root{color-scheme:dark;--bg:#000;--fg:#f2f2f2;--muted:#858585;--red:#ff5555;--yellow:#ffd84d;--green:#54e38e;--cmd:#69cfff;--line:#242424}
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;background:var(--bg);color:var(--fg)}
 body{font:14px/1.55 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;overflow:hidden}
@@ -15,7 +15,7 @@ header{height:48px;flex:0 0 48px;display:flex;align-items:center;justify-content
 .brand{font-weight:700;letter-spacing:.02em}.brand span{color:var(--green)}
 #state{font-size:11px;color:var(--muted)}#state.good{color:var(--green)}#state.bad{color:var(--red)}#state.warn{color:var(--yellow)}
 #screen{flex:1;min-height:0;overflow:auto;padding:14px 15px 22px;overscroll-behavior:contain;white-space:pre-wrap;overflow-wrap:anywhere;scrollbar-color:#444 #000}
-.line{min-height:1.55em}.dim{color:var(--muted)}.ok{color:var(--green)}.warn{color:var(--yellow)}.err{color:var(--red)}.prompt{color:var(--green)}.cmd{color:var(--fg)}
+.line{min-height:1.55em}.dim{color:var(--muted)}.ok{color:var(--green)}.warn{color:var(--yellow)}.err{color:var(--red)}.prompt{color:var(--green)}.cmd{color:var(--cmd)}
 form{flex:0 0 auto;display:flex;align-items:center;gap:9px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:#000}
 #cwd{color:var(--green);max-width:38%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--fg);font:16pt ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;caret-color:var(--green);padding:4px 0;min-height:2em}
@@ -40,7 +40,7 @@ button{font:inherit;color:var(--fg);background:#101010;border:1px solid #333;bor
 </head>
 <body>
 <div id="app">
-<header><div class="brand"><span>HP</span> / TERMINAL <span style="color:var(--muted);font-weight:400">v0.3</span></div><div id="state" class="warn">INITIALIZING…</div></header>
+<header><div class="brand"><span>HP</span> / TERMINAL <span style="color:var(--muted);font-weight:400">v0.4</span></div><div id="state" class="warn">INITIALIZING…</div></header>
 <main id="screen" role="log" aria-live="polite" aria-label="Terminal output"></main>
 <form id="form" autocomplete="off">
 <span id="cwd">~</span><span class="prompt">$</span>
@@ -204,6 +204,7 @@ async function previewHtml(path){
 }
 
 
+const browserDatabase=(()=>{const file=['home','guest','.hp-database.json'];let remote=null;const load=async()=>{try{return JSON.parse(await readFile(file))}catch(_){return {collections:{}}}};const save=async d=>writeFile(file,JSON.stringify(d),false);const matches=(doc,filter={})=>Object.entries(filter).every(([k,v])=>v&&typeof v==='object'&&!Array.isArray(v)?Object.entries(v).every(([op,x])=>op==='$gt'?doc[k]>x:op==='$gte'?doc[k]>=x:op==='$lt'?doc[k]<x:op==='$lte'?doc[k]<=x:op==='$ne'?doc[k]!==x:op==='$in'?x.includes(doc[k]):false):doc[k]===v);const api={async collections(){return Object.keys((await load()).collections)},async connect(url,options={}){remote={url:String(url).replace(/\/$/,''),headers:options.headers||{}};return api},async request(path,init={}){if(!remote)throw Error('Call db.connect(baseUrl, options) first.');return fetch(remote.url+'/'+String(path||'').replace(/^\//,''),{...init,headers:{...remote.headers,...(init.headers||{})}})},collection(name){name=String(name);if(!/^[a-zA-Z0-9_-]{1,64}$/.test(name))throw Error('Invalid collection name.');return {async create(){const d=await load();d.collections[name]??=[];await save(d);return this},async insertOne(doc){const d=await load();d.collections[name]??=[];const value={...doc,_id:doc&&doc._id||crypto.randomUUID()};d.collections[name].push(value);await save(d);return {acknowledged:true,insertedId:value._id}},async insertMany(docs){const ids=[];for(const doc of docs)ids.push((await this.insertOne(doc)).insertedId);return {acknowledged:true,insertedCount:ids.length,insertedIds:ids}},async find(filter={}){return ((await load()).collections[name]||[]).filter(x=>matches(x,filter)).map(x=>({...x}))},async findOne(filter={}){return (await this.find(filter))[0]||null},async updateOne(filter,update){const d=await load(),rows=d.collections[name]||[],i=rows.findIndex(x=>matches(x,filter));if(i<0)return {matchedCount:0,modifiedCount:0};rows[i]={...rows[i],...(update.$set||update)};await save(d);return {matchedCount:1,modifiedCount:1}},async deleteMany(filter={},one=false){const d=await load(),rows=d.collections[name]||[],kept=[];let deleted=0;for(const row of rows){if(matches(row,filter)&&(!one||!deleted))deleted++;else kept.push(row)}d.collections[name]=kept;await save(d);return {acknowledged:true,deletedCount:deleted}},async deleteOne(filter){return this.deleteMany(filter,true)},async countDocuments(filter={}){return (await this.find(filter)).length}}}};return api})();
 const nodePackages={};
 async function loadNodePackages(){try{const data=JSON.parse(await readFile(['home','guest','.hp-node-packages.json']));Object.assign(nodePackages,data)}catch(_){}}
 function nodeBuffer(value,encoding='utf8'){
@@ -216,7 +217,7 @@ function nodeBuffer(value,encoding='utf8'){
 const virtualServers=new Map();
 function makeVirtualHttp(){
  class VirtualServer{
-  constructor(handler){this.handler=handler;this.listening=false;this.port=null;this.host='localhost';this.events={};this.timeout=10000}
+  constructor(handler){this.handler=handler;this.listening=false;this.port=null;this.host='localhost';this.events={};this.wsHandlers=[];this.timeout=10000}
   on(name,fn){(this.events[name]||(this.events[name]=[])).push(fn);return this}
   once(name,fn){const wrap=(...a)=>{this.off(name,wrap);fn(...a)};return this.on(name,wrap)}
   off(name,fn){this.events[name]=(this.events[name]||[]).filter(x=>x!==fn);return this}
@@ -231,6 +232,7 @@ function makeVirtualHttp(){
    return this;
   }
   close(callback){if(this.listening){virtualServers.delete(this.port);this.listening=false;this.emit('close')}if(callback)queueMicrotask(()=>callback());return this}
+  ws(path,handler){if(typeof path==='function'){handler=path;path='*'}this.wsHandlers.push({path:String(path||'*'),handler});return this}
   address(){return this.listening?{address:this.host,family:'IPv4',port:this.port}:null}
   async dispatch(url,init={}){
    if(!this.listening)throw Error('Server is not listening.');
@@ -259,6 +261,7 @@ async function virtualRequest(url,init={}){
  if(!server)return new Response('No virtual server is listening on '+u.host,{status:502,headers:{'content-type':'text/plain'}});
  return await server.dispatch(u.href,init);
 }
+function createVirtualWebSocket(){return class VirtualWebSocket{constructor(url){this.url=String(url);this.readyState=0;this.onopen=this.onmessage=this.onerror=this.onclose=null;this.listeners={};const u=new URL(this.url);if(!['ws:','wss:'].includes(u.protocol))throw Error('Use a ws:// or wss:// URL');const server=['localhost','127.0.0.1'].includes(u.hostname)?virtualServers.get(Number(u.port||80)):null;if(!server){this.readyState=3;queueMicrotask(()=>this._emit('error',{type:'error',message:'No local virtual WebSocket server is available'}));return}this.peer={onmessage:null,onclose:null,listeners:{},send:data=>this._receive(data),close:()=>this.close(),addEventListener:(n,fn)=>(this.peer.listeners[n]||(this.peer.listeners[n]=[])).push(fn)};queueMicrotask(()=>{this.readyState=1;this._emit('open',{type:'open',target:this});const req={url:u.pathname+u.search,path:u.pathname,query:Object.fromEntries(u.searchParams.entries())};const route=server.wsHandlers.find(x=>x.path==='*'||x.path===u.pathname);try{if(route)route.handler(this.peer,req);server.emit('websocket',this.peer,req)}catch(e){this._emit('error',{type:'error',message:e.message})}})}addEventListener(n,fn){(this.listeners[n]||(this.listeners[n]=[])).push(fn)}removeEventListener(n,fn){this.listeners[n]=(this.listeners[n]||[]).filter(x=>x!==fn)}_emit(n,e){if(typeof this['on'+n]==='function')this['on'+n](e);for(const fn of this.listeners[n]||[])fn(e)}_receive(data){if(this.readyState===1)queueMicrotask(()=>this._emit('message',{type:'message',data,target:this}))}send(data){if(this.readyState!==1)throw Error('WebSocket is not open');queueMicrotask(()=>{if(this.peer.onmessage)this.peer.onmessage({type:'message',data,target:this.peer});for(const fn of this.peer.listeners.message||[])fn({type:'message',data,target:this.peer})})}close(code=1000,reason=''){if(this.readyState===3)return;this.readyState=3;const e={type:'close',code,reason,wasClean:true};this._emit('close',e);if(this.peer.onclose)this.peer.onclose(e)}static get CONNECTING(){return 0}static get OPEN(){return 1}static get CLOSING(){return 2}static get CLOSED(){return 3}}}
 async function nodeFetch(url,init={}){
  const local=await virtualRequest(url,init);
  return local||fetch(url,init);
@@ -322,7 +325,9 @@ function createVirtualExpress(){
  express.urlencoded=()=>async(req,res,next)=>{if(!(req.headers['content-type']||'').toLowerCase().includes('application/x-www-form-urlencoded'))return next();req.body=Object.fromEntries(new URLSearchParams(req.rawBody||''));await next()};
  express.text=()=>async(req,res,next)=>{req.body=req.rawBody;await next()};
  express.raw=()=>async(req,res,next)=>{req.body=req.rawBody;await next()};
- express.static=()=>async(req,res,next)=>next();
+ express.static=(rootPath,options={})=>async(req,res,next)=>{
+  try{let relative=decodeURIComponent(req.path||'/').replace(/^\/+/, '');if(!relative||relative.endsWith('/'))relative+=(options.index||'index.html');if(relative.split('/').some(x=>x==='..'))return next();const target=resolve(String(rootPath||'.')).concat(relative.split('/').filter(Boolean));const data=await readFile(target),ext=relative.split('.').pop().toLowerCase();const types={html:'text/html; charset=utf-8',htm:'text/html; charset=utf-8',css:'text/css; charset=utf-8',js:'text/javascript; charset=utf-8',json:'application/json; charset=utf-8',txt:'text/plain; charset=utf-8',svg:'image/svg+xml',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp',ico:'image/x-icon',wasm:'application/wasm'};res.set('Content-Type',types[ext]||'application/octet-stream');res.set('Cache-Control',options.maxAge?'public, max-age='+Math.floor(options.maxAge/1000):'no-cache');res.send(data)}catch(e){if(options.fallthrough===false)return res.status(404).send('Not Found');return next()}
+ };
  express.version='4.18-hp';
  return express;
 }
@@ -335,13 +340,13 @@ async function executeNode(source,label){
  const nodeProcess={argv:[label||'node'],env:{...envVars},platform:'browser',version:'v22.0.0-hp',versions:{node:'22.0.0-hp'},cwd:()=>pathString(cwd),hrtime:{bigint:()=>BigInt(Math.floor(performance.now()*1e6))},nextTick:fn=>queueMicrotask(fn),exit:code=>{throw Object.assign(Error('Process exited with code '+(code||0)),{nodeExit:true})}};
  const nodePath={join:(...p)=>p.join('/').split('/').filter(Boolean).join('/'),resolve:(...p)=>pathString(resolve(p.join('/'))),basename:p=>String(p).split('/').pop(),dirname:p=>String(p).split('/').slice(0,-1).join('/')||'.',extname:p=>{const n=String(p).split('/').pop(),i=n.lastIndexOf('.');return i>0?n.slice(i):''},sep:'/'};
  const nodeFs={promises:{readFile:async p=>await readFile(resolve(String(p))),writeFile:async(p,d)=>await writeFile(resolve(String(p)),String(d),false),appendFile:async(p,d)=>await writeFile(resolve(String(p)),String(d),true),mkdir:async p=>await directory(resolve(String(p)),true),readdir:async p=>{const d=await directory(resolve(String(p)),false),a=[];for await(const [n] of d.entries())a.push(n);return a},stat:async p=>{const v=await entry(resolve(String(p)));return {isFile:()=>v.handle.kind==='file',isDirectory:()=>v.handle.kind==='directory',size:v.handle.kind==='file'?(await v.handle.getFile()).size:0}},unlink:async p=>{const [d,n]=await parentAndName(resolve(String(p)));await d.removeEntry(n)},access:async p=>{await entry(resolve(String(p)))}}};
- const builtins={express:createVirtualExpress(),path:nodePath,process:nodeProcess,buffer:{Buffer:{from:(v,e)=>nodeBuffer(v,e),isBuffer:()=>false}},util:{promisify:f=>f},assert:{ok:(v,m)=>{if(!v)throw Error(m||'Assertion failed')},equal:(a,b)=>{if(a!=b)throw Error(a+' != '+b)},strictEqual:(a,b)=>{if(a!==b)throw Error(a+' !== '+b)}},crypto:{webcrypto:crypto},url:{URL,URLSearchParams},fs:nodeFs,http:makeVirtualHttp(),https:makeVirtualHttp()};
+ const builtins={express:createVirtualExpress(),database:browserDatabase,db:browserDatabase,WebSocket:createVirtualWebSocket(),path:nodePath,process:nodeProcess,buffer:{Buffer:{from:(v,e)=>nodeBuffer(v,e),isBuffer:()=>false}},util:{promisify:f=>f},assert:{ok:(v,m)=>{if(!v)throw Error(m||'Assertion failed')},equal:(a,b)=>{if(a!=b)throw Error(a+' != '+b)},strictEqual:(a,b)=>{if(a!==b)throw Error(a+' !== '+b)}},crypto:{webcrypto:crypto},url:{URL,URLSearchParams},fs:nodeFs,http:makeVirtualHttp(),https:makeVirtualHttp()};
  const requireFn=async name=>{if(builtins[name])return builtins[name];if(name.startsWith('node:')&&builtins[name.slice(5)])return builtins[name.slice(5)];const pkg=name.startsWith('/')?name.slice(1):name;if(!nodePackages[pkg])throw Error("Cannot find package '"+name+"'. Try: npm install "+name);return await import('https://esm.sh/'+encodeURIComponent(pkg)+'?bundle')};
  const nodeConsole={log:print,info:print,warn:(...v)=>{outputCount++;line(v.join(' '),'warn')},error:(...v)=>{outputCount++;line(v.join(' '),'err')},table:v=>print(v),clear:()=>{}};
  try{
-  const runner=new AsyncFunction('require','module','exports','__filename','__dirname','process','Buffer','console','fetch','URL','URLSearchParams','setTimeout','clearTimeout','setInterval','clearInterval','global','globalThis','input','"use strict";\n'+source);
+  const runner=new AsyncFunction('require','module','exports','__filename','__dirname','process','Buffer','console','fetch','URL','URLSearchParams','setTimeout','clearTimeout','setInterval','clearInterval','WebSocket','global','globalThis','input','"use strict";\n'+source);
   const file=label&&label.endsWith('.js')?pathString(resolve(label)):pathString(cwd.concat('index.js'));
-  await runner(requireFn,{exports:{}},{},file,file.split('/').slice(0,-1).join('/')||'/',nodeProcess,{from:(v,e)=>nodeBuffer(v,e)},nodeConsole,nodeFetch,URL,URLSearchParams,setTimeout,clearTimeout,setInterval,clearInterval,globalThis,globalThis,terminalInput);
+  await runner(requireFn,{exports:{}},{},file,file.split('/').slice(0,-1).join('/')||'/',nodeProcess,{from:(v,e)=>nodeBuffer(v,e)},nodeConsole,nodeFetch,URL,URLSearchParams,setTimeout,clearTimeout,setInterval,clearInterval,createVirtualWebSocket(),globalThis,globalThis,terminalInput);
   line((label||'Node script')+' finished'+(outputCount?'':' (no output).'),'ok');
  }catch(e){line(e.nodeExit?'Node '+e.message:'Node error: '+e.message,e.nodeExit?'warn':'err')}
 }
@@ -453,7 +458,7 @@ line((cwd.length===2?'~':pathString(cwd))+' $ '+raw,'cmd');
 try{
 switch(cmd){
 case 'help':case '?':
-line('HYPER-POP TERMINAL / HP-SH 0.3','ok');
+line('HYPER-POP TERMINAL / HP-SH 0.4','ok');
 line('Browser-local shell environment. Not a full Linux or iOS shell.','dim');
 line('');
 line('FILESYSTEM');
@@ -494,7 +499,8 @@ line('  pip install <package>       Install a Python package (Pyodide-compatible
 line('  preview <file.html>         Preview a saved HTML file');
 line('  node <file.js>              Run JS with Node-compatible browser APIs');
 line('  server list                 List virtual HTTP servers');
-line('  express                     Express-style routes, middleware and JSON APIs');
+line('  express                     Express routes, middleware, static files and JSON APIs');
+ line('  db help                     Local database and remote REST API help');
 line('  npm install <package>       Add a browser-compatible npm package');
 line('  git clone <github-url>      Clone a public GitHub repository');
 line('  git status / log / pull     Inspect and update a GitHub workspace');
@@ -618,7 +624,7 @@ case 'hostname':line('hyper-pop-browser');break;
 case 'id':line('uid=1000(guest) gid=1000(guest) groups=1000(guest)');break;
 case 'uptime':line('Session uptime: '+Math.floor((Date.now()-startedAt)/1000)+' seconds');break;
 case 'free':line('Browser-managed memory is not fully exposed to web pages.','warn');if(performance.memory)line('JS heap: '+formatSize(performance.memory.usedJSHeapSize)+' / '+formatSize(performance.memory.jsHeapSizeLimit));break;
-case 'version':line('Hyper-Pop Terminal 0.3 / HP-SH + JavaScript + Python WebAssembly','ok');break;
+case 'version':line('Hyper-Pop Terminal 0.4 / HP-SH + JavaScript + Python WebAssembly','ok');break;
 case 'about':line('A static, browser-local command environment. Files live in this site origin’s OPFS storage.');line('No Supabase, no server shell, no unrestricted system access.','dim');
 line('JavaScript runs in the page runtime. Python runs in Pyodide/WebAssembly (downloaded on first use).','dim');
 line('Node commands use a browser-side Node compatibility layer, not native Node.js. npm packages load from esm.sh and must support browsers. Git commands connect to public GitHub repositories; they are not a full Git implementation.','dim');break;
@@ -628,7 +634,7 @@ default:line('Command not found: '+cmd+'. Type help.','err');
 }
 }catch(e){line('ERROR: '+(e&&e.message?e.message:String(e)),'err')}
 }
-async function init(){try{if(!navigator.storage||!navigator.storage.getDirectory)throw Error('This browser does not support OPFS. Try an up-to-date Safari or another modern browser.');root=await navigator.storage.getDirectory();await directory(HOME,true);await loadNodePackages();status('OPFS READY','good');line('Hyper-Pop Terminal [HP-SH 0.3]','ok');line('Persistent browser-local filesystem initialized.','dim');line('No Supabase connection. No access to private device files.','dim');line('Type help to see available commands.','');line('');updatePrompt()}catch(e){status('FILESYSTEM UNAVAILABLE','bad');line('Could not initialize browser storage: '+e.message,'err');line('This terminal requires a secure HTTPS page and browser OPFS support.','warn')}}
+async function init(){try{if(!navigator.storage||!navigator.storage.getDirectory)throw Error('This browser does not support OPFS. Try an up-to-date Safari or another modern browser.');root=await navigator.storage.getDirectory();await directory(HOME,true);await loadNodePackages();status('OPFS READY','good');line('Hyper-Pop Terminal [HP-SH 0.4]','ok');line('Persistent browser-local filesystem initialized.','dim');line('No Supabase connection. No access to private device files.','dim');line('Type help to see available commands.','');line('');updatePrompt()}catch(e){status('FILESYSTEM UNAVAILABLE','bad');line('Could not initialize browser storage: '+e.message,'err');line('This terminal requires a secure HTTPS page and browser OPFS support.','warn')}}
 form.addEventListener('submit',async e=>{e.preventDefault();const raw=input.value;input.value='';if(terminalInputResolver){line('> '+raw,'cmd');const resolve=terminalInputResolver;finishTerminalInput(raw);resolve(raw);return}if(raw.trim()){history.push(raw);historyIndex=history.length;await run(raw)}});
 input.addEventListener('keydown',e=>{if(e.key==='ArrowUp'){e.preventDefault();historyIndex=Math.max(0,historyIndex-1);input.value=history[historyIndex]||''}else if(e.key==='ArrowDown'){e.preventDefault();historyIndex=Math.min(history.length,historyIndex+1);input.value=history[historyIndex]||''}});
 document.getElementById('clear').addEventListener('click',()=>{screen.textContent='';input.focus()});
