@@ -212,6 +212,57 @@ function nodeBuffer(value,encoding='utf8'){
  if(encoding==='base64'){let b='';bytes.forEach(x=>b+=String.fromCharCode(x));return btoa(b)}
  return new TextDecoder().decode(bytes);
 }
+// In-browser virtual HTTP servers. These routes exist only inside this terminal tab.
+const virtualServers=new Map();
+function makeVirtualHttp(){
+ class VirtualServer{
+  constructor(handler){this.handler=handler;this.listening=false;this.port=null;this.host='localhost';this.events={};this.timeout=10000}
+  on(name,fn){(this.events[name]||(this.events[name]=[])).push(fn);return this}
+  once(name,fn){const wrap=(...a)=>{this.off(name,wrap);fn(...a)};return this.on(name,wrap)}
+  off(name,fn){this.events[name]=(this.events[name]||[]).filter(x=>x!==fn);return this}
+  emit(name,...args){for(const fn of [...(this.events[name]||[])]){try{fn(...args)}catch(e){line('Server event error: '+e.message,'err')}}return !!(this.events[name]||[]).length}
+  listen(port,host,callback){
+   if(typeof host==='function'){callback=host;host='localhost'}
+   port=Number(port||3000);if(!Number.isInteger(port)||port<1||port>65535)throw Error('Server port must be between 1 and 65535.');
+   if(virtualServers.has(port))throw Error('Port '+port+' is already in use.');
+   this.port=port;this.host=host||'localhost';this.listening=true;virtualServers.set(port,this);
+   queueMicrotask(()=>{this.emit('listening');if(callback)callback()});
+   line('Virtual server listening at http://localhost:'+port,'ok');
+   return this;
+  }
+  close(callback){if(this.listening){virtualServers.delete(this.port);this.listening=false;this.emit('close')}if(callback)queueMicrotask(()=>callback());return this}
+  address(){return this.listening?{address:this.host,family:'IPv4',port:this.port}:null}
+  async dispatch(url,init={}){
+   if(!this.listening)throw Error('Server is not listening.');
+   const parsed=new URL(url,'http://localhost:'+this.port);
+   const req={url:parsed.pathname+parsed.search,originalUrl:parsed.pathname+parsed.search,method:String(init.method||'GET').toUpperCase(),headers:Object.fromEntries(new Headers(init.headers||{}).entries()),body:init.body||null,hostname:parsed.hostname,protocol:parsed.protocol,params:{},query:Object.fromEntries(parsed.searchParams.entries()),on(){return this}};
+   return await new Promise((resolve,reject)=>{
+    let chunks=[],finished=false,statusCode=200,statusMessage='',headers=new Headers();
+    const done=()=>{if(finished)return;finished=true;resolve(new Response(chunks.join(''),{status:statusCode,statusText:statusMessage||undefined,headers}))};
+    const res={get statusCode(){return statusCode},set statusCode(value){statusCode=Number(value)||200},headersSent:false,writeHead:(code,messageOrHeaders,maybeHeaders)=>{statusCode=Number(code)||200;res.statusCode=statusCode;const h=typeof messageOrHeaders==='string'?maybeHeaders:messageOrHeaders;if(h)for(const [k,v] of Object.entries(h))headers.set(k,String(v));res.headersSent=true;return res},setHeader:(k,v)=>{headers.set(k,String(v));return res},getHeader:k=>headers.get(k),removeHeader:k=>headers.delete(k),write:chunk=>{chunks.push(String(chunk));return true},end:chunk=>{if(chunk!==undefined&&chunk!==null)chunks.push(String(chunk));done();return res},status(code){res.statusCode=statusCode=Number(code);return res},send(body){if(body!==undefined&&body!==null)chunks.push(typeof body==='string'?body:JSON.stringify(body));if(!headers.has('content-type'))headers.set('content-type',typeof body==='string'?'text/html; charset=utf-8':'application/json; charset=utf-8');done();return res},json(body){headers.set('content-type','application/json; charset=utf-8');chunks.push(JSON.stringify(body));done();return res}};
+    try{
+     this.emit('request',req,res);
+     const result=this.handler(req,res);
+     if(result&&typeof result.then==='function')result.catch(reject);
+     if(result!==undefined&&result!==null&&typeof result!=='object'&& !finished)res.end(String(result));
+     setTimeout(()=>{if(!finished){if(!chunks.length){statusCode=504;chunks.push('Virtual server response timed out.')}done()}},this.timeout);
+    }catch(e){reject(e)}
+   });
+  }
+ }
+ return {createServer:handler=>new VirtualServer(handler||(()=>{})),STATUS_CODES:{200:'OK',201:'Created',204:'No Content',301:'Moved Permanently',302:'Found',400:'Bad Request',401:'Unauthorized',403:'Forbidden',404:'Not Found',500:'Internal Server Error',502:'Bad Gateway',503:'Service Unavailable'},IncomingMessage:class{},ServerResponse:class{}};
+}
+async function virtualRequest(url,init={}){
+ const u=new URL(url,location.href);
+ if(!['localhost','127.0.0.1'].includes(u.hostname))return null;
+ const server=virtualServers.get(Number(u.port||80));
+ if(!server)return new Response('No virtual server is listening on '+u.host,{status:502,headers:{'content-type':'text/plain'}});
+ return await server.dispatch(u.href,init);
+}
+async function nodeFetch(url,init={}){
+ const local=await virtualRequest(url,init);
+ return local||fetch(url,init);
+}
 function nodeRuntime(source,label){
  return executeNode(source,label);
 }
@@ -221,13 +272,13 @@ async function executeNode(source,label){
  const nodeProcess={argv:[label||'node'],env:{...envVars},platform:'browser',version:'v22.0.0-hp',versions:{node:'22.0.0-hp'},cwd:()=>pathString(cwd),hrtime:{bigint:()=>BigInt(Math.floor(performance.now()*1e6))},nextTick:fn=>queueMicrotask(fn),exit:code=>{throw Object.assign(Error('Process exited with code '+(code||0)),{nodeExit:true})}};
  const nodePath={join:(...p)=>p.join('/').split('/').filter(Boolean).join('/'),resolve:(...p)=>pathString(resolve(p.join('/'))),basename:p=>String(p).split('/').pop(),dirname:p=>String(p).split('/').slice(0,-1).join('/')||'.',extname:p=>{const n=String(p).split('/').pop(),i=n.lastIndexOf('.');return i>0?n.slice(i):''},sep:'/'};
  const nodeFs={promises:{readFile:async p=>await readFile(resolve(String(p))),writeFile:async(p,d)=>await writeFile(resolve(String(p)),String(d),false),appendFile:async(p,d)=>await writeFile(resolve(String(p)),String(d),true),mkdir:async p=>await directory(resolve(String(p)),true),readdir:async p=>{const d=await directory(resolve(String(p)),false),a=[];for await(const [n] of d.entries())a.push(n);return a},stat:async p=>{const v=await entry(resolve(String(p)));return {isFile:()=>v.handle.kind==='file',isDirectory:()=>v.handle.kind==='directory',size:v.handle.kind==='file'?(await v.handle.getFile()).size:0}},unlink:async p=>{const [d,n]=await parentAndName(resolve(String(p)));await d.removeEntry(n)},access:async p=>{await entry(resolve(String(p)))}}};
- const builtins={path:nodePath,process:nodeProcess,buffer:{Buffer:{from:(v,e)=>nodeBuffer(v,e),isBuffer:()=>false}},util:{promisify:f=>f},assert:{ok:(v,m)=>{if(!v)throw Error(m||'Assertion failed')},equal:(a,b)=>{if(a!=b)throw Error(a+' != '+b)},strictEqual:(a,b)=>{if(a!==b)throw Error(a+' !== '+b)}},crypto:{webcrypto:crypto},url:{URL,URLSearchParams},fs:nodeFs};
+ const builtins={path:nodePath,process:nodeProcess,buffer:{Buffer:{from:(v,e)=>nodeBuffer(v,e),isBuffer:()=>false}},util:{promisify:f=>f},assert:{ok:(v,m)=>{if(!v)throw Error(m||'Assertion failed')},equal:(a,b)=>{if(a!=b)throw Error(a+' != '+b)},strictEqual:(a,b)=>{if(a!==b)throw Error(a+' !== '+b)}},crypto:{webcrypto:crypto},url:{URL,URLSearchParams},fs:nodeFs,http:makeVirtualHttp(),https:makeVirtualHttp()};
  const requireFn=async name=>{if(builtins[name])return builtins[name];if(name.startsWith('node:')&&builtins[name.slice(5)])return builtins[name.slice(5)];const pkg=name.startsWith('/')?name.slice(1):name;if(!nodePackages[pkg])throw Error("Cannot find package '"+name+"'. Try: npm install "+name);return await import('https://esm.sh/'+encodeURIComponent(pkg)+'?bundle')};
  const nodeConsole={log:print,info:print,warn:(...v)=>{outputCount++;line(v.join(' '),'warn')},error:(...v)=>{outputCount++;line(v.join(' '),'err')},table:v=>print(v),clear:()=>{}};
  try{
   const runner=new AsyncFunction('require','module','exports','__filename','__dirname','process','Buffer','console','fetch','URL','URLSearchParams','setTimeout','clearTimeout','setInterval','clearInterval','global','globalThis','input','"use strict";\n'+source);
   const file=label&&label.endsWith('.js')?pathString(resolve(label)):pathString(cwd.concat('index.js'));
-  await runner(requireFn,{exports:{}},{},file,file.split('/').slice(0,-1).join('/')||'/',nodeProcess,{from:(v,e)=>nodeBuffer(v,e)},nodeConsole,fetch,URL,URLSearchParams,setTimeout,clearTimeout,setInterval,clearInterval,globalThis,globalThis,terminalInput);
+  await runner(requireFn,{exports:{}},{},file,file.split('/').slice(0,-1).join('/')||'/',nodeProcess,{from:(v,e)=>nodeBuffer(v,e)},nodeConsole,nodeFetch,URL,URLSearchParams,setTimeout,clearTimeout,setInterval,clearInterval,globalThis,globalThis,terminalInput);
   line((label||'Node script')+' finished'+(outputCount?'':' (no output).'),'ok');
  }catch(e){line(e.nodeExit?'Node '+e.message:'Node error: '+e.message,e.nodeExit?'warn':'err')}
 }
@@ -325,7 +376,7 @@ async function gitPull(){
 }
 async function webFetch(url,method='GET'){
  const u=new URL(url,location.href);if(!['http:','https:'].includes(u.protocol))throw Error('Only HTTP(S) URLs are supported.');
- const r=await fetch(u.href,{method,redirect:'follow'});const textData=await r.text();
+ const local=await virtualRequest(u.href,{method});const r=local||await fetch(u.href,{method,redirect:'follow'});const textData=await r.text();
  line('HTTP '+r.status+' '+r.statusText+' · '+r.url,r.ok?'ok':'warn');
  line('Content-Type: '+(r.headers.get('content-type')||'unknown'));line(textData.slice(0,12000)+(textData.length>12000?'\\n… output truncated':'')); 
 }
@@ -379,10 +430,12 @@ line('  python [file.py|-c code]    Run Python (await terminal_input() for answe
 line('  pip install <package>       Install a Python package (Pyodide-compatible)');
 line('  preview <file.html>         Preview a saved HTML file');
 line('  node <file.js>              Run JS with Node-compatible browser APIs');
+line('  server list                 List virtual HTTP servers');
 line('  npm install <package>       Add a browser-compatible npm package');
 line('  git clone <github-url>      Clone a public GitHub repository');
 line('  git status / log / pull     Inspect and update a GitHub workspace');
-line('  curl / wget <url>           Fetch a web resource (CORS permitting)');
+line('  server list/stop/open       Manage virtual HTTP servers');
+line('  curl / wget <url>           Fetch a web resource or localhost server');
 line('  json <file>                 Pretty-print a JSON file');
 line('  url <https-url>             Inspect a URL');
 line('  upload                      Import a file you select');
@@ -404,6 +457,7 @@ line('  whoami                      Show local user');
 line('  uname                       Show runtime information');
 line('  storage                     Show OPFS availability');
 line('  js, run, node, python, pip  JavaScript, Node-compatible and Python runtimes');
+line('  server                      Manage browser-local HTTP servers');
 line('  preview                     Preview saved HTML');
 line('  help                        Show this help');
 line('  exit                        Return to Hyper-Pop');
@@ -471,6 +525,17 @@ case 'git':{
  if(sub==='remote'){const c=await gitConfig();line('origin '+c.remote+' (fetch)');line('origin '+c.remote+' (push)');break}
  if(sub==='help'||!sub){line('GitHub workspace commands: git clone <url> [folder], git status, git log, git pull, git remote');line('Local commit/push and arbitrary Git transports are not implemented yet.','warn');break}
  throw Error('Unsupported Git command. Try git help.');
+}
+case 'server':{
+ const sub=args[0];
+ if(sub==='list'){if(!virtualServers.size)line('(no virtual servers running)','dim');else for(const [port,server] of virtualServers)line('http://localhost:'+port+' · '+(server.listening?'RUNNING':'STOPPED'),'ok');break}
+ if(sub==='stop'){const port=Number(args[1]);const server=virtualServers.get(port);if(!server)throw Error('No virtual server on port '+(args[1]||'?'));server.close();line('Stopped virtual server on port '+port,'ok');break}
+ if(sub==='open'){
+  const port=Number(args[1]);const tab=window.open('about:blank','_blank');if(!tab)throw Error('Pop-up blocked. Allow pop-ups for this site and try again.');
+  try{const response=await virtualRequest('http://localhost:'+port+'/');if(!response)throw Error('No virtual server on port '+port);const html=await response.text(),blob=new Blob([html],{type:response.headers.get('content-type')||'text/html'}),url=URL.createObjectURL(blob);tab.location.href=url;setTimeout(()=>URL.revokeObjectURL(url),60000);line('Opened http://localhost:'+port+'/ in a new tab.','ok')}catch(e){tab.close();throw e}break
+ }
+ if(sub==='help'||!sub){line('server list | server stop <port> | server open <port>');line('Servers are virtual and accessible only inside this Hyper-Pop terminal tab.','warn');break}
+ throw Error('Usage: server list | server stop <port> | server open <port>');
 }
 case 'curl':if(!arg)throw Error('Usage: curl <https-url>');await webFetch(arg);break;
 case 'wget':if(!arg)throw Error('Usage: wget <https-url> [filename]');{const r=await fetch(new URL(arg,location.href).href);if(!r.ok)throw Error('HTTP '+r.status+' '+r.statusText);const data=await r.text(),name=args[1]||new URL(arg).pathname.split('/').filter(Boolean).pop()||'download.txt';const parts=resolve(name);await directory(parts.slice(0,-1),true);await writeFile(parts,data,false);line('Downloaded '+name+' ('+formatSize(new TextEncoder().encode(data).length)+')','ok')}break;
