@@ -144,15 +144,25 @@ async function executeJavaScript(source,label){
 async function loadPyodideRuntime(){
  if(pyodidePromise)return pyodidePromise;
  pyodidePromise=(async()=>{
-  if(!window.loadPyodide){
-   await new Promise((resolve,reject)=>{
-    const script=document.createElement('script');
-    script.src='https://cdn.jsdelivr.net/pyodide/v0.37.7/full/pyodide.js';
-    script.onload=resolve;script.onerror=()=>reject(Error('Could not load Pyodide from its CDN.'));
-    document.head.appendChild(script);
-   });
+  const versions=['314.0.8','0.29.5','0.27.7'];
+  let lastError=null;
+  for(const version of versions){
+   const base='https://cdn.jsdelivr.net/pyodide/v'+version+'/full/';
+   try{
+    if(!window.loadPyodide){
+     await new Promise((resolve,reject)=>{
+      const script=document.createElement('script');
+      script.src=base+'pyodide.js';
+      script.onload=()=>resolve();
+      script.onerror=()=>reject(Error('Could not download '+script.src+' (network, content blocker, or CDN error).'));
+      document.head.appendChild(script);
+     });
+    }
+    const py=await window.loadPyodide({indexURL:base});
+    return py;
+   }catch(e){lastError=e;window.loadPyodide=undefined;}
   }
-  return await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.37.7/full/'});
+  throw Error('All Pyodide CDN versions failed. Last error: '+(lastError?.message||String(lastError)));
  })();
  try{return await pyodidePromise}catch(e){pyodidePromise=null;throw e}
 }
@@ -219,7 +229,7 @@ line('  base64 <text>               Encode text as Base64');
 line('  unbase64 <data>             Decode Base64 text');
 line('  seq <end> or <start> <end>  Print a number sequence');
 line('  calc <expression>           Calculate arithmetic');
-line('  js [code]                   Run JavaScript or open the JS prompt');
+line('  js <code|file.js>            Run JavaScript code or a script file');
 line('  run <file.js>               Execute a JavaScript file');
 line('  python [file.py|-c code]    Run Python with Pyodide/WebAssembly');
 line('  pip install <package>       Install a Python package (Pyodide-compatible)');
@@ -282,7 +292,14 @@ case 'base64':line(bytesToBase64(args.join(' ')),'ok');break;
 case 'unbase64':line(base64ToText(args.join(' ')));break;
 case 'seq':{if(!arg)throw Error('Usage: seq <end> or seq <start> <end>');const a=args.length>1?Number(args[0]):1,b=Number(args[args.length-1]);if(!Number.isInteger(a)||!Number.isInteger(b)||Math.abs(b-a)>1000)throw Error('Sequence must be integers with at most 1001 values.');for(let n=a;n<=b;n++)line(n)}break;
 case 'calc':if(!args.length)throw Error('Usage: calc <expression>');line(String(calc(args.join(' '))),'ok');break;
-case 'js':if(!args.length){line('Usage: js <JavaScript code>  |  run <file.js>','dim');line('Example: js console.log("Hello from JavaScript")');break}else await executeJavaScript(raw.slice(raw.indexOf(' ')+1),'JavaScript');break;
+case 'js':{
+ const source=raw.slice(raw.indexOf(' ')+1).trim();
+ if(!source){line('Usage: js <code>  |  js <file.js>','dim');line('Example: js console.log("Hello from JavaScript")');break}
+ if(/^(['"]).*\\1$/.test(source)&&source[0]===source[source.length-1]){await executeJavaScript(source.slice(1,-1),'JavaScript')}
+ else if(source.toLowerCase().endsWith('.js')&&!/[();{}=]/.test(source)){await executeJavaScript(await readFile(resolve(source)),source)}
+ else await executeJavaScript(source,'JavaScript');
+ break;
+}
 case 'run':if(!arg)throw Error('Usage: run <file.js>');if(!arg.toLowerCase().endsWith('.js'))throw Error('The run command currently executes .js files.');await executeJavaScript(await readFile(resolve(arg)),arg);break;
 case 'python':case 'py':if(!arg){line('Usage: python <file.py>  |  python -c <code>','dim');line('Example: python -c print(2 ** 10)');break}else if(arg==='-c'){if(args.length<2)throw Error('Usage: python -c <code>');await executePython(raw.slice(raw.indexOf('-c')+2).trim(),'Python command')}else await executePython(await readFile(resolve(arg)),arg);break;
 case 'pip':if(args[0]!=='install'||!args[1])throw Error('Usage: pip install <package>');{const py=await loadPyodideRuntime();line('Installing '+args[1]+'…','dim');await py.loadPackage('micropip');await py.runPythonAsync("import micropip\\nawait micropip.install("+JSON.stringify(args[1])+")");line('Installed '+args[1]+' (if compatible with Pyodide).','ok')}break;
