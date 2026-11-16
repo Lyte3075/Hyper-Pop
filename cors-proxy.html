@@ -84,7 +84,6 @@ const resultStatus=document.getElementById("resultStatus"),resultBody=document.g
 let accountReady=false;
 async function checkAccount(){
   try{
-    if(typeof hpMigrateSession==="function")await hpMigrateSession();
     const token=localStorage.getItem("hyperpop_token");
     if(!token){authNote.innerHTML='Sign in to a <a href="accounts.html">Hyper-Pop account</a> to use the proxy.';return}
     const me=typeof hpMe==="function"?await hpMe():null;
