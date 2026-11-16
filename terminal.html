@@ -40,7 +40,7 @@ button{font:inherit;color:var(--fg);background:#101010;border:1px solid #333;bor
 </head>
 <body>
 <div id="app">
-<header><div class="brand"><span>HP</span> / TERMINAL <span style="color:var(--muted);font-weight:400">v0.2</span></div><div id="state" class="warn">INITIALIZING…</div></header>
+<header><div class="brand"><span>HP</span> / TERMINAL <span style="color:var(--muted);font-weight:400">v0.3</span></div><div id="state" class="warn">INITIALIZING…</div></header>
 <main id="screen" role="log" aria-live="polite" aria-label="Terminal output"></main>
 <form id="form" autocomplete="off">
 <span id="cwd">~</span><span class="prompt">$</span>
@@ -147,12 +147,12 @@ async function loadPyodideRuntime(){
   if(!window.loadPyodide){
    await new Promise((resolve,reject)=>{
     const script=document.createElement('script');
-    script.src='https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js';
+    script.src='https://cdn.jsdelivr.net/pyodide/v0.37.7/full/pyodide.js';
     script.onload=resolve;script.onerror=()=>reject(Error('Could not load Pyodide from its CDN.'));
     document.head.appendChild(script);
    });
   }
-  return await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.27.7/full/'});
+  return await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.37.7/full/'});
  })();
  try{return await pyodidePromise}catch(e){pyodidePromise=null;throw e}
 }
@@ -185,7 +185,7 @@ line((cwd.length===2?'~':pathString(cwd))+' $ '+raw,'cmd');
 try{
 switch(cmd){
 case 'help':case '?':
-line('HYPER-POP TERMINAL / HP-SH 0.2','ok');
+line('HYPER-POP TERMINAL / HP-SH 0.3','ok');
 line('Browser-local shell environment. Not a full Linux or iOS shell.','dim');
 line('');
 line('FILESYSTEM');
@@ -309,7 +309,7 @@ default:line('Command not found: '+cmd+'. Type help.','err');
 }
 }catch(e){line('ERROR: '+(e&&e.message?e.message:String(e)),'err')}
 }
-async function init(){try{if(!navigator.storage||!navigator.storage.getDirectory)throw Error('This browser does not support OPFS. Try an up-to-date Safari or another modern browser.');root=await navigator.storage.getDirectory();await directory(HOME,true);status('OPFS READY','good');line('Hyper-Pop Terminal [HP-SH 0.2]','ok');line('Persistent browser-local filesystem initialized.','dim');line('No Supabase connection. No access to private device files.','dim');line('Type help to see available commands.','');line('');updatePrompt()}catch(e){status('FILESYSTEM UNAVAILABLE','bad');line('Could not initialize browser storage: '+e.message,'err');line('This terminal requires a secure HTTPS page and browser OPFS support.','warn')}}
+async function init(){try{if(!navigator.storage||!navigator.storage.getDirectory)throw Error('This browser does not support OPFS. Try an up-to-date Safari or another modern browser.');root=await navigator.storage.getDirectory();await directory(HOME,true);status('OPFS READY','good');line('Hyper-Pop Terminal [HP-SH 0.3]','ok');line('Persistent browser-local filesystem initialized.','dim');line('No Supabase connection. No access to private device files.','dim');line('Type help to see available commands.','');line('');updatePrompt()}catch(e){status('FILESYSTEM UNAVAILABLE','bad');line('Could not initialize browser storage: '+e.message,'err');line('This terminal requires a secure HTTPS page and browser OPFS support.','warn')}}
 form.addEventListener('submit',async e=>{e.preventDefault();const raw=input.value;input.value='';if(raw.trim()){history.push(raw);historyIndex=history.length;await run(raw)}});
 input.addEventListener('keydown',e=>{if(e.key==='ArrowUp'){e.preventDefault();historyIndex=Math.max(0,historyIndex-1);input.value=history[historyIndex]||''}else if(e.key==='ArrowDown'){e.preventDefault();historyIndex=Math.min(history.length,historyIndex+1);input.value=history[historyIndex]||''}});
 document.getElementById('clear').addEventListener('click',()=>{screen.textContent='';input.focus()});
