@@ -207,6 +207,7 @@ async function previewHtml(path){
 
 const browserDatabase=(()=>{const file=['home','guest','.hp-database.json'];let remote=null;const load=async()=>{try{return JSON.parse(await readFile(file))}catch(_){return {collections:{}}}};const save=async d=>writeFile(file,JSON.stringify(d),false);const matches=(doc,filter={})=>Object.entries(filter).every(([k,v])=>v&&typeof v==='object'&&!Array.isArray(v)?Object.entries(v).every(([op,x])=>op==='$gt'?doc[k]>x:op==='$gte'?doc[k]>=x:op==='$lt'?doc[k]<x:op==='$lte'?doc[k]<=x:op==='$ne'?doc[k]!==x:op==='$in'?x.includes(doc[k]):false):doc[k]===v);const api={async collections(){return Object.keys((await load()).collections)},async connect(url,options={}){remote={url:String(url).replace(/\/$/,''),headers:options.headers||{}};return api},async request(path,init={}){if(!remote)throw Error('Call db.connect(baseUrl, options) first.');return terminalFetch(remote.url+'/'+String(path||'').replace(/^\//,''),{...init,headers:{...remote.headers,...(init.headers||{})}})},collection(name){name=String(name);if(!/^[a-zA-Z0-9_-]{1,64}$/.test(name))throw Error('Invalid collection name.');return {async create(){const d=await load();d.collections[name]??=[];await save(d);return this},async insertOne(doc){const d=await load();d.collections[name]??=[];const value={...doc,_id:doc&&doc._id||crypto.randomUUID()};d.collections[name].push(value);await save(d);return {acknowledged:true,insertedId:value._id}},async insertMany(docs){const ids=[];for(const doc of docs)ids.push((await this.insertOne(doc)).insertedId);return {acknowledged:true,insertedCount:ids.length,insertedIds:ids}},async find(filter={}){return ((await load()).collections[name]||[]).filter(x=>matches(x,filter)).map(x=>({...x}))},async findOne(filter={}){return (await this.find(filter))[0]||null},async updateOne(filter,update){const d=await load(),rows=d.collections[name]||[],i=rows.findIndex(x=>matches(x,filter));if(i<0)return {matchedCount:0,modifiedCount:0};rows[i]={...rows[i],...(update.$set||update)};await save(d);return {matchedCount:1,modifiedCount:1}},async deleteMany(filter={},one=false){const d=await load(),rows=d.collections[name]||[],kept=[];let deleted=0;for(const row of rows){if(matches(row,filter)&&(!one||!deleted))deleted++;else kept.push(row)}d.collections[name]=kept;await save(d);return {acknowledged:true,deletedCount:deleted}},async deleteOne(filter){return this.deleteMany(filter,true)},async countDocuments(filter={}){return (await this.find(filter)).length}}}};return api})();
 const nodePackages={};
+const nodePackageModules={};
 async function loadNodePackages(){try{const data=JSON.parse(await readFile(['home','guest','.hp-node-packages.json']));Object.assign(nodePackages,data)}catch(_){}}
 function nodeBuffer(value,encoding='utf8'){
  const bytes=typeof value==='string'?new TextEncoder().encode(value):new Uint8Array(value||[]);
@@ -382,40 +383,136 @@ function createVirtualExpress(){
 function nodeRuntime(source,label){
  return executeNode(source,label);
 }
+function makeNodeHttpClient(protocol){
+ const makeRequest=(input,options,callback)=>{
+  if(typeof options==='function'){callback=options;options={}}
+  options=options||{};
+  let url;
+  if(input instanceof URL)url=new URL(input.href);
+  else if(typeof input==='string')url=new URL(input,location.href);
+  else{
+   const host=options.hostname||options.host||'localhost';
+   const port=options.port?':'+options.port:'';
+   const path=options.path||options.pathname||'/';
+   url=new URL(protocol+'//'+host+port+path);
+  }
+  if(!/^https?:$/.test(url.protocol))url=new URL(protocol+'//'+url.host+url.pathname+url.search);
+  const method=String(options.method||'GET').toUpperCase();
+  const headers=new Headers(options.headers||{});
+  let body='',aborted=false,settled=false;
+  const listeners={};
+  const emit=(name,...args)=>{for(const fn of [...(listeners[name]||[])]){try{fn(...args)}catch(e){line('HTTP callback error: '+e.message,'err')}}};
+  const request={
+   on(name,fn){(listeners[name]??=[]).push(fn);return this},
+   once(name,fn){const wrap=(...a)=>{this.off(name,wrap);fn(...a)};return this.on(name,wrap)},
+   off(name,fn){listeners[name]=(listeners[name]||[]).filter(x=>x!==fn);return this},
+   setHeader(name,value){headers.set(name,String(value));return this},
+   getHeader(name){return headers.get(name)},
+   removeHeader(name){headers.delete(name);return this},
+   write(chunk,encoding){if(chunk!==undefined&&chunk!==null)body+=typeof chunk==='string'?chunk:new TextDecoder().decode(chunk);return true},
+   abort(){aborted=true;emit('abort');return this},
+   destroy(error){aborted=true;if(error)emit('error',error);return this},
+   end(chunk){if(chunk!==undefined&&chunk!==null)this.write(chunk);if(settled)return this;settled=true;
+    (async()=>{try{
+     if(aborted)return;
+     const response=await nodeFetch(url.href,{method,headers,body:['GET','HEAD'].includes(method)?undefined:body,redirect:'follow'});
+     const responseHeaders=Object.fromEntries(response.headers.entries());
+     const incoming={statusCode:response.status,statusMessage:response.statusText,headers:responseHeaders,url:url.href,rawHeaders:Object.entries(responseHeaders).flat(),httpVersion:'1.1',complete:true,aborted:false,_encoding:'utf-8',setEncoding(enc){this._encoding=enc;return this},on(name,fn){(this._events??={})[name]??=[];this._events[name].push(fn);return this},once(name,fn){const w=(...a)=>{this.off(name,w);fn(...a)};return this},off(name,fn){this._events[name]=(this._events[name]||[]).filter(x=>x!==fn);return this},destroy(){this.aborted=true;return this}};
+     const responseEmit=(name,...a)=>{for(const fn of [...(incoming._events?.[name]||[])])fn(...a)};
+     if(callback)callback(incoming);
+     emit('response',incoming);
+     if(method==='HEAD'||response.status===204||response.status===304){responseEmit('end');return}
+     const reader=response.body?.getReader();
+     if(reader){while(true){const part=await reader.read();if(part.done)break;const chunk=part.value;const data=incoming._encoding==='buffer'?chunk:new TextDecoder(incoming._encoding).decode(chunk);responseEmit('data',data)}}
+     responseEmit('end');
+    }catch(error){emit('error',error)} })();
+    return this
+   }
+  };
+  return request;
+ };
+ return {request:(input,options,cb)=>makeRequest(input,options,cb),get:(input,options,cb)=>makeRequest(input,options,cb).end(),Agent:class{},globalAgent:{},METHODS:['GET','POST','PUT','PATCH','DELETE','HEAD','OPTIONS'],STATUS_CODES:{200:'OK',201:'Created',204:'No Content',301:'Moved Permanently',302:'Found',400:'Bad Request',401:'Unauthorized',403:'Forbidden',404:'Not Found',500:'Internal Server Error'}};
+}
+const nodeHttp=Object.assign(makeVirtualHttp(),makeNodeHttpClient('http:'));
+const nodeHttps=Object.assign(makeVirtualHttp(),makeNodeHttpClient('https:'));
 async function executeNode(source,label){
  let outputCount=0;
  const print=(...v)=>{outputCount++;line(v.map(x=>typeof x==='string'?x:JSON.stringify(x)).join(' '))};
- const nodeProcess={argv:[label||'node'],env:{...envVars},platform:'browser',version:'v22.0.0-hp',versions:{node:'22.0.0-hp'},cwd:()=>pathString(cwd),hrtime:{bigint:()=>BigInt(Math.floor(performance.now()*1e6))},nextTick:fn=>queueMicrotask(fn),exit:code=>{throw Object.assign(Error('Process exited with code '+(code||0)),{nodeExit:true})}};
- const nodePath={join:(...p)=>p.join('/').split('/').filter(Boolean).join('/'),resolve:(...p)=>pathString(resolve(p.join('/'))),basename:p=>String(p).split('/').pop(),dirname:p=>String(p).split('/').slice(0,-1).join('/')||'.',extname:p=>{const n=String(p).split('/').pop(),i=n.lastIndexOf('.');return i>0?n.slice(i):''},sep:'/'};
- const nodeFs={promises:{readFile:async p=>await readFile(resolve(String(p))),writeFile:async(p,d)=>await writeFile(resolve(String(p)),String(d),false),appendFile:async(p,d)=>await writeFile(resolve(String(p)),String(d),true),mkdir:async p=>await directory(resolve(String(p)),true),readdir:async p=>{const d=await directory(resolve(String(p)),false),a=[];for await(const [n] of d.entries())a.push(n);return a},stat:async p=>{const v=await entry(resolve(String(p)));return {isFile:()=>v.handle.kind==='file',isDirectory:()=>v.handle.kind==='directory',size:v.handle.kind==='file'?(await v.handle.getFile()).size:0}},unlink:async p=>{const [d,n]=await parentAndName(resolve(String(p)));await d.removeEntry(n)},access:async p=>{await entry(resolve(String(p)))}}};
- const builtins={express:createVirtualExpress(),database:browserDatabase,db:browserDatabase,WebSocket:createVirtualWebSocket(),path:nodePath,process:nodeProcess,buffer:{Buffer:{from:(v,e)=>nodeBuffer(v,e),isBuffer:()=>false}},util:{promisify:f=>f},assert:{ok:(v,m)=>{if(!v)throw Error(m||'Assertion failed')},equal:(a,b)=>{if(a!=b)throw Error(a+' != '+b)},strictEqual:(a,b)=>{if(a!==b)throw Error(a+' !== '+b)}},crypto:{webcrypto:crypto},url:{URL,URLSearchParams},fs:nodeFs,http:makeVirtualHttp(),https:makeVirtualHttp()};
- const requireFn=async name=>{if(builtins[name])return builtins[name];if(name.startsWith('node:')&&builtins[name.slice(5)])return builtins[name.slice(5)];const pkg=name.startsWith('/')?name.slice(1):name;if(!nodePackages[pkg])throw Error("Cannot find package '"+name+"'. Try: npm install "+name);return await import('https://esm.sh/'+encodeURIComponent(pkg)+'?bundle')};
+ const nodeProcess={argv:['node',...(label?[label]:[])],env:{...envVars},platform:'browser',arch:'wasm32',version:'v22.0.0-hp',versions:{node:'22.0.0-hp',v8:'browser'},cwd:()=>pathString(cwd),hrtime:{bigint:()=>BigInt(Math.floor(performance.now()*1e6))},nextTick:fn=>queueMicrotask(fn),exit:code=>{throw Object.assign(Error('Process exited with code '+(code||0)),{nodeExit:true})},chdir:p=>{cwd=resolve(p);updatePrompt()}};
+ const nodePath={join:(...p)=>p.join('/').replace(/\/+/g,'/'),resolve:(...p)=>pathString(resolve(p.join('/'))),basename:p=>String(p).split('/').filter(Boolean).pop()||'/',dirname:p=>String(p).split('/').slice(0,-1).join('/')||'.',extname:p=>{const n=String(p).split('/').pop(),i=n.lastIndexOf('.');return i>0?n.slice(i):''},isAbsolute:p=>String(p).startsWith('/'),normalize:p=>String(p).replace(/\/+/g,'/'),sep:'/'};
+ const nodeFs={promises:{readFile:async(p,opts)=>{const b=await readFileBytes(resolve(String(p)));return opts?.encoding||typeof opts==='string'?new TextDecoder(typeof opts==='string'?opts:opts.encoding).decode(b):b},writeFile:async(p,d)=>await writeFile(resolve(String(p)),d,false),appendFile:async(p,d)=>await writeFile(resolve(String(p)),d,true),mkdir:async(p)=>await directory(resolve(String(p)),true),readdir:async p=>{const d=await directory(resolve(String(p)),false),a=[];for await(const [n] of d.entries())a.push(n);return a},stat:async p=>{const v=await entry(resolve(String(p)));return {isFile:()=>v.handle.kind==='file',isDirectory:()=>v.handle.kind==='directory',size:v.handle.kind==='file'?(await v.handle.getFile()).size:0,mtime:new Date(),mtimeMs:Date.now()}},unlink:async p=>{const [d,n]=await parentAndName(resolve(String(p)));await d.removeEntry(n)},access:async p=>{await entry(resolve(String(p)))},rm:async(p,o={})=>{const [d,n]=await parentAndName(resolve(String(p)));await d.removeEntry(n,{recursive:!!o.recursive})},copyFile:async(a,b)=>writeFile(resolve(String(b)),await readFileBytes(resolve(String(a))),false),rename:async(a,b)=>{const data=await readFileBytes(resolve(String(a)));await writeFile(resolve(String(b)),data,false);const [d,n]=await parentAndName(resolve(String(a)));await d.removeEntry(n)}}};
+ const loadedModules={};
+ const packageNames=[...new Set([...String(source).matchAll(/require\s*\(\s*['"]([^'"]+)['"]\s*\)/g)].map(m=>m[1]).filter(n=>!n.startsWith('.')&&!n.startsWith('/')&&!n.startsWith('node:')&&!['express','database','db','WebSocket','path','process','buffer','util','assert','crypto','url','fs','http','https','os','events'].includes(n)))];
+ for(const name of packageNames){
+  const record=nodePackages[name];
+  if(!record)throw Error("Cannot find module '"+name+"'. Run npm install "+name+" first.");
+  const packageUrl=typeof record==='string'?record:record.url;
+  if(!packageUrl)throw Error("Package '"+name+"' has no install URL. Reinstall it with npm install "+name+".");
+  try{const mod=await import(packageUrl);loadedModules[name]=mod&&Object.keys(mod).length===1&&'default'in mod?mod.default:mod}
+  catch(e){throw Error("Could not load installed package '"+name+"': "+e.message)}
+ }
+ Object.assign(nodePackageModules,loadedModules);
+ const builtins={express:createVirtualExpress(),database:browserDatabase,db:browserDatabase,WebSocket:createVirtualWebSocket(),path:nodePath,process:nodeProcess,buffer:{Buffer:{from:(v,e)=>nodeBuffer(v,e),isBuffer:v=>v instanceof Uint8Array}},util:{promisify:f=>f},assert:{ok:(v,m)=>{if(!v)throw Error(m||'Assertion failed')},equal:(a,b)=>{if(a!=b)throw Error(a+' != '+b)},strictEqual:(a,b)=>{if(a!==b)throw Error(a+' !== '+b)}},crypto:{webcrypto:crypto},url:{URL,URLSearchParams},fs:nodeFs,http:nodeHttp,https:nodeHttps,os:{platform:()=>'browser',arch:()=>'wasm32',homedir:()=>'/home/guest',tmpdir:()=>'/tmp',EOL:'\n'},events:{EventEmitter:class{constructor(){this._events={}}on(n,f){(this._events[n]??=[]).push(f);return this}addListener(n,f){return this.on(n,f)}once(n,f){const w=(...a)=>{this.off(n,w);f(...a)};return this.on(n,w)}off(n,f){this._events[n]=(this._events[n]||[]).filter(x=>x!==f);return this}removeListener(n,f){return this.off(n,f)}emit(n,...a){for(const f of [...(this._events[n]||[])])f(...a);return !!(this._events[n]||[]).length}}}};
+ const requireFn=name=>{const key=String(name).replace(/^node:/,'');if(builtins[key])return builtins[key];if(nodePackageModules[name])return nodePackageModules[name];throw Error("Cannot find module '"+name+"'. Run npm install "+name+" first, then rerun the script.")};
  const nodeConsole={log:print,info:print,warn:(...v)=>{outputCount++;line(v.join(' '),'warn')},error:(...v)=>{outputCount++;line(v.join(' '),'err')},table:v=>print(v),clear:()=>{}};
+ const module={exports:{}},exports=module.exports;
  try{
   const runner=new AsyncFunction('require','module','exports','__filename','__dirname','process','Buffer','console','fetch','URL','URLSearchParams','setTimeout','clearTimeout','setInterval','clearInterval','WebSocket','global','globalThis','input','"use strict";\n'+source);
   const file=label&&label.endsWith('.js')?pathString(resolve(label)):pathString(cwd.concat('index.js'));
-  await runner(requireFn,{exports:{}},{},file,file.split('/').slice(0,-1).join('/')||'/',nodeProcess,{from:(v,e)=>nodeBuffer(v,e)},nodeConsole,nodeFetch,URL,URLSearchParams,setTimeout,clearTimeout,setInterval,clearInterval,createVirtualWebSocket(),globalThis,globalThis,terminalInput);
+  await runner(requireFn,module,exports,file,file.split('/').slice(0,-1).join('/')||'/',nodeProcess,{from:(v,e)=>nodeBuffer(v,e),isBuffer:v=>v instanceof Uint8Array},nodeConsole,nodeFetch,URL,URLSearchParams,setTimeout,clearTimeout,setInterval,clearInterval,createVirtualWebSocket(),globalThis,globalThis,terminalInput);
+  if(module.exports!==exports&&Object.keys(module.exports||{}).length)print(module.exports);
   line((label||'Node script')+' finished'+(outputCount?'':' (no output).'),'ok');
  }catch(e){line(e.nodeExit?'Node '+e.message:'Node error: '+e.message,e.nodeExit?'warn':'err')}
 }
 async function npmCommand(args){
  const sub=args[0];
- if(sub==='install'){
-  if(!args[1])throw Error('Usage: npm install <package>');
-  const name=args[1].replace(/@latest$/,'');
-  line('Resolving '+name+' from esm.sh…','dim');
-  const response=await terminalFetch('https://esm.sh/'+encodeURIComponent(name)+'?bundle',{method:'HEAD'});
-  if(!response.ok)throw Error('Package could not be resolved ('+response.status+'). Check the name and browser compatibility.');
-  nodePackages[name]='https://esm.sh/'+encodeURIComponent(name)+'?bundle';
+ const packageFile=['home','guest','package.json'];
+ const readPackage=async()=>{try{return JSON.parse(await readFile(packageFile))}catch(_){return {name:'hp-project',version:'1.0.0',scripts:{},dependencies:{}}}};
+ if(sub==='install'||(!sub&&args.length)){
+  const requested=args.slice(1).filter(x=>!x.startsWith('-'));
+  if(!requested.length)throw Error('Usage: npm install <package> [package...]');
+  const registryDir=['home','guest','.hp-node-modules'];await directory(registryDir,true);
+  for(const spec of requested){
+   const match=spec.match(/^(@[^/]+\/[^@]+|[^@]+)(?:@(.+))?$/);
+   if(!match)throw Error('Invalid package name: '+spec);
+   const name=match[1],version=match[2]||'latest';
+   if(!/^(?:@[a-z0-9._-]+\/)?[a-z0-9._-]+$/i.test(name))throw Error('Invalid package name: '+name);
+   const url='https://esm.sh/'+name+(version==='latest'?'':'@'+version)+'?bundle&target=es2022';
+   line('Downloading '+name+'@'+version+'…','dim');
+   const response=await terminalFetch(url,{headers:{Accept:'application/javascript, text/javascript, */*'}});
+   if(!response.ok)throw Error('npm install '+name+' failed: registry returned HTTP '+response.status+'.');
+   const code=await response.text();
+   if(!code||code.length<20||/^(?:<!doctype html|<html)/i.test(code.slice(0,200)))throw Error('Registry did not return a JavaScript package for '+name+'.');
+   const safe=name.replace(/[^a-z0-9._-]/gi,'_');
+   await writeFile(registryDir.concat(safe+'.mjs'),code,false);
+   nodePackages[name]={url,version,cache:'/home/guest/.hp-node-modules/'+safe+'.mjs',installedAt:new Date().toISOString()};
+   try{const mod=await import(url);nodePackageModules[name]=mod&&Object.keys(mod).length===1&&'default'in mod?mod.default:mod}
+   catch(e){throw Error('Downloaded '+name+', but it cannot run in this browser runtime: '+e.message+'. It may require native Node APIs or unsupported module features.')}
+   line('Installed '+name+'@'+version+' and cached its package bundle.','ok');
+  }
   await writeFile(['home','guest','.hp-node-packages.json'],JSON.stringify(nodePackages,null,2),false);
-  line('Added '+name+' to the browser package registry. Import it with await require("'+name+'").','ok');
- }else if(sub==='list'){
-  const names=Object.keys(nodePackages);line(names.length?names.map(x=>x+' (esm.sh)').join('\\n'):'(no packages installed)','ok');
+  const pkg=await readPackage();pkg.dependencies={...(pkg.dependencies||{})};
+  for(const spec of requested){const m=spec.match(/^(@[^/]+\/[^@]+|[^@]+)(?:@(.+))?$/);pkg.dependencies[m[1]]=m[2]||'latest'}
+  await writeFile(packageFile,JSON.stringify(pkg,null,2),false);
+  line('Packages are available with require("package-name") in Node scripts.','ok');
+ }else if(sub==='list'||sub==='ls'){
+  const names=Object.keys(nodePackages);line(names.length?names.map(x=>x+'@'+(nodePackages[x].version||'latest')+' (cached)').join('\n'):'(no packages installed)','ok');
  }else if(sub==='uninstall'){
   if(!args[1])throw Error('Usage: npm uninstall <package>');
-  delete nodePackages[args[1]];await writeFile(['home','guest','.hp-node-packages.json'],JSON.stringify(nodePackages,null,2),false);line('Removed '+args[1],'ok');
- }else if(sub==='help'){line('npm install <package> | npm list | npm uninstall <package>')}
- else throw Error('Supported npm commands: install, list, uninstall, help');
+  const name=args[1];delete nodePackages[name];delete nodePackageModules[name];
+  await writeFile(['home','guest','.hp-node-packages.json'],JSON.stringify(nodePackages,null,2),false);
+  const pkg=await readPackage();if(pkg.dependencies)delete pkg.dependencies[name];await writeFile(packageFile,JSON.stringify(pkg,null,2),false);
+  line('Removed '+name+' from the project package registry.','ok');
+ }else if(sub==='init'){
+  const pkg=await readPackage();await writeFile(packageFile,JSON.stringify(pkg,null,2),false);line('Created package.json','ok');
+ }else if(sub==='run'){
+  if(!args[1])throw Error('Usage: npm run <script>');
+  const pkg=await readPackage(),script=pkg.scripts?.[args[1]];
+  if(!script)throw Error('Missing script: '+args[1]);
+  line('> '+pkg.name+' '+args[1]+'\n> '+script,'dim');
+  await executeNode(script,'npm run '+args[1]);
+ }else if(sub==='help'){line('npm init | npm install <package> [package...] | npm list | npm uninstall <package> | npm run <script>')}
+ else throw Error('Supported npm commands: init, install, list, uninstall, run, help');
 }
 function parseGitHubUrl(url){
  const normalized=String(url).replace(/^git@github\\.com:/,'https://github.com/');
@@ -546,10 +643,14 @@ line('  python [file.py|-c code]    Run Python (await terminal_input() for answe
 line('  pip install <package>       Install a Python package (Pyodide-compatible)');
 line('  preview <file.html>         Preview a saved HTML file');
 line('  node <file.js>              Run JS with Node-compatible browser APIs');
+line('  require / https / http      Node module and HTTP client compatibility');
 line('  server list                 List virtual HTTP servers');
 line('  express                     Express routes, middleware, static files and JSON APIs');
  line('  db help                     Local database and remote REST API help');
-line('  npm install <package>       Add a browser-compatible npm package');
+line('  npm init                    Create package.json');
+line('  npm install <package>       Download and cache an npm package');
+line('  npm run <script>            Run a package.json script');
+line('  npm list                    List installed packages');
 line('  git clone <github-url>      Clone a public GitHub repository');
 line('  proxy open                  Open your account proxy route manager');
 line('  proxy map <host> <slug>     Route a hostname through a saved proxy route');
@@ -691,7 +792,8 @@ case 'db':{const sub=args[0];if(sub==='help'||!sub){line('Local OPFS document da
  case 'version':line('Hyper-Pop Terminal 0.4 / HP-SH + JavaScript + Python WebAssembly','ok');break;
 case 'about':line('A browser-local command environment. Files live in this site origin’s OPFS storage.');line('Network requests can use the authenticated Hyper-Pop CORS proxy or your account-owned Reverse Proxy routes.','dim');
 line('JavaScript runs in the page runtime. Python runs in Pyodide/WebAssembly (downloaded on first use).','dim');
-line('Node commands use a browser-side Node compatibility layer, not native Node.js. npm packages must support browsers. Git commands connect to public GitHub repositories; this is not a full Git object database and local commits/pushes are not implemented.','dim');break;
+line('Node scripts support CommonJS require for built-ins and installed browser-compatible npm bundles. http/https clients use authenticated proxy-aware fetch.','dim');
+line('Node commands use a browser-side compatibility runtime, not native Node.js. npm downloads and caches ESM bundles; native addons, child processes, raw sockets and OS binaries are not available. http/https requests use proxy-aware fetch. Git commands connect to public GitHub repositories; this is not a full Git object database and local commits/pushes are not implemented.','dim');break;
 case 'reset':screen.textContent='';line('Terminal display reset. Files were not changed.','ok');break;
 case 'exit':location.href='index.html';break;
 default:line('Command not found: '+cmd+'. Type help.','err');
