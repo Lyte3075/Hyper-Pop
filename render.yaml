@@ -17,3 +17,5 @@ services:
         value: sb_publishable_TB7oC4nDlUJq-Gcb2yoTjQ_Dvbh6NlM
       - key: HP_STORAGE_URL
         value: https://iapnejlttsqqefkpmelp.supabase.co/functions/v1/hyperpop-node-storage
+      - key: HP_NODE_SETUP_KEY
+        sync: false
