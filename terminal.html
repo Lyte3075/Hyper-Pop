@@ -18,7 +18,7 @@ header{height:48px;flex:0 0 48px;display:flex;align-items:center;justify-content
 .line{min-height:1.55em}.dim{color:var(--muted)}.ok{color:var(--green)}.warn{color:var(--yellow)}.err{color:var(--red)}.prompt{color:var(--green)}.cmd{color:var(--cmd)}
 form{flex:0 0 auto;display:flex;align-items:center;gap:9px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:#000}
 #cwd{color:var(--green)!important;max-width:38%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--fg);font:16pt ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;caret-color:var(--green);padding:4px 0;min-height:2em}
+#input{flex:1;min-width:0;min-height:2em;max-height:38vh;resize:none;overflow-y:auto;border:0;outline:0;background:transparent;color:var(--fg);font:16pt/1.35 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;caret-color:var(--green);padding:4px 0;white-space:pre-wrap;}
 #input::placeholder{color:#555}
 button{font:inherit;color:var(--fg);background:#101010;border:1px solid #333;border-radius:5px;padding:5px 9px}
 #tools{display:flex;gap:6px}
@@ -44,7 +44,7 @@ button{font:inherit;color:var(--fg);background:#101010;border:1px solid #333;bor
 <main id="screen" role="log" aria-live="polite" aria-label="Terminal output"></main>
 <form id="form" autocomplete="off">
 <span id="cwd">~</span><span class="prompt">$</span>
-<input id="input" aria-label="Terminal command" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="type help and press enter">
+<textarea id="input" aria-label="Terminal command" autocomplete="off" autocapitalize="off" spellcheck="false" rows="1" placeholder="type help and press enter"></textarea>
 <div id="tools"><button id="clear" type="button" title="Clear output">CLR</button></div>
 </form>
 <section id="editor" hidden aria-label="Nano text editor">
@@ -492,7 +492,7 @@ async function executeNode(source,label){
  const nodeConsole={log:print,info:print,warn:(...v)=>{outputCount++;line(v.join(' '),'warn')},error:(...v)=>{outputCount++;line(v.join(' '),'err')},table:v=>print(v),clear:()=>{}};
  const module={exports:{}},exports=module.exports;
  try{
-  const runner=new AsyncFunction('require','module','exports','__filename','__dirname','process','Buffer','console','fetch','URL','URLSearchParams','setTimeout','clearTimeout','setInterval','clearInterval','WebSocket','global','globalThis','input','"use strict";\n'+source);
+  const runner=new AsyncFunction('require','module','exports','__filename','__dirname','process','Buffer','console','fetch','URL','URLSearchParams','setTimeout','clearTimeout','setInterval','clearInterval','WebSocket','global','globalThis','input','"use strict";\n'+nodeSource);
   const file=label&&label.endsWith('.js')?pathString(resolve(label)):pathString(cwd.concat('index.js'));
   await runner(requireFn,module,exports,file,file.split('/').slice(0,-1).join('/')||'/',nodeProcess,NodeBuffer,nodeConsole,nodeFetch,URL,URLSearchParams,setTimeout,clearTimeout,setInterval,clearInterval,createVirtualWebSocket(),globalThis,globalThis,terminalInput);
   if(module.exports!==exports&&Object.keys(module.exports||{}).length)print(module.exports);
@@ -633,8 +633,10 @@ function bytesToBase64(textValue){const bytes=new TextEncoder().encode(textValue
 function base64ToText(value){const binary=atob(value),bytes=Uint8Array.from(binary,c=>c.charCodeAt(0));return new TextDecoder().decode(bytes)}
 
 async function tree(parts,depth,prefix){if(depth>5)return;const d=await directory(parts,false),items=[];for await(const [name,h] of d.entries())items.push({name,dir:h.kind==='directory'});items.sort((a,b)=>Number(b.dir)-Number(a.dir)||a.name.localeCompare(b.name));for(let i=0;i<items.length;i++){const x=items[i],last=i===items.length-1;line(prefix+(last?'└── ':'├── ')+x.name+(x.dir?'/':''));if(x.dir)await tree(parts.concat(x.name),depth+1,prefix+(last?'    ':'│   '))}}
-async function run(raw){const args=tokenize(raw),cmd=(args.shift()||'').toLowerCase(),arg=args[0];if(!cmd)return;
+async function run(raw){const trimmed=raw.trim(),args=tokenize(raw),cmd=(args.shift()||'').toLowerCase(),arg=args[0];if(!cmd)return;
 line((cwd.length===2?'~':pathString(cwd))+' $ '+raw,'cmd');
+ const looksLikeJavaScript=/^(?:const|let|var|function|class|async\s+function|import\s|export\s|require\s*\(|console\.|process\.|module\.|exports\.|await\s|fetch\s*\(|https?\.(?:get|request)\s*\(|Promise\.|throw\s|try\s*\{|if\s*\(|for\s*\(|while\s*\(|\/\*|\/\/)/.test(trimmed)||/;\s*(?:const|let|var)\s/.test(trimmed);
+ if(looksLikeJavaScript){await executeNode(raw,'pasted JavaScript');return;}
 try{
 switch(cmd){
 case 'help':case '?':
@@ -830,13 +832,18 @@ line('Node scripts support CommonJS require for built-ins and installed browser-
 line('Node commands use a browser-side compatibility runtime, not native Node.js. npm downloads and caches ESM bundles; native addons, child processes, raw sockets and OS binaries are not available. http/https requests use proxy-aware fetch. Git commands connect to public GitHub repositories; this is not a full Git object database and local commits/pushes are not implemented.','dim');break;
 case 'reset':screen.textContent='';line('Terminal display reset. Files were not changed.','ok');break;
 case 'exit':location.href='index.html';break;
-default:line('Command not found: '+cmd+'. Type help.','err');
+default:if(/^(?:#!|(?:sudo\s+)?(?:apt|apt-get|apk|dnf|yum|pacman|brew|systemctl|service|chmod|chown|make|gcc|g\+\+|python3?|pip3?|node|npm|npx|yarn|pnpm|bun|deno|git|curl|wget|bash|sh|zsh|ls|cd|pwd|cat|grep|find|mkdir|rm|cp|mv|touch|echo|export|env|which|uname|whoami|tar|zip|unzip|ssh|scp|docker|podman)\b)/.test(trimmed)){line('This looks like a shell command, but this browser terminal does not have a Linux host process to execute it.','warn');line('Use supported HP-SH commands, or run it inside a compatible WebAssembly runtime.','dim')}else line('Command not found: '+cmd+'. Type help. For JavaScript, paste code directly or use node <file.js>.','err');
 }
 }catch(e){line('ERROR: '+(e&&e.message?e.message:String(e)),'err')}
 }
 async function init(){try{if(!navigator.storage||!navigator.storage.getDirectory)throw Error('This browser does not support OPFS. Try an up-to-date Safari or another modern browser.');root=await navigator.storage.getDirectory();await directory(HOME,true);await loadNodePackages();status('OPFS READY','good');line('Hyper-Pop Terminal [HP-SH 0.4]','ok');line('Persistent browser-local filesystem initialized.','dim');line('Authenticated Hyper-Pop proxy networking is available. No access to private device files.','dim');line('Type help to see available commands.','');line('');updatePrompt()}catch(e){status('FILESYSTEM UNAVAILABLE','bad');line('Could not initialize browser storage: '+e.message,'err');line('This terminal requires a secure HTTPS page and browser OPFS support.','warn')}}
-form.addEventListener('submit',async e=>{e.preventDefault();const raw=input.value;input.value='';if(terminalInputResolver){line('> '+raw,'cmd');const resolve=terminalInputResolver;finishTerminalInput(raw);resolve(raw);return}if(raw.trim()){history.push(raw);historyIndex=history.length;await run(raw)}});
-input.addEventListener('keydown',e=>{if(e.key==='ArrowUp'){e.preventDefault();historyIndex=Math.max(0,historyIndex-1);input.value=history[historyIndex]||''}else if(e.key==='ArrowDown'){e.preventDefault();historyIndex=Math.min(history.length,historyIndex+1);input.value=history[historyIndex]||''}});
+form.addEventListener('submit',async e=>{e.preventDefault();const raw=input.value;input.value='';input.style.height='auto';if(terminalInputResolver){line('> '+raw,'cmd');const resolve=terminalInputResolver;finishTerminalInput(raw);resolve(raw);return}if(raw.trim()){history.push(raw);historyIndex=history.length;await run(raw)}});
+input.addEventListener('input',()=>{input.style.height='auto';input.style.height=Math.min(input.scrollHeight,window.innerHeight*.38)+'px'});
+input.addEventListener('keydown',e=>{
+ if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();form.requestSubmit();return}
+ if(e.key==='ArrowUp'&&!e.shiftKey&&input.selectionStart===0){e.preventDefault();historyIndex=Math.max(0,historyIndex-1);input.value=history[historyIndex]||'';input.setSelectionRange(input.value.length,input.value.length)}
+ else if(e.key==='ArrowDown'&&!e.shiftKey&&input.selectionEnd===input.value.length){e.preventDefault();historyIndex=Math.min(history.length,historyIndex+1);input.value=history[historyIndex]||'';input.setSelectionRange(input.value.length,input.value.length)}
+});
 document.getElementById('clear').addEventListener('click',()=>{screen.textContent='';input.focus()});
 editorSaveButton.addEventListener('click',async()=>{try{await saveEditor()}catch(e){line('ERROR: '+e.message,'err')}});
 document.getElementById('editorExit').addEventListener('click',closeEditor);
