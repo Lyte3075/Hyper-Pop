@@ -938,9 +938,36 @@ case 'node':{
  }
  if(sub==='status'){
   const base=getNodeServerUrl();if(!base)throw Error('Connect first with node connect <server-url>.');
-  const health=await fetch(base+'/health');const h=await health.json();line('Server: '+base,'ok');line('Runtime: '+(h.runtime||'unknown')+' · '+(h.service||'Node server'));
-  const me=await nodeServerRequest('/api/me');line('Account: '+(me.username||'connected'),'ok');line(me.claimed?'Personal server claimed.':'Not claimed. Run node claim <setup-key>.',me.claimed?'ok':'warn');
-  if(me.projects)line('Projects: '+me.projects.length);break;
+  line('Checking Render server: '+base,'dim');
+  line('Render free services sleep after inactivity. Sending a wake-up request…','warn');
+  let h=null,lastError='No response yet.';
+  for(let attempt=1;attempt<=8;attempt++){
+   line('Wake-up check '+attempt+'/8…','dim');
+   try{
+    const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),15000);
+    let response;
+    try{response=await fetch(base+'/health?wake='+Date.now(),{method:'GET',cache:'no-store',signal:controller.signal})}
+    finally{clearTimeout(timeout)}
+    if(!response.ok)throw Error('HTTP '+response.status+' '+response.statusText);
+    h=await response.json();
+    if(h&&h.ok===true)break;
+    throw Error('Health endpoint responded, but did not return ok:true.');
+   }catch(e){
+    lastError=e&&e.name==='AbortError'?'Timed out waiting for Render to wake.':(e&&e.message?e.message:String(e));
+    if(attempt<8){line('Server is still waking or unreachable: '+lastError,'warn');await new Promise(resolve=>setTimeout(resolve,5000))}
+   }
+  }
+  if(!h||h.ok!==true)throw Error('Could not wake the Render server after about 2 minutes. Last issue: '+lastError+'. Try node status again in a moment, or open '+base+'/health in Safari.');
+  line('Render server is awake and responding.','ok');
+  line('Runtime: '+(h.runtime||'unknown')+' · '+(h.service||'Node server'));
+  line('Checking your Hyper-Pop account session…','dim');
+  try{
+   const me=await nodeServerRequest('/api/me');
+   line('Account: '+(me.username||'connected'),'ok');
+   line(me.claimed?'Personal server claimed.':'Not claimed. Run node claim <setup-key>.',me.claimed?'ok':'warn');
+   if(me.projects)line('Projects: '+me.projects.length);
+  }catch(e){throw Error('Render is awake, but account verification failed: '+(e&&e.message?e.message:String(e))+' Check that you are signed in to Hyper-Pop and that this server is claimed by this account.')}
+  break;
  }
  if(sub==='claim'){
   if(!args[1])throw Error('Usage: node claim <one-time-setup-key>');
