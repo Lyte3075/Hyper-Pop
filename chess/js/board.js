@@ -155,7 +155,7 @@ function renderPieces(boardState, movedPiece = null) {
                 // This keeps piece paths correct even when the page is opened at /chess
                 // without a trailing slash or from a nested GitHub Pages path.
                 const boardScript = Array.from(document.scripts).find((script) =>
-                    /(?:^|\\/)js\\/board\\.js(?:[?#]|$)/.test(script.getAttribute('src') || '')
+                    (script.getAttribute('src') || '').split(/[?#]/)[0].endsWith('js/board.js')
                 );
                 const assetBase = boardScript
                     ? new URL('../assets/', boardScript.src)
