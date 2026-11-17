@@ -718,6 +718,13 @@ async function nodeServerRequest(route,options={}){
  if(!response.ok||data.ok===false)throw Error(data.error||('Node server request failed with HTTP '+response.status));
  return data;
 }
+const REMOTE_LINUX_COMMANDS=new Set(['cowsay','cowthink','python3','python','pip3','pip','curl','wget','ffmpeg','tree','unzip','zip','tar','grep','egrep','fgrep','sed','awk','find','ls','cat','head','tail','wc','sort','uniq','cut','tr','base64','sha256sum','file','du','df','uname','whoami','id','hostname','date','uptime','free','env','printenv','which','printf','seq','rev','nl','cmp','diff','realpath','basename','dirname']);
+async function runRemoteCommand(command,inputArgs){
+ const data=await nodeServerRequest('/api/system/exec',{method:'POST',body:JSON.stringify({command,args:inputArgs})});
+ if(data.output)line(data.output,data.code===0?'ok':'warn');
+ line('Exit code: '+data.code,data.code===0?'ok':'err');
+ if(data.code!==0)throw Error('Remote command failed. See the output above.');
+}
 async function runRemoteApt(inputArgs){
  const action=String(inputArgs[0]||'').toLowerCase();
  const packages=inputArgs.slice(1).filter(x=>!['-y','--yes','--assume-yes'].includes(x));
@@ -838,6 +845,7 @@ line('  whoami                      Show local user');
 line('  uname                       Show runtime information');
 line('  storage                     Show OPFS availability');
 line('  js, run, nodejs, python, pip  JavaScript, Node-compatible and Python runtimes');
+line('  Linux tools                 Run installed programs on your connected Render server');
 line('  server                      Manage browser-local HTTP servers');
 line('  preview                     Preview saved HTML');
 line('  help                        Show this help');
@@ -1079,7 +1087,7 @@ line('Node commands use a browser-side compatibility runtime, not native Node.js
  line('sudo apt commands run on your connected Render server, never on your iPhone or computer. Runtime system packages can disappear after a Render restart or redeploy.','warn');break;
 case 'reset':screen.textContent='';line('Terminal display reset. Files were not changed.','ok');break;
 case 'exit':location.href='index.html';break;
-default:if(/^(?:#!|(?:sudo\s+)?(?:apt|apt-get|apk|dnf|yum|pacman|brew|systemctl|service|chmod|chown|make|gcc|g\+\+|python3?|pip3?|node|npm|npx|yarn|pnpm|bun|deno|git|curl|wget|bash|sh|zsh|ls|cd|pwd|cat|grep|find|mkdir|rm|cp|mv|touch|echo|export|env|which|uname|whoami|tar|zip|unzip|ssh|scp|docker|podman)\b)/.test(trimmed)){line('This looks like a shell command, but this browser terminal does not have a Linux host process to execute it.','warn');line('Use supported KA-SH commands, or run it inside a compatible WebAssembly runtime.','dim')}else line('Command not found: '+cmd+'. Type help. For JavaScript, paste code directly or use nodejs <file.js>.','err');
+default:if(REMOTE_LINUX_COMMANDS.has(cmd)&&getNodeServerUrl()){await runRemoteCommand(cmd,args)}else if(/^(?:#!|(?:sudo\s+)?(?:apt|apt-get|apk|dnf|yum|pacman|brew|systemctl|service|chmod|chown|make|gcc|g\+\+|python3?|pip3?|node|npm|npx|yarn|pnpm|bun|deno|git|curl|wget|bash|sh|zsh|ls|cd|pwd|cat|grep|find|mkdir|rm|cp|mv|touch|echo|export|env|which|uname|whoami|tar|zip|unzip|ssh|scp|docker|podman)\b)/.test(trimmed)){line('This looks like a shell command, but it is not enabled in the connected server command set.','warn');line('Connect your Render server with node connect, or use supported KA-SH commands.','dim')}else line('Command not found: '+cmd+'. Type help. For JavaScript, paste code directly or use nodejs <file.js>.','err');
 }
 }catch(e){line('ERROR: '+(e&&e.message?e.message:String(e)),'err')}
 }
