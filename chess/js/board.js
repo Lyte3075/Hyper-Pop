@@ -1,0 +1,373 @@
+/**
+ * @fileoverview Manages the chessboard DOM representation and rendering.
+ */
+
+const boardElement = document.getElementById('chess-board');
+let selectedSquare = null; // { row: number, col: number } | null
+let possibleMoves = []; // Array<{ row: number, col: number }>
+let renderedState = null; // Cache of last rendered board signatures
+let boardFlipped = false; // True when the board is shown from Black's side
+let tabStopSquare = null; // The one square that is in the tab order (roving tabindex)
+
+/**
+ * Creates the initial chessboard squares in the DOM.
+ */
+function createBoard() {
+    boardElement.innerHTML = ''; // Clear existing board
+    renderedState = null; // Reset render cache
+    tabStopSquare = null;
+    for (let row = 0; row < 8; row++) {
+        // One row element per rank, as the grid role requires. CSS makes it
+        // invisible to layout, so the squares still sit in the board's grid.
+        const rowElement = document.createElement('div');
+        rowElement.classList.add('board-row');
+        rowElement.dataset.row = row;
+        rowElement.setAttribute('role', 'row');
+        for (let col = 0; col < 8; col++) {
+            const square = document.createElement('div');
+            square.classList.add('square');
+            square.classList.add((row + col) % 2 === 0 ? 'light' : 'dark');
+            square.dataset.row = row;
+            square.dataset.col = col;
+            square.setAttribute('role', 'gridcell');
+            square.setAttribute('tabindex', '-1');
+            // Coordinate labels on the outer ranks and files; CSS shows the two
+            // lines nearest the player when "Show coordinates" is on
+            const name = coordsToAlgebraic(row, col);
+            if (row === 0 || row === 7) square.appendChild(coordinateLabel('coord-file', name[0]));
+            if (col === 0 || col === 7) square.appendChild(coordinateLabel('coord-rank', name[1]));
+            rowElement.appendChild(square);
+        }
+        boardElement.appendChild(rowElement);
+    }
+
+    if (boardFlipped) {
+        setBoardFlipped(true); // Keep the chosen orientation when the board is rebuilt
+    }
+
+    // The board is a single tab stop; the arrow keys move between squares
+    setTabStop(getSquareElement(7, 4));
+
+    // Keyboard navigation for accessibility
+    boardElement.removeEventListener('keydown', handleBoardKeydown);
+    boardElement.addEventListener('keydown', handleBoardKeydown);
+    boardElement.removeEventListener('focusin', handleBoardFocus);
+    boardElement.addEventListener('focusin', handleBoardFocus);
+}
+
+/**
+ * @param {string} kind - 'coord-file' or 'coord-rank'.
+ * @param {string} text - The file letter or rank number.
+ * @returns {HTMLElement} A label for the corner of a square. Screen readers get
+ *   the square's name from its aria-label, so the label is hidden from them.
+ */
+function coordinateLabel(kind, text) {
+    const label = document.createElement('span');
+    label.classList.add('coord', kind);
+    label.setAttribute('aria-hidden', 'true');
+    label.textContent = text;
+    return label;
+}
+
+/**
+ * Makes one square the board's tab stop and takes every other square out of
+ * the tab order.
+ * @param {HTMLElement|null} square
+ */
+function setTabStop(square) {
+    if (!square || square === tabStopSquare) return;
+    if (tabStopSquare) tabStopSquare.setAttribute('tabindex', '-1');
+    square.setAttribute('tabindex', '0');
+    tabStopSquare = square;
+}
+
+/** Whichever square was focused last is where Tab returns to. */
+function handleBoardFocus(event) {
+    const square = event.target.closest ? event.target.closest('.square') : null;
+    if (square) setTabStop(square);
+}
+
+/**
+ * Shows the board from White's side (default) or from Black's side.
+ * Squares keep their data-row and data-col; only their order on screen changes,
+ * so pieces, highlights and coordinate labels follow automatically.
+ * @param {boolean} flipped - True to put Black at the bottom.
+ */
+function setBoardFlipped(flipped) {
+    boardFlipped = !!flipped;
+    boardElement.classList.toggle('flipped', boardFlipped);
+    const inOrder = (elements, key) =>
+        elements.sort(
+            (a, b) => (boardFlipped ? -1 : 1) * (Number(a.dataset[key]) - Number(b.dataset[key]))
+        );
+    inOrder(Array.from(boardElement.querySelectorAll('.board-row')), 'row').forEach(
+        (rowElement) => {
+            boardElement.appendChild(rowElement);
+            inOrder(Array.from(rowElement.querySelectorAll('.square')), 'col').forEach((square) =>
+                rowElement.appendChild(square)
+            );
+        }
+    );
+}
+
+/**
+ * Renders the pieces on the board based on the current board state.
+ * @param {Array<Array<Piece|null>>} boardState - The 2D array representing the board.
+ * @param {Object|null} movedPiece - Optional. The coordinates of a piece that just moved, for animation.
+ */
+function renderPieces(boardState, movedPiece = null) {
+    const sig = (p) => (p ? `${p.color}${p.type}` : null);
+
+    // First-time render: build all
+    if (!renderedState) {
+        renderedState = Array.from({ length: 8 }, () => Array(8).fill(null));
+    }
+
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const piece = boardState[row][col];
+            const newSig = sig(piece);
+            const oldSig = renderedState[row][col];
+            const squareElement = getSquareElement(row, col);
+
+            if (squareElement) {
+                const alg = coordsToAlgebraic(row, col);
+                const label = piece
+                    ? `${piece.color === 'w' ? 'white' : 'black'} ${PIECE_NAMES[piece.type]} on ${alg}`
+                    : `${alg}`;
+                squareElement.dataset.label = label; // Plain label; updateBoardVisuals adds the state
+                squareElement.setAttribute('aria-label', label);
+            }
+
+            if (newSig === oldSig) continue; // no change
+
+            // Remove existing piece child
+            if (squareElement) {
+                const existing = squareElement.querySelector('.piece');
+                if (existing) existing.remove();
+            }
+
+            if (piece && squareElement) {
+                const pieceElement = document.createElement('div');
+                pieceElement.classList.add('piece');
+                pieceElement.classList.add(piece.color, piece.type);
+                const svgPath = `assets/${piece.color}${piece.type}.svg`;
+                pieceElement.style.backgroundImage = `url('${svgPath}')`;
+                pieceElement.style.backgroundSize = 'contain';
+                pieceElement.style.backgroundRepeat = 'no-repeat';
+                pieceElement.style.backgroundPosition = 'center';
+
+                if (movedPiece && movedPiece.row === row && movedPiece.col === col) {
+                    pieceElement.classList.add('moved');
+                    setTimeout(
+                        () => pieceElement.classList.remove('moved'),
+                        CONFIG.ANIMATIONS.PIECE_MOVE
+                    );
+                }
+
+                pieceElement.dataset.piece = `${piece.color}${piece.type}`;
+                pieceElement.dataset.color = piece.color;
+                pieceElement.dataset.type = piece.type;
+                squareElement.appendChild(pieceElement);
+            }
+
+            renderedState[row][col] = newSig;
+        }
+    }
+}
+
+/**
+ * Handle keyboard navigation and activation on the board
+ * Arrow keys move focus; Enter/Space activates (simulates click)
+ * @param {KeyboardEvent} event
+ */
+function handleBoardKeydown(event) {
+    const active = document.activeElement;
+    if (!active || !active.classList.contains('square')) return;
+
+    const row = parseInt(active.dataset.row, 10);
+    const col = parseInt(active.dataset.col, 10);
+
+    const focusSquare = (r, c) => {
+        const el = getSquareElement(Math.max(0, Math.min(7, r)), Math.max(0, Math.min(7, c)));
+        if (el) el.focus();
+    };
+
+    // Arrow keys follow what is on screen, so they reverse on a flipped board
+    const step = boardFlipped ? -1 : 1;
+
+    switch (event.key) {
+        case 'ArrowUp':
+            event.preventDefault();
+            focusSquare(row - step, col);
+            break;
+        case 'ArrowDown':
+            event.preventDefault();
+            focusSquare(row + step, col);
+            break;
+        case 'ArrowLeft':
+            event.preventDefault();
+            focusSquare(row, col - step);
+            break;
+        case 'ArrowRight':
+            event.preventDefault();
+            focusSquare(row, col + step);
+            break;
+        case 'Enter':
+        case ' ': // Space
+            event.preventDefault();
+            active.click();
+            break;
+        default:
+            break;
+    }
+}
+
+/**
+ * Gets the DOM element for a specific square.
+ * @param {number} row
+ * @param {number} col
+ * @returns {HTMLElement | null}
+ */
+function getSquareElement(row, col) {
+    return boardElement.querySelector(`.square[data-row="${row}"][data-col="${col}"]`);
+}
+
+/**
+ * Updates the visual state of the board (selection, possible moves, checks).
+ * @param {{row: number, col: number} | null} kingInCheckCoords - Coordinates of the king in check, or null.
+ * @param {{from: {row, col}, to: {row, col}} | null} lastMove - The move to highlight as the last one played, or null.
+ */
+function updateBoardVisuals(kingInCheckCoords = null, lastMove = null) {
+    // Clear previous visual states
+    document
+        .querySelectorAll(
+            '.square.selected, .square.possible-move, .square.in-check, .square.last-move-from, .square.last-move-to'
+        )
+        .forEach((el) => {
+            el.classList.remove(
+                'selected',
+                'possible-move',
+                'in-check',
+                'last-move-from',
+                'last-move-to'
+            );
+            el.removeAttribute('aria-selected');
+            if (el.dataset.label) el.setAttribute('aria-label', el.dataset.label);
+        });
+    // The highlights are visual only, so say the same thing in the square's label
+    const describe = (el, state) =>
+        el.setAttribute('aria-label', `${el.getAttribute('aria-label') || ''}, ${state}`);
+
+    // Highlight selected square
+    if (selectedSquare) {
+        const selectedElement = getSquareElement(selectedSquare.row, selectedSquare.col);
+        if (selectedElement) {
+            selectedElement.classList.add('selected');
+            selectedElement.setAttribute('aria-selected', 'true');
+            describe(selectedElement, 'selected');
+        }
+    }
+
+    // Highlight possible moves
+    possibleMoves.forEach((move) => {
+        const moveElement = getSquareElement(move.row, move.col);
+        if (moveElement) {
+            moveElement.classList.add('possible-move');
+            describe(moveElement, 'legal move');
+        }
+    });
+
+    // Highlight king in check
+    if (kingInCheckCoords) {
+        const checkElement = getSquareElement(kingInCheckCoords.row, kingInCheckCoords.col);
+        if (checkElement) {
+            checkElement.classList.add('in-check');
+            describe(checkElement, 'in check');
+        }
+    }
+
+    // Highlight last move if available
+    if (lastMove) {
+        // From square
+        const fromElement = getSquareElement(lastMove.from.row, lastMove.from.col);
+        if (fromElement) {
+            fromElement.classList.add('last-move-from');
+        }
+
+        // To square
+        const toElement = getSquareElement(lastMove.to.row, lastMove.to.col);
+        if (toElement) {
+            toElement.classList.add('last-move-to');
+        }
+    }
+}
+
+/**
+ * Selects a square visually and stores its coordinates.
+ * @param {number} row
+ * @param {number} col
+ */
+function setSelectedSquare(row, col) {
+    selectedSquare = { row, col };
+}
+
+/**
+ * Clears the selected square.
+ */
+function clearSelectedSquare() {
+    selectedSquare = null;
+}
+
+/**
+ * Sets the possible moves to be highlighted.
+ * @param {Array<{row: number, col: number}>} moves
+ */
+function setPossibleMoves(moves) {
+    possibleMoves = moves;
+}
+
+/**
+ * Clears the possible moves highlights.
+ */
+function clearPossibleMoves() {
+    possibleMoves = [];
+}
+
+/** @returns {{row: number, col: number} | null} The selected square, if any. */
+function getSelectedSquare() {
+    return selectedSquare;
+}
+
+/** @returns {Array<{row: number, col: number}>} The squares the selected piece can move to. */
+function getPossibleMoves() {
+    return possibleMoves;
+}
+
+// Export for Node/Jest tests (CommonJS)
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        boardElement,
+        createBoard,
+        renderPieces,
+        getSquareElement,
+        updateBoardVisuals,
+        setSelectedSquare,
+        clearSelectedSquare,
+        setPossibleMoves,
+        clearPossibleMoves,
+        getSelectedSquare,
+        getPossibleMoves,
+        setBoardFlipped,
+        // Export state variables with getters for test access
+        get selectedSquare() {
+            return selectedSquare;
+        },
+        get possibleMoves() {
+            return possibleMoves;
+        },
+        get renderedState() {
+            return renderedState;
+        },
+    };
+}
