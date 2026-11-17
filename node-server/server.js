@@ -204,6 +204,38 @@ app.post("/api/system/apt",async(req,res)=>{
     aptBusy=false;
   }
 });
+const REMOTE_COMMANDS = new Set([
+  "cowsay","cowthink","python3","python","pip3","pip",
+  "git","curl","wget","ffmpeg","tree","unzip","zip","tar",
+  "grep","egrep","fgrep","sed","awk","find","ls","cat","head","tail",
+  "wc","sort","uniq","cut","tr","base64","sha256sum","file","du","df",
+  "uname","whoami","id","hostname","date","uptime","free","env","printenv","which",
+  "printf","seq","rev","nl","cmp","diff","realpath","basename","dirname"
+]);
+app.post("/api/system/exec",async(req,res)=>{
+  const command=String(req.body?.command||"");
+  const args=Array.isArray(req.body?.args)?req.body.args.map(x=>String(x)):null;
+  if(!REMOTE_COMMANDS.has(command)) return jsonError(res,403,"That Linux command is not enabled on the personal server.");
+  if(!args||args.length>40||args.some(x=>x.length>2048||x.includes("\\0"))) return jsonError(res,400,"Invalid command arguments.");
+  const result=await new Promise(resolve=>{
+    let output="",finished=false;
+    const child=spawn(command,args,{
+      cwd:"/home/node",
+      uid:NODE_UID,
+      gid:NODE_GID,
+      env:{PATH:"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games",HOME:"/home/node",TMPDIR:os.tmpdir(),LANG:"C.UTF-8",FORCE_COLOR:"0"},
+      stdio:["ignore","pipe","pipe"],
+      shell:false
+    });
+    const collect=chunk=>{output=(output+chunk.toString()).slice(-30000);};
+    child.stdout.on("data",collect);child.stderr.on("data",collect);
+    const finish=value=>{if(finished)return;finished=true;clearTimeout(timer);resolve(value);};
+    const timer=setTimeout(()=>{child.kill("SIGTERM");finish({code:124,output:output+"\\nCommand timed out after 30 seconds."});},30000);
+    child.on("error",error=>finish({code:127,output:output+(output?"\\n":"")+(error.code==="ENOENT"?"Command not found on the Render server.":error.message)}));
+    child.on("close",code=>finish({code:code??1,output}));
+  });
+  res.json({ok:true,code:result.code,output:result.output});
+});
 app.get("/api/projects",async(req,res)=>{
   try { const data=await storage(req.hpToken,{action:"list-projects"}); res.json({ok:true,projects:data.projects.map(p=>({...p,...projectState(p.slug)}))}); }
   catch(error){jsonError(res,error.status||502,error.message);}
