@@ -1,0 +1,169 @@
+.chess-board {
+    width: var(--board-size);
+    height: var(--board-size);
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    border: 1px solid #000;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    position: relative;
+    min-height: 0; /* Prevents overflow */
+}
+
+/* On a narrow screen the board card has a width of its own (style.css), which
+   never exceeds the page; the board fills it and stays square */
+@media (max-width: 900px) {
+    .chess-board {
+        box-sizing: border-box;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1;
+    }
+}
+
+/* Coordinates: file letters along the rank nearest the player and rank numbers
+   down the left edge, 16 labels in all. board.js puts a label element in every
+   square of the four outer lines; which two lines show depends on which way
+   round the board is. They are elements of their own, not ::before or ::after,
+   so the last-move tint and the move dot never replace them. */
+.coord {
+    display: none;
+    position: absolute;
+    z-index: 2;
+    font-size: 0.7rem;
+    font-weight: 600;
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
+}
+
+.coord-file {
+    right: 3px;
+    bottom: 2px;
+}
+
+.coord-rank {
+    top: 2px;
+    left: 3px;
+}
+
+/* On each square in the colour of the other squares, as on a printed board */
+.square.light .coord {
+    color: var(--dark-square);
+}
+
+.square.dark .coord {
+    color: var(--light-square);
+}
+
+.chess-board:not(.flipped) .square[data-row='7'] .coord-file,
+.chess-board.flipped .square[data-row='0'] .coord-file,
+.chess-board:not(.flipped) .square[data-col='0'] .coord-rank,
+.chess-board.flipped .square[data-col='7'] .coord-rank {
+    display: var(--show-coords, none);
+}
+
+.square {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    min-height: 0; /* Ensures squares don't expand too much */
+    min-width: 0;
+}
+
+.square:focus {
+    outline: 2px solid var(--accent-color);
+    outline-offset: -2px;
+}
+
+.square:hover {
+    filter: brightness(1.08);
+}
+
+.square.light {
+    background-color: var(--light-square);
+    /* Subtle texture - reduced intensity */
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.01) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.01) 1px, transparent 1px);
+    background-size: 4px 4px;
+}
+
+.square.dark {
+    background-color: var(--dark-square);
+    /* Subtle texture - reduced intensity */
+    background-image:
+        linear-gradient(rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.02) 1px, transparent 1px);
+    background-size: 4px 4px;
+}
+
+/* The piece picked up. The tint is a layer over the square's own colour, not
+   a replacement for it, so it looks the same on a light and a dark square. */
+.square.selected {
+    background-image: linear-gradient(var(--selected-square), var(--selected-square));
+    background-size: auto;
+    z-index: 1;
+}
+
+/* Where the picked-up piece can go: a dot on an empty square */
+.square.possible-move::after {
+    content: '';
+    position: absolute;
+    width: 30%;
+    height: 30%;
+    background-color: var(--possible-move-square);
+    border-radius: 50%;
+    pointer-events: none;
+    display: var(--show-possible-moves);
+}
+
+/* ...and a ring around a piece it can take */
+.square.possible-move:has(.piece)::after {
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(
+        circle closest-side,
+        transparent 79%,
+        var(--possible-move-square) 80%
+    );
+    border-radius: 0;
+}
+
+/* Highlight for the king in check: laid over the square's colour, like the others */
+.square.in-check {
+    background-image: linear-gradient(var(--check-square), var(--check-square));
+    background-size: auto;
+    animation: check-pulse 1.5s ease infinite alternate;
+}
+
+@keyframes check-pulse {
+    from {
+        box-shadow: inset 0 0 5px rgba(255, 0, 0, 0.3);
+    }
+    to {
+        box-shadow: inset 0 0 15px rgba(255, 0, 0, 0.5);
+    }
+}
+
+/* Last move: a tint over the square it left and the square it reached. It sits
+   under the piece, and uses ::before only, so the move dot (::after) still
+   shows on these squares. */
+.square.last-move-from::before,
+.square.last-move-to::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background-color: var(--last-move-square);
+    display: var(--show-last-move); /* Control visibility */
+}
+
+/* The move suggested by the Hint button */
+.square.hint-from,
+.square.hint-to {
+    box-shadow: inset 0 0 0 4px var(--hint-square);
+}
