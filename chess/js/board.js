@@ -151,40 +151,11 @@ function renderPieces(boardState, movedPiece = null) {
                 const pieceElement = document.createElement('div');
                 pieceElement.classList.add('piece');
                 pieceElement.classList.add(piece.color, piece.type);
-                // Resolve artwork from this script's own folder, not the page URL.
-                // This keeps piece paths correct even when the page is opened at /chess
-                // without a trailing slash or from a nested GitHub Pages path.
-                const boardScript = Array.from(document.scripts).find((script) =>
-                    (script.getAttribute('src') || '').split(/[?#]/)[0].endsWith('js/board.js')
-                );
-                const assetBase = boardScript
-                    ? new URL('../assets/', boardScript.src)
-                    : new URL('assets/', document.baseURI);
-                const assetUrl = new URL(`${piece.color}${piece.type}.svg`, assetBase).href;
-                const pieceImage = document.createElement('img');
-                pieceImage.className = 'piece-image';
-                pieceImage.alt = '';
-                pieceImage.draggable = false;
-                pieceImage.decoding = 'async';
-                pieceImage.src = assetUrl;
-                pieceImage.style.cssText = 'display:block;width:100%;height:100%;object-fit:contain;pointer-events:none;';
-                pieceImage.addEventListener('error', () => {
-                    // Keep the board playable and visible if an SVG cannot be fetched.
-                    const symbols = {
-                        wk: '♔', wq: '♕', wr: '♖', wb: '♗', wn: '♘', wp: '♙',
-                        bk: '♚', bq: '♛', br: '♜', bb: '♝', bn: '♞', bp: '♟︎',
-                    };
-                    pieceImage.remove();
-                    pieceElement.classList.add('piece-fallback');
-                    pieceElement.textContent = symbols[`${piece.color}${piece.type}`] || '?';
-                    pieceElement.style.setProperty('color', piece.color === 'w' ? '#fff' : '#111', 'important');
-                    pieceElement.style.fontSize = 'clamp(1.4rem, 7vw, 3.5rem)';
-                    pieceElement.style.lineHeight = '1';
-                    pieceElement.style.textShadow = piece.color === 'w'
-                        ? '0 1px 2px #222'
-                        : '0 1px 2px #fff';
-                });
-                pieceElement.appendChild(pieceImage);
+                const svgPath = `assets/${piece.color}${piece.type}.svg`;
+                pieceElement.style.backgroundImage = `url('${svgPath}')`;
+                pieceElement.style.backgroundSize = 'contain';
+                pieceElement.style.backgroundRepeat = 'no-repeat';
+                pieceElement.style.backgroundPosition = 'center';
 
                 if (movedPiece && movedPiece.row === row && movedPiece.col === col) {
                     pieceElement.classList.add('moved');
