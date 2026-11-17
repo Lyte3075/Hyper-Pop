@@ -1,0 +1,62 @@
+/**
+ * Chess piece styling - core styles only
+ * All piece-specific styling handled by inline styles in board.js
+ */
+
+.piece {
+    width: 80%;
+    height: 80%;
+    cursor: grab;
+    user-select: none;
+    touch-action: none; /* A touch that starts on a piece drags it instead of scrolling; taps still click */
+    position: relative;
+    transition: transform 0.15s ease;
+    will-change: transform;
+    color: transparent !important;
+}
+
+/* Disable transitions during drag for smooth movement */
+.piece.dragging {
+    cursor: grabbing;
+    opacity: 0.8;
+    z-index: 100;
+    pointer-events: none;
+    position: fixed;
+    transition: none !important; /* Disable transitions for smooth dragging */
+}
+
+/* Explicitly disable any ::before or ::after pseudo-elements */
+.piece::before,
+.piece::after {
+    content: none !important;
+    display: none !important;
+}
+
+/* Hover and active states */
+.piece:hover {
+    transform: scale(1.05);
+}
+
+.piece:active {
+    cursor: grabbing;
+    transform: scale(1.1);
+}
+
+/* Note: .piece.dragging is defined above to disable transitions */
+
+/* Move animations */
+@keyframes move-piece {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.12);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.piece.moved {
+    animation: move-piece 0.3s ease;
+}
