@@ -17,6 +17,7 @@ const MAX_RUNNING = 1;
 const running = new Map();
 const previews = new Map();
 const logs = new Map();
+let aptBusy = false;
 
 app.disable("x-powered-by");
 app.use((req,res,next) => {
@@ -146,6 +147,45 @@ app.post("/api/claim",auth,async(req,res)=>{
   } catch(error) { jsonError(res,error.status || 502,error.message); }
 });
 app.use("/api",auth);
+app.post("/api/system/apt",async(req,res)=>{
+  const action=String(req.body?.action||"").toLowerCase();
+  const packages=Array.isArray(req.body?.packages)?req.body.packages.map(x=>String(x)):[];
+  const validPackage=/^[a-z0-9][a-z0-9+.-]*(?::[a-z0-9]+)?(?:=[A-Za-z0-9.+:~_-]+)?$/;
+  let args;
+  if(action==="update"&&packages.length===0) args=["update"];
+  else if(action==="upgrade"&&packages.length===0) args=["upgrade","-y"];
+  else if((action==="install"||action==="remove")&&packages.length>0&&packages.length<=8&&packages.every(p=>validPackage.test(p))) {
+    args=[action,"-y",...(action==="install"?["--no-install-recommends"]:[]),...packages];
+  } else {
+    return jsonError(res,400,"Use apt update, apt upgrade, apt install <package>, or apt remove <package>. Package names only; up to 8 at a time.");
+  }
+  if(aptBusy) return jsonError(res,409,"Another APT operation is already running. Wait for it to finish.");
+  aptBusy=true;
+  try {
+    const root=typeof process.getuid==="function"&&process.getuid()===0;
+    const executable=root?"apt-get":"sudo";
+    const commandArgs=root?args:["-n","apt-get",...args];
+    const result=await new Promise((resolve,reject)=>{
+      const child=spawn(executable,commandArgs,{env:{...process.env,DEBIAN_FRONTEND:"noninteractive"},stdio:["ignore","pipe","pipe"],shell:false});
+      let output="",finished=false;
+      const collect=chunk=>{output=(output+chunk.toString()).slice(-30000);};
+      child.stdout.on("data",collect);child.stderr.on("data",collect);
+      const finish=fn=>{if(finished)return;finished=true;clearTimeout(timer);fn();};
+      const timer=setTimeout(()=>{child.kill("SIGTERM");finish(()=>reject(new Error("APT timed out after 2 minutes. The package operation may need a smaller install.")));},120000);
+      child.on("error",error=>finish(()=>reject(new Error(
+        error.code==="ENOENT"
+          ?(root?"apt-get is not available in this Render runtime.":"This Render runtime does not expose apt-get or passwordless sudo. Configure OS packages at build time or use a Docker runtime.")
+          :"Could not start APT: "+error.message
+      ))));
+      child.on("close",code=>finish(()=>resolve({code:code??1,output})));
+    });
+    res.json({ok:true,commandOk:result.code===0,code:result.code,output:result.output});
+  } catch(error) {
+    jsonError(res,503,error.message||"APT is unavailable in this Render runtime.");
+  } finally {
+    aptBusy=false;
+  }
+});
 app.get("/api/projects",async(req,res)=>{
   try { const data=await storage(req.hpToken,{action:"list-projects"}); res.json({ok:true,projects:data.projects.map(p=>({...p,...projectState(p.slug)}))}); }
   catch(error){jsonError(res,error.status||502,error.message);}
