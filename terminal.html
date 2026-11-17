@@ -946,7 +946,7 @@ case 'node':{
    try{
     const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),15000);
     let response;
-    try{response=await fetch(base+'/health?wake='+Date.now(),{method:'GET',cache:'no-store',signal:controller.signal})}
+    try{response=await terminalFetch(base+'/health?wake='+Date.now(),{method:'GET',cache:'no-store',signal:controller.signal})}
     finally{clearTimeout(timeout)}
     if(!response.ok)throw Error('HTTP '+response.status+' '+response.statusText);
     h=await response.json();
