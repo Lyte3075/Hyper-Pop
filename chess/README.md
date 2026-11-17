@@ -1,0 +1,386 @@
+<pre align="center">
+  ███████╗████████╗ █████╗ ████████╗██╗ ██████╗     ██████╗██╗  ██╗███████╗███████╗███████╗
+  ██╔════╝╚══██╔══╝██╔══██╗╚══██╔══╝██║██╔════╝    ██╔════╝██║  ██║██╔════╝██╔════╝██╔════╝
+  ███████╗   ██║   ███████║   ██║   ██║██║         ██║     ███████║█████╗  ███████╗███████╗
+  ╚════██║   ██║   ██╔══██║   ██║   ██║██║         ██║     ██╔══██║██╔══╝  ╚════██║╚════██║
+  ███████║   ██║   ██║  ██║   ██║   ██║╚██████╗    ╚██████╗██║  ██║███████╗███████║███████║
+  ╚══════╝   ╚═╝   ╚═╝  ╚═╝   ╚═╝   ╚═╝ ╚═════╝     ╚═════╝╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝
+</pre>
+
+---
+
+<!-- Center aligned content -->
+<p align="center">
+  <img src="https://images.unsplash.com/photo-1580541832626-2a7131ee809f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wzOTczOTZ8MHwxfHNlYXJjaHw1fHxjaGVzc3xlbnwwfHx8fDE3MTQ2MzY3ODh8MA&ixlib=rb-4.0.3&q=80&w=1080" alt="Static Chess Banner">
+</p>
+
+<p align="center">
+  <a href="https://developer.mozilla.org/en-US/docs/Web/HTML"><img src="https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white" alt="HTML5"></a>
+  <a href="https://developer.mozilla.org/en-US/docs/Web/CSS"><img src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white" alt="CSS3"></a>
+  <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript"><img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript"></a>
+  <a href="https://www.apache.org/licenses/LICENSE-2.0"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=for-the-badge" alt="Apache 2.0 License"></a>
+  <a href="https://tmhsdigital.github.io/Static_Chess/"><img src="https://img.shields.io/badge/GitHub%20Pages-222222?style=for-the-badge&logo=GitHub%20Pages&logoColor=white" alt="GitHub Pages"></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/TMHSDigital/Static_Chess/actions"><img src="https://img.shields.io/github/actions/workflow/status/TMHSDigital/Static_Chess/ci.yml?branch=main&label=CI&style=for-the-badge" alt="CI Status"></a>
+  <a href="https://github.com/TMHSDigital/Static_Chess"><img src="https://img.shields.io/github/last-commit/TMHSDigital/Static_Chess?style=for-the-badge" alt="Last Commit"></a>
+  <a href="https://github.com/TMHSDigital/Static_Chess/issues"><img src="https://img.shields.io/github/issues/TMHSDigital/Static_Chess?style=for-the-badge" alt="Issues"></a>
+</p>
+
+<p align="center">
+  A lightweight chess game built with pure vanilla web technologies - no frameworks, no libraries, just clean code.
+</p>
+
+<p align="center">
+  <strong><a href="https://tmhsdigital.github.io/Static_Chess/">Play Now</a> | <a href="https://github.com/TMHSDigital/Static_Chess">View Source</a> | <a href="https://github.com/TMHSDigital/Static_Chess/issues">Report Issue</a></strong>
+</p>
+
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Demo](#demo)
+- [Setup and Installation](#setup-and-installation)
+- [How to Play](#how-to-play)
+- [Code Structure](#code-structure)
+- [Documentation](#documentation)
+- [Deployment](#deployment)
+- [Future Enhancements](#future-enhancements)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
+
+## Overview
+
+Static Chess is a fully functional chess game playable in a web browser. It is built using pure vanilla JavaScript, HTML, and CSS, with no external frameworks or libraries. The game features standard chess rules, move validation, check/checkmate detection, move history in standard algebraic notation, a computer opponent, a chess clock, game review, PGN and FEN import and export, undo, accessibility support, offline play, and game state persistence using `localStorage`.
+
+It is designed to be simple, lightweight, and easily deployable on static hosting platforms like GitHub Pages.
+
+---
+
+## Features
+
+<details open>
+<summary><b>Core Features</b></summary>
+<br>
+
+- **Standard Chess Rules:** Implements all standard piece movements (Pawn, Rook, Knight, Bishop, Queen, King)
+- **Special Moves:** Supports castling (kingside and queenside), en passant, and pawn promotion with a choice of queen, rook, bishop or knight
+- **Move Validation:** Prevents illegal moves based on piece movement, obstacles, and check rules
+- **Check/Checkmate Detection:** Identifies check situations and declares checkmate when appropriate
+- **Stalemate Detection:** Detects stalemate conditions (no legal moves, but not in check)
+- **Draw Detection:** Ends the game on insufficient material, threefold repetition and the fifty-move rule
+- **Local Multiplayer:** Two players can play against each other on the same device
+- **Computer Opponent:** Play against the computer at three levels, as White, Black or a side drawn at random for each game; it thinks in a background worker so the page stays responsive
+- **Visual Feedback:**
+  - Highlights the selected piece
+  - Shows possible legal moves for the selected piece
+  - Highlights the king when in check
+  - Highlights the last move made
+- **Move History:** Displays moves in standard algebraic notation (SAN), with a file or rank added only where two pieces could make the move
+- **Drag and Drop:** Move pieces by dragging them to valid squares (works alongside click-based movement)
+- **Undo and Redo:** Revert the last move with one click, and play it again with Redo (or Ctrl+Y) until another move is made
+- **Chess Clock:** Five time controls, with a warning at 20 and 10 seconds; the computer budgets its time against it
+- **Game Review:** Step back through the game from the move list or with the step buttons, see what the engine makes of each position, and go on playing from any of them with "Play from here"
+- **Resign and Draw Offer:** End a game by resignation or by agreement; the result is saved and exported
+- **Hint:** Shows the move the engine would play, without playing it, also for an earlier position while looking back
+- **Moves that lost ground:** After a game, the move list marks the moves the engine thinks cost a pawn and a half or more
+- **PGN and FEN:** Copy or save the game as PGN, copy the position as FEN, and load a game or a position from pasted text or a file
+- **Past Games:** The last 20 games are kept and can be opened again
+- **Captured Pieces:** Each player's bar shows what they have taken and the material lead
+- **Themes:** Four board colour schemes and a dark or light page
+- **Offline and Installable:** Works without a connection after the first visit and can be installed as an app
+- **Game Persistence:** Automatically saves game state to `localStorage`
+- **Responsive Design:** Adapts layout for both desktop and mobile devices
+- **Coordinate Toggle:** Option to display board coordinates
+- **Professional UI:** Clean, minimalist design with subtle animations and visual cues
+- **Customizable Settings:** Clock, board theme, page theme, and toggles for coordinates, possible moves, the last-move highlight, sound effects and a flipped board
+
+</details>
+
+<details>
+<summary><b>UI Features</b></summary>
+<br>
+
+- **Elegant Board Design:** Professional-looking chess board with subtle texturing
+- **SVG Chess Pieces:** High-quality vector graphics for consistent piece rendering across all browsers
+- **Responsive Layout:** Adapts to different screen sizes while maintaining playability
+- **Visual Clarity:** Clean, uncluttered interface that focuses on the gameplay
+- **Sophisticated Colors:** Carefully selected color palette for optimal contrast and reduced eye strain
+- **Subtle Move Indicators:** Non-intrusive indicators for possible moves and last move played
+- **Animated Pieces:** Smooth animations enhance the playing experience
+- **Keyboard Navigation:** The board is one Tab stop; navigate it with the arrow keys, Enter/Space to select/move
+- **Accessibility:** ARIA grid with labelled squares; every move, check and result is announced to screen readers; animations are reduced when the system asks for reduced motion
+- **Sound Effects:** Optional synthesized tones for moves, captures, check, castling, promotion, and game end (toggle in settings)
+- **Settings Panel:** Customizable display options with toggle switches
+- **Mobile-Friendly Design:** Works well on touchscreens with appropriate sizing
+
+</details>
+
+---
+
+## Demo
+
+The game features an elegant, professional-looking interface with a dark theme and subtle visual cues:
+
+<p align="center">
+  <img src="assets/screenshots/play-vs-computer.webp" alt="Playing the computer: choosing Computer: medium and White, starting a new game, playing e4, Nc3, Nf3 and Bc4 while the computer replies, asking for a hint, stepping through the moves with the engine's verdict shown, then going back to the game" width="92%">
+</p>
+
+<p align="center"><em>Playing the computer: four opening moves, a hint, then a look back through the game</em></p>
+
+<p align="center">
+  <img src="assets/screenshots/game-in-progress.png" alt="A game in progress on the clock against the computer: the board with each player's bar, the game buttons, the move list, and the new-game settings" width="45%" style="margin-right: 2%;" valign="top">
+  <img src="assets/screenshots/settings-open.png" alt="Looking back at an earlier move in the light theme with the green board, with Settings open" width="45%" valign="top">
+</p>
+
+<p align="center"><em>A game in progress on the clock (left), and looking back at an earlier move in the light theme with "Settings" open (right)</em></p>
+
+---
+
+## Setup and Installation
+
+1. **Clone the repository:**
+
+   ```bash
+   git clone https://github.com/TMHSDigital/Static_Chess.git
+   cd Static_Chess
+   ```
+
+2. **Open `index.html`:** Simply open the file in your web browser.
+
+Optional (for contributors):
+
+- Node is only needed for the dev tooling: 22.22.2 or newer on the 22 line, or 24.15 or newer
+- Install it and run the checks CI runs:
+  ```bash
+  npm ci
+  npm run lint
+  npm run format
+  npm run coverage
+  ```
+- See [CONTRIBUTING](.github/CONTRIBUTING.md) for the details, including what to update when a file is added
+
+That's it! No build process or dependencies are required.
+
+---
+
+## How to Play
+
+1. Open `index.html` in your browser. Served over http(s), for example from GitHub Pages, the game also works offline after the first visit and can be installed as an app
+2. The game starts with White's turn
+3. Click on a piece to select it and see possible moves, or drag the piece to move it
+4. Click on a highlighted square to move the selected piece (or drop if dragging)
+5. The board updates, move is added to the Move History, and turn switches
+6. If a move results in check, the opponent's king will be highlighted in red
+7. A pawn that reaches the last rank is promoted; choose a queen, rook, bishop or knight
+8. Game ends with checkmate, stalemate or a draw (insufficient material, threefold repetition, fifty-move rule)
+9. Click "Undo" to take back the last move ("Redo" or Ctrl+Y plays it again), or "New Game" to reset the board (a game in progress asks for a second click)
+10. Click "Copy PGN" to copy the game for an analysis board or to share it, or "Save PGN" to save it as a file
+    - Click a move in the Move History (or use the arrow keys, Home and End there) to look at the position after it. Left and Right also step through the moves from anywhere else on the page, and Esc returns to the game. When a game is over, "Review" beside the result starts from the first position. "Play from here" (asked twice) drops the later moves and lets you go on from the position you are looking at; the game as it was is kept under "Past games". While you look back, a line under the list says what the engine makes of the position ("Engine thinks White is ahead by 1.3"). The buttons under the list step to the starting position, the previous move, the next move and the latest move, and the one in the middle plays through the moves, one a second, until it reaches the end or you press anything else; "Back to game" returns to the live position
+    - "Resign" ends the game after a second click. "Offer draw" is accepted by the other side with a second click, or answered at once by the computer. Undo reopens a game ended this way (not in a timed game, where Undo is off)
+    - "Load" replaces the game with a PGN game you paste, keeping its result (a resigned, drawn or timed-out game stays finished; Undo reopens it), or starts a new game from a FEN position you paste. "Open file" in that dialog reads a `.pgn` or `.fen` file instead, and a file can also be dropped on the dialog. It also lists your last 20 games under "Past games" (a game goes there when you start or load another); click one to open it again, or press "Delete" beside it (asked twice) to remove it; "Clear all" removes them all
+    - "Copy FEN" copies the position on the board
+    - "Copy link" copies an address that opens the game for whoever follows it (or, for a game too long for a link and while you look back at an earlier move, the position on the board). Opening such a link goes through "Load", so a game in progress is replaced only after you confirm
+    - "Hint" marks the move the built-in engine would play for the side to move; nothing is played. While you look back it works on the position on screen
+    - When a game is over, moves marked "?" in the Move History are ones the engine thinks lost ground; hover over one, or look at it, to read why. The engine only looks a few moves ahead, so take it as an opinion
+    - The pieces each side has captured, and the material lead, are shown in that player's bar beside the board
+11. Keyboard: Tab to the board, move between squares with the arrow keys, and press Enter or Space to select a piece or move it
+12. With a clock, a player who has 20 and then 10 seconds left is warned by an announcement for screen readers and, with sound effects on, a double beep
+13. To play against the computer, pick a level under "Opponent" and a side under "Play as"; the board turns to the side you pick ("Random" draws a side at each New Game, and a game in progress keeps its side after a reload), and "Flip board" turns it back. Undo then takes back your move and the computer's reply, and Redo brings both back
+14. Open "Settings" to choose a board theme and a dark or light page, and to toggle:
+    - Show coordinates
+    - Show possible moves
+    - Highlight last move
+    - Sound effects
+    - Flip board (play from Black's side)
+15. The game and its undo history are saved automatically to localStorage, so a refresh picks up where you left off
+
+---
+
+## Code Structure
+
+<details>
+<summary><b>View Project Structure</b></summary>
+<br>
+
+```
+Static_Chess/
+├── index.html           # Main HTML entry point
+├── 404.html             # Shown by GitHub Pages for an unknown address
+├── sw.js                # Service worker: keeps a copy of the app for offline use
+├── manifest.webmanifest # Makes the page installable as an app
+├── _config.yml          # Keeps docs, tests and tooling out of the published site
+├── css/                 # CSS styles
+│   ├── style.css        # General page styles
+│   ├── board.css        # Chessboard specific styles
+│   └── pieces.css       # Chess pieces styles
+├── js/                  # JavaScript logic
+│   ├── config.js        # Configuration and feature flags
+│   ├── utils.js         # Utility functions
+│   ├── pieces.js        # Piece definitions and movement patterns
+│   ├── rules.js         # Rules of chess as pure functions (move generation, check, draws)
+│   ├── board.js         # Board rendering and interaction
+│   ├── game.js          # The live game: state, move flow, undo, saving
+│   ├── main.js          # Application entry point
+│   ├── drag.js          # Drag and drop functionality (integrated with click flow)
+│   ├── ai.js            # Computer opponent (evaluation and search)
+│   ├── ai-worker.js     # Runs the search in a Web Worker
+│   ├── promotion.js     # Pawn promotion chooser
+│   ├── notation.js      # Writing SAN and PGN; reading PGN and FEN into checked moves
+│   ├── saved-game.js    # Checking a saved game read from storage
+│   ├── game-store.js    # The saved game and the past games in the browser's storage
+│   ├── clock.js         # The arithmetic and the rules of a chess clock
+│   ├── review.js        # The engine's scores put into words
+│   ├── engine-bridge.js # Requests to the engine, through the worker or on the page
+│   └── game-ui.js       # Status, buttons, clocks, move list and the Load dialog
+├── assets/              # Static assets
+│   ├── icons/           # App icon (SVG, and PNG at 192px and 512px)
+│   ├── social-card.png  # Image shown when a link to the game is shared
+│   ├── screenshots/     # UI screenshots for documentation
+│   │   ├── game-in-progress.png
+│   │   ├── play-vs-computer.webp
+│   │   └── settings-open.png
+│   └── [piece SVGs]     # SVG files for chess pieces
+│       ├── wp.svg, bp.svg   # White and black pawns
+│       ├── wr.svg, br.svg   # White and black rooks
+│       ├── wn.svg, bn.svg   # White and black knights
+│       ├── wb.svg, bb.svg   # White and black bishops
+│       ├── wq.svg, bq.svg   # White and black queens
+│       └── wk.svg, bk.svg   # White and black kings
+├── tests/               # Test files (Jest + jsdom)
+│   ├── helpers/         # Shared loader that builds a fresh page and game per test
+│   ├── unit/            # Unit tests for the rules, the engine, the game and its controls
+│   └── integration/     # Game flow through the DOM, and the real index.html
+├── releases/            # Release files
+│   ├── README.md        # Release directory documentation
+│   ├── RELEASE_NOTES_v0.2.0.md  # Release notes for v0.2.0
+│   ├── RELEASE_NOTES_v0.1.0.md  # Release notes for v0.1.0
+│   └── RELEASE_GUIDE_v0.1.0.md  # Release guide for v0.1.0
+├── docs/                # Documentation
+│   ├── ARCHITECTURE.md  # Architecture and design documentation
+│   ├── ROADMAP.md       # Development roadmap
+│   └── RELEASE.md       # Release process documentation
+├── .github/             # GitHub configuration
+│   ├── workflows/       # CI/CD workflows (ci.yml, release.yml)
+│   ├── ISSUE_TEMPLATE/  # Issue templates
+│   └── CODEOWNERS       # Code ownership rules
+├── package.json         # Dev dependencies and scripts (lint/test only)
+├── package-lock.json    # Exact versions of the dev dependencies
+├── eslint.config.mjs     # ESLint configuration
+├── .prettierrc          # Prettier configuration
+├── .prettierignore      # Files Prettier leaves alone
+├── .editorconfig        # Editor configuration
+├── .gitignore           # Git ignore rules
+├── CHANGELOG.md         # Project changelog
+└── LICENSE              # Apache 2.0 License file
+```
+
+The project follows a clear separation of concerns:
+
+- **`index.html`:** Main structure and layout
+- **CSS files:** Visual presentation and animations
+- **JS files:** Game logic and behavior
+  - `config.js`: Feature flags and game settings
+  - `utils.js`: Helper functions like coordinate conversions
+  - `pieces.js`: Piece objects and basic movement patterns
+  - `rules.js`: Legal move generation, check, castling, en passant, promotion and draw rules, with no DOM access
+  - `board.js`: DOM rendering, keyboard navigation, and diff-based updates
+  - `game.js`: Game state and move flow, undo, saving, and what the status and announcements say
+  - `game-ui.js`: Draws the status line, buttons, clocks, move list and the Load dialog from what `game.js` tells it
+  - `notation.js`, `saved-game.js`, `game-store.js`, `clock.js`, `review.js`: SAN, PGN and FEN text, saved-game validation, storage, clock rules and the wording of engine scores, with no DOM access
+  - `engine-bridge.js`: Sends positions to the engine and brings its move or its scores back
+  - `main.js`: Bootstraps the application
+  - `drag.js`: Drag and drop integrated via existing click handlers
+  - `promotion.js`: Dialog for choosing the promotion piece
+  - `ai.js`, `ai-worker.js`: Computer opponent, searched in a Web Worker
+- **SVG assets:** Vector graphics for all chess pieces, ensuring consistent rendering across browsers
+- **Tests:** Jest unit and integration tests with jsdom for browser simulation
+- **Documentation:** Architecture guides, development roadmap, and release process
+- **Dev tooling:** ESLint, Prettier, EditorConfig for code quality (dev-only, no runtime dependencies)
+
+</details>
+
+---
+
+## Documentation
+
+The project includes comprehensive documentation to help developers understand the architecture and implement new features:
+
+- **Architecture Documentation:** `docs/ARCHITECTURE.md` explains components, data flow, and state.
+- **Development Roadmap:** `docs/ROADMAP.md` outlines features, priorities, and timeline.
+- **Release Process:** `docs/RELEASE.md` describes the automated release workflow via GitHub Actions.
+- **Changelog:** `CHANGELOG.md` tracks notable changes.
+- **Code Comments:** Files include JSDoc comments explaining functionality and usage.
+
+To contribute to the project or implement new features, please review these documentation files first.
+
+---
+
+## Deployment
+
+Since this is a purely static website, it can be easily deployed on any static hosting service.
+
+**GitHub Pages Deployment:**
+
+1. Push your project to GitHub
+2. Go to repository settings
+3. Navigate to "Pages" section
+4. Set source to your preferred branch
+5. Set folder to `/ (root)`
+6. Your site will be available at `https://tmhsdigital.github.io/Static_Chess/`
+
+Pages builds the site from the repository root. `_config.yml` lists what is left out of it (docs, tests, dev tooling), so only the game is published; a new top-level file that is not part of the game belongs on that list.
+
+**CI/CD Workflows:**
+
+- `.github/workflows/ci.yml`: Runs lint and tests on PRs and pushes
+- `.github/workflows/release.yml`: Automatically creates GitHub Releases when tags are pushed
+
+Optional: Add a `pages.yml` workflow for CI-driven Pages deployment, or keep manual Pages settings.
+
+---
+
+## Future Enhancements
+
+See the [Development Roadmap](docs/ROADMAP.md) for a detailed plan of upcoming features.
+
+<details>
+<summary><b>Planned Features</b></summary>
+<br>
+
+- **Stronger Computer Opponent:** Faster move generation and a transposition table, to search deeper in the same time
+- **Sound Effects:** Recorded sounds as an alternative to the built-in synthesized tones
+- **Named Saved Games:** Keep several games in progress under names; today the last 20 games are kept as past games
+- **Game Analysis:** Deeper analysis than the quick look the engine now takes at each move of a finished game
+
+</details>
+
+---
+
+## Contributing
+
+Contributions are welcome! Please check the [Development Roadmap](docs/ROADMAP.md) for planned features and follow these steps:
+
+1. Fork the repository
+2. Create a feature branch
+3. Implement your changes following project coding standards
+4. Submit a pull request
+
+For major changes, please open an issue first to discuss what you would like to change.
+
+See [CONTRIBUTING](.github/CONTRIBUTING.md) for development setup and the test and lint conventions, the [Code of Conduct](.github/CODE_OF_CONDUCT.md), and the [Security Policy](.github/SECURITY.md) for reporting vulnerabilities.
+
+---
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
+---
+
+Made with ❤️ by <a href="https://github.com/TMHSDigital">TMHSDigital</a>

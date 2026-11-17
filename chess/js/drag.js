@@ -1,0 +1,329 @@
+/**
+ * @fileoverview Drag and drop for chess pieces. It only handles the pointer:
+ * selection lives in board.js, and the move itself is played by game.js
+ * through the same function a click uses.
+ */
+
+// Drag state tracking
+let dragState = {
+    isDragging: false,
+    piece: null,
+    element: null,
+    startPos: { x: 0, y: 0 },
+    startSquare: { row: 0, col: 0 },
+    currentPos: { x: 0, y: 0 },
+    offset: { x: 0, y: 0 },
+    hasMoved: false, // Track if mouse actually moved during drag
+    touchId: null, // The identifier of the finger that started a touch drag
+};
+
+/**
+ * @param {TouchList|Array} list - A touch event's touches or changedTouches.
+ * @returns {Touch|null} The finger the drag follows, if it is in the list.
+ */
+function findDragTouch(list) {
+    return Array.from(list || []).find((touch) => touch.identifier === dragState.touchId) || null;
+}
+
+/** @returns {number} A coordinate of an event or touch, or the fallback if it has none. */
+function coordinate(value, fallback) {
+    return Number.isFinite(value) ? value : fallback;
+}
+
+// Flag to prevent click events after drag
+let dragJustEnded = false;
+
+// Expose flag globally for game.js to check
+if (typeof window !== 'undefined') {
+    Object.defineProperty(window, 'dragJustEnded', {
+        get: function () {
+            return dragJustEnded;
+        },
+        set: function (value) {
+            dragJustEnded = value;
+        },
+    });
+}
+
+/**
+ * Initialize drag and drop functionality for chess pieces.
+ * Called from main.js when the feature is enabled.
+ */
+function initDragAndDrop() {
+    if (!CONFIG.FEATURES.DRAG_AND_DROP) {
+        debugLog('Drag and drop is disabled in config');
+        return;
+    }
+
+    debugLog('Initializing drag and drop functionality');
+
+    // Add the drag event listeners to the chess board
+    const boardElement = document.getElementById('chess-board');
+
+    if (!boardElement) {
+        console.error('Chess board element not found! Drag and drop cannot be initialized.');
+        return;
+    }
+
+    // Mouse events - use capture phase to handle before click
+    boardElement.addEventListener('mousedown', handleDragStart, true);
+    document.addEventListener('mousemove', handleDragMove);
+    document.addEventListener('mouseup', handleDragEnd, true);
+
+    // Touch events for mobile
+    boardElement.addEventListener('touchstart', handleDragStart, { passive: false });
+    document.addEventListener('touchmove', handleDragMove, { passive: false });
+    document.addEventListener('touchend', handleDragEnd);
+    // The browser takes a touch away for a system gesture, a call or a second finger
+    document.addEventListener('touchcancel', cancelDrag);
+
+    debugLog('Drag and drop event listeners attached');
+}
+
+/**
+ * Handle the start of a drag operation.
+ * @param {MouseEvent|TouchEvent} event - The mouse or touch event.
+ */
+function handleDragStart(event) {
+    if (!CONFIG.FEATURES.DRAG_AND_DROP) return;
+    if (event.type === 'mousedown' && event.button !== 0) return; // Left button only
+    if (dragState.isDragging && dragState.hasMoved) return; // A second finger does not take over a drag
+    if (isBoardLocked()) return; // Game over or not the player's turn
+
+    const target = event.target;
+
+    // Find the piece element (could be the target itself or a parent)
+    const pieceElement = target.classList.contains('piece') ? target : target.closest('.piece');
+
+    if (!pieceElement) {
+        return; // Not clicking on a piece
+    }
+
+    // Get the square element that contains the piece
+    const squareElement = pieceElement.closest('.square');
+    if (!squareElement) {
+        debugLog('Could not find square element for piece');
+        return;
+    }
+
+    // Get row and column from the square
+    const row = parseInt(squareElement.dataset.row, 10);
+    const col = parseInt(squareElement.dataset.col, 10);
+
+    // Only the side to move can pick up its pieces
+    if (!isOwnPiece(row, col)) {
+        return;
+    }
+
+    // Get start position: for a touch, that of the finger just put down
+    const touch =
+        event.type === 'touchstart'
+            ? (event.changedTouches && event.changedTouches[0]) || event.touches[0]
+            : null;
+    const clientX = touch ? touch.clientX : event.clientX;
+    const clientY = touch ? touch.clientY : event.clientY;
+
+    // Get bounding rect for initial positioning (before adding dragging class)
+    const rect = pieceElement.getBoundingClientRect();
+    const offsetX = clientX - rect.left - rect.width / 2;
+    const offsetY = clientY - rect.top - rect.height / 2;
+
+    // Arm a potential drag. Nothing is selected or styled yet: a press that never
+    // moves is a plain click or tap, and the board's click handler owns that.
+    dragState.isDragging = true;
+    dragState.piece = pieceElement;
+    dragState.element = pieceElement;
+    dragState.startSquare = { row, col };
+    dragState.startPos = { x: clientX, y: clientY };
+    dragState.currentPos = { x: clientX, y: clientY };
+    dragState.offset = { x: offsetX, y: offsetY };
+    dragState.rect = rect;
+    dragState.hasMoved = false;
+    dragState.touchId = touch ? touch.identifier : null;
+    dragJustEnded = false;
+
+    // Stop the browser starting a text selection on mouse press. This does not
+    // suppress the click event. Touch is left alone so a tap still produces a click.
+    if (event.type === 'mousedown') {
+        event.preventDefault();
+    }
+}
+
+/**
+ * Turn an armed press into a real drag: select the piece, show its moves and lift it.
+ */
+function beginDrag() {
+    const { row, col } = dragState.startSquare;
+    const pieceElement = dragState.element;
+    const rect = dragState.rect;
+
+    setSelectedSquare(row, col);
+    setPossibleMoves(generateLegalMovesForPiece(row, col));
+    refreshBoardVisuals();
+
+    // Add dragging class for styling and set initial position
+    pieceElement.classList.add('dragging');
+    // Store original size to maintain during drag (fixed positioning can lose relative sizing)
+    pieceElement.style.width = `${rect.width}px`;
+    pieceElement.style.height = `${rect.height}px`;
+    pieceElement.style.left = `${rect.left}px`;
+    pieceElement.style.top = `${rect.top}px`;
+
+    dragState.hasMoved = true;
+    debugLog('Started dragging piece at', row, col);
+}
+
+/**
+ * Handle the movement during a drag operation.
+ * @param {MouseEvent|TouchEvent} event - The mouse or touch event.
+ */
+function handleDragMove(event) {
+    if (!CONFIG.FEATURES.DRAG_AND_DROP || !dragState.isDragging) return;
+
+    // Prevent default behavior for touch events (stops the page scrolling mid-drag)
+    if (event.type === 'touchmove' && event.cancelable) {
+        event.preventDefault();
+    }
+
+    // Get current position: for a touch, that of the finger that started the drag
+    const point = event.type === 'touchmove' ? findDragTouch(event.touches) : event;
+    if (!point) return;
+    const clientX = point.clientX;
+    const clientY = point.clientY;
+
+    dragState.currentPos = { x: clientX, y: clientY };
+
+    // The drag only starts once the pointer has moved a few pixels
+    if (!dragState.hasMoved) {
+        const deltaX = Math.abs(clientX - dragState.startPos.x);
+        const deltaY = Math.abs(clientY - dragState.startPos.y);
+        if (deltaX <= CONFIG.DRAG_THRESHOLD_PX && deltaY <= CONFIG.DRAG_THRESHOLD_PX) return;
+        beginDrag();
+    }
+
+    // Update the position of the dragged element (using fixed positioning with stored offset)
+    dragState.element.style.left = `${clientX - dragState.offset.x}px`;
+    dragState.element.style.top = `${clientY - dragState.offset.y}px`;
+}
+
+/** Puts a lifted piece back in its square and forgets the drag. */
+function dropDraggedPiece() {
+    const element = dragState.element;
+    if (element) {
+        element.style.left = '';
+        element.style.top = '';
+        element.style.width = '';
+        element.style.height = '';
+        element.classList.remove('dragging');
+    }
+    dragState.isDragging = false;
+    dragState.piece = null;
+    dragState.element = null;
+    dragState.hasMoved = false;
+}
+
+/**
+ * Abandons a drag without playing a move: the piece goes back to its square
+ * and nothing stays selected. Used when the browser cancels the touch.
+ */
+function cancelDrag() {
+    if (!dragState.isDragging) return;
+    const lifted = dragState.hasMoved;
+    dropDraggedPiece();
+    if (lifted) {
+        clearSelectedSquare();
+        clearPossibleMoves();
+        refreshBoardVisuals();
+    }
+}
+
+/**
+ * Handle the end of a drag operation.
+ * @param {MouseEvent|TouchEvent} event - The mouse or touch event.
+ */
+function handleDragEnd(event) {
+    if (!CONFIG.FEATURES.DRAG_AND_DROP || !dragState.isDragging) return;
+
+    // Lifting another finger leaves the drag to the finger that started it
+    const point = event.type === 'touchend' ? findDragTouch(event.changedTouches) : event;
+    if (!point) return;
+
+    // A press that never became a drag is a click or tap: leave it to the click handler
+    if (!dragState.hasMoved) {
+        dragState.isDragging = false;
+        dragState.piece = null;
+        dragState.element = null;
+        return;
+    }
+
+    // Get drop position (use currentPos if event coordinates aren't available)
+    const clientX = coordinate(point.clientX, dragState.currentPos.x);
+    const clientY = coordinate(point.clientY, dragState.currentPos.y);
+
+    // Store drag state before resetting
+    const wasDrag = dragState.hasMoved;
+    const startSquare = dragState.startSquare;
+    const dragElement = dragState.element;
+
+    // Temporarily hide the dragged piece to find the square underneath
+    const originalDisplay = dragElement.style.display;
+    dragElement.style.display = 'none';
+
+    // Find the square element under the drop position
+    let targetSquare = null;
+    if (wasDrag) {
+        const elementsAtPoint = document.elementsFromPoint(clientX, clientY);
+        // Find the first square element (the piece is hidden so it won't interfere)
+        targetSquare = elementsAtPoint.find((el) => el.classList.contains('square'));
+    }
+
+    // Restore display, put the piece back in its square and end the drag
+    dragElement.style.display = originalDisplay;
+    dropDraggedPiece();
+
+    // Process drop if it was a drag (not just a click)
+    if (wasDrag && targetSquare) {
+        const endRow = parseInt(targetSquare.dataset.row, 10);
+        const endCol = parseInt(targetSquare.dataset.col, 10);
+
+        debugLog('Dropped at square', endRow, endCol);
+
+        // The piece was selected when the drag began; play the move if the drop square is one of its targets
+        const selected = getSelectedSquare();
+        const isPossible = getPossibleMoves().some((pm) => pm.row === endRow && pm.col === endCol);
+        if (
+            isPossible &&
+            selected &&
+            selected.row === startSquare.row &&
+            selected.col === startSquare.col
+        ) {
+            playChosenMove(startSquare, { row: endRow, col: endCol });
+        } else {
+            debugLog('Invalid drop: not a possible move or selection changed');
+        }
+    }
+
+    // A drag always ends with nothing selected, whether or not it made a move
+    clearSelectedSquare();
+    clearPossibleMoves();
+    refreshBoardVisuals();
+
+    // Swallow the click the browser may fire after the drag
+    dragJustEnded = true;
+    setTimeout(() => {
+        dragJustEnded = false;
+    }, CONFIG.DRAG_CLICK_GUARD_MS);
+    event.stopPropagation();
+    if (event.cancelable) event.preventDefault();
+}
+
+// Export for Node/Jest tests (CommonJS)
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        initDragAndDrop,
+        handleDragStart,
+        handleDragMove,
+        handleDragEnd,
+        cancelDrag,
+    };
+}
