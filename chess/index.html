@@ -3,25 +3,50 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Chess ✦ Hyper-Pop</title>
+        <title>Static Chess</title>
+        <!-- A second line of defence: the page may only load its own scripts, styles,
+             images, worker and manifest. Nothing inline, nothing from another host. -->
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; worker-src 'self'; manifest-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'"
+        />
         <link rel="stylesheet" href="css/style.css" />
         <link rel="stylesheet" href="css/board.css" />
         <link rel="stylesheet" href="css/pieces.css" />
-        <link rel="stylesheet" href="../style.css" />
-        <link rel="stylesheet" href="css/hyperpop.css" />
         <meta
             name="description"
-            content="Play chess in Hyper-Pop. Challenge a friend or the computer."
+            content="Chess in the browser for two players or against the computer. Works offline."
         />
-        <meta name="theme-color" content="#0b0b16" />
+        <meta name="theme-color" content="#282828" />
+        <!-- For link previews and search engines. These need the full address of the site. -->
+        <link rel="canonical" href="https://tmhsdigital.github.io/Static_Chess/" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Static Chess" />
+        <meta
+            property="og:description"
+            content="Chess in the browser for two players or against the computer. Works offline."
+        />
+        <meta property="og:url" content="https://tmhsdigital.github.io/Static_Chess/" />
+        <meta
+            property="og:image"
+            content="https://tmhsdigital.github.io/Static_Chess/assets/social-card.png"
+        />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta
+            property="og:image:alt"
+            content="A game of chess in progress on the Static Chess board"
+        />
+        <meta name="twitter:card" content="summary_large_image" />
+        <link rel="icon" href="assets/icons/icon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
         <link rel="manifest" href="manifest.webmanifest" />
     </head>
     <body>
-        <nav class="hp-page-nav"><a class="logo" href="../index.html">← Hyper-Pop</a><div id="account-slot"></div></nav>
         <div class="game-container">
             <div class="board-container">
                 <div class="board-header">
-                    <h1 class="game-title">Chess</h1>
+                    <h1 class="game-title">Static Chess</h1>
                     <div class="status-bar" id="status-bar">
                         <div id="game-status" class="game-status">White's turn</div>
                         <div
@@ -309,7 +334,7 @@
         <script src="js/pieces.js"></script>
         <script src="js/rules.js"></script>
         <script src="js/ai.js"></script>
-        <script src="js/board.js?v=20261117-2"></script>
+        <script src="js/board.js"></script>
         <script src="js/drag.js"></script>
         <script src="js/promotion.js"></script>
         <script src="js/notation.js"></script>
@@ -321,6 +346,5 @@
         <script src="js/game-ui.js"></script>
         <script src="js/game.js"></script>
         <script src="js/main.js"></script>
-            <script src="../app.js?v=chess-integration-1"></script>
     </body>
 </html>
