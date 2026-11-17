@@ -957,7 +957,7 @@ case 'node':{
     if(attempt<8){line('Server is still waking or unreachable: '+lastError,'warn');await new Promise(resolve=>setTimeout(resolve,5000))}
    }
   }
-  if(!h||h.ok!==true)throw Error('Could not wake the Render server after about 2 minutes. Last issue: '+lastError+'. Try node status again in a moment, or open '+base+'/health in Safari.');
+  if(!h||h.ok!==true)throw Error('Could not wake the Render server after about 2 minutes. Last issue: '+lastError+'. Try node status again in a moment, or open '+base+'/health in your browser.');
   line('Render server is awake and responding.','ok');
   line('Runtime: '+(h.runtime||'unknown')+' · '+(h.service||'Node server'));
   line('Checking your Hyper-Pop account session…','dim');
