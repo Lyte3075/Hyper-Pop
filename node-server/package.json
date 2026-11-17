@@ -1,0 +1,17 @@
+{
+  "name": "hyper-pop-node-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Personal Node.js project server for Hyper-Pop",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  },
+  "type": "module"
+}

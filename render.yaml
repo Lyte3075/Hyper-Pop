@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: hyper-pop-personal-node
+    runtime: node
+    plan: free
+    region: virginia
+    branch: terminal
+    rootDir: node-server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: SUPABASE_URL
+        value: https://iapnejlttsqqefkpmelp.supabase.co
+      - key: SUPABASE_ANON_KEY
+        value: sb_publishable_TB7oC4nDlUJq-Gcb2yoTjQ_Dvbh6NlM
+      - key: HP_STORAGE_URL
+        value: https://iapnejlttsqqefkpmelp.supabase.co/functions/v1/hyperpop-node-storage
+      - key: HP_NODE_SETUP_KEY
+        sync: false

@@ -58,15 +58,16 @@ button{font:inherit;color:var(--fg);background:#101010;border:1px solid #333;bor
 'use strict';
 const screen=document.getElementById('screen'),form=document.getElementById('form'),input=document.getElementById('input'),cwdLabel=document.getElementById('cwd'),state=document.getElementById('state');
 const editor=document.getElementById('editor'),editorText=document.getElementById('editorText'),editorTitle=document.getElementById('editorTitle'),editorStatus=document.getElementById('editorStatus'),editorGutter=document.getElementById('editorGutter'),editorSaveButton=document.getElementById('editorSave');
-let editorPath=null,editorOriginal='',root=null,cwd=['home','guest'],history=[],historyIndex=0,terminalInputResolver=null;const envVars={HOME:'/home/guest',USER:'guest',SHELL:'/bin/hp-sh',TERM:'xterm-hp',PATH:'/bin:/usr/bin'};const startedAt=Date.now();
-const HOME=['home','guest'];
+let editorPath=null,editorOriginal='',root=null,HOME=['home','guest'],cwd=HOME.slice(),history=[],historyIndex=0,terminalInputResolver=null;const envVars={HOME:'/home/guest',USER:'guest',SHELL:'/bin/hp-sh',TERM:'xterm-hp',PATH:'/bin:/usr/bin'};const startedAt=Date.now();
+async function resolveTerminalUsername(){try{const token=localStorage.getItem('hyperpop_token');if(!token)return 'guest';const response=await fetch('https://iapnejlttsqqefkpmelp.supabase.co/rest/v1/rpc/hyperpop_me',{method:'POST',headers:{apikey:'sb_publishable_TB7oC4nDlUJq-Gcb2yoTjQ_Dvbh6NlM','Content-Type':'application/json'},body:JSON.stringify({p_token:token})});if(!response.ok)return 'guest';const data=await response.json();const name=String(data?.username||'').trim().toLowerCase();return /^[a-z0-9][a-z0-9_-]{0,31}$/.test(name)?name:'guest'}catch(_){return 'guest'}}
 function line(text='',kind=''){const el=document.createElement('div');el.className='line '+kind;el.textContent=String(text);screen.appendChild(el);screen.scrollTop=screen.scrollHeight}
 function status(text,kind){state.textContent=text;state.className=kind||''}
 function pathString(parts){return '/'+parts.join('/')}
 function updatePrompt(){cwdLabel.textContent=cwd.length===2?'~':pathString(cwd)}
 function tokenize(s){const out=[];let cur='',quote=null,escape=false;for(const ch of s){if(escape){cur+=ch;escape=false;continue}if(ch==='\\'&&quote!=="'"){escape=true;continue}if(quote){if(ch===quote)quote=null;else cur+=ch;continue}if(ch==='"'||ch==="'"){quote=ch;continue}if(/\s/.test(ch)){if(cur){out.push(cur);cur=''}}else cur+=ch}if(escape)cur+='\\';if(cur)out.push(cur);return out}
-function resolve(path){if(!path||path==='~')return HOME.slice();let parts=path.startsWith('/')?[]:cwd.slice();for(const part of path.split('/')){if(!part||part==='.')continue;if(part==='..')parts.pop();else{if(part.includes('\0'))throw Error('Invalid path.');parts.push(part)}}return parts}
-async function directory(parts,create){let d=root;for(const p of parts)d=await d.getDirectoryHandle(p,{create:!!create});return d}
+function normalizeHome(parts){const out=parts.slice();if(out[0]==='home'&&out[1]==='guest')out[1]=HOME[1];return out}
+function resolve(path){if(!path||path==='~')return HOME.slice();let parts=path.startsWith('/')?[]:cwd.slice();for(const part of path.split('/')){if(!part||part==='.')continue;if(part==='..')parts.pop();else{if(part.includes('\0'))throw Error('Invalid path.');parts.push(part)}}return normalizeHome(parts)}
+async function directory(parts,create){let d=root;for(const p of normalizeHome(parts))d=await d.getDirectoryHandle(p,{create:!!create});return d}
 async function parentAndName(parts){if(!parts.length)throw Error('Cannot modify the filesystem root.');return [await directory(parts.slice(0,-1),false),parts[parts.length-1]]}
 async function readFile(parts){const [p,n]=await parentAndName(parts);const h=await p.getFileHandle(n);return await (await h.getFile()).text()}
  async function readFileBytes(parts){const [p,n]=await parentAndName(parts);const h=await p.getFileHandle(n);return new Uint8Array(await (await h.getFile()).arrayBuffer())}
@@ -560,7 +561,7 @@ async function executeNode(source,label){
   const url=moduleUrl(spec);
   return url?'import('+JSON.stringify(url)+')':"Promise.resolve(require("+JSON.stringify(spec)+"))";
  });
- const builtins={express:createVirtualExpress(),database:browserDatabase,db:browserDatabase,WebSocket:createVirtualWebSocket(),path:nodePath,process:nodeProcess,buffer:{Buffer:NodeBuffer},util:{promisify:f=>f},assert:{ok:(v,m)=>{if(!v)throw Error(m||'Assertion failed')},equal:(a,b)=>{if(a!=b)throw Error(a+' != '+b)},strictEqual:(a,b)=>{if(a!==b)throw Error(a+' !== '+b)}},crypto:{webcrypto:crypto},url:{URL,URLSearchParams},fs:nodeFs,http:nodeHttp,https:nodeHttps,os:{platform:()=>'browser',arch:()=>'wasm32',homedir:()=>'/home/guest',tmpdir:()=>'/tmp',EOL:'\n'},events:{EventEmitter:class{constructor(){this._events={}}on(n,f){(this._events[n]??=[]).push(f);return this}addListener(n,f){return this.on(n,f)}once(n,f){const w=(...a)=>{this.off(n,w);f(...a)};return this.on(n,w)}off(n,f){this._events[n]=(this._events[n]||[]).filter(x=>x!==f);return this}removeListener(n,f){return this.off(n,f)}emit(n,...a){for(const f of [...(this._events[n]||[])])f(...a);return !!(this._events[n]||[]).length}}}};
+ const builtins={express:createVirtualExpress(),database:browserDatabase,db:browserDatabase,WebSocket:createVirtualWebSocket(),path:nodePath,process:nodeProcess,buffer:{Buffer:NodeBuffer},util:{promisify:f=>f},assert:{ok:(v,m)=>{if(!v)throw Error(m||'Assertion failed')},equal:(a,b)=>{if(a!=b)throw Error(a+' != '+b)},strictEqual:(a,b)=>{if(a!==b)throw Error(a+' !== '+b)}},crypto:{webcrypto:crypto},url:{URL,URLSearchParams},fs:nodeFs,http:nodeHttp,https:nodeHttps,os:{platform:()=>'browser',arch:()=>'wasm32',homedir:()=>'/home/'+HOME[1],tmpdir:()=>'/tmp',EOL:'\n'},events:{EventEmitter:class{constructor(){this._events={}}on(n,f){(this._events[n]??=[]).push(f);return this}addListener(n,f){return this.on(n,f)}once(n,f){const w=(...a)=>{this.off(n,w);f(...a)};return this.on(n,w)}off(n,f){this._events[n]=(this._events[n]||[]).filter(x=>x!==f);return this}removeListener(n,f){return this.off(n,f)}emit(n,...a){for(const f of [...(this._events[n]||[])])f(...a);return !!(this._events[n]||[]).length}}}};
  const requireFn=name=>{const key=String(name).replace(/^node:/,'');if(builtins[key])return builtins[key];if(nodePackageModules[name])return nodePackageModules[name];throw Error("Cannot find module '"+name+"'. Run npm install "+name+" first, then rerun the script.")};
  const nodeConsole={log:print,info:print,warn:(...v)=>{outputCount++;line(v.join(' '),'warn')},error:(...v)=>{outputCount++;line(v.join(' '),'err')},table:v=>print(v),clear:()=>{}};
  const module={exports:{}},exports=module.exports;
@@ -593,7 +594,7 @@ async function npmCommand(args){
    if(!code||code.length<20||/^(?:<!doctype html|<html)/i.test(code.slice(0,200)))throw Error('Registry did not return a JavaScript package for '+name+'.');
    const safe=name.replace(/[^a-z0-9._-]/gi,'_');
    await writeFile(registryDir.concat(safe+'.mjs'),code,false);
-   nodePackages[name]={url,version,cache:'/home/guest/.hp-node-modules/'+safe+'.mjs',installedAt:new Date().toISOString()};
+   nodePackages[name]={url,version,cache:'/home/'+HOME[1]+'/.hp-node-modules/'+safe+'.mjs',installedAt:new Date().toISOString()};
    try{const mod=await import(url);nodePackageModules[name]=mod&&Object.keys(mod).length===1&&'default'in mod?mod.default:mod}
    catch(e){throw Error('Downloaded '+name+', but it cannot run in this browser runtime: '+e.message+'. It may require native Node APIs or unsupported module features.')}
    line('Installed '+name+'@'+version+' and cached its package bundle.','ok');
@@ -706,6 +707,17 @@ function bytesToBase64(textValue){const bytes=new TextEncoder().encode(textValue
 function base64ToText(value){const binary=atob(value),bytes=Uint8Array.from(binary,c=>c.charCodeAt(0));return new TextDecoder().decode(bytes)}
 
 async function tree(parts,depth,prefix){if(depth>5)return;const d=await directory(parts,false),items=[];for await(const [name,h] of d.entries())items.push({name,dir:h.kind==='directory'});items.sort((a,b)=>Number(b.dir)-Number(a.dir)||a.name.localeCompare(b.name));for(let i=0;i<items.length;i++){const x=items[i],last=i===items.length-1;line(prefix+(last?'└── ':'├── ')+x.name+(x.dir?'/':''));if(x.dir)await tree(parts.concat(x.name),depth+1,prefix+(last?'    ':'│   '))}}
+const HP_NODE_URL_KEY='hyperpop_terminal_node_server';
+function getNodeServerUrl(){return String(localStorage.getItem(HP_NODE_URL_KEY)||'').replace(/\/$/,'')}
+async function nodeServerRequest(route,options={}){
+ const base=getNodeServerUrl();if(!base)throw Error('Connect your server first: node connect <https://your-server.onrender.com>');
+ const token=localStorage.getItem('hyperpop_token')||'';if(!token)throw Error('Sign in to your Hyper-Pop account first.');
+ const headers=new Headers(options.headers||{});headers.set('Authorization','Bearer '+token);if(options.body&&!headers.has('Content-Type'))headers.set('Content-Type','application/json');
+ const response=await fetch(base+route,{...options,headers});
+ const data=await response.json().catch(()=>({ok:false,error:'The Node server returned an invalid response.'}));
+ if(!response.ok||data.ok===false)throw Error(data.error||('Node server request failed with HTTP '+response.status));
+ return data;
+}
 async function runSingle(raw){const trimmed=raw.trim(),args=tokenize(raw),cmd=(args.shift()||'').toLowerCase(),arg=args[0];if(!cmd)return;
 line((cwd.length===2?'~':pathString(cwd))+' $ '+raw,'cmd');
  const looksLikeJavaScript=/^(?:const|let|var|function|class|async\s+function|import\s|export\s|require\s*\(|console\.|process\.|module\.|exports\.|await\s|fetch\s*\(|https?\.(?:get|request)\s*\(|Promise\.|throw\s|try\s*\{|if\s*\(|for\s*\(|while\s*\(|\/\*|\/\/)/.test(trimmed)||/;\s*(?:const|let|var)\s/.test(trimmed);
@@ -778,6 +790,11 @@ line('  github files <owner/repo>   List repository files');
 line('  github cat <owner/repo> <path> [ref]  Read a repository file');
 line('  github raw <raw-url>         Fetch raw GitHub user/repository content');
 line('  git clone <github-url>      Clone a public GitHub repository');
+line('  node connect <url>           Connect your real cloud Node.js server');
+line('  node projects/create         Manage persistent Node.js projects');
+line('  node push/pull               Transfer files between terminal and cloud');
+line('  node install/start/stop      Install packages and run Express websites');
+line('  node preview/logs            Open project previews and inspect output');
 line('  proxy open                  Open your account proxy route manager');
 line('  proxy map <host> <slug>     Route a hostname through a saved proxy route');
 line('  proxy unmap <host>          Remove a hostname mapping');
@@ -806,7 +823,7 @@ line('  date                        Show local date and time');
 line('  whoami                      Show local user');
 line('  uname                       Show runtime information');
 line('  storage                     Show OPFS availability');
-line('  js, run, node, python, pip  JavaScript, Node-compatible and Python runtimes');
+line('  js, run, nodejs, python, pip  JavaScript, Node-compatible and Python runtimes');
 line('  server                      Manage browser-local HTTP servers');
 line('  preview                     Preview saved HTML');
 line('  help                        Show this help');
@@ -847,7 +864,7 @@ case 'source':case '.':case 'sh':{if(!arg)throw Error('Usage: sh <script.sh>');c
 case 'clear':screen.textContent='';break;
 case 'history':if(args[0]==='-c'){history.length=0;historyIndex=0;line('History cleared.','ok')}else history.forEach((x,i)=>line((i+1)+'  '+x,'dim'));break;
 case 'date':{const d=new Date(),fmt=args[0]||'';if(!fmt.startsWith('+'))line(d.toString());else{const p=n=>String(n).padStart(2,'0'),v={'%Y':d.getFullYear(),'%m':p(d.getMonth()+1),'%d':p(d.getDate()),'%H':p(d.getHours()),'%M':p(d.getMinutes()),'%S':p(d.getSeconds()),'%s':Math.floor(d.getTime()/1000)};line(fmt.slice(1).replace(/%[YmdHMSs]/g,k=>v[k]??k))}}break;
-case 'whoami':line('guest','ok');break;
+case 'whoami':line(HOME[1],'ok');break;
 case 'uname':line('Hyper-Pop Browser Runtime / JavaScript / OPFS');break;
 case 'storage':line('Origin Private File System: '+(root?'available':'unavailable'),root?'ok':'err');line('Storage is private to this browser profile and this website origin.','dim');break;
 case 'download':if(!arg)throw Error('Usage: download <file>');{const blob=new Blob([await readFileBytes(resolve(arg))],{type:previewMime(arg)}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=resolve(arg).pop();a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);line('Download started: '+arg,'ok')}break;
@@ -877,8 +894,8 @@ case 'python':case 'py':if(!arg){line('Usage: python <file.py>  |  python -c <co
 case 'pip':if(args[0]!=='install'||!args[1])throw Error('Usage: pip install <package>');{const py=await loadPyodideRuntime();line('Installing '+args[1]+'…','dim');await py.loadPackage('micropip');await py.runPythonAsync("import micropip\\nawait micropip.install("+JSON.stringify(args[1])+")");line('Installed '+args[1]+' (if compatible with Pyodide).','ok')}break;
 case 'preview':if(!arg)throw Error('Usage: preview <file-or-folder>');{const p=resolve(arg);let isDir=false;try{await directory(p,false);isDir=true}catch(_){}if(isDir){const d=await directory(p,false),names=[];for await(const [name,h] of d.entries())if(h.kind==='file'&&/\.html?$/i.test(name))names.push(name);const chosen=names.find(x=>x.toLowerCase()==='index.html')||names[0];if(!chosen)throw Error('This folder has no HTML entry point. Preview an individual file instead.');await previewHtml(p.concat(chosen))}else await previewFile(p)}break;
 case 'image':if(!arg)throw Error('Usage: image <image-file>');{const p=resolve(arg);if(!previewMime(arg).startsWith('image/'))throw Error('That file does not look like a supported image.');await previewFile(p)}break;
-case 'node':{
- if(!arg){line('HP Node-compatible runtime. Usage: node <file.js> | node -e <code>','dim');line('This is not native Node.js; browser-compatible packages only.','warn');break}
+case 'nodejs':{
+ if(!arg){line('HP Node-compatible runtime. Usage: nodejs <file.js> | nodejs -e <code>','dim');line('This is not native Node.js; browser-compatible packages only.','warn');break}
  if(arg==='-e'||arg==='--eval'){const code=args.slice(1).join(' ');if(!code)throw Error('Usage: node -e <code>');await executeNode(code,'node -e');break}
  if(arg.toLowerCase().endsWith('.js'))await executeNode(await readFile(resolve(arg)),arg);
  else throw Error('Usage: node <file.js> or node -e <code>');
@@ -906,6 +923,105 @@ case 'server':{
  if(sub==='help'||!sub){line('server list | server stop <port> | server open <port>');line('Servers are virtual and accessible only inside this Hyper-Pop terminal tab.','warn');break}
  throw Error('Usage: server list | server stop <port> | server open <port>');
 }
+case 'node':{
+ const sub=(args[0]||'help').toLowerCase();
+ if(sub==='connect'){
+  const rawUrl=args[1];if(!rawUrl)throw Error('Usage: node connect <https://your-server.onrender.com>');
+  const u=new URL(rawUrl);if(u.protocol!=='https:')throw Error('Use the HTTPS URL from your Render service.');
+  localStorage.setItem(HP_NODE_URL_KEY,u.origin);line('Connected terminal to '+u.origin,'ok');break;
+ }
+ if(sub==='help'||sub==='?'){
+  line('node connect <url> | status | claim <setup-key> | projects | create <slug> [name] | delete <slug>');
+  line('node files <slug> | push <slug> <local-file> [remote-path] | pull <slug> <remote-path> [local-file]');
+  line('node install <slug> | start <slug> | stop <slug> | logs <slug> | preview <slug>');
+  line('This is your real cloud Node.js runtime. Project files are stored persistently in Hyper-Pop.','dim');break;
+ }
+ if(sub==='status'){
+  const base=getNodeServerUrl();if(!base)throw Error('Connect first with node connect <server-url>.');
+  line('Checking Render server: '+base,'dim');
+  line('Render free services sleep after inactivity. Sending a wake-up request…','warn');
+  let h=null,lastError='No response yet.';
+  for(let attempt=1;attempt<=8;attempt++){
+   line('Wake-up check '+attempt+'/8…','dim');
+   try{
+    const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),15000);
+    let response;
+    try{response=await terminalFetch(base+'/health?wake='+Date.now(),{method:'GET',cache:'no-store',signal:controller.signal})}
+    finally{clearTimeout(timeout)}
+    if(!response.ok)throw Error('HTTP '+response.status+' '+response.statusText);
+    h=await response.json();
+    if(h&&h.ok===true)break;
+    throw Error('Health endpoint responded, but did not return ok:true.');
+   }catch(e){
+    lastError=e&&e.name==='AbortError'?'Timed out waiting for Render to wake.':(e&&e.message?e.message:String(e));
+    if(attempt<8){line('Server is still waking or unreachable: '+lastError,'warn');await new Promise(resolve=>setTimeout(resolve,5000))}
+   }
+  }
+  if(!h||h.ok!==true)throw Error('Could not wake the Render server after about 2 minutes. Last issue: '+lastError+'. Try node status again in a moment, or open '+base+'/health in your browser.');
+  line('Render server is awake and responding.','ok');
+  line('Runtime: '+(h.runtime||'unknown')+' · '+(h.service||'Node server'));
+  line('Checking your Hyper-Pop account session…','dim');
+  try{
+   const me=await nodeServerRequest('/api/me');
+   line('Account: '+(me.username||'connected'),'ok');
+   line(me.claimed?'Personal server claimed.':'Not claimed. Run node claim <setup-key>.',me.claimed?'ok':'warn');
+   if(me.projects)line('Projects: '+me.projects.length);
+  }catch(e){throw Error('Render is awake, but account verification failed: '+(e&&e.message?e.message:String(e))+' Check that you are signed in to Hyper-Pop and that this server is claimed by this account.')}
+  break;
+ }
+ if(sub==='claim'){
+  if(!args[1])throw Error('Usage: node claim <one-time-setup-key>');
+  const result=await nodeServerRequest('/api/claim',{method:'POST',body:JSON.stringify({setupKey:args[1]})});line(result.alreadyOwner?'This account already owns the personal server.':'Personal Node server claimed by this Hyper-Pop account.','ok');break;
+ }
+ if(sub==='projects'){
+  const d=await nodeServerRequest('/api/projects');if(!d.projects.length)line('No projects yet. Create one with node create <slug>.','dim');
+  d.projects.forEach(p=>line(p.slug+' · '+(p.running?'RUNNING':'STOPPED')+' · '+p.name,p.running?'ok':'dim'));break;
+ }
+ if(sub==='create'){
+  if(!args[1])throw Error('Usage: node create <slug> [project name]');
+  const d=await nodeServerRequest('/api/projects',{method:'POST',body:JSON.stringify({slug:args[1],name:args.slice(2).join(' ')||args[1]})});line('Created '+d.project.slug+' with an Express starter app.','ok');line('Next: node install '+d.project.slug+' then node start '+d.project.slug);break;
+ }
+ if(sub==='delete'){
+  if(!args[1])throw Error('Usage: node delete <slug>');
+  await nodeServerRequest('/api/projects/'+encodeURIComponent(args[1]),{method:'DELETE'});line('Deleted project '+args[1]+'.','ok');break;
+ }
+ if(sub==='files'){
+  if(!args[1])throw Error('Usage: node files <slug>');
+  const d=await nodeServerRequest('/api/projects/'+encodeURIComponent(args[1])+'/files');if(!d.files.length)line('No files.','dim');d.files.forEach(f=>line(f.path));break;
+ }
+ if(sub==='push'){
+  if(!args[1]||!args[2])throw Error('Usage: node push <slug> <local-file> [remote-path]');
+  const local=await readFile(resolve(args[2]));const remote=args[3]||args[2].split('/').pop();
+  await nodeServerRequest('/api/projects/'+encodeURIComponent(args[1])+'/files',{method:'PUT',body:JSON.stringify({path:remote,content:local})});line('Uploaded '+args[2]+' → '+args[1]+'/'+remote,'ok');break;
+ }
+ if(sub==='pull'){
+  if(!args[1]||!args[2])throw Error('Usage: node pull <slug> <remote-path> [local-file]');
+  const d=await nodeServerRequest('/api/projects/'+encodeURIComponent(args[1])+'/files?path='+encodeURIComponent(args[2]));
+  const local=resolve(args[3]||args[2]);await writeFile(local,d.file.content);line('Downloaded '+args[1]+'/'+args[2]+' → '+pathString(local),'ok');break;
+ }
+ if(sub==='install'){
+  if(!args[1])throw Error('Usage: node install <slug>');
+  const d=await nodeServerRequest('/api/projects/'+encodeURIComponent(args[1])+'/install',{method:'POST',body:'{}'});line(d.output||'npm install finished.',d.ok?'ok':'err');line('Exit code: '+d.code,d.ok?'ok':'err');break;
+ }
+ if(sub==='start'){
+  if(!args[1])throw Error('Usage: node start <slug>');
+  const d=await nodeServerRequest('/api/projects/'+encodeURIComponent(args[1])+'/start',{method:'POST',body:'{}'});line('Project started on port '+d.port+'.','ok');line('Preview: '+d.previewUrl,'ok');window.open(d.previewUrl,'_blank','noopener');break;
+ }
+ if(sub==='stop'){
+  if(!args[1])throw Error('Usage: node stop <slug>');
+  await nodeServerRequest('/api/projects/'+encodeURIComponent(args[1])+'/stop',{method:'POST',body:'{}'});line('Stopped '+args[1]+'.','ok');break;
+ }
+ if(sub==='logs'){
+  if(!args[1])throw Error('Usage: node logs <slug>');
+  const d=await nodeServerRequest('/api/projects/'+encodeURIComponent(args[1])+'/status');line(d.logs||'No output yet.');break;
+ }
+ if(sub==='preview'){
+  if(!args[1])throw Error('Usage: node preview <slug>');
+  const d=await nodeServerRequest('/api/projects/'+encodeURIComponent(args[1])+'/status');if(!d.running||!d.previewUrl)throw Error('Project is not running. Use node start '+args[1]+'.');
+  line('Opening '+d.previewUrl,'ok');window.open(d.previewUrl,'_blank','noopener');break;
+ }
+ throw Error('Unknown node command. Use node help.');
+}
 case 'proxy':{
  const sub=args[0];
  if(sub==='open'){window.open(new URL('reverse-proxy.html',location.href).href,'_blank','noopener');line('Opened the Hyper-Pop reverse proxy manager.','ok');break}
@@ -929,7 +1045,7 @@ case 'unset':if(!arg)throw Error('Usage: unset <name>');delete envVars[arg];line
 case 'which':if(!arg)throw Error('Usage: which <command>');line(['js','run','python','py','pip','preview','image','github','node','npm','help','pwd','ls','cd','mkdir','touch','cat','nano','write','append','rm','rmdir','tree','echo','clear','history','date','whoami','uname','storage','download','cp','mv','find','stat','du','head','tail','wc','grep','sort','uniq','rev','nl','base64','unbase64','seq','calc','printf','basename','dirname','realpath','file','sha256sum','cmp','diff','cut','tr','sed','awk','source','sh','test','true','false','sleep','upload','open','proxy','export','env','unset','which','man','hostname','id','uptime','free','version','about','exit'].includes(arg)?'/bin/'+arg:'not found',arg? 'ok':'');break;
 case 'man':line('Built-in command: '+(arg||'help'));line('Use help for the command index. Most file commands accept absolute or relative paths.');break;
 case 'hostname':line('hyper-pop-browser');break;
-case 'id':line('uid=1000(guest) gid=1000(guest) groups=1000(guest)');break;
+case 'id':line('uid=1000('+HOME[1]+') gid=1000('+HOME[1]+') groups=1000('+HOME[1]+')');break;
 case 'uptime':line('Session uptime: '+Math.floor((Date.now()-startedAt)/1000)+' seconds');break;
 case 'free':line('Browser-managed memory is not fully exposed to web pages.','warn');if(performance.memory)line('JS heap: '+formatSize(performance.memory.usedJSHeapSize)+' / '+formatSize(performance.memory.jsHeapSizeLimit));break;
 case 'db':{const sub=args[0];if(sub==='help'||!sub){line('Local OPFS document database commands:');line('  db collections');line('  db create <collection>');line('  db insert <collection> <json>');line('  db find <collection> [json-filter]');line('  db delete <collection> <json-filter>');line("Node API: const db=await require(\"database\"); const users=db.collection(\"users\");");line("Remote REST: await db.connect(\"https://api.example\",{headers:{Authorization:\"Bearer TOKEN\"}}); await db.request(\"/records\");")}else if(sub==='collections'){const names=await browserDatabase.collections();line(names.length?names.join('\\n'):'(no collections)','ok')}else if(sub==='create'){if(!args[1])throw Error('Usage: db create <collection>');await browserDatabase.collection(args[1]).create();line('Created '+args[1],'ok')}else if(sub==='insert'){if(!args[1]||!args[2])throw Error('Usage: db insert <collection> <json>');const result=await browserDatabase.collection(args[1]).insertOne(JSON.parse(args.slice(2).join(' ')));line('Inserted document '+result.insertedId,'ok')}else if(sub==='find'){if(!args[1])throw Error('Usage: db find <collection> [json-filter]');line(JSON.stringify(await browserDatabase.collection(args[1]).find(args[2]?JSON.parse(args.slice(2).join(' ')):{}),null,2),'ok')}else if(sub==='delete'){if(!args[1]||!args[2])throw Error('Usage: db delete <collection> <json-filter>');const result=await browserDatabase.collection(args[1]).deleteMany(JSON.parse(args.slice(2).join(' ')));line('Deleted '+result.deletedCount+' document(s)','ok')}else throw Error('Try db help.');break}
@@ -940,7 +1056,7 @@ line('Node scripts support CommonJS require for built-ins and installed browser-
 line('Node commands use a browser-side compatibility runtime, not native Node.js. npm downloads and caches ESM bundles; native addons, child processes, raw sockets and OS binaries are not available. http/https requests use proxy-aware fetch. Git commands connect to public GitHub repositories; this is not a full Git object database and local commits/pushes are not implemented.','dim');break;
 case 'reset':screen.textContent='';line('Terminal display reset. Files were not changed.','ok');break;
 case 'exit':location.href='index.html';break;
-default:if(/^(?:#!|(?:sudo\s+)?(?:apt|apt-get|apk|dnf|yum|pacman|brew|systemctl|service|chmod|chown|make|gcc|g\+\+|python3?|pip3?|node|npm|npx|yarn|pnpm|bun|deno|git|curl|wget|bash|sh|zsh|ls|cd|pwd|cat|grep|find|mkdir|rm|cp|mv|touch|echo|export|env|which|uname|whoami|tar|zip|unzip|ssh|scp|docker|podman)\b)/.test(trimmed)){line('This looks like a shell command, but this browser terminal does not have a Linux host process to execute it.','warn');line('Use supported HP-SH commands, or run it inside a compatible WebAssembly runtime.','dim')}else line('Command not found: '+cmd+'. Type help. For JavaScript, paste code directly or use node <file.js>.','err');
+default:if(/^(?:#!|(?:sudo\s+)?(?:apt|apt-get|apk|dnf|yum|pacman|brew|systemctl|service|chmod|chown|make|gcc|g\+\+|python3?|pip3?|node|npm|npx|yarn|pnpm|bun|deno|git|curl|wget|bash|sh|zsh|ls|cd|pwd|cat|grep|find|mkdir|rm|cp|mv|touch|echo|export|env|which|uname|whoami|tar|zip|unzip|ssh|scp|docker|podman)\b)/.test(trimmed)){line('This looks like a shell command, but this browser terminal does not have a Linux host process to execute it.','warn');line('Use supported HP-SH commands, or run it inside a compatible WebAssembly runtime.','dim')}else line('Command not found: '+cmd+'. Type help. For JavaScript, paste code directly or use nodejs <file.js>.','err');
 }
 }catch(e){line('ERROR: '+(e&&e.message?e.message:String(e)),'err')}
 }
@@ -1002,7 +1118,7 @@ async function run(raw){
  await runSingle(trimmed);
 }
 
-async function init(){try{if(!navigator.storage||!navigator.storage.getDirectory)throw Error('This browser does not support OPFS. Try an up-to-date Safari or another modern browser.');root=await navigator.storage.getDirectory();await directory(HOME,true);await loadNodePackages();status('OPFS READY','good');line('Hyper-Pop Terminal [HP-SH 0.4]','ok');line('Persistent browser-local filesystem initialized.','dim');line('Authenticated Hyper-Pop proxy networking is available. No access to private device files.','dim');line('Type help to see available commands.','');line('');updatePrompt()}catch(e){status('FILESYSTEM UNAVAILABLE','bad');line('Could not initialize browser storage: '+e.message,'err');line('This terminal requires a secure HTTPS page and browser OPFS support.','warn')}}
+async function init(){try{if(!navigator.storage||!navigator.storage.getDirectory)throw Error('This browser does not support OPFS. Try an up-to-date Safari or another modern browser.');root=await navigator.storage.getDirectory();HOME=['home',await resolveTerminalUsername()];cwd=HOME.slice();envVars.HOME='/home/'+HOME[1];envVars.USER=HOME[1];await directory(['home'],true);await directory(HOME,true);await loadNodePackages();status('OPFS READY','good');line('Hyper-Pop Terminal [HP-SH 0.4]','ok');line('Persistent browser-local filesystem initialized.','dim');line('Authenticated Hyper-Pop proxy networking is available. No access to private device files.','dim');line('Type help to see available commands.','');line('');updatePrompt()}catch(e){status('FILESYSTEM UNAVAILABLE','bad');line('Could not initialize browser storage: '+e.message,'err');line('This terminal requires a secure HTTPS page and browser OPFS support.','warn')}}
 form.addEventListener('submit',async e=>{e.preventDefault();const raw=input.value;input.value='';input.style.height='auto';if(terminalInputResolver){line('> '+raw,'cmd');const resolve=terminalInputResolver;finishTerminalInput(raw);resolve(raw);return}if(raw.trim()){history.push(raw);historyIndex=history.length;await run(raw)}});
 input.addEventListener('input',()=>{input.style.height='auto';input.style.height=Math.min(input.scrollHeight,window.innerHeight*.38)+'px'});
 input.addEventListener('keydown',e=>{
