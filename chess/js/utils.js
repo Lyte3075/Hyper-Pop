@@ -1,0 +1,172 @@
+/**
+ * @fileoverview Utility functions for the chess game.
+ */
+
+/**
+ * Converts algebraic notation (e.g., "e4") to board coordinates.
+ * @param {string} algebraic - The algebraic notation (e.g., "a1", "h8").
+ * @returns {{row: number, col: number} | null} The 0-indexed row and column, or null if invalid.
+ */
+function algebraicToCoords(algebraic) {
+    if (typeof algebraic !== 'string' || algebraic.length !== 2) {
+        console.error('Invalid algebraic notation:', algebraic);
+        return null;
+    }
+    const file = algebraic[0].toLowerCase();
+    const rank = algebraic[1];
+
+    const col = file.charCodeAt(0) - 'a'.charCodeAt(0);
+    const row = 8 - parseInt(rank, 10);
+
+    if (col < 0 || col > 7 || isNaN(row) || row < 0 || row > 7) {
+        console.error('Invalid algebraic notation coordinates:', algebraic);
+        return null;
+    }
+
+    return { row, col };
+}
+
+/**
+ * Converts board coordinates (0-indexed) to algebraic notation.
+ * @param {number} row - The 0-indexed row.
+ * @param {number} col - The 0-indexed column.
+ * @returns {string | null} The algebraic notation (e.g., "a1", "h8"), or null if invalid.
+ */
+function coordsToAlgebraic(row, col) {
+    if (row < 0 || row > 7 || col < 0 || col > 7) {
+        console.error('Invalid coordinates:', { row, col });
+        return null;
+    }
+    const file = String.fromCharCode('a'.charCodeAt(0) + col);
+    const rank = (8 - row).toString();
+    return file + rank;
+}
+
+/**
+ * Checks if coordinates are within the board bounds.
+ * @param {number} row
+ * @param {number} col
+ * @returns {boolean}
+ */
+function isWithinBounds(row, col) {
+    return row >= 0 && row < 8 && col >= 0 && col < 8;
+}
+
+/**
+ * The one way the app reaches localStorage. A browser can block storage or
+ * have it full; reading then gives null, writing and removing do nothing, and
+ * the game goes on without remembering.
+ * @param {string} key
+ * @returns {string|null} The stored text, or null if there is none or it cannot be read.
+ */
+function readStored(key) {
+    try {
+        return localStorage.getItem(key);
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * @param {string} key
+ * @param {string} value
+ * @returns {boolean} False if the value could not be stored.
+ */
+function writeStored(key, value) {
+    try {
+        localStorage.setItem(key, value);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * @param {string} key
+ * @returns {boolean} False if storage could not be reached.
+ */
+function removeStored(key) {
+    try {
+        localStorage.removeItem(key);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+let audioContext = null; // Created on first use; browsers require a user gesture first
+
+/**
+ * Plays a short synthesized sound for a game event. The tones are generated
+ * with the Web Audio API, so no audio files are needed.
+ * @param {string} soundType - 'move', 'capture', 'check', 'castle', 'promote' or 'game_end'.
+ * @exports playSound
+ */
+function playSound(soundType) {
+    if (!CONFIG.FEATURES.SOUND_EFFECTS) return;
+
+    const tones = CONFIG.SOUNDS[soundType.toUpperCase()];
+    if (!tones) return;
+
+    const AudioContextClass =
+        typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext);
+    if (!AudioContextClass) return; // No audio support (old browser, test environment)
+
+    try {
+        audioContext = audioContext || new AudioContextClass();
+        if (audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+        let startTime = audioContext.currentTime;
+        for (const tone of tones) {
+            const oscillator = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            oscillator.type = tone.wave || 'sine';
+            oscillator.frequency.value = tone.frequency;
+            // Quick fade-out so each tone ends without a click
+            gain.gain.setValueAtTime(CONFIG.SOUND_VOLUME, startTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + tone.duration);
+            oscillator.connect(gain);
+            gain.connect(audioContext.destination);
+            oscillator.start(startTime);
+            oscillator.stop(startTime + tone.duration);
+            startTime += tone.duration;
+        }
+    } catch (err) {
+        console.error('Error playing sound:', err);
+    }
+}
+
+/**
+ * Debug logging function that only logs when debug mode is enabled.
+ * @param {...any} args - Arguments to log.
+ * @exports debugLog
+ */
+function debugLog(...args) {
+    if (CONFIG.DEBUG) {
+        console.log('[DEBUG]', ...args);
+    }
+}
+
+/**
+ * @param {string} color - 'w' or 'b'.
+ * @returns {string} The side's name as the status line and the PGN give it: "White" or "Black".
+ */
+function sideName(color) {
+    return color === 'w' ? 'White' : 'Black';
+}
+
+// Export for Node/Jest tests (CommonJS)
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        sideName,
+        algebraicToCoords,
+        coordsToAlgebraic,
+        isWithinBounds,
+        readStored,
+        writeStored,
+        removeStored,
+        playSound,
+        debugLog,
+    };
+}
