@@ -1,0 +1,17 @@
+/* Hyper-Pop theme layer for the imported Static Chess game. */
+:root {
+  --main-bg:#0b0b16; --panel-bg:#151526; --frame-bg:#19192b; --inset-bg:#10101e;
+  --text-color:#f7f4ff; --muted-text:#aaa7c1; --accent-color:#4be0e3;
+  --accent-fill:#287f86; --accent-fill-hover:#216c72; --accent-tint:#4be0e322;
+  --on-accent:#071014; --border-color:#ffffff22; --control-border:#ffffff35;
+  --danger-fill:#c03962; --danger-text:#ff80c8; --hint-square:#ffe66d;
+}
+body { display:block; min-height:100vh; padding:14px 12px 42px; margin:0; background:transparent!important; color:#f7f4ff; font-family:"Space Grotesk",system-ui,sans-serif; }
+.hp-page-nav { width:min(1200px,100%); min-height:54px; margin:0 auto 16px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.hp-page-nav .logo { color:#fff!important; font-weight:800; text-decoration:none; }
+.game-container { width:100%; max-width:1200px; margin:0 auto; }
+.board-container { background:linear-gradient(145deg,#19192b,#10101e); border:1px solid #ffffff18; border-radius:22px; box-shadow:0 20px 60px #0006; }
+.game-title { color:#f7f4ff; font-family:"Space Grotesk",system-ui,sans-serif; letter-spacing:-.04em; }
+.btn-primary { background:#4be0e3!important; color:#071014!important; border-color:#4be0e3!important; }
+button:focus-visible, a:focus-visible, input:focus-visible { outline:2px solid #4be0e3; outline-offset:3px; }
+@media(max-width:580px) { body {padding:10px 8px 30px} .hp-page-nav {margin-bottom:10px} .game-container {gap:12px} }
