@@ -21,7 +21,7 @@
 /helios                A built in web proxy
 /ugum                  EVEN MORE GAMES?!
 /gn-math               Open GN-Math
-/korona                Watch YouTube, Use ChatGPT, Listen to music, and surf the web.
+/korona                Open the full Korona launcher.\n/korona-runtime        Open the hosted Korona browser runtime.
 /cherri                 Web Proxy.
 /duck                  Open Duck Math
 /uv-static             Open a built in web proxy.
@@ -64,7 +64,7 @@ if(cmd==='/gust'){location.href='GUST/index.html';return}
 if(cmd==='/helios'){location.href='Helios/index.html';return}
 if(cmd==='/ugum'){location.href='ugum/index.html';return}
 if(cmd==='/gn-math'){location.href='gn-math.html';return}
-if(cmd==='/korona'){location.href='korona/korona.html';return}
+if(cmd==='/korona'){location.href='korona/korona.html';return}\nif(cmd==='/korona-runtime'){location.href='korona/runtime-launcher.html';return}
 if(cmd==='/cherri'){location.href='cherri/cherri.html';return}
 if(cmd==='/duck'){location.href='duck/package/index.html';return}
 if(cmd==='/uv-static'){location.href='UV-STATIC/active/index.html';return}
