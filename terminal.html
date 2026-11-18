@@ -924,7 +924,7 @@ line('  proxy map <host> <slug>     Route a hostname through a saved proxy route
 line('  proxy unmap <host>          Remove a hostname mapping');
 line('  proxy list                  Show terminal proxy mappings');
 line('  proxy fetch <https-url>     Test a mapped route and print its response');
-line('  git clone/status/fetch/pull/log/branch/add/commit/push  GitHub workspace');
+line('  git clone/status/fetch/pull/log/branch/switch/add/commit/push  GitHub workspace');
 line('  github profile/repo/files/cat/raw  Inspect public GitHub content');
 line('  git auth                    Save a GitHub fine-grained token for pushes');
 line('  server list/stop/open       Manage virtual HTTP servers');
@@ -1037,14 +1037,33 @@ case 'git':{
  if(sub==='log'){await gitLog();break}
  if(sub==='pull'){await gitPull();break}
  if(sub==='fetch'){const c=await gitConfig();const ref=await githubApi('https://api.github.com/repos/'+c.owner+'/'+c.repo+'/git/ref/heads/'+c.branch.split('/').map(encodeURIComponent).join('/'));c.remoteHead=ref.object.sha;await writeFile(resolve('.git/hp-config.json'),JSON.stringify(c,null,2),false);line('Fetched '+c.branch+' at '+ref.object.sha.slice(0,7)+'. Working files were not changed.','ok');break}
- if(sub==='branch'){const c=await gitConfig();line('* '+c.branch,'ok');line('This lightweight workspace tracks one checked-out branch.','dim');break}
+ if(sub==='branch'){
+  const cfg=await gitConfig();
+  if(args[1]&&args[1]!=='-a'&&args[1]!=='--all'){line('Creating branches is not supported yet. Use git switch <existing-branch>.','warn');break}
+  const branches=await githubApi('https://api.github.com/repos/'+cfg.owner+'/'+cfg.repo+'/branches?per_page=100');
+  for(const item of branches)line((item.name===cfg.branch?'* ':'  ')+item.name,item.name===cfg.branch?'ok':'');
+  if(branches.length===100)line('Showing the first 100 branches.','dim');
+  break;
+ }
+ if(sub==='switch'||sub==='checkout'){
+  const branch=args[1];
+  if(!branch||branch.startsWith('-'))throw Error('Usage: git switch <existing-branch> (or git checkout <existing-branch>)');
+  const cfg=await gitConfig();
+  if(branch===cfg.branch){line('Already on '+branch,'ok');break}
+  const ref=await githubApi('https://api.github.com/repos/'+cfg.owner+'/'+cfg.repo+'/git/ref/heads/'+branch.split('/').map(encodeURIComponent).join('/'));
+  cfg.branch=branch;cfg.remoteHead=ref.object.sha;
+  await writeFile(resolve('.git/hp-config.json'),JSON.stringify(cfg,null,2),false);
+  line('Switched to '+branch+'. Updating files; local edits are preserved where they conflict.','dim');
+  await gitPull();
+  break;
+ }
  if(sub==='add'){await gitAdd(args.slice(1));break}
  if(sub==='auth'){if(args[1]==='clear'){localStorage.removeItem('hyperpop_git_token');line('GitHub token cleared from this browser.','ok');break}const token=prompt('Paste a GitHub fine-grained token with Contents: Read and write. It is stored only in this browser.');if(!token)throw Error('No token entered.');localStorage.setItem('hyperpop_git_token',token.trim());line('GitHub token saved in this browser.','ok');break}
  if(sub==='commit'){const at=args.indexOf('-m'),message=at>=0?args.slice(at+1).join(' '):prompt('Commit message:');if(!message)throw Error('Usage: git commit -m "message"');await writeFile(resolve('.git/hp-commit-message.txt'),message,false);line('Commit message saved. Run git push to create and publish the commit.','ok');break}
  if(sub==='push'){await gitPush();break}
  if(sub==='diff'){await gitStatus();break}
  if(sub==='remote'){const c=await gitConfig();line('origin '+c.remote+' (fetch)');line('origin '+c.remote+' (push)');break}
- if(sub==='help'||sub==='?'){line('git clone <url> [folder] | status | fetch | pull | log | branch | remote -v');line('git add <file> | git add . | git commit -m "message" | git push');line('git auth saves a GitHub fine-grained token in this browser; git auth clear removes it.','dim');line('This is a lightweight browser GitHub workspace, not a full local Git object database.','warn');break}
+ if(sub==='help'||sub==='?'){line('git clone <url> [folder] | status | fetch | pull | log | branch [-a] | switch <branch> | checkout <branch> | remote -v');line('git add <file> | git add . | git commit -m "message" | git push');line('git auth saves a GitHub fine-grained token in this browser; git auth clear removes it.','dim');line('This is a lightweight browser GitHub workspace, not a full local Git object database.','warn');break}
  throw Error('Unsupported Git command. Type git help.');
 }
 case 'server':{
