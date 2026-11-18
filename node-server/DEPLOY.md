@@ -2,21 +2,21 @@
 
 A Docker-first Node.js hosting kit for Hyper-Pop Terminal. It packages Node 26, npm, Debian system tools, environment configuration, and a health endpoint so the same server can run on Docker-capable hosts.
 
-## One-click Render deployment
+## One-click Render Blueprint deployment
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Lyte3075/Hyper-Pop)
+[Open the Render Blueprint dashboard](https://dashboard.render.com/blueprints)
 
-1. Open the Deploy to Render link.
-2. Sign in to Render and connect the GitHub repository if asked.
-3. Select the `terminal` branch. The repository Blueprint config points to the Dockerfile in `node-server/`.
-4. Add the required environment values when Render prompts you:
+1. In Render, choose **New → Blueprint** and connect this GitHub repository.
+2. Select the `terminal` branch.
+3. Set the Blueprint file path to `node-server/render.yaml`. This is deliberately separate from the repository's existing root `render.yaml`, so the current personal Node service is not replaced.
+4. Render reads the Docker configuration and asks for the four private environment values:
    - `SUPABASE_URL`
    - `SUPABASE_ANON_KEY`
    - `HP_STORAGE_URL`
    - `HP_NODE_SETUP_KEY`
-5. Deploy. Render builds the Docker image, installs the OS and npm packages, starts the server, and checks `/health`.
+5. Review the service named `hyper-pop-node-hosting-kit`, then click **Deploy Blueprint**.
 
-The existing Hyper-Pop Blueprint uses the free Virginia region and keeps the setup key private with `sync: false`. Provider plans and free-tier availability can change.
+Render builds the Docker image, installs the OS and npm packages, starts the server, and checks `/health`. The Blueprint uses the Virginia region and requests the free plan; provider plans and free-tier availability can change.
 
 ## Docker Compose: local or any Docker host
 
