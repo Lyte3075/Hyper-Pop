@@ -624,18 +624,63 @@ async function npmCommand(args){
  else throw Error('Supported npm commands: init, install, list, uninstall, run, help');
 }
 function parseGitHubUrl(url){
- const normalized=String(url).replace(/^git@github\\.com:/,'https://github.com/');
+ const normalized=String(url).replace(/^git@github\.com:/,'https://github.com/');
  const u=new URL(normalized);
  if(u.hostname.toLowerCase()!=='github.com')throw Error('Only public GitHub repository URLs are supported.');
  const parts=u.pathname.split('/').filter(Boolean);
  if(parts.length<2)throw Error('Use a GitHub repository URL, e.g. https://github.com/user/repo');
- return {owner:parts[0],repo:parts[1].replace(/\\.git$/,'')};
+ return {owner:parts[0],repo:parts[1].replace(/\.git$/,'')};
 }
 async function githubApi(url){
  const r=await terminalFetch(url,{headers:{Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}});
  if(!r.ok)throw Error('GitHub API '+r.status+': '+(await r.text()).slice(0,180));
  return await r.json();
 }
+
+async function githubCommand(args){
+ const sub=String(args[0]||'help').toLowerCase(),value=args[1];
+ if(sub==='help'||sub==='--help'){
+  line('github profile <user> | repo <owner/repo> | files <owner/repo> [ref] | cat <owner/repo> <path> [ref] | raw <raw-github-url>');
+  line('GitHub commands read public repositories and profiles. Use git auth separately for authenticated Git operations.','dim');return;
+ }
+ if(sub==='profile'){
+  if(!value)throw Error('Usage: github profile <username>');
+  const u=await githubApi('https://api.github.com/users/'+encodeURIComponent(value));
+  line((u.name||u.login)+' (@'+u.login+')','ok');
+  if(u.bio)line(u.bio);line('Public repositories: '+u.public_repos+' · Followers: '+u.followers+' · Following: '+u.following);
+  line(u.html_url,'dim');return;
+ }
+ if(sub==='repo'||sub==='files'||sub==='cat'){
+  const parts=String(value||'').split('/').filter(Boolean);
+  if(parts.length!==2)throw Error('Use owner/repo, for example github repo Lyte3075/Hyper-Pop');
+  const [owner,repo]=parts;
+  if(sub==='repo'){
+   const r=await githubApi('https://api.github.com/repos/'+encodeURIComponent(owner)+'/'+encodeURIComponent(repo));
+   line(r.full_name,'ok');if(r.description)line(r.description);line('Default branch: '+r.default_branch+' · Stars: '+r.stargazers_count+' · Forks: '+r.forks_count);
+   line('Visibility: '+(r.private?'private':'public')+' · Updated: '+(r.updated_at||'unknown'));line(r.html_url,'dim');return;
+  }
+  if(sub==='files'){
+   const ref=args[2]||'HEAD',tree=await githubApi('https://api.github.com/repos/'+owner+'/'+repo+'/git/trees/'+encodeURIComponent(ref)+'?recursive=1');
+   if(tree.truncated)line('GitHub truncated this repository tree. Showing the returned paths.','warn');
+   const files=(tree.tree||[]).filter(x=>x.type==='blob');
+   line(owner+'/'+repo+' · '+files.length+' files','ok');
+   files.slice(0,300).forEach(x=>line(x.path));
+   if(files.length>300)line('Showing first 300 files.','dim');return;
+  }
+  const path=args[2];if(!path)throw Error('Usage: github cat <owner/repo> <path> [ref]');
+  const ref=args[3]||'HEAD',url='https://raw.githubusercontent.com/'+owner+'/'+repo+'/'+ref+'/'+path.split('/').map(encodeURIComponent).join('/');
+  const response=await terminalFetch(url);if(!response.ok)throw Error('GitHub file request failed: HTTP '+response.status+' '+response.statusText);
+  const body=await response.text();line(body.slice(0,30000)+(body.length>30000?'\n… output truncated':''),'');return;
+ }
+ if(sub==='raw'){
+  if(!value)throw Error('Usage: github raw <https://raw.githubusercontent.com/owner/repo/ref/file>');
+  const u=new URL(value);if(u.hostname!=='raw.githubusercontent.com')throw Error('Use a raw.githubusercontent.com URL.');
+  const response=await terminalFetch(u.href);if(!response.ok)throw Error('GitHub raw request failed: HTTP '+response.status);
+  const body=await response.text();line(body.slice(0,30000)+(body.length>30000?'\n… output truncated':''));return;
+ }
+ throw Error('Unknown GitHub command. Type github help.');
+}
+
 async function gitClone(url,destination){
  const {owner,repo}=parseGitHubUrl(url),meta=await githubApi('https://api.github.com/repos/'+owner+'/'+repo),branch=meta.default_branch;
  line('Cloning '+owner+'/'+repo+' ('+branch+')…','dim');
@@ -822,6 +867,7 @@ line('  proxy unmap <host>          Remove a hostname mapping');
 line('  proxy list                  Show terminal proxy mappings');
 line('  proxy fetch <https-url>     Test a mapped route and print its response');
 line('  git status / log / pull     Inspect and update a GitHub workspace');
+line('  github profile/repo/files/cat/raw  Inspect public GitHub content');
 line('  server list/stop/open       Manage virtual HTTP servers');
 line('  curl / wget <url>           Fetch a web resource or localhost server');
 line('  json <file>                 Pretty-print a JSON file');
@@ -924,6 +970,7 @@ case 'nodejs':{
  break;
 }
 case 'npm':await npmCommand(args);break;
+case 'github':await githubCommand(args);break;
 case 'git':{
  const sub=args[0];
  if(sub==='clone'){if(!args[1])throw Error('Usage: git clone <github-url> [folder]');await gitClone(args[1],args[2]);break}
