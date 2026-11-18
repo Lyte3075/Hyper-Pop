@@ -199,7 +199,7 @@ app.post("/api/system/apt",async(req,res)=>{
     });
     res.json({ok:true,commandOk:result.code===0,code:result.code,output:result.output});
   } catch(error) {
-    jsonError(res,503,error.message||"APT is unavailable in this Render runtime.");
+    jsonError(res,503,error.message||"APT is unavailable in this server runtime.");
   } finally {
     aptBusy=false;
   }
@@ -331,7 +331,8 @@ app.post("/api/projects/:slug/start",async(req,res)=>{
     const child=spawn(command,args,{cwd:projectDir(slug),uid:NODE_UID,gid:NODE_GID,env:{PATH:process.env.PATH||"",HOME:projectDir(slug),TMPDIR:os.tmpdir(),PORT:String(port),HOST:"127.0.0.1",NODE_ENV:"production"},stdio:["ignore","pipe","pipe"],shell:false});
     child.hpSlug=slug; child.hpPort=port;
     const previewKey=randomBytes(24).toString("hex");
-    const base=process.env.RENDER_EXTERNAL_URL || ("https://" + req.get("host"));
+    const protocol=String(req.get("x-forwarded-proto") || req.protocol || "https").split(",")[0].trim();
+    const base=protocol + "://" + req.get("host");
     child.hpPreviewUrl=base+"/preview/"+encodeURIComponent(slug)+"/?key="+previewKey;
     running.set(slug,child); previews.set(slug,previewKey); logs.set(slug,"");
     child.stdout.on("data",d=>appendLog(slug,d)); child.stderr.on("data",d=>appendLog(slug,d));
