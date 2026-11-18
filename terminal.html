@@ -710,7 +710,7 @@ async function tree(parts,depth,prefix){if(depth>5)return;const d=await director
 const HP_NODE_URL_KEY='hyperpop_terminal_node_server';
 function getNodeServerUrl(){return String(localStorage.getItem(HP_NODE_URL_KEY)||'').replace(/\/$/,'')}
 async function nodeServerRequest(route,options={}){
- const base=getNodeServerUrl();if(!base)throw Error('Connect your server first: node connect <https://your-server.onrender.com>');
+ const base=getNodeServerUrl();if(!base)throw Error('Connect your server first: node connect <https://your-server-url>');
  const token=localStorage.getItem('hyperpop_token')||'';if(!token)throw Error('Sign in to your linked account first.');
  const headers=new Headers(options.headers||{});headers.set('Authorization','Bearer '+token);if(options.body&&!headers.has('Content-Type'))headers.set('Content-Type','application/json');
  const response=await fetch(base+route,{...options,headers});
@@ -732,7 +732,7 @@ async function runRemoteApt(inputArgs){
  const data=await nodeServerRequest('/api/system/apt',{method:'POST',body:JSON.stringify({action,packages})});
  if(data.output)line(data.output,data.commandOk?'ok':'warn');
  line('APT exit code: '+data.code,data.commandOk?'ok':'err');
- if(data.commandOk&&(action==='install'||action==='upgrade'))line('Installed on the Render server. Runtime packages may be reset after a restart or redeploy.','dim');
+ if(data.commandOk&&(action==='install'||action==='upgrade'))line('Installed on the connected server. Runtime packages may be reset after a restart or redeploy.','dim');
  if(!data.commandOk)throw Error('APT command failed. See the output above.');
 }
 async function runSingle(raw){const trimmed=raw.trim(),args=tokenize(raw),cmd=(args.shift()||'').toLowerCase(),arg=args[0];if(!cmd)return;
@@ -815,7 +815,7 @@ line('  node preview/logs            Open project previews and inspect output');
   line('  sudo apt update              Refresh cloud server package lists');
   line('  sudo apt install <package>  Install Debian packages on your cloud server');
   line('  sudo apt remove <package>   Remove Debian packages from your cloud server');
-  line('  APT runs on Render, not on this device; installed packages may reset after restarts.','warn');
+  line('  APT runs on the connected server, not on this device; installed packages may reset after restarts.','warn');
 line('  proxy open                  Open your account proxy route manager');
 line('  proxy map <host> <slug>     Route a hostname through a saved proxy route');
 line('  proxy unmap <host>          Remove a hostname mapping');
@@ -845,7 +845,7 @@ line('  whoami                      Show local user');
 line('  uname                       Show runtime information');
 line('  storage                     Show OPFS availability');
 line('  js, run, nodejs, python, pip  JavaScript, Node-compatible and Python runtimes');
-line('  Linux tools                 Run installed programs on your connected Render server');
+line('  Linux tools                 Run installed programs on your connected server');
 line('  server                      Manage browser-local HTTP servers');
 line('  preview                     Preview saved HTML');
 line('  help                        Show this help');
@@ -948,8 +948,8 @@ case 'server':{
 case 'node':{
  const sub=(args[0]||'help').toLowerCase();
  if(sub==='connect'){
-  const rawUrl=args[1];if(!rawUrl)throw Error('Usage: node connect <https://your-server.onrender.com>');
-  const u=new URL(rawUrl);if(u.protocol!=='https:')throw Error('Use the HTTPS URL from your Render service.');
+  const rawUrl=args[1];if(!rawUrl)throw Error('Usage: node connect <https://your-server-url>');
+  const u=new URL(rawUrl);if(u.protocol!=='https:')throw Error('Use the HTTPS URL provided by your hosting provider.');
   localStorage.setItem(HP_NODE_URL_KEY,u.origin);line('Connected terminal to '+u.origin,'ok');break;
  }
  if(sub==='help'||sub==='?'){
@@ -960,8 +960,8 @@ case 'node':{
  }
  if(sub==='status'){
   const base=getNodeServerUrl();if(!base)throw Error('Connect first with node connect <server-url>.');
-  line('Checking Render server: '+base,'dim');
-  line('Render free services sleep after inactivity. Sending a wake-up request…','warn');
+  line('Checking server: '+base,'dim');
+  line('The server may be sleeping. Sending a wake-up request…','warn');
   let h=null,lastError='No response yet.';
   for(let attempt=1;attempt<=8;attempt++){
    line('Wake-up check '+attempt+'/8…','dim');
@@ -975,12 +975,12 @@ case 'node':{
     if(h&&h.ok===true)break;
     throw Error('Health endpoint responded, but did not return ok:true.');
    }catch(e){
-    lastError=e&&e.name==='AbortError'?'Timed out waiting for Render to wake.':(e&&e.message?e.message:String(e));
+    lastError=e&&e.name==='AbortError'?'Timed out waiting for the server to respond.':(e&&e.message?e.message:String(e));
     if(attempt<8){line('Server is still waking or unreachable: '+lastError,'warn');await new Promise(resolve=>setTimeout(resolve,5000))}
    }
   }
-  if(!h||h.ok!==true)throw Error('Could not wake the Render server after about 2 minutes. Last issue: '+lastError+'. Try node status again in a moment, or open '+base+'/health in your browser.');
-  line('Render server is awake and responding.','ok');
+  if(!h||h.ok!==true)throw Error('Could not wake the server after about 2 minutes. Last issue: '+lastError+'. Try node status again in a moment, or open '+base+'/health in your browser.');
+  line('Server is awake and responding.','ok');
   line('Runtime: '+(h.runtime||'unknown')+' · '+(h.service||'Node server'));
   line('Checking your linked account session…','dim');
   try{
@@ -988,7 +988,7 @@ case 'node':{
    line('Account: '+(me.username||'connected'),'ok');
    line(me.claimed?'Personal server claimed.':'Not claimed. Run node claim <setup-key>.',me.claimed?'ok':'warn');
    if(me.projects)line('Projects: '+me.projects.length);
-  }catch(e){throw Error('Render is awake, but account verification failed: '+(e&&e.message?e.message:String(e))+' Check that you are signed in to the site and that this server is claimed by this account.')}
+  }catch(e){throw Error('Server is responding, but account verification failed: '+(e&&e.message?e.message:String(e))+' Check that you are signed in to the site and that this server is claimed by this account.')}
   break;
  }
  if(sub==='claim'){
@@ -1084,10 +1084,10 @@ case 'about':line('A browser-local command environment. Files live in this site 
 line('JavaScript runs in the page runtime. Python runs in Pyodide/WebAssembly (downloaded on first use).','dim');
 line('Node scripts support CommonJS require for built-ins and installed browser-compatible npm bundles. http/https clients use authenticated proxy-aware fetch.','dim');
 line('Node commands use a browser-side compatibility runtime, not native Node.js. npm downloads and caches ESM bundles; native addons, child processes, raw sockets and OS binaries are not available. http/https requests use proxy-aware fetch. Git commands connect to public GitHub repositories; this is not a full Git object database and local commits/pushes are not implemented.','dim');
- line('sudo apt commands run on your connected Render server, never on your iPhone or computer. Runtime system packages can disappear after a Render restart or redeploy.','warn');break;
+ line('sudo apt commands run on your connected server, never on your iPhone or computer. Runtime system packages may disappear after a restart or redeploy.','warn');break;
 case 'reset':screen.textContent='';line('Terminal display reset. Files were not changed.','ok');break;
 case 'exit':location.href='index.html';break;
-default:if(REMOTE_LINUX_COMMANDS.has(cmd)&&getNodeServerUrl()){await runRemoteCommand(cmd,args)}else if(/^(?:#!|(?:sudo\s+)?(?:apt|apt-get|apk|dnf|yum|pacman|brew|systemctl|service|chmod|chown|make|gcc|g\+\+|python3?|pip3?|node|npm|npx|yarn|pnpm|bun|deno|git|curl|wget|bash|sh|zsh|ls|cd|pwd|cat|grep|find|mkdir|rm|cp|mv|touch|echo|export|env|which|uname|whoami|tar|zip|unzip|ssh|scp|docker|podman)\b)/.test(trimmed)){line('This looks like a shell command, but it is not enabled in the connected server command set.','warn');line('Connect your Render server with node connect, or use supported KA-SH commands.','dim')}else line('Command not found: '+cmd+'. Type help. For JavaScript, paste code directly or use nodejs <file.js>.','err');
+default:if(REMOTE_LINUX_COMMANDS.has(cmd)&&getNodeServerUrl()){await runRemoteCommand(cmd,args)}else if(/^(?:#!|(?:sudo\s+)?(?:apt|apt-get|apk|dnf|yum|pacman|brew|systemctl|service|chmod|chown|make|gcc|g\+\+|python3?|pip3?|node|npm|npx|yarn|pnpm|bun|deno|git|curl|wget|bash|sh|zsh|ls|cd|pwd|cat|grep|find|mkdir|rm|cp|mv|touch|echo|export|env|which|uname|whoami|tar|zip|unzip|ssh|scp|docker|podman)\b)/.test(trimmed)){line('This looks like a shell command, but it is not enabled in the connected server command set.','warn');line('Connect your server with node connect, or use supported KA-SH commands.','dim')}else line('Command not found: '+cmd+'. Type help. For JavaScript, paste code directly or use nodejs <file.js>.','err');
 }
 }catch(e){line('ERROR: '+(e&&e.message?e.message:String(e)),'err')}
 }
