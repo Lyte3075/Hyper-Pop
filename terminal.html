@@ -784,7 +784,8 @@ async function gitPush(){
 
 async function gitConfig(){
  const p=resolve('.git');
- return JSON.parse(await readFile(p.concat('hp-config.json')));
+ try{return JSON.parse(await readFile(p.concat('hp-config.json')))}
+ catch(_){throw Error('No GitHub repository is checked out in this terminal folder. Run git clone <GitHub-repository-URL> [folder], then cd into that folder and retry.')}
 }
 async function gitStatus(){
  const cfg=await gitConfig(),index=JSON.parse(await readFile(resolve('.git/hp-index.json')));
