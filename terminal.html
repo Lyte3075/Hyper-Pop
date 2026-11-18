@@ -643,8 +643,15 @@ async function githubApi(url){
 async function githubCommand(args){
  const sub=String(args[0]||'help').toLowerCase(),value=args[1];
  if(sub==='help'||sub==='--help'){
-  line('github profile <user> | repo <owner/repo> | files <owner/repo> [ref] | branches/commits/releases <owner/repo> | cat <owner/repo> <path> [ref] | raw <raw-github-url>');
+  line('github profile <user> | repo <owner/repo> | search <query> | files <owner/repo> [ref] | branches/commits/releases <owner/repo> | cat <owner/repo> <path> [ref] | raw <raw-github-url>');
   line('GitHub commands read public repositories, profiles, branches, commits, and releases. Authenticated writes use git auth.','dim');return;
+ }
+ if(sub==='search'){
+  const query=args.slice(1).join(' ').trim();if(!query)throw Error('Usage: github search <repository keywords>');
+  const data=await githubApi('https://api.github.com/search/repositories?q='+encodeURIComponent(query)+'&per_page=10');
+  line('Repository search: '+query+' · '+data.total_count+' matches','ok');
+  for(const item of data.items||[])line(item.full_name+' ★'+item.stargazers_count+' · '+(item.description||'No description')+'\n'+item.html_url);
+  return;
  }
  if(sub==='profile'){
   if(!value)throw Error('Usage: github profile <username>');
@@ -1055,6 +1062,14 @@ case 'git':{
  if(sub==='clone'){if(!args[1])throw Error('Usage: git clone <github-url> [folder]');await gitClone(args[1],args[2]);break}
  if(sub==='status'){await gitStatus();break}
  if(sub==='log'){await gitLog();break}
+ if(sub==='show'){
+  const cfg=await gitConfig(),ref=args[1]||cfg.headSha||'HEAD';
+  const info=await githubApi('https://api.github.com/repos/'+cfg.owner+'/'+cfg.repo+'/commits/'+encodeURIComponent(ref));
+  line(info.sha.slice(0,7)+' '+info.commit.message,'ok');
+  line('Author: '+(info.commit.author?.name||'unknown')+' · '+(info.commit.author?.date||'unknown'));
+  for(const file of info.files||[])line((file.status||'modified')+' '+file.filename);
+  break;
+ }
  if(sub==='pull'){await gitPull();break}
  if(sub==='fetch'){const c=await gitConfig();const ref=await githubApi('https://api.github.com/repos/'+c.owner+'/'+c.repo+'/git/ref/heads/'+c.branch.split('/').map(encodeURIComponent).join('/'));c.remoteHead=ref.object.sha;await writeFile(resolve('.git/hp-config.json'),JSON.stringify(c,null,2),false);line('Fetched '+c.branch+' at '+ref.object.sha.slice(0,7)+'. Working files were not changed.','ok');break}
  if(sub==='branch'){
