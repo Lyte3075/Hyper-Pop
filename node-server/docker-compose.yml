@@ -9,15 +9,13 @@ services:
     init: true
     ports:
       - "${PORT:-10000}:10000"
+    env_file:
+      - .env
     environment:
       NODE_ENV: production
       PORT: "10000"
-      SUPABASE_URL: ${SUPABASE_URL:?Set SUPABASE_URL in your environment}
-      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?Set SUPABASE_ANON_KEY in your environment}
-      HP_STORAGE_URL: ${HP_STORAGE_URL:-}
-      HP_NODE_SETUP_KEY: ${HP_NODE_SETUP_KEY:?Set a private HP_NODE_SETUP_KEY}
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:10000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "npm", "run", "healthcheck"]
       interval: 30s
       timeout: 5s
       retries: 3
