@@ -2,6 +2,7 @@ FROM node:26-bookworm-slim
 
 ENV NODE_ENV=production
 ENV PORT=10000
+ENV HP_COMMAND_HOME=/home/node
 
 # Install the operating-system tools into the image so they survive restarts
 # and are available on every host that supports Docker.
