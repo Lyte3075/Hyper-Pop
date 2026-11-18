@@ -108,10 +108,10 @@ async function ensureNodeOwnership(slug) {
     const stat = await fs.stat(target);
     if (stat.isDirectory()) {
       for (const entry of await fs.readdir(target)) await visit(path.join(target,entry));
-      await fs.chown(target,NODE_UID,NODE_GID);
+      if (typeof process.getuid === "function" && process.getuid() === 0) await fs.chown(target,NODE_UID,NODE_GID);
       await fs.chmod(target,0o775);
     } else {
-      await fs.chown(target,NODE_UID,NODE_GID);
+      if (typeof process.getuid === "function" && process.getuid() === 0) await fs.chown(target,NODE_UID,NODE_GID);
       await fs.chmod(target,0o664);
     }
   }
@@ -138,7 +138,7 @@ function appendLog(slug,chunk) {
 }
 function runNpm(slug,args,timeoutMs=180000) {
   return new Promise((resolve,reject) => {
-    const child = spawn("npm",args,{cwd:projectDir(slug),uid:NODE_UID,gid:NODE_GID,env:{PATH:process.env.PATH||"",HOME:projectDir(slug),TMPDIR:os.tmpdir(),CI:"1",FORCE_COLOR:"0",NODE_ENV:"production"},stdio:["ignore","pipe","pipe"],shell:false});
+    const child = spawn("npm",args,{cwd:projectDir(slug),...(typeof process.getuid === "function" && process.getuid() === 0 ? {uid:NODE_UID,gid:NODE_GID} : {}),env:{PATH:process.env.PATH||"",HOME:projectDir(slug),TMPDIR:os.tmpdir(),CI:"1",FORCE_COLOR:"0",NODE_ENV:"production"},stdio:["ignore","pipe","pipe"],shell:false});
     let output = "";
     const collect = data => { output += data.toString(); output = output.slice(-20000); appendLog(slug,data.toString()); };
     child.stdout.on("data",collect); child.stderr.on("data",collect);
@@ -192,7 +192,7 @@ app.post("/api/system/apt",async(req,res)=>{
       const timer=setTimeout(()=>{child.kill("SIGTERM");finish(()=>reject(new Error("APT timed out after 2 minutes. The package operation may need a smaller install.")));},120000);
       child.on("error",error=>finish(()=>reject(new Error(
         error.code==="ENOENT"
-          ?(root?"apt-get is not available in this Render runtime.":"This Render runtime does not expose apt-get or passwordless sudo. Configure OS packages at build time or use a Docker runtime.")
+          ?(root?"apt-get is not available in this container.":"This hosting runtime does not expose apt-get or passwordless sudo. Configure OS packages at build time or use a Docker-capable host.")
           :"Could not start APT: "+error.message
       ))));
       child.on("close",code=>finish(()=>resolve({code:code??1,output})));
@@ -221,8 +221,7 @@ app.post("/api/system/exec",async(req,res)=>{
     let output="",finished=false;
     const child=spawn(command,args,{
       cwd:"/home/node",
-      uid:NODE_UID,
-      gid:NODE_GID,
+      ...(typeof process.getuid === "function" && process.getuid() === 0 ? {uid:NODE_UID,gid:NODE_GID} : {}),
       env:{PATH:"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games",HOME:"/home/node",TMPDIR:os.tmpdir(),LANG:"C.UTF-8",FORCE_COLOR:"0"},
       stdio:["ignore","pipe","pipe"],
       shell:false
@@ -231,7 +230,7 @@ app.post("/api/system/exec",async(req,res)=>{
     child.stdout.on("data",collect);child.stderr.on("data",collect);
     const finish=value=>{if(finished)return;finished=true;clearTimeout(timer);resolve(value);};
     const timer=setTimeout(()=>{child.kill("SIGTERM");finish({code:124,output:output+"\\nCommand timed out after 30 seconds."});},30000);
-    child.on("error",error=>finish({code:127,output:output+(output?"\\n":"")+(error.code==="ENOENT"?"Command not found on the Render server.":error.message)}));
+    child.on("error",error=>finish({code:127,output:output+(output?"\\n":"")+(error.code==="ENOENT"?"Command not found on this Node hosting server.":error.message)}));
     child.on("close",code=>finish({code:code??1,output}));
   });
   res.json({ok:true,code:result.code,output:result.output});
