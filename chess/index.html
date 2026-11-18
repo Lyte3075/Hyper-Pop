@@ -8,7 +8,7 @@
              images, worker and manifest. Nothing inline, nothing from another host. -->
         <meta
             http-equiv="Content-Security-Policy"
-            content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; worker-src 'self'; manifest-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'"
+            content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; worker-src 'self'; manifest-src 'self'; connect-src 'self' https://iapnejlttsqqefkpmelp.supabase.co wss://iapnejlttsqqefkpmelp.supabase.co https://lyte3075.metered.live wss://lyte3075.metered.live; base-uri 'none'; form-action 'none'"
         />
         <link rel="stylesheet" href="css/style.css" />
         <link rel="stylesheet" href="css/board.css" />
@@ -346,5 +346,12 @@
         <script src="js/game-ui.js"></script>
         <script src="js/game.js"></script>
         <script src="js/main.js"></script>
+
+        <!-- Shared Hyper-Pop integrations. These load the root files directly, so
+             chess always receives the latest versions without duplicated copies. -->
+        <script src="../terminal.js"></script>
+        <script src="../chat-widget.js"></script>
+        <script src="../site-sidebar.js"></script>
+        <script src="../soundtrack.js"></script>
     </body>
 </html>
