@@ -800,7 +800,7 @@ async function gitStatus(){
 }
 async function gitLog(){
  const c=await gitConfig(),items=await githubApi('https://api.github.com/repos/'+c.owner+'/'+c.repo+'/commits?sha='+encodeURIComponent(c.branch)+'&per_page=10');
- for(const x of items)line(x.sha.slice(0,7)+' '+x.commit.message.split('\\n')[0]+' ('+x.commit.author.date.slice(0,10)+')');
+ for(const x of items)line(x.sha.slice(0,7)+' '+x.commit.message.split(String.fromCharCode(10))[0]+' ('+x.commit.author.date.slice(0,10)+')');
 }
 async function gitPull(){
  const cfg=await gitConfig(),tree=await githubApi('https://api.github.com/repos/'+cfg.owner+'/'+cfg.repo+'/git/trees/'+encodeURIComponent(cfg.branch)+'?recursive=1');
@@ -1091,7 +1091,7 @@ case 'korona':{
  const u=new URL(target);if(!['http:','https:'].includes(u.protocol))throw Error('Korona only opens HTTP(S) destinations.');
  const runtime='https://korona-runtime-host-production.up.railway.app/embed.html';
  const endpoints=['wss://korona-wisp-production.up.railway.app/'];
- const encoded=btoa(unescape(encodeURIComponent(JSON.stringify(endpoints)))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');
+ const encoded=btoa(unescape(encodeURIComponent(JSON.stringify(endpoints)))).split('+').join('-').split('/').join('_').replace(/=+$/,'');
  const launch=runtime+'?target='+encodeURIComponent(u.href)+'&wisps='+encoded;
  const tab=window.open(launch,'_blank','noopener');if(!tab)throw Error('Pop-up blocked. Allow pop-ups and try again.');
  line('Launching Korona for '+u.href,'ok');line('Runtime: '+runtime,'dim');line('Wisp: '+endpoints[0],'dim');break;
