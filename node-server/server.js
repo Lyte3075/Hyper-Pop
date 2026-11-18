@@ -220,9 +220,9 @@ app.post("/api/system/exec",async(req,res)=>{
   const result=await new Promise(resolve=>{
     let output="",finished=false;
     const child=spawn(command,args,{
-      cwd:"/home/node",
+      cwd:process.env.HP_COMMAND_HOME || process.env.HOME || os.tmpdir(),
       ...(typeof process.getuid === "function" && process.getuid() === 0 ? {uid:NODE_UID,gid:NODE_GID} : {}),
-      env:{PATH:"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games",HOME:"/home/node",TMPDIR:os.tmpdir(),LANG:"C.UTF-8",FORCE_COLOR:"0"},
+      env:{PATH:"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games",HOME:process.env.HP_COMMAND_HOME || process.env.HOME || os.tmpdir(),TMPDIR:os.tmpdir(),LANG:"C.UTF-8",FORCE_COLOR:"0"},
       stdio:["ignore","pipe","pipe"],
       shell:false
     });
