@@ -42,7 +42,7 @@ footer{padding:7px 12px;color:#877b98;font-size:11px;text-align:center}
  function encode(value){
   const bytes=new TextEncoder().encode(JSON.stringify(value));let binary='';
   for(let i=0;i<bytes.length;i++)binary+=String.fromCharCode(bytes[i]);
-  return btoa(binary).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');
+  return btoa(binary).split('+').join('-').split('/').join('_').split('=').join('');
  }
  function normalize(value){
   let raw=String(value||'').trim();if(!raw)raw='https://example.com';
