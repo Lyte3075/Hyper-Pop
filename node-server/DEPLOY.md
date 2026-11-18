@@ -100,3 +100,15 @@ Project files are stored through the configured Supabase storage function, not o
 - **Native Node mode:** uses the provider's Node runtime and build/start commands. It can run Node and npm dependencies, but cannot grant `sudo`, root, or `apt` access if the provider does not expose them.
 
 No deployment file can grant Docker or root privileges on a host that does not offer those capabilities.
+
+
+## Universal hosting and Bonto
+
+For the provider comparison, native Node setup, Bonto personal-server guidance, and compatibility checklist, see [HOSTING.md](./HOSTING.md).
+
+The kit supports two deployment profiles:
+
+- **Native Node:** Node 22+, npm, `npm start`, provider-assigned `PORT`, and the four private environment variables. This is the profile for Bonto and other standard Node app hosts.
+- **Docker:** use the Dockerfile and Compose instructions below when the provider supports Docker and you need the bundled Debian system packages.
+
+Bonto is treated as a personal/single-user instance. Deploy one instance for one owner. Native Node hosting does not provide the Docker image's APT-installed packages or root privileges. A provider must also permit child processes and preview proxy traffic for the full Hyper-Pop project runner to work.
