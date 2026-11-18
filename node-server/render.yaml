@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: hyper-pop-node-hosting-kit
+    runtime: docker
+    plan: free
+    region: virginia
+    branch: terminal
+    dockerfilePath: ./node-server/Dockerfile
+    dockerContext: ./node-server
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: HP_STORAGE_URL
+        sync: false
+      - key: HP_NODE_SETUP_KEY
+        sync: false
