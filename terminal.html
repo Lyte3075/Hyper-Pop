@@ -660,7 +660,7 @@ async function githubCommand(args){
    line('Visibility: '+(r.private?'private':'public')+' · Updated: '+(r.updated_at||'unknown'));line(r.html_url,'dim');return;
   }
   if(sub==='files'){
-   const ref=args[2]||'HEAD',tree=await githubApi('https://api.github.com/repos/'+owner+'/'+repo+'/git/trees/'+encodeURIComponent(ref)+'?recursive=1');
+   const meta=await githubApi('https://api.github.com/repos/'+owner+'/'+repo),ref=args[2]||meta.default_branch,tree=await githubApi('https://api.github.com/repos/'+owner+'/'+repo+'/git/trees/'+encodeURIComponent(ref)+'?recursive=1');
    if(tree.truncated)line('GitHub truncated this repository tree. Showing the returned paths.','warn');
    const files=(tree.tree||[]).filter(x=>x.type==='blob');
    line(owner+'/'+repo+' · '+files.length+' files','ok');
@@ -668,7 +668,7 @@ async function githubCommand(args){
    if(files.length>300)line('Showing first 300 files.','dim');return;
   }
   const path=args[2];if(!path)throw Error('Usage: github cat <owner/repo> <path> [ref]');
-  const ref=args[3]||'HEAD',url='https://raw.githubusercontent.com/'+owner+'/'+repo+'/'+ref+'/'+path.split('/').map(encodeURIComponent).join('/');
+  const meta=await githubApi('https://api.github.com/repos/'+owner+'/'+repo),ref=args[3]||meta.default_branch,url='https://raw.githubusercontent.com/'+owner+'/'+repo+'/'+ref+'/'+path.split('/').map(encodeURIComponent).join('/');
   const response=await terminalFetch(url);if(!response.ok)throw Error('GitHub file request failed: HTTP '+response.status+' '+response.statusText);
   const body=await response.text();line(body.slice(0,30000)+(body.length>30000?'\n… output truncated':''),'');return;
  }
@@ -714,7 +714,7 @@ async function gitStatus(){
  const cfg=await gitConfig(),index=JSON.parse(await readFile(resolve('.git/hp-index.json')));
  let changed=0,missing=0;
  for(const item of index){
-  try{const now=await readFile(resolve(item.path));const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-1',new TextEncoder().encode('blob '+new TextEncoder().encode(now).length+'\\0'+now))),b=>b.toString(16).padStart(2,'0')).join('');if(digest!==item.sha)changed++}
+  try{const now=await readFile(resolve(item.path));const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-1',new TextEncoder().encode('blob '+new TextEncoder().encode(now).length+String.fromCharCode(0)+now))),b=>b.toString(16).padStart(2,'0')).join('');if(digest!==item.sha)changed++}
   catch(_){missing++}
  }
  line('On branch '+cfg.branch);line('Your branch is connected to '+cfg.owner+'/'+cfg.repo+'.','dim');
@@ -732,7 +732,7 @@ async function gitPull(){
  let updated=0,conflicts=0;
  for(const item of tree.tree.filter(x=>x.type==='blob'&&x.size<=1500000&&!x.path.startsWith('.git/'))){
   const prior=old.get(item.path);let safe=!prior;
-  if(prior){try{const now=await readFile(resolve(item.path));const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-1',new TextEncoder().encode('blob '+new TextEncoder().encode(now).length+'\\0'+now))),b=>b.toString(16).padStart(2,'0')).join('');safe=hash===prior.sha}catch(_){safe=true}}
+  if(prior){try{const now=await readFile(resolve(item.path));const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-1',new TextEncoder().encode('blob '+new TextEncoder().encode(now).length+String.fromCharCode(0)+now))),b=>b.toString(16).padStart(2,'0')).join('');safe=hash===prior.sha}catch(_){safe=true}}
   if(!safe){conflicts++;continue}
   const r=await terminalFetch('https://raw.githubusercontent.com/'+cfg.owner+'/'+cfg.repo+'/'+cfg.branch+'/'+item.path);if(!r.ok)continue;
   const data=await r.text();const parts=resolve(item.path);await directory(parts.slice(0,-1),true);await writeFile(parts,data,false);updated++;
