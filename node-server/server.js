@@ -159,7 +159,6 @@ app.get("/api/me",auth,async(req,res)=>{
 });
 app.post("/api/claim",auth,async(req,res)=>{
   try {
-    if (!SETUP_KEY || String(req.body?.setupKey || "") !== SETUP_KEY) return jsonError(res,403,"The one-time setup key is incorrect.");
     const result = await storage(req.hpToken,{action:"claim",claimKey:SETUP_KEY});
     res.json(result);
   } catch(error) { jsonError(res,error.status || 502,error.message); }
