@@ -1,22 +1,40 @@
-# Hyper-Pop Personal Node Server: portable deployment
+# Hyper-Pop Node Hosting Kit
 
-This folder can be deployed on more than one hosting platform. The server uses a standard Node.js start command and has a Docker image for hosts that support containers.
+A Docker-first Node.js hosting kit for Hyper-Pop Terminal. It packages Node 26, npm, Debian system tools, environment configuration, and a health endpoint so the same server can run on Docker-capable hosts.
 
-## Choose a runtime
+## One-click Render deployment
 
-### Option A: Docker (recommended)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Lyte3075/Hyper-Pop)
 
-Use this when the host supports Docker or a Dockerfile. This is the portable option for Debian/OS packages.
+1. Open the Deploy to Render link.
+2. Sign in to Render and connect the GitHub repository if asked.
+3. Select the `terminal` branch. The repository Blueprint config points to the Dockerfile in `node-server/`.
+4. Add the required environment values when Render prompts you:
+   - `SUPABASE_URL`
+   - `SUPABASE_ANON_KEY`
+   - `HP_STORAGE_URL`
+   - `HP_NODE_SETUP_KEY`
+5. Deploy. Render builds the Docker image, installs the OS and npm packages, starts the server, and checks `/health`.
 
-1. Copy `.env.example` to `.env`.
-2. Fill in the Supabase URL, publishable/anon key, storage function URL, and a private setup key.
-3. From this folder, run:
+The existing Hyper-Pop Blueprint uses the free Virginia region and keeps the setup key private with `sync: false`. Provider plans and free-tier availability can change.
+
+## Docker Compose: local or any Docker host
+
+1. Install Docker Engine and the Docker Compose plugin.
+2. Copy the example environment file:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+3. Edit `.env` and set the four required Hyper-Pop values. Generate a private setup key, for example with `openssl rand -hex 32`.
+4. Build and start:
 
    ```bash
    docker compose up --build -d
    ```
 
-4. Check the service:
+5. Check status and logs:
 
    ```bash
    docker compose ps
@@ -24,43 +42,61 @@ Use this when the host supports Docker or a Dockerfile. This is the portable opt
    curl http://localhost:10000/health
    ```
 
-The included Dockerfile installs the Debian starter packages during image build. To add permanent OS packages, add them to the Dockerfile's `apt-get install` list and rebuild the image. This is more reliable than installing packages into a running container.
+To stop the service:
 
-### Option B: Managed Node.js runtime
+```bash
+docker compose down
+```
 
-For hosts that provide a Node.js runtime but do not support Docker:
+## Deploy on another Docker provider
 
-- Build command: `npm install`
-- Start command: `npm start`
-- Health check: `/health`
-- Node.js: 20 or newer
-- Port: use the host-provided `PORT` environment variable
+Use the repository's `terminal` branch and set the service's Docker context to `node-server/` with `node-server/Dockerfile` as its Dockerfile. Expose HTTP port `10000`, then add the same environment variables listed below. Configure the provider's health check to request `/health`.
 
-Set the same environment variables shown in `.env.example` in the host's dashboard.
+This works on hosts that accept Docker images, including self-hosted Docker servers and managed container platforms. The host still controls its own networking, storage, pricing, and runtime limits.
 
-A managed Node runtime can run Node.js and npm packages. It cannot automatically run `apt`, `sudo`, or install Debian system packages when the provider does not expose OS-level access. For those packages, use a Docker-capable host or the provider's documented build-package mechanism.
+## Environment variables
 
-## Required configuration
-
-| Variable | Purpose |
-| --- | --- |
-| `SUPABASE_URL` | Supabase project URL used for Hyper-Pop account verification |
-| `SUPABASE_ANON_KEY` | Supabase publishable/anon key |
-| `HP_STORAGE_URL` | Hyper-Pop Node project storage Edge Function |
-| `HP_NODE_SETUP_KEY` | Private one-time server claim key |
-| `PORT` | HTTP port supplied by the host |
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `SUPABASE_URL` | Yes | Supabase project URL for Hyper-Pop account verification |
+| `SUPABASE_ANON_KEY` | Yes | Supabase publishable/anon key |
+| `HP_STORAGE_URL` | Yes | Persistent Hyper-Pop project storage Edge Function |
+| `HP_NODE_SETUP_KEY` | Yes | Private one-time server claim key |
+| `PORT` | Host-dependent | HTTP port; defaults to `10000` |
+| `NODE_ENV` | No | Defaults to `production` |
 
 Do not put service-role keys in browser code. Keep the setup key private and rotate it if it is exposed.
 
+## Automatic package installation
+
+The Dockerfile installs Node 26 and npm from the official Node image, then installs the Debian starter packages with `apt-get` during the image build. It also installs the server's npm dependencies. These steps happen automatically when the host builds the image.
+
+To add permanent operating-system packages, add their Debian package names to the Dockerfile's `apt-get install` list and rebuild. To add Node libraries used by the server itself, add them to `package.json` and rebuild.
+
+Hyper-Pop projects can also install their own dependencies: when a project is started, the server checks for `node_modules` and runs `npm install` if needed. The project's own `package.json` declares its dependencies and start script.
+
+Runtime APT changes are temporary and may disappear when a container is replaced. Put permanent system packages in the Dockerfile instead.
+
+## Health checks
+
+- HTTP endpoint: `GET /health`
+- Docker image health check: enabled in the Dockerfile
+- Docker Compose health check: enabled in `docker-compose.yml`
+- Render health check: configured as `/health` in the Blueprint
+
+A healthy response looks like:
+
+```json
+{"ok":true,"service":"hyperpop-node-server","runtime":"v26.x.x","projects":"persistent"}
+```
+
 ## What persists?
 
-Project files are stored through the configured Supabase storage function, not just in the container's temporary filesystem. Running processes and installed OS packages are runtime resources and may be reset when a host restarts or replaces a container. Packages installed in the Dockerfile are rebuilt into the image and therefore survive normal restarts.
+Project files are stored through the configured Supabase storage function, not only in the container's temporary filesystem. Running processes and runtime-installed OS packages may be reset when a host restarts or replaces a container. Packages installed in the Dockerfile are rebuilt into the image and survive normal restarts.
 
-## Provider compatibility model
+## Native Node hosting vs Docker
 
-The deployment kit deliberately has two modes:
+- **Docker mode:** controls the Node runtime and Debian packages. Use this when you need `apt`, system tools, or a consistent environment.
+- **Native Node mode:** uses the provider's Node runtime and build/start commands. It can run Node and npm dependencies, but cannot grant `sudo`, root, or `apt` access if the provider does not expose them.
 
-- **Container mode:** Dockerfile controls Node, Debian packages, and the runtime environment. This is the closest to a plug-and-play experience across providers that accept Docker images.
-- **Buildpack/native Node mode:** uses the provider's Node runtime and start command. It is easier to deploy, but OS packages and root privileges are controlled by that provider.
-
-There is no single deployment file that can grant Docker, root, or `apt` access on a host that does not offer those capabilities. Provider-specific presets can automate the settings each host exposes, while keeping the same application, environment variables, storage, and health endpoint.
+No deployment file can grant Docker or root privileges on a host that does not offer those capabilities.
