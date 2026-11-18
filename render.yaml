@@ -1,12 +1,13 @@
 services:
   - type: web
     name: hyper-pop-personal-node
-    runtime: docker
+    runtime: node
     plan: free
     region: virginia
     branch: terminal
-    dockerfilePath: ./node-server/Dockerfile
-    dockerContext: ./node-server
+    rootDir: node-server
+    buildCommand: npm install
+    startCommand: npm start
     healthCheckPath: /health
     autoDeploy: true
     envVars:
