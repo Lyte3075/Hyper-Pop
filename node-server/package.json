@@ -9,7 +9,7 @@
     "healthcheck": "node -e \"fetch('http://127.0.0.1:'+(process.env.PORT||10000)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""
   },
   "engines": {
-    "node": ">=26"
+    "node": ">=22"
   },
   "dependencies": {
     "express": "^5.1.0"
