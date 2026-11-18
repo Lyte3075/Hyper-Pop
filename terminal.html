@@ -840,7 +840,7 @@ async function nodeServerRequest(route,options={}){
  if(!response.ok||data.ok===false)throw Error(data.error||('Node server request failed with HTTP '+response.status));
  return data;
 }
-const REMOTE_LINUX_COMMANDS=new Set(['cowsay','cowthink','python3','python','pip3','pip','curl','wget','ffmpeg','tree','unzip','zip','tar','grep','egrep','fgrep','sed','awk','find','ls','cat','head','tail','wc','sort','uniq','cut','tr','base64','sha256sum','file','du','df','uname','whoami','id','hostname','date','uptime','free','env','printenv','which','printf','seq','rev','nl','cmp','diff','realpath','basename','dirname']);
+const REMOTE_LINUX_COMMANDS=new Set(['git','gh','cowsay','cowthink','python3','python','pip3','pip','curl','wget','ffmpeg','tree','unzip','zip','tar','grep','egrep','fgrep','sed','awk','find','ls','cat','head','tail','wc','sort','uniq','cut','tr','base64','sha256sum','file','du','df','uname','whoami','id','hostname','date','uptime','free','env','printenv','which','printf','seq','rev','nl','cmp','diff','realpath','basename','dirname']);
 async function runRemoteCommand(command,inputArgs){
  const data=await nodeServerRequest('/api/system/exec',{method:'POST',body:JSON.stringify({command,args:inputArgs})});
  if(data.output)line(data.output,data.code===0?'ok':'warn');
@@ -1084,7 +1084,12 @@ case 'git':{
  if(sub==='diff'){await gitStatus();break}
   if(sub==='show'){const c=await gitConfig(),sha=args[1]||'HEAD',ref=sha==='HEAD'?c.branch:sha,items=await githubApi('https://api.github.com/repos/'+c.owner+'/'+c.repo+'/commits/'+encodeURIComponent(ref));line(items.sha+'\n'+items.commit.message,'ok');for(const f of (items.files||[]).slice(0,100))line(f.status+' '+f.filename);break}
  if(sub==='remote'){const c=await gitConfig();line('origin '+c.remote+' (fetch)');line('origin '+c.remote+' (push)');break}
- if(sub==='help'||sub==='?'){line('git clone <url> [folder] | status | fetch | pull | log | branch [-a] | switch <branch> | checkout <branch> | remote -v');line('git add <file> | git add . | git commit -m "message" | git push | git diff | git show [ref]');line('git auth saves a GitHub fine-grained token in this browser; git auth clear removes it.','dim');line('Browser Git is a compatibility workspace, not native Git. See git help for supported commands and limitations.','warn');break}
+ if(sub==='system'){
+  if(!getNodeServerUrl())throw Error('Connect your Bonto/Node server first with node connect <server-url>.');
+  if(!args[1])throw Error('Usage: git system <native-git-arguments> (example: git system --version)');
+  await runRemoteCommand('git',args.slice(1));break;
+ }
+ if(sub==='help'||sub==='?'){line('git clone <url> [folder] | status | fetch | pull | log | branch [-a] | switch <branch> | checkout <branch> | remote -v');line('git add <file> | git add . | git commit -m "message" | git push | git diff | git show [ref]');line('git system <args> runs native Git on your connected cloud server.','ok');line('git auth saves a GitHub fine-grained token in this browser; git auth clear removes it.','dim');line('Browser Git is a compatibility workspace, not native Git. See git help for supported commands and limitations.','warn');break}
  throw Error('Unsupported Git command. Type git help.');
 }
 case 'korona':{
