@@ -718,6 +718,16 @@ async function gitClone(url,destination){
  line('Cloned '+done+' text files into '+pathString(base)+(skipped?' ('+skipped+' skipped)':''),'ok');
 }
 
+async function collectGitFiles(parts,relative='',out=[]){
+ const d=await directory(parts,false);
+ for await(const [name,handle] of d.entries()){
+  if(name==='.git')continue;
+  const nextRel=relative?relative+'/'+name:name;
+  if(handle.kind==='directory')await collectGitFiles(parts.concat(name),nextRel,out);
+  else out.push(nextRel);
+ }
+ return out;
+}
 async function gitAdd(paths){
  const cfg=await gitConfig(),stagePath=resolve('.git/hp-stage.json');
  let staged=[];try{staged=JSON.parse(await readFile(stagePath))}catch(_){}
@@ -730,9 +740,9 @@ async function gitAdd(paths){
   byPath.set(relative,{path:relative,content});line('Staged '+relative,'ok');
  }
  if(paths.length===1&&['.','-A','--all'].includes(paths[0])){
-  const index=JSON.parse(await readFile(resolve('.git/hp-index.json')));
-  for(const item of index){try{await addOne(item.path)}catch(e){if(!String(e.message).includes('NotFoundError'))throw e}}
-  line('Staged tracked files. Add new files by naming them explicitly.','dim');
+  const names=await collectGitFiles(cwd);
+  for(const name of names)await addOne(name);
+  line('Staged '+names.length+' file(s), including new files. Deleted-file tracking is not supported yet.','dim');
  }else{
   if(!paths.length)throw Error('Usage: git add <file> | git add .');
   for(const name of paths)await addOne(name);
@@ -913,6 +923,7 @@ line('  npm install <package>       Download and cache an npm package');
 line('  npm run <script>            Run a package.json script');
 line('  npm list                    List installed packages');
 line('  github profile <user>       Inspect a public GitHub profile');
+line('  korona <https-url>           Open a destination through the Korona runtime');
 line('  github repo <owner/repo>    Show repository information');
 line('  github files <owner/repo>   List repository files');
 line('  github cat <owner/repo> <path> [ref]  Read a repository file');
@@ -1075,6 +1086,16 @@ case 'git':{
  if(sub==='help'||sub==='?'){line('git clone <url> [folder] | status | fetch | pull | log | branch [-a] | switch <branch> | checkout <branch> | remote -v');line('git add <file> | git add . | git commit -m "message" | git push | git diff | git show [ref]');line('git auth saves a GitHub fine-grained token in this browser; git auth clear removes it.','dim');line('Browser Git is a compatibility workspace, not native Git. See git help for supported commands and limitations.','warn');break}
  throw Error('Unsupported Git command. Type git help.');
 }
+case 'korona':{
+ const target=args[0];if(!target)throw Error('Usage: korona <https-url>');
+ const u=new URL(target);if(!['http:','https:'].includes(u.protocol))throw Error('Korona only opens HTTP(S) destinations.');
+ const runtime='https://korona-runtime-host-production.up.railway.app/embed.html';
+ const endpoints=['wss://korona-wisp-production.up.railway.app/'];
+ const encoded=btoa(unescape(encodeURIComponent(JSON.stringify(endpoints)))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');
+ const launch=runtime+'?target='+encodeURIComponent(u.href)+'&wisps='+encoded;
+ const tab=window.open(launch,'_blank','noopener');if(!tab)throw Error('Pop-up blocked. Allow pop-ups and try again.');
+ line('Launching Korona for '+u.href,'ok');line('Runtime: '+runtime,'dim');line('Wisp: '+endpoints[0],'dim');break;
+}
 case 'server':{
  const sub=args[0];
  if(sub==='list'){if(!virtualServers.size)line('(no virtual servers running)','dim');else for(const [port,server] of virtualServers)line('http://localhost:'+port+' · '+(server.listening?'RUNNING':'STOPPED'),'ok');break}
@@ -1213,7 +1234,7 @@ case 'open':{if(!arg)throw Error('Usage: open <https-url>');const u=new URL(arg,
 case 'export':if(!arg)Object.keys(envVars).sort().forEach(k=>line(k+'='+envVars[k]));else{const m=raw.slice(raw.indexOf(' ')+1).match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);if(!m)throw Error('Usage: export NAME=value');envVars[m[1]]=m[2];line(m[1]+' exported','ok')}break;
 case 'env':Object.keys(envVars).sort().forEach(k=>line(k+'='+envVars[k]));break;
 case 'unset':if(!arg)throw Error('Usage: unset <name>');delete envVars[arg];line('Unset '+arg,'ok');break;
-case 'which':if(!arg)throw Error('Usage: which <command>');line(['js','run','python','py','pip','preview','image','github','node','npm','help','pwd','ls','cd','mkdir','touch','cat','nano','write','append','rm','rmdir','tree','echo','clear','history','date','whoami','uname','storage','download','cp','mv','find','stat','du','head','tail','wc','grep','sort','uniq','rev','nl','base64','unbase64','seq','calc','printf','basename','dirname','realpath','file','sha256sum','cmp','diff','cut','tr','sed','awk','source','sh','test','true','false','sleep','upload','open','proxy','export','env','unset','which','man','hostname','id','uptime','free','version','about','exit'].includes(arg)?'/bin/'+arg:'not found',arg? 'ok':'');break;
+case 'which':if(!arg)throw Error('Usage: which <command>');line(['js','run','python','py','pip','preview','image','github','korona','node','npm','help','pwd','ls','cd','mkdir','touch','cat','nano','write','append','rm','rmdir','tree','echo','clear','history','date','whoami','uname','storage','download','cp','mv','find','stat','du','head','tail','wc','grep','sort','uniq','rev','nl','base64','unbase64','seq','calc','printf','basename','dirname','realpath','file','sha256sum','cmp','diff','cut','tr','sed','awk','source','sh','test','true','false','sleep','upload','open','proxy','export','env','unset','which','man','hostname','id','uptime','free','version','about','exit'].includes(arg)?'/bin/'+arg:'not found',arg? 'ok':'');break;
 case 'man':line('Built-in command: '+(arg||'help'));line('Use help for the command index. Most file commands accept absolute or relative paths.');break;
 case 'hostname':line('karas-terminal');break;
 case 'id':line('uid=1000('+HOME[1]+') gid=1000('+HOME[1]+') groups=1000('+HOME[1]+')');break;
