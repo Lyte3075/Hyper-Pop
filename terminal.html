@@ -1404,7 +1404,7 @@ async function run(raw){
   await executeTypeScript(raw.slice(raw.indexOf(' ')+1),'TypeScript');return;
  }
  if(/^[\s\S]*\.ts$/.test(trimmed)&&!/\s/.test(trimmed)){try{await executeTypeScript(await readFile(resolve(trimmed)),trimmed)}catch(e){line('TypeScript error: '+e.message,'err')}return}
- const looksLikeBash=/^\s*(?:#!.*(?:bash|sh)|[A-Za-z_]\w*\s*\(\s*\)\s*\{|if\s+\[\[?|for\s+\w+\s+in\b|for\s*\(\(|while\s+(?:\[\[?|\(\()|until\s+\[\[?|case\s+.+\s+in\b|select\s+\w+\s+in\b|export\s+\w+=|unset\s+\w+|set\s+-[a-z]+|source\s+|\.\s+\S|[A-Za-z_]\w*=\S)/m.test(trimmed);
+ const looksLikeBash=/^\s*(?:#!.*(?:bash|sh)|[A-Za-z_]\w*\s*\(\s*\)\s*\{|if\s+(?:\[\[?|\(\()|for\s+\w+\s+in\b|for\s*\(\(|while\s+(?:\[\[?|\(\()|until\s+(?:\[\[?|\(\()|case\s+.+\s+in\b|select\s+\w+\s+in\b|export\s+\w+=|unset\s+\w+|set\s+-[a-z]+|source\s+|\.\s+\S|[A-Za-z_]\w*=\S)/m.test(trimmed);
  if(looksLikeBash){await runBashkit(raw);return}
  const looksLikeJavaScript=/^(?:const|let|var|function|class|async\s+function|import\s|export\s|require\s*\(|console\.|process\.|module\.|exports\.|await\s|fetch\s*\(|https?\.(?:get|request)\s*\(|Promise\.|throw\s|try\s*\{|if\s*\(|for\s*\(|while\s*\(|\/\*|\/\/)/.test(trimmed);
  if(looksLikeJavaScript){await executeNode(raw,'pasted JavaScript');return}
