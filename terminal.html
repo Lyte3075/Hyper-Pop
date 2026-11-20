@@ -102,7 +102,7 @@ async function handleKaCommand(message){
   outputCapture=captured;suppressCommandEcho=true;
   const requestedCwd=String(message.cwd||pathString(cwd));
   const homePath='/home/'+HOME[1];
-  cwd=requestedCwd===homePath||requestedCwd.startsWith(homePath+'/')?requestedCwd.split('/').filter(Boolean):HOME.slice();
+  cwd=requestedCwd===homePath||requestedCwd.startsWith(homePath+'/')?requestedCwd.split('/').filter(Boolean):requestedCwd==='/tmp'||requestedCwd.startsWith('/tmp/')?requestedCwd.split('/').filter(Boolean):HOME.slice();
   updatePrompt();
   try{
    const raw=[message.name,...(message.argv||[])].map(shellQuote).join(' ');
@@ -127,7 +127,7 @@ async function runBashkit(raw){
   appendBashOutput(result.stderr,'err');
   if(result.stdoutTruncated||result.stderrTruncated)line('Output was truncated to protect browser memory.','warn');
   const homePath='/home/'+HOME[1],reported=String(result.cwd||homePath);
-  cwd=reported===homePath||reported.startsWith(homePath+'/')?reported.split('/').filter(Boolean):HOME.slice();
+  cwd=reported===homePath||reported.startsWith(homePath+'/')?reported.split('/').filter(Boolean):reported==='/tmp'||reported.startsWith('/tmp/')?reported.split('/').filter(Boolean):HOME.slice();
   updatePrompt();
   if(result.exitCode!==0)status('EXIT '+result.exitCode,'warn');
  }catch(error){
@@ -148,7 +148,7 @@ function pathString(parts){return '/'+parts.join('/')}
 function updatePrompt(){cwdLabel.textContent=cwd.length===2?'~':pathString(cwd)}
 function tokenize(s){const out=[];let cur='',quote=null,escape=false;for(const ch of s){if(escape){cur+=ch;escape=false;continue}if(ch==='\\'&&quote!=="'"){escape=true;continue}if(quote){if(ch===quote)quote=null;else cur+=ch;continue}if(ch==='"'||ch==="'"){quote=ch;continue}if(/\s/.test(ch)){if(cur){out.push(cur);cur=''}}else cur+=ch}if(escape)cur+='\\';if(cur)out.push(cur);return out}
 function normalizeHome(parts){const out=parts.slice();if(out[0]==='home'&&out[1]==='guest')out[1]=HOME[1];return out}
-function resolve(path){let raw=String(path||'');if(!raw||raw==='~'||raw==='/')return HOME.slice();const fromHome=raw.startsWith('~/');if(fromHome)raw=raw.slice(2);let parts=raw.startsWith('/')?[]:(fromHome?HOME.slice():cwd.slice());for(const part of raw.split('/')){if(!part||part==='.')continue;if(part==='..')parts.pop();else{if(part.includes('\0'))throw Error('Invalid path.');parts.push(part)}}parts=normalizeHome(parts);if(!parts.length||(parts.length===1&&parts[0]==='home'))return HOME.slice();if(parts[0]!=='home'||parts[1]!==HOME[1])throw Error('Permission denied: files are isolated to your account directory.');return parts}
+function resolve(path){let raw=String(path||'');if(!raw||raw==='~'||raw==='/')return HOME.slice();const fromHome=raw.startsWith('~/');if(fromHome)raw=raw.slice(2);let parts;if(raw==='/tmp'||raw.startsWith('/tmp/')){parts=HOME.concat('.ka-sh-tmp');raw=raw==='/tmp'?'':raw.slice(5)}else if(raw.startsWith('/'))parts=[];else if(fromHome)parts=HOME.slice();else if(cwd[0]==='tmp')parts=HOME.concat('.ka-sh-tmp',cwd.slice(1));else parts=cwd.slice();for(const part of raw.split('/')){if(!part||part==='.')continue;if(part==='..')parts.pop();else{if(part.includes('\0'))throw Error('Invalid path.');parts.push(part)}}parts=normalizeHome(parts);if(!parts.length||(parts.length===1&&parts[0]==='home'))return HOME.slice();if(parts[0]!=='home'||parts[1]!==HOME[1])throw Error('Permission denied: files are isolated to your account directory.');return parts}
 async function directory(parts,create){let d=root;for(const p of normalizeHome(parts))d=await d.getDirectoryHandle(p,{create:!!create});return d}
 async function parentAndName(parts){parts=normalizeHome(parts);if(parts.length<3||parts[0]!=='home'||parts[1]!==HOME[1])throw Error('Permission denied: cannot modify your home directory or another account.');return [await directory(parts.slice(0,-1),false),parts[parts.length-1]]}
 async function readFile(parts){const [p,n]=await parentAndName(parts);const h=await p.getFileHandle(n);return await (await h.getFile()).text()}
