@@ -1,0 +1,15 @@
+{
+  "version": "0.21.1",
+  "sourceRevision": "8d9603567bb54eaa82d4620f1d4acf6a3873047c",
+  "sourceDirty": false,
+  "profile": "wasm-release",
+  "features": [
+    "python",
+    "terminal",
+    "typescript"
+  ],
+  "rustc": "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+  "wasmBindgen": "wasm-bindgen 0.2.128",
+  "wasmOpt": "wasm-opt version 125 (version_125)",
+  "wasmSha256": "92bd3028b6a8a8bf864de179869c19bc200e1278b2163bf947d7bd42cf09d4e2"
+}

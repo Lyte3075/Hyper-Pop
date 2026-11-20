@@ -40,7 +40,7 @@ button{font:inherit;color:var(--fg);background:#101010;border:1px solid #333;bor
 </head>
 <body>
 <div id="app">
-<header><div class="brand"><span>KA</span> / TERMINAL <span style="color:var(--muted);font-weight:400">v0.5</span></div><div id="state" class="warn">INITIALIZING…</div></header>
+<header><div class="brand"><span>KA</span> / TERMINAL <span style="color:var(--muted);font-weight:400">v0.6</span></div><div id="state" class="warn">INITIALIZING…</div></header>
 <main id="screen" role="log" aria-live="polite" aria-label="Terminal output"></main>
 <form id="form" autocomplete="off">
 <span id="cwd">~</span><span class="prompt">$</span>
@@ -58,21 +58,103 @@ button{font:inherit;color:var(--fg);background:#101010;border:1px solid #333;bor
 'use strict';
 const screen=document.getElementById('screen'),form=document.getElementById('form'),input=document.getElementById('input'),cwdLabel=document.getElementById('cwd'),state=document.getElementById('state');
 const editor=document.getElementById('editor'),editorText=document.getElementById('editorText'),editorTitle=document.getElementById('editorTitle'),editorStatus=document.getElementById('editorStatus'),editorGutter=document.getElementById('editorGutter'),editorSaveButton=document.getElementById('editorSave');
-let editorPath=null,editorOriginal='',root=null,HOME=['home','guest'],cwd=HOME.slice(),history=[],historyIndex=0,terminalInputResolver=null;const envVars={HOME:'/home/guest',USER:'guest',SHELL:'/bin/ka-sh',TERM:'xterm-ka',PATH:'/bin:/usr/bin'};const startedAt=Date.now();
+let editorPath=null,editorOriginal='',root=null,HOME=['home','guest'],cwd=HOME.slice(),history=[],historyIndex=0,terminalInputResolver=null,outputCapture=null,suppressCommandEcho=false,bashWorker=null,bashWorkerReady=null,bashWorkerReadyResolve=null,bashWorkerReadyReject=null,bashWorkerLoaded=false,bashRequestId=0,bashPending=new Map(),hostCommandQueue=Promise.resolve();const envVars={HOME:'/home/guest',USER:'guest',SHELL:'/bin/bash',TERM:'xterm-256color',PATH:'/usr/local/bin:/usr/bin:/bin'};const startedAt=Date.now();
 async function resolveTerminalUsername(){try{const token=localStorage.getItem('hyperpop_token');if(!token)return 'guest';const response=await fetch('https://iapnejlttsqqefkpmelp.supabase.co/rest/v1/rpc/hyperpop_me',{method:'POST',headers:{apikey:'sb_publishable_TB7oC4nDlUJq-Gcb2yoTjQ_Dvbh6NlM','Content-Type':'application/json'},body:JSON.stringify({p_token:token})});if(!response.ok)return 'guest';const data=await response.json();const name=String(data?.username||'').trim().toLowerCase();return /^[a-z0-9][a-z0-9_-]{0,31}$/.test(name)?name:'guest'}catch(_){return 'guest'}}
-function line(text='',kind=''){const el=document.createElement('div');el.className='line '+kind;el.textContent=String(text);screen.appendChild(el);screen.scrollTop=screen.scrollHeight}
+function line(text='',kind=''){if(outputCapture){outputCapture.push({text:String(text),kind:kind||''});return}const el=document.createElement('div');el.className='line '+kind;el.textContent=String(text);screen.appendChild(el);screen.scrollTop=screen.scrollHeight}
 function status(text,kind){state.textContent=text;state.className=kind||''}
+function shellQuote(value){return "'"+String(value).replace(/'/g,"'\\''")+"'"}
+function appendBashOutput(value,kind){if(!value)return;const text=String(value).replace(/\r\n/g,'\n').replace(/\r/g,'\n');const rows=text.split('\n');if(rows[rows.length-1]==='')rows.pop();for(const row of rows)line(row,kind)}
+function ensureBashWorker(){
+ if(bashWorkerReady)return bashWorkerReady;
+ if(typeof Worker==='undefined')return Promise.reject(new Error('This browser does not support module workers.'));
+ bashWorker=new Worker(new URL('/ka-sh-bashkit-worker.js',location.origin),{type:'module',name:'ka-sh-bash'});
+ bashWorker.onmessage=event=>{
+  const message=event.data||{};
+  if(message.type==='ready'){bashWorkerLoaded=true;if(bashWorkerReadyResolve){bashWorkerReadyResolve();bashWorkerReadyResolve=null;bashWorkerReadyReject=null}return}
+  if(message.type==='init-error'){const error=new Error(message.error||'Could not initialize the Bash runtime.');if(bashWorkerReadyReject){bashWorkerReadyReject(error);bashWorkerReadyResolve=null;bashWorkerReadyReject=null}status('BASH UNAVAILABLE','bad');return}
+  if(message.type==='ka-command'){
+   handleKaCommand(message).then(result=>bashWorker.postMessage({type:'host-response',id:message.id,result})).catch(error=>bashWorker.postMessage({type:'host-error',id:message.id,error:error&&error.message?error.message:String(error)}));
+   return;
+  }
+  if(message.type==='result'){
+   const pending=bashPending.get(message.id);if(!pending)return;bashPending.delete(message.id);
+   if(message.error)pending.reject(new Error(message.error));else pending.resolve(message.result||{});
+  }
+ };
+ bashWorker.onerror=event=>{
+  const error=new Error(event.message||'The Bash worker stopped unexpectedly.');
+  if(bashWorkerReadyReject){bashWorkerReadyReject(error);bashWorkerReadyResolve=null;bashWorkerReadyReject=null}
+  for(const pending of bashPending.values())pending.reject(error);
+  bashPending.clear();status('BASH ERROR','bad');
+ };
+ bashWorkerReady=new Promise((resolve,reject)=>{bashWorkerReadyResolve=resolve;bashWorkerReadyReject=reject});
+ bashWorker.postMessage({type:'init',username:HOME[1]});
+ return bashWorkerReady;
+}
+async function requestBashWorker(type,payload={}){
+ await ensureBashWorker();
+ const id=++bashRequestId;
+ return new Promise((resolve,reject)=>{bashPending.set(id,{resolve,reject});bashWorker.postMessage({type,id,...payload})});
+}
+async function handleKaCommand(message){
+ const execute=async()=>{
+  const previousCapture=outputCapture,previousSuppress=suppressCommandEcho,captured=[];
+  outputCapture=captured;suppressCommandEcho=true;
+  const requestedCwd=String(message.cwd||pathString(cwd));
+  const homePath='/home/'+HOME[1];
+  cwd=requestedCwd===homePath||requestedCwd.startsWith(homePath+'/')?requestedCwd.split('/').filter(Boolean):requestedCwd==='/tmp'||requestedCwd.startsWith('/tmp/')?requestedCwd.split('/').filter(Boolean):HOME.slice();
+  updatePrompt();
+  try{
+   const raw=[message.name,...(message.argv||[])].map(shellQuote).join(' ');
+   await runSingle(raw,true);
+  }finally{suppressCommandEcho=previousSuppress;outputCapture=previousCapture}
+  const stdout=captured.filter(item=>item.kind!=='err').map(item=>item.text).join('\n')+(captured.some(item=>item.kind!=='err')?'\n':'');
+  const stderr=captured.filter(item=>item.kind==='err').map(item=>item.text).join('\n')+(captured.some(item=>item.kind==='err')?'\n':'');
+  return {stdout,stderr,exitCode:stderr?1:0};
+ };
+ const task=hostCommandQueue.then(execute,execute);
+ hostCommandQueue=task.then(()=>undefined,()=>undefined);
+ return task;
+}
+const KA_SH_COMMANDS=new Set(['ls','nano','write','append','download','calc','js','run','python','py','pip','preview','image','nodejs','npm','github','git','korona','server','node','apt','apt-get','sudo','proxy','curl','wget','fetch','json','url','upload','open','storage','db','version','about','reset','history','man','which','hostname','id','uptime','free','tree','whoami','uname','clear','help','remote']);
+async function runBashkit(raw){
+ try{
+  line((cwd.length===2&&cwd[0]==='home'&&cwd[1]===HOME[1]?'~':pathString(cwd))+' $ '+raw,'cmd');
+  status('LOADING BASH…','warn');
+  const result=await requestBashWorker('execute',{command:raw,cwd:pathString(cwd)});
+  status('BASH READY','good');
+  appendBashOutput(result.stdout,'');
+  appendBashOutput(result.stderr,'err');
+  if(result.stdoutTruncated||result.stderrTruncated)line('Output was truncated to protect browser memory.','warn');
+  const homePath='/home/'+HOME[1],reported=String(result.cwd||homePath);
+  cwd=reported===homePath||reported.startsWith(homePath+'/')?reported.split('/').filter(Boolean):reported==='/tmp'||reported.startsWith('/tmp/')?reported.split('/').filter(Boolean):HOME.slice();
+  updatePrompt();
+  if(result.exitCode!==0)status('EXIT '+result.exitCode,'warn');
+ }catch(error){
+  const parsed=tokenize(raw),head=(parsed[0]||'').toLowerCase();
+  if(!bashWorkerLoaded&&KA_SH_COMMANDS.has(head)){
+   const response=await handleKaCommand({name:head,argv:parsed.slice(1),cwd:pathString(cwd)});
+   appendBashOutput(response.stdout,'');appendBashOutput(response.stderr,'err');
+   status('BASH UNAVAILABLE','bad');
+   line('Bash could not load; this KA-SH command ran without shell parsing.','warn');
+   return;
+  }
+  status('BASH ERROR','bad');
+  line('Bash runtime error: '+(error&&error.message?error.message:String(error)),'err');
+  line('The Bash shell could not start. KA-SH application commands are still available individually.','warn');
+ }
+}
 function pathString(parts){return '/'+parts.join('/')}
-function updatePrompt(){cwdLabel.textContent=cwd.length===2?'~':pathString(cwd)}
+function updatePrompt(){cwdLabel.textContent=cwd.length===2&&cwd[0]==='home'&&cwd[1]===HOME[1]?'~':pathString(cwd)}
 function tokenize(s){const out=[];let cur='',quote=null,escape=false;for(const ch of s){if(escape){cur+=ch;escape=false;continue}if(ch==='\\'&&quote!=="'"){escape=true;continue}if(quote){if(ch===quote)quote=null;else cur+=ch;continue}if(ch==='"'||ch==="'"){quote=ch;continue}if(/\s/.test(ch)){if(cur){out.push(cur);cur=''}}else cur+=ch}if(escape)cur+='\\';if(cur)out.push(cur);return out}
 function normalizeHome(parts){const out=parts.slice();if(out[0]==='home'&&out[1]==='guest')out[1]=HOME[1];return out}
-function resolve(path){if(!path||path==='~')return HOME.slice();let parts=path.startsWith('/')?[]:cwd.slice();for(const part of path.split('/')){if(!part||part==='.')continue;if(part==='..')parts.pop();else{if(part.includes('\0'))throw Error('Invalid path.');parts.push(part)}}return normalizeHome(parts)}
+function resolve(path){let raw=String(path||'');if(!raw||raw==='~'||raw==='/')return HOME.slice();const fromHome=raw.startsWith('~/');if(fromHome)raw=raw.slice(2);let parts;if(raw==='/tmp'||raw.startsWith('/tmp/')){parts=HOME.concat('.ka-sh-tmp');raw=raw==='/tmp'?'':raw.slice(5)}else if(raw.startsWith('/'))parts=[];else if(fromHome)parts=HOME.slice();else if(cwd[0]==='tmp')parts=HOME.concat('.ka-sh-tmp',cwd.slice(1));else parts=cwd.slice();for(const part of raw.split('/')){if(!part||part==='.')continue;if(part==='..')parts.pop();else{if(part.includes('\0'))throw Error('Invalid path.');parts.push(part)}}parts=normalizeHome(parts);if(!parts.length||(parts.length===1&&parts[0]==='home'))return HOME.slice();if(parts[0]!=='home'||parts[1]!==HOME[1])throw Error('Permission denied: files are isolated to your account directory.');return parts}
 async function directory(parts,create){let d=root;for(const p of normalizeHome(parts))d=await d.getDirectoryHandle(p,{create:!!create});return d}
-async function parentAndName(parts){if(!parts.length)throw Error('Cannot modify the filesystem root.');return [await directory(parts.slice(0,-1),false),parts[parts.length-1]]}
+async function parentAndName(parts){parts=normalizeHome(parts);if(parts.length<3||parts[0]!=='home'||parts[1]!==HOME[1])throw Error('Permission denied: cannot modify your home directory or another account.');return [await directory(parts.slice(0,-1),false),parts[parts.length-1]]}
 async function readFile(parts){const [p,n]=await parentAndName(parts);const h=await p.getFileHandle(n);return await (await h.getFile()).text()}
  async function readFileBytes(parts){const [p,n]=await parentAndName(parts);const h=await p.getFileHandle(n);return new Uint8Array(await (await h.getFile()).arrayBuffer())}
 async function writeFile(parts,data,append){const [p,n]=await parentAndName(parts);const h=await p.getFileHandle(n,{create:true});const w=await h.createWritable({keepExistingData:!!append});if(append){const f=await h.getFile();await w.seek(f.size)}else await w.truncate(0);await w.write(data);await w.close()}
-async function list(parts){const d=await directory(parts,false),rows=[];for await(const [name,handle] of d.entries()){rows.push({name,dir:handle.kind==='directory'})}rows.sort((a,b)=>Number(b.dir)-Number(a.dir)||a.name.localeCompare(b.name));if(!rows.length)line('(empty)','dim');for(const x of rows)line((x.dir?'[DIR] ':'      ')+x.name,x.dir?'ok':'')}
+async function list(parts){const d=await directory(parts,false),rows=[];for await(const [name,handle] of d.entries()){rows.push({name,dir:handle.kind==='directory'})}rows.sort((a,b)=>Number(b.dir)-Number(a.dir)||a.name.localeCompare(b.name));if(!rows.length){line('No files found.','dim');return;}for(const x of rows)line((x.dir?'[DIR] ':'      ')+x.name,x.dir?'ok':'')}
 function editorDirty(){return editorText.value!==editorOriginal}
 function updateLineNumbers(){
  const count=editorText.value.split('\n').length;
@@ -232,6 +314,137 @@ async function rewriteCssAssets(css,baseParts){
  }
  return css;
 }
+function siteRelativePath(reference,fromFile){
+ const value=String(reference||'').trim();
+ if(!value||value[0]==='#'||/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(value))return null;
+ try{
+  const base='https://ka-sh-preview.invalid/'+fromFile.split('/').slice(0,-1).map(encodeURIComponent).join('/')+'/';
+  const url=new URL(value,base);
+  if(url.origin!=='https://ka-sh-preview.invalid')return null;
+  const path=url.pathname.split('/').filter(Boolean).map(x=>decodeURIComponent(x)).join('/');
+  return {path,query:url.search,hash:url.hash};
+ }catch(_){return null}
+}
+function siteVirtualUrl(path){return 'https://ka-sh-preview.invalid/'+path.split('/').map(encodeURIComponent).join('/')}
+async function collectSiteTree(rootParts){
+ const files=new Map();let total=0;
+ async function walk(parts,relative){
+  const dir=await directory(parts,false);
+  for await(const [name,handle] of dir.entries()){
+   if(name==='.ka-sh-tmp')continue;
+   const child=parts.concat(name),rel=relative?relative+'/'+name:name;
+   if(handle.kind==='directory'){await walk(child,rel);continue}
+   const bytes=await readFileBytes(child);total+=bytes.length;
+   if(files.size>=1200)throw Error('Site preview is limited to 1,200 files.');
+   if(total>96*1024*1024)throw Error('Site preview is limited to 96 MB total.');
+   files.set(rel,{bytes,mime:previewMime(name)});
+  }
+ }
+ await walk(rootParts,'');
+ return files;
+}
+function rewriteSiteCss(css,fromPath,assetUrls){
+ const rewrite=value=>{
+  const ref=siteRelativePath(value,fromPath);if(!ref)return value;
+  const target=assetUrls.get(ref.path);return target?target+ref.query+ref.hash:value;
+ };
+ css=css.replace(/url\(\s*(['"]?)([^'")]+)\1\s*\)/gi,(all,q,value)=>'url("'+rewrite(value)+'")');
+ css=css.replace(/@import\s+(['"])([^'"]+)\1/gi,(all,q,value)=>'@import "'+rewrite(value)+'"');
+ return css;
+}
+async function compileSiteCss(path,stack,files,cssPaths,assetUrls){
+ const raw=new TextDecoder().decode(files.get(path).bytes);
+ const pattern=/@import\s+(?:url\(\s*)?(['"])([^'"]+)\1\s*\)?\s*([^;]*);/gi;
+ let output='',last=0,match;
+ while((match=pattern.exec(raw))){
+  output+=raw.slice(last,match.index);last=pattern.lastIndex;
+  const ref=siteRelativePath(match[2],path);
+  if(!ref||!cssPaths.includes(ref.path)||stack.includes(ref.path)){output+=match[0];continue}
+  const nested=await compileSiteCss(ref.path,stack.concat(path),files,cssPaths,assetUrls);
+  output+=match[3]?'@media '+match[3]+'{'+nested+'}':nested;
+ }
+ output+=raw.slice(last);
+ return rewriteSiteCss(output,path,assetUrls);
+}
+function rewriteSiteJs(source,fromPath,assetUrls){
+ const resolve=value=>{
+  const ref=siteRelativePath(value,fromPath);if(!ref)return value;
+  const target=assetUrls.get(ref.path);return target?target+ref.query+ref.hash:value;
+ };
+ source=source.replace(/(\bfrom\s*|\bimport\s*\(\s*|\bimport\s*)(['"])([^'"]+)\2/g,(all,prefix,q,value)=>{
+  const ref=siteRelativePath(value,fromPath);return ref&&assetUrls.has(ref.path)?prefix+q+siteVirtualUrl(ref.path)+ref.query+ref.hash+q:all;
+ });
+ source=source.replace(/\b(fetch|open)\s*\(\s*(['"])([^'"]+)\2/g,(all,fn,q,value)=>all.replace(value,resolve(value)));
+ source=source.replace(/\bnew\s+(Worker|SharedWorker)\s*\(\s*(['"])([^'"]+)\2/g,(all,kind,q,value)=>all.replace(value,resolve(value)));
+ source=source.replace(/\bnew\s+URL\s*\(\s*(['"])([^'"]+)\1\s*,\s*import\.meta\.url\s*\)/g,(all,q,value)=>'new URL('+JSON.stringify(resolve(value))+')');
+ return source;
+}
+async function buildSitePreview(entryPath,rootOverride){
+ const entry=entryPath.slice(),rootParts=rootOverride?rootOverride.slice():entry.slice(0,-1),entryRel=entry.slice(rootParts.length).join('/');
+ const files=await collectSiteTree(rootParts);
+ if(!files.has(entryRel))throw Error('The selected HTML entry file is not inside the preview folder.');
+ const assetUrls=new Map(),cssPaths=[],jsPaths=[],htmlPaths=[];
+ for(const [path,file] of files){
+  const ext=path.split('.').pop().toLowerCase();
+  if(['html','htm'].includes(ext))htmlPaths.push(path);
+  else if(['css'].includes(ext))cssPaths.push(path);
+  else if(['js','mjs','cjs'].includes(ext))jsPaths.push(path);
+  else assetUrls.set(path,URL.createObjectURL(new Blob([file.bytes],{type:file.mime||'application/octet-stream'})));
+ }
+ const importMap={imports:{}};
+ for(const path of jsPaths)assetUrls.set(path,URL.createObjectURL(new Blob([files.get(path).bytes],{type:'text/javascript;charset=utf-8'})));
+ for(const path of cssPaths)assetUrls.set(path,URL.createObjectURL(new Blob([files.get(path).bytes],{type:'text/css;charset=utf-8'})));
+ for(const path of jsPaths){
+  const source=new TextDecoder().decode(files.get(path).bytes);
+  const rewritten=rewriteSiteJs(source,path,assetUrls);
+  const url=URL.createObjectURL(new Blob([rewritten],{type:'text/javascript;charset=utf-8'}));
+  URL.revokeObjectURL(assetUrls.get(path));assetUrls.set(path,url);importMap.imports[siteVirtualUrl(path)]=url;
+ }
+ for(const path of cssPaths){
+  const css=await compileSiteCss(path,[],files,cssPaths,assetUrls);
+  const url=URL.createObjectURL(new Blob([css],{type:'text/css;charset=utf-8'}));
+  URL.revokeObjectURL(assetUrls.get(path));assetUrls.set(path,url);
+ }
+ const fakeOrigin='https://ka-sh-preview.invalid';
+ const rewriteHtml=path=>{
+  let html=new TextDecoder().decode(files.get(path).bytes);
+  html=html.replace(/<(script\b[^>]*type\s*=\s*(['"])module\2[^>]*>)([\s\S]*?)<\/script>/gi,(all,open,q,body)=>open+rewriteSiteJs(body,path,assetUrls)+'<\/script>');
+  html=html.replace(/\b(src|href|poster|data-src|action|data)\s*=\s*(['"])(.*?)\2/gi,(all,attr,q,value)=>{
+   const ref=siteRelativePath(value,path);if(!ref)return all;
+   const target=assetUrls.get(ref.path);
+   if(target)return attr+'='+q+target+ref.query+ref.hash+q;
+   if(htmlPaths.includes(ref.path))return attr+'='+q+siteVirtualUrl(ref.path)+ref.query+ref.hash+q;
+   return all;
+  });
+  html=html.replace(/\bsrcset\s*=\s*(['"])(.*?)\1/gi,(all,q,value)=>{
+   const updated=value.split(',').map(part=>{const bits=part.trim().split(/\s+/),ref=siteRelativePath(bits[0],path);if(ref&&assetUrls.has(ref.path))bits[0]=assetUrls.get(ref.path)+ref.query+ref.hash;return bits.join(' ')}).join(', ');
+   return 'srcset='+q+updated+q;
+  });
+  html=html.replace(/\bstyle\s*=\s*(['"])([\s\S]*?)\1/gi,(all,q,css)=>'style='+q+rewriteSiteCss(css,path,assetUrls)+q);
+  html=html.replace(/<style\b([^>]*)>([\s\S]*?)<\/style>/gi,(all,attrs,css)=>'<style'+attrs+'>'+rewriteSiteCss(css,path,assetUrls)+'</style>');
+  const directoryPath=path.split('/').slice(0,-1).join('/');
+  const baseUrl=fakeOrigin+'/'+(directoryPath?directoryPath+'/':'');
+  const importTag='<script type="importmap">'+JSON.stringify(importMap)+'<\/script>';
+  const bootstrap='<script>(function(){const origin='+JSON.stringify(fakeOrigin)+',assets='+JSON.stringify(Object.fromEntries(assetUrls))+',pages=new Set(__KA_SH_PAGES__),nativeFetch=window.fetch.bind(window);window.fetch=function(input,init){try{const raw=typeof input==="string"?input:input.url,u=new URL(raw,document.baseURI);if(u.origin===origin&&assets[u.pathname.slice(1)])return nativeFetch(assets[u.pathname.slice(1)]+u.search,init)}catch(e){}return nativeFetch(input,init)};document.addEventListener("click",function(e){const a=e.target.closest&&e.target.closest("a[href]");if(!a)return;try{const u=new URL(a.href);if(u.origin!==origin)return;const path=u.pathname.slice(1);if(pages.has(path)){e.preventDefault();parent.postMessage({type:"ka-sh-preview-navigate",path:path},"*")}}catch(e){}})})();<\/script>';
+  const baseTag='<base href="'+baseUrl.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'">';
+  if(/<head\b[^>]*>/i.test(html))html=html.replace(/<head\b[^>]*>/i,match=>match+baseTag+importTag+bootstrap);
+  else html=baseTag+importTag+bootstrap+html;
+  return html.replace('__KA_SH_PAGES__',JSON.stringify(htmlPaths));
+ };
+ const pages={};for(const path of htmlPaths)pages[path]=rewriteHtml(path);
+ return {pages,entry:entryRel,name:entryRel,urls:[...assetUrls.values()]};
+}
+async function openSandboxedSitePreview(bundle){
+ const tab=window.open('about:blank','_blank');
+ if(!tab)throw Error('Pop-up blocked. Allow pop-ups for this site and try again.');
+ const safePages=JSON.stringify(bundle.pages).replace(/</g,'\\u003c');
+ const pageScript='const pages='+safePages+',frame=document.getElementById("site");function load(path,push){if(!Object.prototype.hasOwnProperty.call(pages,path))return;frame.srcdoc=pages[path];if(push)history.pushState({path:path},"","#"+encodeURIComponent(path))}window.addEventListener("message",e=>{if(e.source!==frame.contentWindow||!e.data||e.data.type!=="ka-sh-preview-navigate")return;load(e.data.path,true)});window.addEventListener("popstate",()=>{const path=decodeURIComponent(location.hash.slice(1)||'+JSON.stringify(bundle.entry)+');load(path,false)});load('+JSON.stringify(bundle.entry)+',false);';
+ tab.document.open();
+ tab.document.write('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+String(bundle.name).replace(/[&<>"]/g,'')+'</title><style>html,body,iframe{margin:0;width:100%;height:100%;border:0;background:#fff}body{overflow:hidden}</style></head><body><iframe id="site" title="Site preview" sandbox="allow-scripts allow-forms allow-downloads allow-modals allow-pointer-lock"></iframe><script>'+pageScript+'<\\/script></body></html>');
+ tab.document.close();
+ line('Opened isolated site preview: '+bundle.name,'ok');
+ setTimeout(()=>{for(const item of bundle.urls)URL.revokeObjectURL(item)},10*60*1000);
+}
 async function buildHtmlPreview(path){
  const source=await readFile(path),folder=path.slice(0,-1);
  let html=source;
@@ -256,9 +469,9 @@ async function openBlobPreview(blob,name){
  line('Opened preview: '+name,'ok');
  setTimeout(()=>URL.revokeObjectURL(url),5*60*1000);
 }
-async function previewHtml(path){
- const source=await buildHtmlPreview(path);
- await openBlobPreview(new Blob([source],{type:'text/html;charset=utf-8'}),pathString(path));
+async function previewHtml(path,rootParts){
+ const bundle=await buildSitePreview(path,rootParts);
+ await openSandboxedSitePreview(bundle);
 }
 async function previewFile(path){
  const parts=Array.isArray(path)?path:resolve(path),name=parts[parts.length-1],mime=previewMime(name);
@@ -864,14 +1077,14 @@ async function runRemoteApt(inputArgs){
  if(data.commandOk&&(action==='install'||action==='upgrade'))line('Installed on the connected server. Runtime packages may be reset after a restart or redeploy.','dim');
  if(!data.commandOk)throw Error('APT command failed. See the output above.');
 }
-async function runSingle(raw){const trimmed=raw.trim(),args=tokenize(raw),cmd=(args.shift()||'').toLowerCase(),arg=args[0];if(!cmd)return;
-line((cwd.length===2?'~':pathString(cwd))+' $ '+raw,'cmd');
+async function runSingle(raw,bypassBash=false){const trimmed=raw.trim(),args=tokenize(raw),cmd=(args.shift()||'').toLowerCase(),arg=args[0];if(!cmd)return;
+if(!suppressCommandEcho)line((cwd.length===2&&cwd[0]==='home'&&cwd[1]===HOME[1]?'~':pathString(cwd))+' $ '+raw,'cmd');
  const looksLikeJavaScript=/^(?:const|let|var|function|class|async\s+function|import\s|export\s|require\s*\(|console\.|process\.|module\.|exports\.|await\s|fetch\s*\(|https?\.(?:get|request)\s*\(|Promise\.|throw\s|try\s*\{|if\s*\(|for\s*\(|while\s*\(|\/\*|\/\/)/.test(trimmed)||/;\s*(?:const|let|var)\s/.test(trimmed);
  if(looksLikeJavaScript){await executeNode(raw,'pasted JavaScript');return;}
 try{
 switch(cmd){
 case 'help':case '?':
-line("KARA'S TERMINAL / KA-SH 0.5",'ok');
+line("KARA'S TERMINAL / KA-SH 0.6",'ok');
 line('Browser-local shell environment. Not a full Linux or iOS shell.','dim');
 line('');
 line('FILESYSTEM');
@@ -909,7 +1122,7 @@ line('  printf / basename / dirname Formatted output and path tools');
 line('  realpath / file / sha256sum Inspect files and checksums');
 line('  cmp / diff / cut / tr       Compare and extract text');
 line('  sed / awk                   Basic stream text processing');
-line('  source / sh <script.sh>    Run shell scripts line by line');
+line('  source / sh <script.sh>    Run Bash scripts with real shell syntax');
 line('  test / true / false / sleep Basic shell utilities');
 line('  js <code|file.js>            Run JavaScript code or a script file (await input() for answers)');
 line('  run <file.js>               Execute a JavaScript file');
@@ -945,6 +1158,7 @@ line('  node preview/logs            Open project previews and inspect output');
   line('  sudo apt update              Refresh cloud server package lists');
   line('  sudo apt install <package>  Install Debian packages on your cloud server');
   line('  sudo apt remove <package>   Remove Debian packages from your cloud server');
+line('  Bash supports variables, pipes, redirects, loops, functions and conditionals.','dim');
   line('  APT runs on the connected server, not on this device; installed packages may reset after restarts.','warn');
 line('  proxy open                  Open your account proxy route manager');
 line('  proxy map <host> <slug>     Route a hostname through a saved proxy route');
@@ -977,7 +1191,7 @@ line('  whoami                      Show local user');
 line('  uname                       Show runtime information');
 line('  storage                     Show OPFS availability');
 line('  js, run, nodejs, python, pip  JavaScript, Node-compatible and Python runtimes');
-line('  Linux tools                 Run installed programs on your connected server');
+line('  remote <command>            Run a command on your connected cloud server');
 line('  server                      Manage browser-local HTTP servers');
 line('  preview                     Preview saved HTML');
 line('  help                        Show this help');
@@ -1046,7 +1260,7 @@ case 'js':{
 case 'run':if(!arg)throw Error('Usage: run <file.js>');if(!arg.toLowerCase().endsWith('.js'))throw Error('The run command currently executes .js files.');await executeJavaScript(await readFile(resolve(arg)),arg);break;
 case 'python':case 'py':if(!arg){line('Usage: python <file.py>  |  python -c <code>','dim');line('Example: python -c print(2 ** 10)');break}else if(arg==='-c'){if(args.length<2)throw Error('Usage: python -c <code>');await executePython((()=>{let code=raw.slice(raw.indexOf('-c')+2).trim();if((code[0]==='"'&&code.at(-1)==='"')||(code[0]==="'"&&code.at(-1)==="'"))code=code.slice(1,-1);return code})(),'Python command')}else await executePython(await readFile(resolve(arg)),arg);break;
 case 'pip':if(args[0]!=='install'||!args[1])throw Error('Usage: pip install <package>');{const py=await loadPyodideRuntime();line('Installing '+args[1]+'…','dim');await py.loadPackage('micropip');await py.runPythonAsync("import micropip\\nawait micropip.install("+JSON.stringify(args[1])+")");line('Installed '+args[1]+' (if compatible with Pyodide).','ok')}break;
-case 'preview':if(!arg)throw Error('Usage: preview <file-or-folder>');{const p=resolve(arg);let isDir=false;try{await directory(p,false);isDir=true}catch(_){}if(isDir){const d=await directory(p,false),names=[];for await(const [name,h] of d.entries())if(h.kind==='file'&&/\.html?$/i.test(name))names.push(name);const chosen=names.find(x=>x.toLowerCase()==='index.html')||names[0];if(!chosen)throw Error('This folder has no HTML entry point. Preview an individual file instead.');await previewHtml(p.concat(chosen))}else await previewFile(p)}break;
+case 'preview':if(!arg)throw Error('Usage: preview <file-or-folder> [entry.html]');{const p=resolve(arg);let isDir=false;try{await directory(p,false);isDir=true}catch(_){}if(isDir){const names=[];async function findHtml(parts,relative){const d=await directory(parts,false);for await(const [name,h] of d.entries()){if(name==='.ka-sh-tmp')continue;if(h.kind==='directory')await findHtml(parts.concat(name),relative?relative+'/'+name:name);else if(h.kind==='file'&&/\.html?$/i.test(name))names.push({parts:parts.concat(name),relative:relative?relative+'/'+name:name})}}await findHtml(p,'');const requested=args[1];const chosen=requested?names.find(x=>x.relative===requested||x.relative===requested.replace(/^\.\//,'')):names.find(x=>x.relative.toLowerCase()==='index.html')||names.find(x=>x.relative.toLowerCase().endsWith('/index.html'))||names[0];if(!chosen)throw Error('No HTML entry point found anywhere inside this folder.');await previewHtml(chosen.parts,p)}else{if(!/\.html?$/i.test(arg))throw Error('Preview a folder or an HTML entry file.');await previewHtml(p)}}break;
 case 'image':if(!arg)throw Error('Usage: image <image-file>');{const p=resolve(arg);if(!previewMime(arg).startsWith('image/'))throw Error('That file does not look like a supported image.');await previewFile(p)}break;
 case 'nodejs':{
  if(!arg){line('KA Node-compatible runtime. Usage: nodejs <file.js> | nodejs -e <code>','dim');line('This is not native Node.js; browser-compatible packages only.','warn');break}
@@ -1116,6 +1330,10 @@ case 'korona':{
  const launch=runtime+'?target='+encodeURIComponent(u.href)+'&wisps='+encoded;
  const tab=window.open(launch,'_blank','noopener');if(!tab)throw Error('Pop-up blocked. Allow pop-ups and try again.');
  line('Launching Korona for '+u.href,'ok');line('Runtime: '+runtime,'dim');line('Wisp: '+endpoints[0],'dim');break;
+}
+case 'remote':{
+ if(!args[0])throw Error('Usage: remote <command> [arguments...]');
+ await runRemoteCommand(args[0],args.slice(1));break;
 }
 case 'server':{
  const sub=args[0];
@@ -1262,8 +1480,9 @@ case 'id':line('uid=1000('+HOME[1]+') gid=1000('+HOME[1]+') groups=1000('+HOME[1
 case 'uptime':line('Session uptime: '+Math.floor((Date.now()-startedAt)/1000)+' seconds');break;
 case 'free':line('Browser-managed memory is not fully exposed to web pages.','warn');if(performance.memory)line('JS heap: '+formatSize(performance.memory.usedJSHeapSize)+' / '+formatSize(performance.memory.jsHeapSizeLimit));break;
 case 'db':{const sub=args[0];if(sub==='help'||!sub){line('Local OPFS document database commands:');line('  db collections');line('  db create <collection>');line('  db insert <collection> <json>');line('  db find <collection> [json-filter]');line('  db delete <collection> <json-filter>');line("Node API: const db=await require(\"database\"); const users=db.collection(\"users\");");line("Remote REST: await db.connect(\"https://api.example\",{headers:{Authorization:\"Bearer TOKEN\"}}); await db.request(\"/records\");")}else if(sub==='collections'){const names=await browserDatabase.collections();line(names.length?names.join('\\n'):'(no collections)','ok')}else if(sub==='create'){if(!args[1])throw Error('Usage: db create <collection>');await browserDatabase.collection(args[1]).create();line('Created '+args[1],'ok')}else if(sub==='insert'){if(!args[1]||!args[2])throw Error('Usage: db insert <collection> <json>');const result=await browserDatabase.collection(args[1]).insertOne(JSON.parse(args.slice(2).join(' ')));line('Inserted document '+result.insertedId,'ok')}else if(sub==='find'){if(!args[1])throw Error('Usage: db find <collection> [json-filter]');line(JSON.stringify(await browserDatabase.collection(args[1]).find(args[2]?JSON.parse(args.slice(2).join(' ')):{}),null,2),'ok')}else if(sub==='delete'){if(!args[1]||!args[2])throw Error('Usage: db delete <collection> <json-filter>');const result=await browserDatabase.collection(args[1]).deleteMany(JSON.parse(args.slice(2).join(' ')));line('Deleted '+result.deletedCount+' document(s)','ok')}else throw Error('Try db help.');break}
- case 'version':line("Kara's Terminal 0.5 / KA-SH + JavaScript + Python WebAssembly",'ok');break;
-case 'about':line('A browser-local command environment. Files live in this site origin’s OPFS storage.');line('Network requests can use the authenticated CORS proxy or your account-owned Reverse Proxy routes.','dim');
+ case 'version':line("Kara's Terminal 0.6 / KA-SH + Bash + JavaScript + Python WebAssembly",'ok');break;
+case 'about':line('A browser-local Bash and developer environment. Files live in this site origin’s OPFS storage.');line('Network requests can use the authenticated CORS proxy or your account-owned Reverse Proxy routes.','dim');
+line('Bash scripts run locally in an isolated browser runtime with a persistent, account-scoped filesystem.','dim');
 line('JavaScript runs in the page runtime. Python runs in Pyodide/WebAssembly (downloaded on first use).','dim');
 line('Node scripts support CommonJS require for built-ins and installed browser-compatible npm bundles. http/https clients use authenticated proxy-aware fetch.','dim');
 line('Node commands use a browser-side compatibility runtime, not native Node.js. npm downloads and caches ESM bundles; native addons, child processes, raw sockets and OS binaries are not available. http/https requests use proxy-aware fetch. Git commands connect to public GitHub repositories; this is not a full Git object database and local commits/pushes are not implemented.','dim');
@@ -1316,7 +1535,7 @@ function splitShellBatch(source){
 async function run(raw){
  const trimmed=raw.trim();if(!trimmed)return;
  const first=trimmed.split(/\r?\n/,1)[0].trim();
- const isTypeScript=/^(?:interface|type\s+[A-Za-z_$]|enum\s+[A-Za-z_$]|namespace\s+[A-Za-z_$]|declare\s|abstract\s+class\s)/.test(trimmed)||/^(?:const|let|var)\s+[A-Za-z_$][\w$]*\s*:\s*(?:string|number|boolean|any|unknown|object|[A-Z_$][\w$]*(?:<[^;=]+>)?|\{)/.test(trimmed);
+ const isTypeScript=/^(?:interface\s+[A-Za-z_$]|type\s+[A-Za-z_$][\w$]*\s*=|enum\s+[A-Za-z_$]|namespace\s+[A-Za-z_$]|declare\s+(?:const|let|var|function|class|module|namespace)\b|abstract\s+class\s)/.test(trimmed)||/^(?:const|let|var)\s+[A-Za-z_$][\w$]*\s*:\s*(?:string|number|boolean|any|unknown|object|[A-Z_$][\w$]*(?:<[^;=]+>)?|\{)/.test(trimmed);
  if(isTypeScript){await executeTypeScript(raw,'TypeScript');return}
  if(/^(?:ts|tsc)\s+/.test(first)){
   const args=tokenize(first);
@@ -1325,14 +1544,20 @@ async function run(raw){
   await executeTypeScript(raw.slice(raw.indexOf(' ')+1),'TypeScript');return;
  }
  if(/^[\s\S]*\.ts$/.test(trimmed)&&!/\s/.test(trimmed)){try{await executeTypeScript(await readFile(resolve(trimmed)),trimmed)}catch(e){line('TypeScript error: '+e.message,'err')}return}
+ const looksLikeBash=/^\s*(?:#!.*(?:bash|sh)|[A-Za-z_]\w*\s*\(\s*\)\s*\{|function\s+[A-Za-z_]\w*\s*\{|if\s+(?:\[\[?|\(\()|for\s+\w+\s+in\b|for\s*\(\(|while\s+(?:\[\[?|\(\()|until\s+(?:\[\[?|\(\()|case\s+.+\s+in\b|select\s+\w+\s+in\b|export\s+\w+=|unset\s+\w+|set\s+-[a-z]+|source\s+|\.\s+\S|[A-Za-z_]\w*=\S)/m.test(trimmed);
+ if(looksLikeBash){await runBashkit(raw);return}
  const looksLikeJavaScript=/^(?:const|let|var|function|class|async\s+function|import\s|export\s|require\s*\(|console\.|process\.|module\.|exports\.|await\s|fetch\s*\(|https?\.(?:get|request)\s*\(|Promise\.|throw\s|try\s*\{|if\s*\(|for\s*\(|while\s*\(|\/\*|\/\/)/.test(trimmed);
  if(looksLikeJavaScript){await executeNode(raw,'pasted JavaScript');return}
- const commands=splitShellBatch(raw);
- if(commands.length>1){for(const command of commands)await runSingle(command);return}
- await runSingle(trimmed);
+ const parsed=tokenize(trimmed),head=(parsed[0]||'').toLowerCase();
+ if(['help','?','clear','exit'].includes(head)&&!/[|&]/.test(trimmed)){
+  line((cwd.length===2&&cwd[0]==='home'&&cwd[1]===HOME[1]?'~':pathString(cwd))+' $ '+raw,'cmd');
+  const response=await handleKaCommand({name:head,argv:parsed.slice(1),cwd:pathString(cwd)});
+  appendBashOutput(response.stdout,'');appendBashOutput(response.stderr,'err');return;
+ }
+ await runBashkit(raw);
 }
 
-async function init(){try{if(!navigator.storage||!navigator.storage.getDirectory)throw Error('This browser does not support OPFS. Try an up-to-date Safari or another modern browser.');root=await navigator.storage.getDirectory();HOME=['home',await resolveTerminalUsername()];cwd=HOME.slice();envVars.HOME='/home/'+HOME[1];envVars.USER=HOME[1];await directory(['home'],true);await directory(HOME,true);await loadNodePackages();status('OPFS READY','good');line("Kara's Terminal [KA-SH 0.5]",'ok');line('Persistent browser-local filesystem initialized.','dim');line('Authenticated account proxy networking is available. No access to private device files.','dim');line('Type help to see available commands.','');line('');updatePrompt()}catch(e){status('FILESYSTEM UNAVAILABLE','bad');line('Could not initialize browser storage: '+e.message,'err');line('This terminal requires a secure HTTPS page and browser OPFS support.','warn')}}
+async function init(){try{if(!navigator.storage||!navigator.storage.getDirectory)throw Error('This browser does not support OPFS. Try an up-to-date Safari or another modern browser.');root=await navigator.storage.getDirectory();HOME=['home',await resolveTerminalUsername()];cwd=HOME.slice();envVars.HOME='/home/'+HOME[1];envVars.USER=HOME[1];await directory(['home'],true);await directory(HOME,true);await loadNodePackages();status('OPFS READY','good');line("Kara's Terminal [KA-SH 0.6]",'ok');line('Persistent browser-local filesystem initialized.','dim');line('Authenticated account proxy networking is available. No access to private device files.','dim');line('Type help to see available commands.','');line('');updatePrompt()}catch(e){status('FILESYSTEM UNAVAILABLE','bad');line('Could not initialize browser storage: '+e.message,'err');line('This terminal requires a secure HTTPS page and browser OPFS support.','warn')}}
 form.addEventListener('submit',async e=>{e.preventDefault();const raw=input.value;input.value='';input.style.height='auto';if(terminalInputResolver){line('> '+raw,'cmd');const resolve=terminalInputResolver;finishTerminalInput(raw);resolve(raw);return}if(raw.trim()){history.push(raw);historyIndex=history.length;await run(raw)}});
 input.addEventListener('input',()=>{input.style.height='auto';input.style.height=Math.min(input.scrollHeight,window.innerHeight*.38)+'px'});
 input.addEventListener('keydown',e=>{
