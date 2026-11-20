@@ -378,17 +378,19 @@ async function buildSitePreview(entryPath){
   else assetUrls.set(path,URL.createObjectURL(new Blob([file.bytes],{type:file.mime||'application/octet-stream'})));
  }
  const importMap={imports:{}};
+ for(const path of jsPaths)assetUrls.set(path,URL.createObjectURL(new Blob([files.get(path).bytes],{type:'text/javascript;charset=utf-8'})));
+ for(const path of cssPaths)assetUrls.set(path,URL.createObjectURL(new Blob([files.get(path).bytes],{type:'text/css;charset=utf-8'})));
  for(const path of jsPaths){
   const source=new TextDecoder().decode(files.get(path).bytes);
   const rewritten=rewriteSiteJs(source,path,assetUrls);
   const url=URL.createObjectURL(new Blob([rewritten],{type:'text/javascript;charset=utf-8'}));
-  assetUrls.set(path,url);importMap.imports[siteVirtualUrl(path)]=url;
+  URL.revokeObjectURL(assetUrls.get(path));assetUrls.set(path,url);importMap.imports[siteVirtualUrl(path)]=url;
  }
  for(const path of cssPaths){
   const css=rewriteSiteCss(new TextDecoder().decode(files.get(path).bytes),path,assetUrls);
-  assetUrls.set(path,URL.createObjectURL(new Blob([css],{type:'text/css;charset=utf-8'})));
+  const url=URL.createObjectURL(new Blob([css],{type:'text/css;charset=utf-8'}));
+  URL.revokeObjectURL(assetUrls.get(path));assetUrls.set(path,url);
  }
- const pageUrls=new Map();
  const fakeOrigin='https://ka-sh-preview.invalid';
  const rewriteHtml=path=>{
   let html=new TextDecoder().decode(files.get(path).bytes);
@@ -409,38 +411,25 @@ async function buildSitePreview(entryPath){
   const directoryPath=path.split('/').slice(0,-1).join('/');
   const baseUrl=fakeOrigin+'/'+(directoryPath?directoryPath+'/':'');
   const importTag='<script type="importmap">'+JSON.stringify(importMap)+'<\/script>';
-  const bootstrap='<script>(function(){const origin='+JSON.stringify(fakeOrigin)+',assets='+JSON.stringify(Object.fromEntries(assetUrls))+',pages=__KA_SH_PAGES__,nativeFetch=window.fetch.bind(window);window.fetch=function(input,init){try{const raw=typeof input==="string"?input:input.url,u=new URL(raw,document.baseURI);if(u.origin===origin&&assets[u.pathname.slice(1)])return nativeFetch(assets[u.pathname.slice(1)]+u.search,init)}catch(e){}return nativeFetch(input,init)};document.addEventListener("click",function(e){const a=e.target.closest&&e.target.closest("a[href]");if(!a)return;try{const u=new URL(a.href);if(u.origin!==origin)return;const path=u.pathname.slice(1),target=pages[path];if(target){e.preventDefault();location.href=target+u.search+u.hash}}catch(e){}})})();<\/script>';
+  const bootstrap='<script>(function(){const origin='+JSON.stringify(fakeOrigin)+',assets='+JSON.stringify(Object.fromEntries(assetUrls))+',pages=new Set(__KA_SH_PAGES__),nativeFetch=window.fetch.bind(window);window.fetch=function(input,init){try{const raw=typeof input==="string"?input:input.url,u=new URL(raw,document.baseURI);if(u.origin===origin&&assets[u.pathname.slice(1)])return nativeFetch(assets[u.pathname.slice(1)]+u.search,init)}catch(e){}return nativeFetch(input,init)};document.addEventListener("click",function(e){const a=e.target.closest&&e.target.closest("a[href]");if(!a)return;try{const u=new URL(a.href);if(u.origin!==origin)return;const path=u.pathname.slice(1);if(pages.has(path)){e.preventDefault();parent.postMessage({type:"ka-sh-preview-navigate",path:path},"*")}}catch(e){}})})();<\/script>';
   const baseTag='<base href="'+baseUrl.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'">';
   if(/<head\b[^>]*>/i.test(html))html=html.replace(/<head\b[^>]*>/i,match=>match+baseTag+importTag+bootstrap);
   else html=baseTag+importTag+bootstrap+html;
-  return html;
+  return html.replace('__KA_SH_PAGES__',JSON.stringify(htmlPaths));
  };
- for(const path of htmlPaths)pageUrls.set(path,null);
- const htmlBlobs=new Map();
- for(const path of htmlPaths){
-  const html=rewriteHtml(path);
-  htmlBlobs.set(path,URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})));
- }
- const pageMap=Object.fromEntries(htmlBlobs);
- for(const path of htmlPaths){
-  const html=rewriteHtml(path).replace('__KA_SH_PAGES__',JSON.stringify(pageMap));
-  const replacement=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'}));
-  URL.revokeObjectURL(htmlBlobs.get(path));htmlBlobs.set(path,replacement);
- }
- for(const [path,url] of htmlBlobs)pageUrls.set(path,url);
- const finalHtml=rewriteHtml(entryRel).replace('__KA_SH_PAGES__',JSON.stringify(Object.fromEntries(pageUrls)));
- const finalBlob=new Blob([finalHtml],{type:'text/html;charset=utf-8'});
- return {blob:finalBlob,name:entryRel,urls:[...assetUrls.values(),...htmlBlobs.values()]};
+ const pages={};for(const path of htmlPaths)pages[path]=rewriteHtml(path);
+ return {pages,entry:entryRel,name:entryRel,urls:[...assetUrls.values()]};
 }
 async function openSandboxedSitePreview(bundle){
  const tab=window.open('about:blank','_blank');
  if(!tab)throw Error('Pop-up blocked. Allow pop-ups for this site and try again.');
- const url=URL.createObjectURL(bundle.blob);
+ const safePages=JSON.stringify(bundle.pages).replace(/</g,'\\u003c');
+ const pageScript='const pages='+safePages+',frame=document.getElementById("site");function load(path,push){if(!Object.prototype.hasOwnProperty.call(pages,path))return;frame.srcdoc=pages[path];if(push)history.pushState({path:path},"","#"+encodeURIComponent(path))}window.addEventListener("message",e=>{if(e.source!==frame.contentWindow||!e.data||e.data.type!=="ka-sh-preview-navigate")return;load(e.data.path,true)});window.addEventListener("popstate",()=>{const path=decodeURIComponent(location.hash.slice(1)||'+JSON.stringify(bundle.entry)+');load(path,false)});load('+JSON.stringify(bundle.entry)+',false);';
  tab.document.open();
- tab.document.write('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+String(bundle.name).replace(/[&<>"]/g,'')+'</title><style>html,body,iframe{margin:0;width:100%;height:100%;border:0;background:#fff}body{overflow:hidden}</style></head><body><iframe id="site" title="Site preview" sandbox="allow-scripts allow-forms allow-downloads allow-modals allow-pointer-lock"></iframe><script>document.getElementById("site").src='+JSON.stringify(url)+';<\/script></body></html>');
+ tab.document.write('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+String(bundle.name).replace(/[&<>"]/g,'')+'</title><style>html,body,iframe{margin:0;width:100%;height:100%;border:0;background:#fff}body{overflow:hidden}</style></head><body><iframe id="site" title="Site preview" sandbox="allow-scripts allow-forms allow-downloads allow-modals allow-pointer-lock"></iframe><script>'+pageScript.replace(/<\\/script/gi,'<\\\\/script')+'<\\/script></body></html>');
  tab.document.close();
  line('Opened isolated site preview: '+bundle.name,'ok');
- setTimeout(()=>{for(const item of bundle.urls)URL.revokeObjectURL(item);URL.revokeObjectURL(url)},10*60*1000);
+ setTimeout(()=>{for(const item of bundle.urls)URL.revokeObjectURL(item)},10*60*1000);
 }
 async function buildHtmlPreview(path){
  const source=await readFile(path),folder=path.slice(0,-1);
