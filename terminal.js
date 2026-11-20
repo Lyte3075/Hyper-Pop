@@ -2,10 +2,11 @@
 (function(){
   const UNLOCK_KEY='hyperpop-command-prompt-unlocked';
   const unlocked=()=>localStorage.getItem(UNLOCK_KEY)==='1'||Number(localStorage.getItem('hyperpop-dont-danger')||0)>=99;
+  const go=(path)=>{const clean=String(path||'').replace(/^\\/+/, '');location.href=new URL('/'+clean,location.origin).href;};
   function addTerminal(){
     if(document.getElementById('hp-terminal-launcher')){updateTerminalState();return;}
     const style=document.createElement('style');
-    style.textContent=`#hp-terminal-launcher{position:fixed;left:14px;bottom:14px;z-index:99999;width:42px;height:42px;border:1px solid #ffffff22;border-radius:12px;background:#0b0b12eF;color:#7df9ff;font:800 18px monospace;box-shadow:0 8px 30px #0008;backdrop-filter:blur(12px);transition:.15s}.hp-terminal-locked{opacity:.45;filter:grayscale(.7);cursor:not-allowed}.hp-terminal-locked:hover{opacity:.6}#hp-terminal{position:fixed;left:14px;bottom:14px;z-index:99998;width:min(430px,calc(100vw - 28px));height:min(520px,calc(100vh - 28px));display:none;flex-direction:column;overflow:hidden;border:1px solid #7df9ff55;border-radius:16px;background:#07090deF;color:#dffcff;box-shadow:0 20px 70px #000C;font:13px/1.45 "DM Mono",ui-monospace,monospace;text-align:left;backdrop-filter:blur(16px)}#hp-terminal.open{display:flex}#hp-term-head{display:flex;text-align:left!important;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #ffffff15;background:#0d1119}#hp-term-out{flex:1;overflow:auto;padding:12px;white-space:pre-wrap;word-break:break-word;text-align:left!important;align-self:stretch!important}#hp-term-form{display:flex;text-align:left!important;border-top:1px solid #ffffff15;background:#0d1119}#hp-term-form span{padding:10px 0 10px 12px;color:#7df9ff}#hp-term-input{min-width:0;text-align:left!important;flex:1;padding:10px;border:0;outline:0;background:transparent;color:#fff;font:inherit}#hp-term-close{border:0;background:transparent;color:#aaa;padding:2px 6px;font:inherit}.hp-ok{color:#7dffb2!important}.hp-warn{color:#ffe66d}.hp-err{color:#ff718d}.hp-cmd{color:#7df9ff}`;
+    style.textContent=`#hp-terminal-launcher{position:fixed!important;left:max(14px,env(safe-area-inset-left))!important;bottom:max(14px,env(safe-area-inset-bottom))!important;z-index:2147483646!important;width:42px;height:42px;display:grid!important;place-items:center;pointer-events:auto!important;border:1px solid #ffffff22;border-radius:12px;background:#0b0b12eF;color:#7df9ff;font:800 18px monospace;box-shadow:0 8px 30px #0008;backdrop-filter:blur(12px);transition:.15s}.hp-terminal-locked{opacity:.45;filter:grayscale(.7);cursor:not-allowed}.hp-terminal-locked:hover{opacity:.6}#hp-terminal{position:fixed;left:14px;bottom:14px;z-index:99998;width:min(430px,calc(100vw - 28px));height:min(520px,calc(100vh - 28px));display:none;flex-direction:column;overflow:hidden;border:1px solid #7df9ff55;border-radius:16px;background:#07090deF;color:#dffcff;box-shadow:0 20px 70px #000C;font:13px/1.45 "DM Mono",ui-monospace,monospace;text-align:left;backdrop-filter:blur(16px)}#hp-terminal.open{display:flex}#hp-term-head{display:flex;text-align:left!important;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #ffffff15;background:#0d1119}#hp-term-out{flex:1;overflow:auto;padding:12px;white-space:pre-wrap;word-break:break-word;text-align:left!important;align-self:stretch!important}#hp-term-form{display:flex;text-align:left!important;border-top:1px solid #ffffff15;background:#0d1119}#hp-term-form span{padding:10px 0 10px 12px;color:#7df9ff}#hp-term-input{min-width:0;text-align:left!important;flex:1;padding:10px;border:0;outline:0;background:transparent;color:#fff;font:inherit}#hp-term-close{border:0;background:transparent;color:#aaa;padding:2px 6px;font:inherit}.hp-ok{color:#7dffb2!important}.hp-warn{color:#ffe66d}.hp-err{color:#ff718d}.hp-cmd{color:#7df9ff}`;
     style.id='hp-terminal-style';document.head.appendChild(style);
     const launcher=document.createElement('button');launcher.id='hp-terminal-launcher';launcher.title='Command Prompt';launcher.textContent='>_';launcher.style.setProperty('display','none','important');
     const term=document.createElement('div');term.id='hp-terminal';term.innerHTML='<div id="hp-term-head"><b>⌘ Hyper-Pop Command Prompt</b><button id="hp-term-close">×</button></div><div id="hp-term-out"></div><form id="hp-term-form"><span>&gt;</span><input id="hp-term-input" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="/help"></form>';
@@ -58,23 +59,23 @@ TIP: /js is the universal cheat and can be used for game-specific cheats too.`;
     async function command(raw){const clean=String(raw||'').replace(/[\u200B-\u200D\uFEFF]/g,'').trim();const parts=clean.split(/\s+/),cmd=(parts.shift()||'').toLowerCase().replace(/^\/+$/,'/'),arg=parts.join(' ');if(!cmd)return;print('> '+raw,'hp-cmd');try{if(cmd==='/recipe'||cmd==='/r'){argsForRecipe(arg);return}if(cmd==='/recipes'){const q=arg.trim().toLowerCase();print('HYPER-CRAFT RECIPE LOOKUP'+String.fromCharCode(10)+(q?'Searching for: '+arg:'Showing recipe database')+String.fromCharCode(10),'hp-ok');const map=new Map();const add=(k,v)=>{const key=String(k||'').toLowerCase().trim();if(key&&Array.isArray(v)&&v.length>=2&&!map.has(key))map.set(key,[String(v[0]),String(v[1])])};const parse=src=>{const re=/"([^"]+\+[^"]+)"\s*:\s*\[\s*"([^"]*)"\s*,\s*"([^"]+)"\s*\]|'([^']+\+[^']+)'\s*:\s*\[\s*'([^']*)'\s*,\s*'([^']+)'\s*\]/g;let m;while((m=re.exec(String(src||''))))add(m[1]||m[4],[m[2]||m[5],m[3]||m[6]])};try{if(window.HYPERCRAFT_EXTRA)Object.entries(window.HYPERCRAFT_EXTRA).forEach(([k,v])=>add(k,v));const page=await fetch(new URL('hyper-craft.html',location.href),{cache:'no-store'});if(page.ok)parse(await page.text());const extra=await fetch(new URL('hyper-craft-recipes.js',location.href),{cache:'no-store'});if(extra.ok)parse(await extra.text())}catch(e){}const rows=[...map.entries()].filter(([k,v])=>!q||v[1].toLowerCase().includes(q)).sort((a,b)=>a[0].localeCompare(b[0])).slice(0,500).map(([k,v])=>k.split('+').join(' + ')+' → '+v[0]+' '+v[1]);if(rows.length){print(rows.join(String.fromCharCode(10)),'hp-ok');if(rows.length===500)print('Showing first 500 matches. Narrow the search for more.','hp-warn')}else print('No matching Hyper-Craft recipes found'+(q?' for "'+arg+'".':' in the loaded database.'),'hp-err');return}
 
 //Link/Page Commands
-if(cmd==='/astra'){location.href='dragonx-astra/logo.svg';return}
-if(cmd==='/geography-lessons'){location.href='gl/index.html';return}
-if(cmd==='/gust'){location.href='GUST/index.html';return}
-if(cmd==='/helios'){location.href='Helios/index.html';return}
-if(cmd==='/ugum'){location.href='ugum/index.html';return}
-if(cmd==='/gn-math'){location.href='gn-math.html';return}
-if(cmd==='/korona'){location.href='korona/korona.html';return}\nif(cmd==='/korona-runtime'){location.href='korona/runtime-launcher.html';return}
-if(cmd==='/cherri'){location.href='cherri/cherri.html';return}
-if(cmd==='/duck'){location.href='duck/package/index.html';return}
-if(cmd==='/uv-static'){location.href='UV-STATIC/active/index.html';return}
-if(cmd==='/uw'){location.href='UW/index.html';return}
-if(cmd==='/v5-static'){location.href=location.pathname.includes('/v5-static/')?'./index.html':'v5-static/index.html';return}
-if(cmd==='/orbit'){location.href='orbit/index.html';return}
-if(cmd==='/yt'){location.href='yt/index.html';return}
-if(cmd==='/yt2'){location.href='yt2/index.html';return}
-if(cmd==='/ytd'){location.href='ytd/index.html';return}
-if(cmd==='/home'){const p=location.pathname;const i=p.indexOf('/v5-static/');location.href=(i>=0?p.slice(0,i):'')+'/index.html';return}
+if(cmd==='/astra'){go('dragonx-astra/logo.svg');return}
+if(cmd==='/geography-lessons'){go('gl/index.html');return}
+if(cmd==='/gust'){go('GUST/index.html');return}
+if(cmd==='/helios'){go('Helios/index.html');return}
+if(cmd==='/ugum'){go('ugum/index.html');return}
+if(cmd==='/gn-math'){go('gn-math.html');return}
+if(cmd==='/korona'){go('korona/korona.html');return}\nif(cmd==='/korona-runtime'){go('korona/runtime-launcher.html');return}
+if(cmd==='/cherri'){go('cherri/cherri.html');return}
+if(cmd==='/duck'){go('duck/package/index.html');return}
+if(cmd==='/uv-static'){go('UV-STATIC/active/index.html');return}
+if(cmd==='/uw'){go('UW/index.html');return}
+if(cmd==='/v5-static'){go(location.pathname.includes('/v5-static/')?'index.html':'v5-static/index.html');return}
+if(cmd==='/orbit'){go('orbit/index.html');return}
+if(cmd==='/yt'){go('yt/index.html');return}
+if(cmd==='/yt2'){go('yt2/index.html');return}
+if(cmd==='/ytd'){go('ytd/index.html');return}
+if(cmd==='/home'){const p=location.pathname;const i=p.indexOf('/v5-static/');go((i>=0?p.slice(0,i):'')+'/index.html');return}
 
 //Other Commands
 if(cmd==='/help'){print(help,'hp-ok');return}
