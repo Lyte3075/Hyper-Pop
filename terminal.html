@@ -392,7 +392,7 @@ async function buildSitePreview(entryPath){
  const fakeOrigin='https://ka-sh-preview.invalid';
  const rewriteHtml=path=>{
   let html=new TextDecoder().decode(files.get(path).bytes);
-  html=html.replace(/<(script\b[^>]*type\s*=\s*(['"])module\2[^>]*>)([\s\S]*?)<\/script>/gi,(all,open,q,body)=>open+rewriteSiteJs(body,path,assetUrls)+'</script>');
+  html=html.replace(/<(script\b[^>]*type\s*=\s*(['"])module\2[^>]*>)([\s\S]*?)<\/script>/gi,(all,open,q,body)=>open+rewriteSiteJs(body,path,assetUrls)+'<\/script>');
   html=html.replace(/\b(src|href|poster|data-src|action)\s*=\s*(['"])(.*?)\2/gi,(all,attr,q,value)=>{
    const ref=siteRelativePath(value,path);if(!ref)return all;
    const target=assetUrls.get(ref.path);
@@ -408,8 +408,8 @@ async function buildSitePreview(entryPath){
   html=html.replace(/<style\b([^>]*)>([\s\S]*?)<\/style>/gi,(all,attrs,css)=>'<style'+attrs+'>'+rewriteSiteCss(css,path,assetUrls)+'</style>');
   const directoryPath=path.split('/').slice(0,-1).join('/');
   const baseUrl=fakeOrigin+'/'+(directoryPath?directoryPath+'/':'');
-  const importTag='<script type="importmap">'+JSON.stringify(importMap)+'</script>';
-  const bootstrap='<script>(function(){const origin='+JSON.stringify(fakeOrigin)+',assets='+JSON.stringify(Object.fromEntries(assetUrls))+',pages='+JSON.stringify(Object.fromEntries(pageUrls))+',nativeFetch=window.fetch.bind(window);window.fetch=function(input,init){try{const raw=typeof input==="string"?input:input.url,u=new URL(raw,document.baseURI);if(u.origin===origin&&assets[u.pathname.slice(1)])return nativeFetch(assets[u.pathname.slice(1)]+u.search,init)}catch(e){}return nativeFetch(input,init)};document.addEventListener("click",function(e){const a=e.target.closest&&e.target.closest("a[href]");if(!a)return;try{const u=new URL(a.href);if(u.origin!==origin)return;const path=u.pathname.slice(1),target=pages[path];if(target){e.preventDefault();location.href=target+u.search+u.hash}}catch(e){}})})();</script>';
+  const importTag='<script type="importmap">'+JSON.stringify(importMap)+'<\/script>';
+  const bootstrap='<script>(function(){const origin='+JSON.stringify(fakeOrigin)+',assets='+JSON.stringify(Object.fromEntries(assetUrls))+',pages=__KA_SH_PAGES__,nativeFetch=window.fetch.bind(window);window.fetch=function(input,init){try{const raw=typeof input==="string"?input:input.url,u=new URL(raw,document.baseURI);if(u.origin===origin&&assets[u.pathname.slice(1)])return nativeFetch(assets[u.pathname.slice(1)]+u.search,init)}catch(e){}return nativeFetch(input,init)};document.addEventListener("click",function(e){const a=e.target.closest&&e.target.closest("a[href]");if(!a)return;try{const u=new URL(a.href);if(u.origin!==origin)return;const path=u.pathname.slice(1),target=pages[path];if(target){e.preventDefault();location.href=target+u.search+u.hash}}catch(e){}})})();<\/script>';
   const baseTag='<base href="'+baseUrl.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'">';
   if(/<head\b[^>]*>/i.test(html))html=html.replace(/<head\b[^>]*>/i,match=>match+baseTag+importTag+bootstrap);
   else html=baseTag+importTag+bootstrap+html;
@@ -423,12 +423,12 @@ async function buildSitePreview(entryPath){
  }
  const pageMap=Object.fromEntries(htmlBlobs);
  for(const path of htmlPaths){
-  const html=rewriteHtml(path).replace(/pages=\{\}/,'pages='+JSON.stringify(pageMap));
+  const html=rewriteHtml(path).replace('__KA_SH_PAGES__',JSON.stringify(pageMap));
   const replacement=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'}));
   URL.revokeObjectURL(htmlBlobs.get(path));htmlBlobs.set(path,replacement);
  }
  for(const [path,url] of htmlBlobs)pageUrls.set(path,url);
- const finalHtml=rewriteHtml(entryRel).replace(/pages=\{\}/,'pages='+JSON.stringify(Object.fromEntries(pageUrls)));
+ const finalHtml=rewriteHtml(entryRel).replace('__KA_SH_PAGES__',JSON.stringify(Object.fromEntries(pageUrls)));
  const finalBlob=new Blob([finalHtml],{type:'text/html;charset=utf-8'});
  return {blob:finalBlob,name:entryRel,urls:[...assetUrls.values(),...htmlBlobs.values()]};
 }
