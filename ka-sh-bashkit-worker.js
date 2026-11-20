@@ -17,7 +17,7 @@ const appCommands = [
   "nano", "write", "append", "download", "calc",
   "js", "run", "python", "py", "pip", "preview", "image",
   "nodejs", "npm", "github", "git", "korona", "server", "node",
-  "apt", "apt-get", "sudo", "proxy", "curl", "wget", "fetch",
+  "apt", "apt-get", "sudo", "proxy", "curl", "wget", "fetch", "remote",
   "json", "url", "upload", "open", "storage", "db",
   "version", "about", "reset", "exit", "history", "man",
   "which", "hostname", "id", "uptime", "free", "tree",
