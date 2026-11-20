@@ -1603,9 +1603,10 @@ async function run(raw){
  const looksLikeJavaScript=/^(?:const|let|var|function|class|async\s+function|import\s|export\s|require\s*\(|console\.|process\.|module\.|exports\.|await\s|fetch\s*\(|https?\.(?:get|request)\s*\(|Promise\.|throw\s|try\s*\{|if\s*\(|for\s*\(|while\s*\(|\/\*|\/\/)/.test(trimmed);
  if(looksLikeJavaScript){await executeNode(raw,'pasted JavaScript');return}
  const parsed=tokenize(trimmed),head=(parsed[0]||'').toLowerCase();
- // Keep filesystem and network-transfer commands on the KA-SH host path.
- // They do not need Bash parsing, and Bashkit built-ins can shadow them.
- if(['ls','wget'].includes(head)&&!/[|&;<>()]/.test(trimmed)){
+ // Route KA-SH-owned commands directly to the host dispatcher.
+ // Bashkit's command resolver can shadow or reject app commands such as git.
+ // Shell operators still go through Bashkit so pipelines and compound commands work.
+ if(['ls','wget','git','github'].includes(head)&&!/[|&;<>()]/.test(trimmed)){
   await runSingle(raw,true);
   return;
  }
