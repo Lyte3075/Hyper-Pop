@@ -1404,7 +1404,7 @@ function splitShellBatch(source){
 async function run(raw){
  const trimmed=raw.trim();if(!trimmed)return;
  const first=trimmed.split(/\r?\n/,1)[0].trim();
- const isTypeScript=/^(?:interface|type\s+[A-Za-z_$]|enum\s+[A-Za-z_$]|namespace\s+[A-Za-z_$]|declare\s|abstract\s+class\s)/.test(trimmed)||/^(?:const|let|var)\s+[A-Za-z_$][\w$]*\s*:\s*(?:string|number|boolean|any|unknown|object|[A-Z_$][\w$]*(?:<[^;=]+>)?|\{)/.test(trimmed);
+ const isTypeScript=/^(?:interface\s+[A-Za-z_$]|type\s+[A-Za-z_$][\w$]*\s*=|enum\s+[A-Za-z_$]|namespace\s+[A-Za-z_$]|declare\s+(?:const|let|var|function|class|module|namespace)\b|abstract\s+class\s)/.test(trimmed)||/^(?:const|let|var)\s+[A-Za-z_$][\w$]*\s*:\s*(?:string|number|boolean|any|unknown|object|[A-Z_$][\w$]*(?:<[^;=]+>)?|\{)/.test(trimmed);
  if(isTypeScript){await executeTypeScript(raw,'TypeScript');return}
  if(/^(?:ts|tsc)\s+/.test(first)){
   const args=tokenize(first);
