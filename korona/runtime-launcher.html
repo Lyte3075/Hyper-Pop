@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#10071c">
+<title>Korona Runtime ✦ Hyper-Pop</title>
+<style>
+:root{color-scheme:dark;--bg:#10071c;--panel:#1b1028;--line:#ffffff20;--text:#f8f4ff;--muted:#b7a9c9;--accent:#c084fc;--good:#86efac;--bad:#fda4af}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,sans-serif}
+body{display:flex;flex-direction:column;min-height:100dvh;background:radial-gradient(ellipse at 50% -30%,#633c8c 0,transparent 55%),var(--bg)}
+header{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line);background:#10071cdd;backdrop-filter:blur(14px)}
+a{color:inherit;text-decoration:none}.brand{font-weight:800;letter-spacing:.08em;color:#e9d5ff}.brand span{color:var(--accent)}
+header .back{color:var(--muted);font-size:13px}
+main{display:flex;flex-direction:column;gap:12px;padding:14px;flex:1;min-height:0}
+.toolbar{display:flex;gap:8px;padding:9px;border:1px solid var(--line);border-radius:16px;background:#1b1028dd;box-shadow:0 12px 40px #0005}
+input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--text);font:15px system-ui;padding:8px}
+button{border:1px solid #ffffff24;border-radius:11px;padding:9px 14px;background:#ffffff0d;color:var(--text);font:600 13px system-ui;cursor:pointer}
+button.primary{background:linear-gradient(135deg,#a855f7,#7c3aed);border-color:#c084fc88}
+#status{min-height:20px;color:var(--muted);font-size:12px;padding:0 4px}
+#status.good{color:var(--good)}#status.bad{color:var(--bad)}
+.viewer{position:relative;flex:1;min-height:300px;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:#090610;box-shadow:0 20px 70px #0008}
+iframe{display:block;width:100%;height:100%;min-height:300px;border:0;background:#10071c}
+footer{padding:7px 12px;color:#877b98;font-size:11px;text-align:center}
+@media(max-width:560px){header{padding:10px 12px}.toolbar{gap:5px;padding:7px}.toolbar button{padding:8px 10px}main{padding:9px}.viewer{border-radius:13px}}
+</style>
+</head>
+<body>
+<header><a class="back" href="../index.html">← Hyper-Pop</a><div class="brand"><span>✦</span> KORONA RUNTIME</div></header>
+<main>
+<form class="toolbar" id="nav"><input id="address" type="text" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="Search or enter a URL" aria-label="Search or enter a URL"><button type="button" id="home" title="Open home">Home</button><button type="button" id="reload" title="Reload page">↻</button><button class="primary" type="submit">Go</button></form>
+<div id="status" role="status" aria-live="polite">Starting Korona…</div>
+<section class="viewer"><iframe id="runtime" title="Korona secure browser runtime" allow="fullscreen; autoplay; clipboard-read; clipboard-write"></iframe></section>
+</main>
+<footer>Korona static runtime · Wisp relay hosted separately · Hyper-Pop</footer>
+<script>
+(()=> {
+ 'use strict';
+ const RUNTIME='https://korona-runtime-host-production.up.railway.app/embed.html';
+ const WISP='wss://korona-wisp-production.up.railway.app/';
+ const frame=document.getElementById('runtime'),address=document.getElementById('address'),status=document.getElementById('status');
+ function encode(value){
+  const bytes=new TextEncoder().encode(JSON.stringify(value));let binary='';
+  for(let i=0;i<bytes.length;i++)binary+=String.fromCharCode(bytes[i]);
+  return btoa(binary).split('+').join('-').split('/').join('_').split('=').join('');
+ }
+ function normalize(value){
+  let raw=String(value||'').trim();if(!raw)raw='https://example.com';
+  if(!/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)){
+   if(/\s/.test(raw)||!raw.includes('.'))return 'https://www.google.com/search?q='+encodeURIComponent(raw);
+   raw='https://'+raw;
+  }
+  const url=new URL(raw);if(!['https:','http:'].includes(url.protocol))throw new Error('Only HTTP and HTTPS addresses are supported.');
+  return url.href;
+ }
+ function launch(value){
+  let target;try{target=normalize(value)}catch(e){status.textContent=e.message;status.className='bad';return}
+  address.value=target;status.textContent='Connecting to Korona…';status.className='';
+  frame.src=RUNTIME+'?target='+encodeURIComponent(encode(target))+'&wisps='+encodeURIComponent(encode([WISP]));
+ }
+ document.getElementById('nav').addEventListener('submit',e=>{e.preventDefault();launch(address.value)});
+ document.getElementById('home').addEventListener('click',()=>launch('https://www.google.com'));
+ document.getElementById('reload').addEventListener('click',()=>{if(frame.src)frame.contentWindow.location.reload()});
+ window.addEventListener('message',e=>{
+  if(e.origin!==new URL(RUNTIME).origin||!e.data||e.data.type!=='korona-runtime')return;
+  const d=e.data;
+  if(d.status==='progress')status.textContent=d.count===1?'Selecting Wisp relay…':d.count===2?'Starting secure browser…':'Finishing setup…';
+  else if(d.status==='ready'){status.textContent='Runtime ready · opening destination';status.className='good'}
+  else if(d.status==='first-content'){status.textContent='Connected · '+d.url;status.className='good'}
+  else if(d.status==='navigate'){status.textContent='Navigated · '+d.url;status.className='good'}
+  else if(d.status==='wisp-failed'){status.textContent='Wisp relay failed: '+d.endpoint;status.className='bad'}
+  else if(d.status==='error'){status.textContent='Runtime error: '+d.detail;status.className='bad'}
+ });
+ launch(new URLSearchParams(location.search).get('url')||'https://example.com');
+})();
+</script>
+</body>
+</html>

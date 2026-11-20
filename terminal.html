@@ -624,18 +624,81 @@ async function npmCommand(args){
  else throw Error('Supported npm commands: init, install, list, uninstall, run, help');
 }
 function parseGitHubUrl(url){
- const normalized=String(url).replace(/^git@github\\.com:/,'https://github.com/');
+ const normalized=String(url).replace(/^git@github\.com:/,'https://github.com/');
  const u=new URL(normalized);
  if(u.hostname.toLowerCase()!=='github.com')throw Error('Only public GitHub repository URLs are supported.');
  const parts=u.pathname.split('/').filter(Boolean);
  if(parts.length<2)throw Error('Use a GitHub repository URL, e.g. https://github.com/user/repo');
- return {owner:parts[0],repo:parts[1].replace(/\\.git$/,'')};
+ return {owner:parts[0],repo:parts[1].replace(/\.git$/,'')};
 }
 async function githubApi(url){
- const r=await terminalFetch(url,{headers:{Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}});
+ const headers={Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};
+ const token=localStorage.getItem('hyperpop_git_token')||'';
+ if(token)headers.Authorization='Bearer '+token;
+ const r=await terminalFetch(url,{headers});
  if(!r.ok)throw Error('GitHub API '+r.status+': '+(await r.text()).slice(0,180));
  return await r.json();
 }
+
+async function githubCommand(args){
+ const sub=String(args[0]||'help').toLowerCase(),value=args[1];
+ if(sub==='help'||sub==='--help'){
+  line('github profile <user> | repo <owner/repo> | search <query> | files <owner/repo> [ref] | branches/commits/releases <owner/repo> | cat <owner/repo> <path> [ref] | raw <raw-github-url>');
+  line('GitHub commands read public repositories, profiles, branches, commits, and releases. Authenticated writes use git auth.','dim');return;
+ }
+ if(sub==='search'){
+  const query=args.slice(1).join(' ').trim();if(!query)throw Error('Usage: github search <repository keywords>');
+  const data=await githubApi('https://api.github.com/search/repositories?q='+encodeURIComponent(query)+'&per_page=10');
+  line('Repository search: '+query+' · '+data.total_count+' matches','ok');
+  for(const item of data.items||[])line(item.full_name+' ★'+item.stargazers_count+' · '+(item.description||'No description')+'\n'+item.html_url);
+  return;
+ }
+ if(sub==='profile'){
+  if(!value)throw Error('Usage: github profile <username>');
+  const u=await githubApi('https://api.github.com/users/'+encodeURIComponent(value));
+  line((u.name||u.login)+' (@'+u.login+')','ok');
+  if(u.bio)line(u.bio);line('Public repositories: '+u.public_repos+' · Followers: '+u.followers+' · Following: '+u.following);
+  line(u.html_url,'dim');return;
+ }
+ if(sub==='branches'||sub==='commits'||sub==='releases'){
+  const parts=String(value||'').split('/').filter(Boolean);if(parts.length!==2)throw Error('Usage: github '+sub+' <owner/repo>');
+  const endpoint=sub==='branches'?'branches?per_page=100':sub==='commits'?'commits?per_page=20':'releases?per_page=20';
+  const rows=await githubApi('https://api.github.com/repos/'+parts[0]+'/'+parts[1]+'/'+endpoint);
+  if(!rows.length){line('(none)','dim');return}
+  for(const row of rows){if(sub==='branches')line(row.name+(row.protected?' · protected':''));else if(sub==='commits')line(row.sha.slice(0,7)+' '+String(row.commit.message).split('\n')[0]);else line((row.tag_name||row.name)+' · '+(row.name||'Release'))}
+  return;
+ }
+ if(sub==='repo'||sub==='files'||sub==='cat'){
+  const parts=String(value||'').split('/').filter(Boolean);
+  if(parts.length!==2)throw Error('Use owner/repo, for example github repo Lyte3075/Hyper-Pop');
+  const [owner,repo]=parts;
+  if(sub==='repo'){
+   const r=await githubApi('https://api.github.com/repos/'+encodeURIComponent(owner)+'/'+encodeURIComponent(repo));
+   line(r.full_name,'ok');if(r.description)line(r.description);line('Default branch: '+r.default_branch+' · Stars: '+r.stargazers_count+' · Forks: '+r.forks_count);
+   line('Visibility: '+(r.private?'private':'public')+' · Updated: '+(r.updated_at||'unknown'));line(r.html_url,'dim');return;
+  }
+  if(sub==='files'){
+   const meta=await githubApi('https://api.github.com/repos/'+owner+'/'+repo),ref=args[2]||meta.default_branch,tree=await githubApi('https://api.github.com/repos/'+owner+'/'+repo+'/git/trees/'+encodeURIComponent(ref)+'?recursive=1');
+   if(tree.truncated)line('GitHub truncated this repository tree. Showing the returned paths.','warn');
+   const files=(tree.tree||[]).filter(x=>x.type==='blob');
+   line(owner+'/'+repo+' · '+files.length+' files','ok');
+   files.slice(0,300).forEach(x=>line(x.path));
+   if(files.length>300)line('Showing first 300 files.','dim');return;
+  }
+  const path=args[2];if(!path)throw Error('Usage: github cat <owner/repo> <path> [ref]');
+  const meta=await githubApi('https://api.github.com/repos/'+owner+'/'+repo),ref=args[3]||meta.default_branch,url='https://raw.githubusercontent.com/'+owner+'/'+repo+'/'+ref+'/'+path.split('/').map(encodeURIComponent).join('/');
+  const response=await terminalFetch(url);if(!response.ok)throw Error('GitHub file request failed: HTTP '+response.status+' '+response.statusText);
+  const body=await response.text();line(body.slice(0,30000)+(body.length>30000?'\n… output truncated':''),'');return;
+ }
+ if(sub==='raw'){
+  if(!value)throw Error('Usage: github raw <https://raw.githubusercontent.com/owner/repo/ref/file>');
+  const u=new URL(value);if(u.hostname!=='raw.githubusercontent.com')throw Error('Use a raw.githubusercontent.com URL.');
+  const response=await terminalFetch(u.href);if(!response.ok)throw Error('GitHub raw request failed: HTTP '+response.status);
+  const body=await response.text();line(body.slice(0,30000)+(body.length>30000?'\n… output truncated':''));return;
+ }
+ throw Error('Unknown GitHub command. Type github help.');
+}
+
 async function gitClone(url,destination){
  const {owner,repo}=parseGitHubUrl(url),meta=await githubApi('https://api.github.com/repos/'+owner+'/'+repo),branch=meta.default_branch;
  line('Cloning '+owner+'/'+repo+' ('+branch+')…','dim');
@@ -661,25 +724,91 @@ async function gitClone(url,destination){
  await writeFile(gitDir.concat('hp-index.json'),JSON.stringify(files.map(x=>({path:x.path,sha:x.sha,size:x.size})),null,2),false);
  line('Cloned '+done+' text files into '+pathString(base)+(skipped?' ('+skipped+' skipped)':''),'ok');
 }
+
+async function collectGitFiles(parts,relative='',out=[]){
+ const d=await directory(parts,false);
+ for await(const [name,handle] of d.entries()){
+  if(name==='.git')continue;
+  const nextRel=relative?relative+'/'+name:name;
+  if(handle.kind==='directory')await collectGitFiles(parts.concat(name),nextRel,out);
+  else out.push(nextRel);
+ }
+ return out;
+}
+async function gitAdd(paths){
+ const cfg=await gitConfig(),stagePath=resolve('.git/hp-stage.json');
+ let staged=[];try{staged=JSON.parse(await readFile(stagePath))}catch(_){}
+ const byPath=new Map(staged.map(x=>[x.path,x]));
+ async function addOne(name){
+  const parts=resolve(name),relative=parts.slice(cwd.length).join('/');
+  if(!relative||relative.startsWith('.git/'))throw Error('Choose a file inside the cloned repository.');
+  const content=await readFile(parts);
+  if(content.includes(String.fromCharCode(0)))throw Error('Binary files are not supported by this browser Git workspace: '+relative);
+  byPath.set(relative,{path:relative,content});line('Staged '+relative,'ok');
+ }
+ if(paths.length===1&&['.','-A','--all'].includes(paths[0])){
+  const names=await collectGitFiles(cwd);
+  for(const name of names)await addOne(name);
+  line('Staged '+names.length+' file(s), including new files. Deleted-file tracking is not supported yet.','dim');
+ }else{
+  if(!paths.length)throw Error('Usage: git add <file> | git add .');
+  for(const name of paths)await addOne(name);
+ }
+ await writeFile(stagePath,JSON.stringify([...byPath.values()],null,2),false);
+}
+async function gitPush(){
+ const cfg=await gitConfig(),token=localStorage.getItem('hyperpop_git_token')||'';
+ if(!token)throw Error('Authenticate first with git auth. Use a GitHub fine-grained token with Contents: Read and write. The token stays in this browser.');
+ const staged=JSON.parse(await readFile(resolve('.git/hp-stage.json')));
+ if(!staged.length)throw Error('Nothing staged. Use git add <file> first.');
+ const message=(await readFile(resolve('.git/hp-commit-message.txt'))).trim();
+ if(!message)throw Error('Set a commit message first with git commit -m "message".');
+ const api='https://api.github.com/repos/'+cfg.owner+'/'+cfg.repo;
+ async function request(path,method='GET',body){
+  const response=await terminalFetch(api+path,{method,headers:{Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28',Authorization:'Bearer '+token,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});
+  const data=await response.json().catch(()=>({message:'GitHub returned an unreadable response.'}));
+  if(!response.ok)throw Error('GitHub '+response.status+': '+(data.message||'Request failed'));
+  return data;
+ }
+ const branchPath=cfg.branch.split('/').map(encodeURIComponent).join('/');
+ const ref=await request('/git/ref/heads/'+branchPath);
+ const parent=ref.object.sha,commitInfo=await request('/git/commits/'+parent);
+ const entries=[];
+ for(const item of staged){
+  const blob=await request('/git/blobs','POST',{content:item.content,encoding:'utf-8'});
+  entries.push({path:item.path,mode:'100644',type:'blob',sha:blob.sha});
+ }
+ const tree=await request('/git/trees','POST',{base_tree:commitInfo.tree.sha,tree:entries});
+ const commit=await request('/git/commits','POST',{message,tree:tree.sha,parents:[parent]});
+ await request('/git/refs/heads/'+branchPath,'PATCH',{sha:commit.sha,force:false});
+ const index=JSON.parse(await readFile(resolve('.git/hp-index.json'))),map=new Map(index.map(x=>[x.path,x]));
+ for(const item of staged)map.set(item.path,{path:item.path,sha:(await request('/contents/'+item.path.split('/').map(encodeURIComponent).join('/')+'?ref='+encodeURIComponent(cfg.branch))).sha,size:new TextEncoder().encode(item.content).length});
+ await writeFile(resolve('.git/hp-index.json'),JSON.stringify([...map.values()],null,2),false);
+ cfg.headSha=commit.sha;await writeFile(resolve('.git/hp-config.json'),JSON.stringify(cfg,null,2),false);
+ await writeFile(resolve('.git/hp-stage.json'),'[]',false);await writeFile(resolve('.git/hp-commit-message.txt'),' ',false);
+ line('Pushed '+commit.sha.slice(0,7)+' to '+cfg.owner+'/'+cfg.repo+' ('+cfg.branch+').','ok');
+}
+
 async function gitConfig(){
  const p=resolve('.git');
- return JSON.parse(await readFile(p.concat('hp-config.json')));
+ try{return JSON.parse(await readFile(p.concat('hp-config.json')))}
+ catch(_){throw Error('No GitHub repository is checked out in this terminal folder. Run git clone <GitHub-repository-URL> [folder], then cd into that folder and retry.')}
 }
 async function gitStatus(){
  const cfg=await gitConfig(),index=JSON.parse(await readFile(resolve('.git/hp-index.json')));
  let changed=0,missing=0;
  for(const item of index){
-  try{const now=await readFile(resolve(item.path));const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-1',new TextEncoder().encode('blob '+new TextEncoder().encode(now).length+'\\0'+now))),b=>b.toString(16).padStart(2,'0')).join('');if(digest!==item.sha)changed++}
+  try{const now=await readFile(resolve(item.path));const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-1',new TextEncoder().encode('blob '+new TextEncoder().encode(now).length+String.fromCharCode(0)+now))),b=>b.toString(16).padStart(2,'0')).join('');if(digest!==item.sha)changed++}
   catch(_){missing++}
  }
  line('On branch '+cfg.branch);line('Your branch is connected to '+cfg.owner+'/'+cfg.repo+'.','dim');
  line(changed?'Modified tracked files: '+changed:'Working tree clean.',changed?'warn':'ok');
  if(missing)line('Missing tracked files: '+missing,'warn');
- line('Note: this browser GitHub workspace supports clone/status/log/pull. It is not a full Git object database; local commits and pushes are not implemented.','dim');
+ line('This is a browser GitHub workspace, not native Git. Clone/status/log/fetch/pull/add/commit/push are supported; binary files, submodules, hooks, and full Git object storage are not.','dim');
 }
 async function gitLog(){
  const c=await gitConfig(),items=await githubApi('https://api.github.com/repos/'+c.owner+'/'+c.repo+'/commits?sha='+encodeURIComponent(c.branch)+'&per_page=10');
- for(const x of items)line(x.sha.slice(0,7)+' '+x.commit.message.split('\\n')[0]+' ('+x.commit.author.date.slice(0,10)+')');
+ for(const x of items)line(x.sha.slice(0,7)+' '+x.commit.message.split(String.fromCharCode(10))[0]+' ('+x.commit.author.date.slice(0,10)+')');
 }
 async function gitPull(){
  const cfg=await gitConfig(),tree=await githubApi('https://api.github.com/repos/'+cfg.owner+'/'+cfg.repo+'/git/trees/'+encodeURIComponent(cfg.branch)+'?recursive=1');
@@ -687,7 +816,7 @@ async function gitPull(){
  let updated=0,conflicts=0;
  for(const item of tree.tree.filter(x=>x.type==='blob'&&x.size<=1500000&&!x.path.startsWith('.git/'))){
   const prior=old.get(item.path);let safe=!prior;
-  if(prior){try{const now=await readFile(resolve(item.path));const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-1',new TextEncoder().encode('blob '+new TextEncoder().encode(now).length+'\\0'+now))),b=>b.toString(16).padStart(2,'0')).join('');safe=hash===prior.sha}catch(_){safe=true}}
+  if(prior){try{const now=await readFile(resolve(item.path));const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-1',new TextEncoder().encode('blob '+new TextEncoder().encode(now).length+String.fromCharCode(0)+now))),b=>b.toString(16).padStart(2,'0')).join('');safe=hash===prior.sha}catch(_){safe=true}}
   if(!safe){conflicts++;continue}
   const r=await terminalFetch('https://raw.githubusercontent.com/'+cfg.owner+'/'+cfg.repo+'/'+cfg.branch+'/'+item.path);if(!r.ok)continue;
   const data=await r.text();const parts=resolve(item.path);await directory(parts.slice(0,-1),true);await writeFile(parts,data,false);updated++;
@@ -718,7 +847,7 @@ async function nodeServerRequest(route,options={}){
  if(!response.ok||data.ok===false)throw Error(data.error||('Node server request failed with HTTP '+response.status));
  return data;
 }
-const REMOTE_LINUX_COMMANDS=new Set(['cowsay','cowthink','python3','python','pip3','pip','curl','wget','ffmpeg','tree','unzip','zip','tar','grep','egrep','fgrep','sed','awk','find','ls','cat','head','tail','wc','sort','uniq','cut','tr','base64','sha256sum','file','du','df','uname','whoami','id','hostname','date','uptime','free','env','printenv','which','printf','seq','rev','nl','cmp','diff','realpath','basename','dirname']);
+const REMOTE_LINUX_COMMANDS=new Set(['git','gh','cowsay','cowthink','python3','python','pip3','pip','curl','wget','ffmpeg','tree','unzip','zip','tar','grep','egrep','fgrep','sed','awk','find','ls','cat','head','tail','wc','sort','uniq','cut','tr','base64','sha256sum','file','du','df','uname','whoami','id','hostname','date','uptime','free','env','printenv','which','printf','seq','rev','nl','cmp','diff','realpath','basename','dirname']);
 async function runRemoteCommand(command,inputArgs){
  const data=await nodeServerRequest('/api/system/exec',{method:'POST',body:JSON.stringify({command,args:inputArgs})});
  if(data.output)line(data.output,data.code===0?'ok':'warn');
@@ -802,6 +931,7 @@ line('  npm install <package>       Download and cache an npm package');
 line('  npm run <script>            Run a package.json script');
 line('  npm list                    List installed packages');
 line('  github profile <user>       Inspect a public GitHub profile');
+line('  korona <https-url>           Open a destination through the Korona runtime');
 line('  github repo <owner/repo>    Show repository information');
 line('  github files <owner/repo>   List repository files');
 line('  github cat <owner/repo> <path> [ref]  Read a repository file');
@@ -821,7 +951,9 @@ line('  proxy map <host> <slug>     Route a hostname through a saved proxy route
 line('  proxy unmap <host>          Remove a hostname mapping');
 line('  proxy list                  Show terminal proxy mappings');
 line('  proxy fetch <https-url>     Test a mapped route and print its response');
-line('  git status / log / pull     Inspect and update a GitHub workspace');
+line('  git clone/status/fetch/pull/log/branch/switch/add/commit/push  GitHub workspace');
+line('  github profile/repo/files/cat/raw  Inspect public GitHub content');
+line('  git auth                    Save a GitHub fine-grained token for pushes');
 line('  server list/stop/open       Manage virtual HTTP servers');
 line('  curl / wget <url>           Fetch a web resource or localhost server');
 line('  json <file>                 Pretty-print a JSON file');
@@ -924,15 +1056,66 @@ case 'nodejs':{
  break;
 }
 case 'npm':await npmCommand(args);break;
+case 'github':await githubCommand(args);break;
 case 'git':{
- const sub=args[0];
+ const sub=(args[0]||'help').toLowerCase();
  if(sub==='clone'){if(!args[1])throw Error('Usage: git clone <github-url> [folder]');await gitClone(args[1],args[2]);break}
  if(sub==='status'){await gitStatus();break}
  if(sub==='log'){await gitLog();break}
+ if(sub==='show'){
+  const cfg=await gitConfig(),ref=args[1]||cfg.headSha||'HEAD';
+  const info=await githubApi('https://api.github.com/repos/'+cfg.owner+'/'+cfg.repo+'/commits/'+encodeURIComponent(ref));
+  line(info.sha.slice(0,7)+' '+info.commit.message,'ok');
+  line('Author: '+(info.commit.author?.name||'unknown')+' · '+(info.commit.author?.date||'unknown'));
+  for(const file of info.files||[])line((file.status||'modified')+' '+file.filename);
+  break;
+ }
  if(sub==='pull'){await gitPull();break}
+ if(sub==='fetch'){const c=await gitConfig();const ref=await githubApi('https://api.github.com/repos/'+c.owner+'/'+c.repo+'/git/ref/heads/'+c.branch.split('/').map(encodeURIComponent).join('/'));c.remoteHead=ref.object.sha;await writeFile(resolve('.git/hp-config.json'),JSON.stringify(c,null,2),false);line('Fetched '+c.branch+' at '+ref.object.sha.slice(0,7)+'. Working files were not changed.','ok');break}
+ if(sub==='branch'){
+  const cfg=await gitConfig();
+  if(args[1]&&args[1]!=='-a'&&args[1]!=='--all'){line('Creating branches is not supported yet. Use git switch <existing-branch>.','warn');break}
+  const branches=await githubApi('https://api.github.com/repos/'+cfg.owner+'/'+cfg.repo+'/branches?per_page=100');
+  for(const item of branches)line((item.name===cfg.branch?'* ':'  ')+item.name,item.name===cfg.branch?'ok':'');
+  if(branches.length===100)line('Showing the first 100 branches.','dim');
+  break;
+ }
+ if(sub==='switch'||sub==='checkout'){
+  const branch=args[1];
+  if(!branch||branch.startsWith('-'))throw Error('Usage: git switch <existing-branch> (or git checkout <existing-branch>)');
+  const cfg=await gitConfig();
+  if(branch===cfg.branch){line('Already on '+branch,'ok');break}
+  const ref=await githubApi('https://api.github.com/repos/'+cfg.owner+'/'+cfg.repo+'/git/ref/heads/'+branch.split('/').map(encodeURIComponent).join('/'));
+  cfg.branch=branch;cfg.remoteHead=ref.object.sha;
+  await writeFile(resolve('.git/hp-config.json'),JSON.stringify(cfg,null,2),false);
+  line('Switched to '+branch+'. Updating files; local edits are preserved where they conflict.','dim');
+  await gitPull();
+  break;
+ }
+ if(sub==='add'){await gitAdd(args.slice(1));break}
+ if(sub==='auth'){if(args[1]==='clear'){localStorage.removeItem('hyperpop_git_token');line('GitHub token cleared from this browser.','ok');break}const token=prompt('Paste a GitHub fine-grained token with Contents: Read and write. It is stored only in this browser.');if(!token)throw Error('No token entered.');localStorage.setItem('hyperpop_git_token',token.trim());line('GitHub token saved in this browser.','ok');break}
+ if(sub==='commit'){const at=args.indexOf('-m'),message=at>=0?args.slice(at+1).join(' '):prompt('Commit message:');if(!message)throw Error('Usage: git commit -m "message"');await writeFile(resolve('.git/hp-commit-message.txt'),message,false);line('Commit message saved. Run git push to create and publish the commit.','ok');break}
+ if(sub==='push'){await gitPush();break}
+ if(sub==='diff'){await gitStatus();break}
+  if(sub==='show'){const c=await gitConfig(),sha=args[1]||'HEAD',ref=sha==='HEAD'?c.branch:sha,items=await githubApi('https://api.github.com/repos/'+c.owner+'/'+c.repo+'/commits/'+encodeURIComponent(ref));line(items.sha+'\n'+items.commit.message,'ok');for(const f of (items.files||[]).slice(0,100))line(f.status+' '+f.filename);break}
  if(sub==='remote'){const c=await gitConfig();line('origin '+c.remote+' (fetch)');line('origin '+c.remote+' (push)');break}
- if(sub==='help'||!sub){line('GitHub workspace commands: git clone <url> [folder], git status, git log, git pull, git remote');line('Local commit/push and arbitrary Git transports are not implemented yet.','warn');break}
- throw Error('Unsupported Git command. Try git help.');
+ if(sub==='system'){
+  if(!getNodeServerUrl())throw Error('Connect your Bonto/Node server first with node connect <server-url>.');
+  if(!args[1])throw Error('Usage: git system <native-git-arguments> (example: git system --version)');
+  await runRemoteCommand('git',args.slice(1));break;
+ }
+ if(sub==='help'||sub==='?'){line('git clone <url> [folder] | status | fetch | pull | log | branch [-a] | switch <branch> | checkout <branch> | remote -v');line('git add <file> | git add . | git commit -m "message" | git push | git diff | git show [ref]');line('git system <args> runs native Git on your connected cloud server.','ok');line('git auth saves a GitHub fine-grained token in this browser; git auth clear removes it.','dim');line('Browser Git is a compatibility workspace, not native Git. See git help for supported commands and limitations.','warn');break}
+ throw Error('Unsupported Git command. Type git help.');
+}
+case 'korona':{
+ const target=args[0];if(!target)throw Error('Usage: korona <https-url>');
+ const u=new URL(target);if(!['http:','https:'].includes(u.protocol))throw Error('Korona only opens HTTP(S) destinations.');
+ const runtime='https://korona-runtime-host-production.up.railway.app/embed.html';
+ const endpoints=['wss://korona-wisp-production.up.railway.app/'];
+ const encoded=btoa(unescape(encodeURIComponent(JSON.stringify(endpoints)))).split('+').join('-').split('/').join('_').replace(/=+$/,'');
+ const launch=runtime+'?target='+encodeURIComponent(u.href)+'&wisps='+encoded;
+ const tab=window.open(launch,'_blank','noopener');if(!tab)throw Error('Pop-up blocked. Allow pop-ups and try again.');
+ line('Launching Korona for '+u.href,'ok');line('Runtime: '+runtime,'dim');line('Wisp: '+endpoints[0],'dim');break;
 }
 case 'server':{
  const sub=args[0];
@@ -1072,7 +1255,7 @@ case 'open':{if(!arg)throw Error('Usage: open <https-url>');const u=new URL(arg,
 case 'export':if(!arg)Object.keys(envVars).sort().forEach(k=>line(k+'='+envVars[k]));else{const m=raw.slice(raw.indexOf(' ')+1).match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);if(!m)throw Error('Usage: export NAME=value');envVars[m[1]]=m[2];line(m[1]+' exported','ok')}break;
 case 'env':Object.keys(envVars).sort().forEach(k=>line(k+'='+envVars[k]));break;
 case 'unset':if(!arg)throw Error('Usage: unset <name>');delete envVars[arg];line('Unset '+arg,'ok');break;
-case 'which':if(!arg)throw Error('Usage: which <command>');line(['js','run','python','py','pip','preview','image','github','node','npm','help','pwd','ls','cd','mkdir','touch','cat','nano','write','append','rm','rmdir','tree','echo','clear','history','date','whoami','uname','storage','download','cp','mv','find','stat','du','head','tail','wc','grep','sort','uniq','rev','nl','base64','unbase64','seq','calc','printf','basename','dirname','realpath','file','sha256sum','cmp','diff','cut','tr','sed','awk','source','sh','test','true','false','sleep','upload','open','proxy','export','env','unset','which','man','hostname','id','uptime','free','version','about','exit'].includes(arg)?'/bin/'+arg:'not found',arg? 'ok':'');break;
+case 'which':if(!arg)throw Error('Usage: which <command>');line(['js','run','python','py','pip','preview','image','github','korona','node','npm','help','pwd','ls','cd','mkdir','touch','cat','nano','write','append','rm','rmdir','tree','echo','clear','history','date','whoami','uname','storage','download','cp','mv','find','stat','du','head','tail','wc','grep','sort','uniq','rev','nl','base64','unbase64','seq','calc','printf','basename','dirname','realpath','file','sha256sum','cmp','diff','cut','tr','sed','awk','source','sh','test','true','false','sleep','upload','open','proxy','export','env','unset','which','man','hostname','id','uptime','free','version','about','exit'].includes(arg)?'/bin/'+arg:'not found',arg? 'ok':'');break;
 case 'man':line('Built-in command: '+(arg||'help'));line('Use help for the command index. Most file commands accept absolute or relative paths.');break;
 case 'hostname':line('karas-terminal');break;
 case 'id':line('uid=1000('+HOME[1]+') gid=1000('+HOME[1]+') groups=1000('+HOME[1]+')');break;
