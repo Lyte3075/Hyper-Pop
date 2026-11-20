@@ -1257,11 +1257,26 @@ case 'whoami':line(HOME[1],'ok');break;
 case 'uname':line("Kara's Browser Runtime / JavaScript / OPFS");break;
 case 'storage':line('Origin Private File System: '+(root?'available':'unavailable'),root?'ok':'err');line('Storage is private to this browser profile and this website origin.','dim');break;
 case 'download':if(!arg)throw Error('Usage: download <file>');{
- const filePath=resolve(arg);line('Preparing '+arg+' for download…','dim');
- const bytes=await readFileBytes(filePath),blob=new Blob([bytes],{type:previewMime(arg)}),url=URL.createObjectURL(blob),a=document.createElement('a');
- a.href=url;a.download=filePath.pop();a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);
- line('Browser download started: '+arg+' ('+formatSize(bytes.byteLength)+')','ok');
- line('Browser-managed transfer progress is not exposed to webpages.','dim');
+ const filePath=resolve(arg),[parent,name]=await parentAndName(filePath),handle=await parent.getFileHandle(name),file=await handle.getFile();
+ const total=file.size,reader=file.stream().getReader(),chunks=[];let received=0,lastUpdate=0;
+ updateDownloadProgress('Preparing '+arg+' · 0% ('+formatSize(0)+' / '+formatSize(total)+')');
+ try{
+  while(true){
+   const part=await reader.read();if(part.done)break;
+   if(part.value?.byteLength){chunks.push(part.value);received+=part.value.byteLength;}
+   const now=performance.now();
+   if(now-lastUpdate>=100||received>=total){
+    const percent=total?Math.min(100,Math.floor(received/total*100)):100;
+    updateDownloadProgress('Preparing '+arg+' · '+percent+'% ('+formatSize(received)+' / '+formatSize(total)+')');
+    lastUpdate=now;
+   }
+  }
+ }catch(error){try{await reader.cancel()}catch(_){}throw error}
+ const blob=new Blob(chunks,{type:previewMime(arg)}),url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download=name;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+ updateDownloadProgress('✓ Download prepared · '+formatSize(received)+' · handing file to browser');
+ line('Browser download started: '+arg+' ('+formatSize(received)+')','ok');
+ line('The percentage tracks file preparation. Your browser controls the final save and does not expose its transfer progress to KA-SH.','dim');
 }break;
 case 'cp':case 'mv':{const recursive=args[0]==='-r'||args[0]==='-R',offset=recursive?1:0;if(args.length<offset+2)throw Error('Usage: '+cmd+' [-r] <source> <destination>');const src=resolve(args[offset]),dst=resolve(args[offset+1]);if(pathString(src)===pathString(dst)||pathString(dst).startsWith(pathString(src)+'/'))throw Error('Invalid source/destination relationship.');let isDir=false;try{await directory(src,false);isDir=true}catch(_){}if(isDir){if(!recursive)throw Error('Use '+cmd+' -r for directories.');await copyDirectory(src,dst)}else{const data=await readFileBytes(src);await writeFile(dst,data,false)}if(cmd==='mv'){const [p,n]=await parentAndName(src);await p.removeEntry(n,{recursive:isDir})}line((cmd==='cp'?'Copied ':'Moved ')+args[offset]+' → '+args[offset+1],'ok')}break;
 case 'find':{const base=arg?resolve(arg):cwd,needle=(args[1]||'').toLowerCase();let found=0;async function walk(p){const d=await directory(p,false);for await(const [name,h] of d.entries()){const full=pathString(p.concat(name));if(!needle||name.toLowerCase().includes(needle)){line(full+(h.kind==='directory'?'/':''));found++}if(h.kind==='directory')await walk(p.concat(name))}}await walk(base);if(!found)line('No matches.','dim')}break;
