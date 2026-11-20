@@ -377,16 +377,16 @@ function siteRelativePath(reference,fromFile){
 }
 function siteVirtualUrl(path){return 'https://ka-sh-preview.invalid/'+path.split('/').map(encodeURIComponent).join('/')}
 async function collectSiteTree(rootParts){
- const files=new Map();let total=0;
+ // No arbitrary file-count or aggregate-size cap: include every file in the
+ // selected site tree so larger projects can be previewed as complete sites.
+ const files=new Map();
  async function walk(parts,relative){
   const dir=await directory(parts,false);
   for await(const [name,handle] of dir.entries()){
    if(name==='.ka-sh-tmp')continue;
    const child=parts.concat(name),rel=relative?relative+'/'+name:name;
    if(handle.kind==='directory'){await walk(child,rel);continue}
-   const bytes=await readFileBytes(child);total+=bytes.length;
-   if(files.size>=1200)throw Error('Site preview is limited to 1,200 files.');
-   if(total>96*1024*1024)throw Error('Site preview is limited to 96 MB total.');
+   const bytes=await readFileBytes(child);
    files.set(rel,{bytes,mime:previewMime(name)});
   }
  }
