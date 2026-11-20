@@ -245,7 +245,7 @@ export async function createKaShBashkit(options = {}) {
   const fs = new KaShOpfsHost(root, username);
   await fs.prepare();
 
-  const { initBashkit, Bash } = await import("https://esm.sh/@everruns/bashkit-wasm@0.21.1");
+  const { initBashkit, Bash } = await import("./vendor/bashkit/index.js");
   await initBashkit();
 
   const bash = new Bash({
