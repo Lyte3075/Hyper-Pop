@@ -64,6 +64,46 @@ function line(text='',kind=''){if(outputCapture){outputCapture.push({text:String
 function status(text,kind){state.textContent=text;state.className=kind||''}
 function shellQuote(value){return "'"+String(value).replace(/'/g,"'\\''")+"'"}
 function appendBashOutput(value,kind){if(!value)return;const text=String(value).replace(/\r\n/g,'\n').replace(/\r/g,'\n');const rows=text.split('\n');if(rows[rows.length-1]==='')rows.pop();for(const row of rows)line(row,kind)}
+let downloadProgressElement=null;
+function updateDownloadProgress(message){
+ // Progress is a live UI signal, not captured command output. This must remain
+ // visible even when a KA-SH command is being executed by the Bash worker.
+ if(!downloadProgressElement||!downloadProgressElement.isConnected){
+  downloadProgressElement=document.createElement('div');
+  downloadProgressElement.className='line download-progress dim';
+  screen.appendChild(downloadProgressElement);
+ }
+ downloadProgressElement.textContent=message;
+ screen.scrollTop=screen.scrollHeight;
+}
+async function readTextWithDownloadProgress(response,label,completedBytes,totalBytes,completedFiles,totalFiles){
+ const headerTotal=Number(response.headers.get('content-length'))||0;
+ const expected=headerTotal||0;
+ const reader=response.body?.getReader?.();
+ if(!reader){
+  const text=await response.text(),received=new TextEncoder().encode(text).byteLength;
+  const doneBytes=completedBytes+received,allBytes=totalBytes||0;
+  const percent=allBytes?Math.min(100,Math.floor(doneBytes/allBytes*100)):Math.floor((completedFiles+1)/Math.max(1,totalFiles)*100);
+  updateDownloadProgress('Downloading '+label+' · '+percent+'% · '+(completedFiles+1)+'/'+totalFiles+' files · '+formatSize(doneBytes)+(allBytes?' / '+formatSize(allBytes):''));
+  return text;
+ }
+ const decoder=new TextDecoder(),parts=[];let received=0,lastUpdate=0;
+ try{
+  while(true){
+   const part=await reader.read();if(part.done)break;
+   if(part.value?.byteLength){received+=part.value.byteLength;parts.push(decoder.decode(part.value,{stream:true}));}
+   const now=performance.now();
+   if(now-lastUpdate>=100){
+    const doneBytes=completedBytes+received,allBytes=totalBytes||0;
+    const percent=allBytes?Math.min(99,Math.floor(doneBytes/allBytes*100)):Math.floor((completedFiles+received/Math.max(1,expected))/Math.max(1,totalFiles)*100);
+    updateDownloadProgress('Downloading '+label+' · '+percent+'% · '+(completedFiles+1)+'/'+totalFiles+' files · '+formatSize(doneBytes)+(allBytes?' / '+formatSize(allBytes):''));
+    lastUpdate=now;
+   }
+  }
+ }catch(error){try{await reader.cancel()}catch(_){}throw error}
+ parts.push(decoder.decode());
+ return parts.join('');
+}
 function ensureBashWorker(){
  if(bashWorkerReady)return bashWorkerReady;
  if(typeof Worker==='undefined')return Promise.reject(new Error('This browser does not support module workers.'));
@@ -120,6 +160,16 @@ const KA_SH_COMMANDS=new Set(['ls','nano','write','append','download','calc','js
 async function runBashkit(raw){
  try{
   line((cwd.length===2&&cwd[0]==='home'&&cwd[1]===HOME[1]?'~':pathString(cwd))+' $ '+raw,'cmd');
+  // Bashkit ships its own ls builtin, which can shadow KA-SH's OPFS-aware
+  // implementation. Route a plain "ls [path]" directly to the host command.
+  const lsArgs=tokenize(raw);
+  if(lsArgs[0]?.toLowerCase()==='ls'&&lsArgs.length<=2&&!/[|&;<>()\n]/.test(raw)){
+   const response=await handleKaCommand({name:'ls',argv:lsArgs.slice(1),cwd:pathString(cwd)});
+   appendBashOutput(response.stdout,'');
+   appendBashOutput(response.stderr,'err');
+   status(response.exitCode===0?'BASH READY':'EXIT '+response.exitCode,response.exitCode===0?'good':'warn');
+   return;
+  }
   status('LOADING BASH…','warn');
   const result=await requestBashWorker('execute',{command:raw,cwd:pathString(cwd)});
   status('BASH READY','good');
@@ -327,16 +377,16 @@ function siteRelativePath(reference,fromFile){
 }
 function siteVirtualUrl(path){return 'https://ka-sh-preview.invalid/'+path.split('/').map(encodeURIComponent).join('/')}
 async function collectSiteTree(rootParts){
- const files=new Map();let total=0;
+ // No arbitrary file-count or aggregate-size cap: include every file in the
+ // selected site tree so larger projects can be previewed as complete sites.
+ const files=new Map();
  async function walk(parts,relative){
   const dir=await directory(parts,false);
   for await(const [name,handle] of dir.entries()){
    if(name==='.ka-sh-tmp')continue;
    const child=parts.concat(name),rel=relative?relative+'/'+name:name;
    if(handle.kind==='directory'){await walk(child,rel);continue}
-   const bytes=await readFileBytes(child);total+=bytes.length;
-   if(files.size>=1200)throw Error('Site preview is limited to 1,200 files.');
-   if(total>96*1024*1024)throw Error('Site preview is limited to 96 MB total.');
+   const bytes=await readFileBytes(child);
    files.set(rel,{bytes,mime:previewMime(name)});
   }
  }
@@ -915,26 +965,33 @@ async function githubCommand(args){
 async function gitClone(url,destination){
  const {owner,repo}=parseGitHubUrl(url),meta=await githubApi('https://api.github.com/repos/'+owner+'/'+repo),branch=meta.default_branch;
  line('Cloning '+owner+'/'+repo+' ('+branch+')…','dim');
+ updateDownloadProgress('Preparing clone · fetching repository file list…');
  const tree=await githubApi('https://api.github.com/repos/'+owner+'/'+repo+'/git/trees/'+encodeURIComponent(branch)+'?recursive=1');
  if(tree.truncated)throw Error('Repository is too large for browser cloning (GitHub truncated its file tree).');
  const base=resolve(destination||repo);
  await directory(base,true);
  const files=tree.tree.filter(x=>x.type==='blob'&&!x.path.startsWith('.git/')&&x.size<=1500000);
- let done=0,skipped=0;
+ const totalBytes=files.reduce((sum,item)=>sum+(Number(item.size)||0),0);
+ let done=0,skipped=0,receivedBytes=0;
+ updateDownloadProgress('Downloading '+owner+'/'+repo+' · 0% · 0/'+files.length+' files · '+formatSize(0)+' / '+formatSize(totalBytes));
  for(const item of files){
   const parts=base.concat(item.path.split('/'));
   await directory(parts.slice(0,-1),true);
   try{
    const r=await terminalFetch('https://raw.githubusercontent.com/'+owner+'/'+repo+'/'+branch+'/'+item.path);
    if(!r.ok){skipped++;continue}
-   const textData=await r.text();
-   if(textData.includes('\\u0000')){skipped++;continue}
-   await writeFile(parts,textData,false);done++;
+   const textData=await readTextWithDownloadProgress(r,item.path,receivedBytes,totalBytes,done,files.length);
+   const size=new TextEncoder().encode(textData).byteLength;
+   if(textData.includes('\\u0000')){skipped++;receivedBytes+=size;continue}
+   await writeFile(parts,textData,false);done++;receivedBytes+=size;
+   const percent=totalBytes?Math.min(100,Math.floor(receivedBytes/totalBytes*100)):Math.floor((done+skipped)/Math.max(1,files.length)*100);
+   updateDownloadProgress('Downloading '+owner+'/'+repo+' · '+percent+'% · '+(done+skipped)+'/'+files.length+' files · '+formatSize(receivedBytes)+' / '+formatSize(totalBytes));
   }catch(_){skipped++}
  }
  const gitDir=base.concat('.git');await directory(gitDir,true);
  await writeFile(gitDir.concat('hp-config.json'),JSON.stringify({owner,repo,branch,sha:tree.sha,remote:'https://github.com/'+owner+'/'+repo+'.git'},null,2),false);
  await writeFile(gitDir.concat('hp-index.json'),JSON.stringify(files.map(x=>({path:x.path,sha:x.sha,size:x.size})),null,2),false);
+ updateDownloadProgress('Clone complete · '+owner+'/'+repo+' · '+done+'/'+files.length+' files · '+formatSize(receivedBytes));
  line('Cloned '+done+' text files into '+pathString(base)+(skipped?' ('+skipped+' skipped)':''),'ok');
 }
 
@@ -1026,16 +1083,23 @@ async function gitLog(){
 async function gitPull(){
  const cfg=await gitConfig(),tree=await githubApi('https://api.github.com/repos/'+cfg.owner+'/'+cfg.repo+'/git/trees/'+encodeURIComponent(cfg.branch)+'?recursive=1');
  const index=JSON.parse(await readFile(resolve('.git/hp-index.json'))),old=new Map(index.map(x=>[x.path,x]));
- let updated=0,conflicts=0;
- for(const item of tree.tree.filter(x=>x.type==='blob'&&x.size<=1500000&&!x.path.startsWith('.git/'))){
+ const files=tree.tree.filter(x=>x.type==='blob'&&x.size<=1500000&&!x.path.startsWith('.git/'));
+ const totalBytes=files.reduce((sum,item)=>sum+(Number(item.size)||0),0);
+ let updated=0,conflicts=0,checked=0,receivedBytes=0;
+ updateDownloadProgress('Preparing pull · 0/'+files.length+' repository files · '+formatSize(0)+' / '+formatSize(totalBytes));
+ for(const item of files){
   const prior=old.get(item.path);let safe=!prior;
   if(prior){try{const now=await readFile(resolve(item.path));const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-1',new TextEncoder().encode('blob '+new TextEncoder().encode(now).length+String.fromCharCode(0)+now))),b=>b.toString(16).padStart(2,'0')).join('');safe=hash===prior.sha}catch(_){safe=true}}
-  if(!safe){conflicts++;continue}
-  const r=await terminalFetch('https://raw.githubusercontent.com/'+cfg.owner+'/'+cfg.repo+'/'+cfg.branch+'/'+item.path);if(!r.ok)continue;
-  const data=await r.text();const parts=resolve(item.path);await directory(parts.slice(0,-1),true);await writeFile(parts,data,false);updated++;
+  if(!safe){conflicts++;checked++;continue}
+  const r=await terminalFetch('https://raw.githubusercontent.com/'+cfg.owner+'/'+cfg.repo+'/'+cfg.branch+'/'+item.path);if(!r.ok){checked++;continue}
+  const data=await readTextWithDownloadProgress(r,item.path,receivedBytes,totalBytes,checked,files.length);
+  const size=new TextEncoder().encode(data).byteLength,parts=resolve(item.path);await directory(parts.slice(0,-1),true);await writeFile(parts,data,false);updated++;checked++;receivedBytes+=size;
+  const percent=totalBytes?Math.min(100,Math.floor(receivedBytes/totalBytes*100)):Math.floor(checked/Math.max(1,files.length)*100);
+  updateDownloadProgress('Pulling '+cfg.owner+'/'+cfg.repo+' · '+percent+'% · '+checked+'/'+files.length+' files · '+formatSize(receivedBytes)+' / '+formatSize(totalBytes));
  }
  cfg.sha=tree.sha;await writeFile(resolve('.git/hp-config.json'),JSON.stringify(cfg,null,2),false);
  await writeFile(resolve('.git/hp-index.json'),JSON.stringify(tree.tree.filter(x=>x.type==='blob').map(x=>({path:x.path,sha:x.sha,size:x.size})),null,2),false);
+ updateDownloadProgress('Pull complete · '+updated+' files updated'+(conflicts?', '+conflicts+' local changes preserved':'')+' · '+formatSize(receivedBytes));
  line('Pull complete: '+updated+' files updated'+(conflicts?', '+conflicts+' local changes preserved as conflicts':''),'ok');
 }
 async function webFetch(url,method='GET'){
@@ -1235,7 +1299,28 @@ case 'date':{const d=new Date(),fmt=args[0]||'';if(!fmt.startsWith('+'))line(d.t
 case 'whoami':line(HOME[1],'ok');break;
 case 'uname':line("Kara's Browser Runtime / JavaScript / OPFS");break;
 case 'storage':line('Origin Private File System: '+(root?'available':'unavailable'),root?'ok':'err');line('Storage is private to this browser profile and this website origin.','dim');break;
-case 'download':if(!arg)throw Error('Usage: download <file>');{const blob=new Blob([await readFileBytes(resolve(arg))],{type:previewMime(arg)}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=resolve(arg).pop();a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);line('Download started: '+arg,'ok')}break;
+case 'download':if(!arg)throw Error('Usage: download <file>');{
+ const filePath=resolve(arg),[parent,name]=await parentAndName(filePath),handle=await parent.getFileHandle(name),file=await handle.getFile();
+ const total=file.size,reader=file.stream().getReader(),chunks=[];let received=0,lastUpdate=0;
+ updateDownloadProgress('Preparing '+arg+' · 0% ('+formatSize(0)+' / '+formatSize(total)+')');
+ try{
+  while(true){
+   const part=await reader.read();if(part.done)break;
+   if(part.value?.byteLength){chunks.push(part.value);received+=part.value.byteLength;}
+   const now=performance.now();
+   if(now-lastUpdate>=100||received>=total){
+    const percent=total?Math.min(100,Math.floor(received/total*100)):100;
+    updateDownloadProgress('Preparing '+arg+' · '+percent+'% ('+formatSize(received)+' / '+formatSize(total)+')');
+    lastUpdate=now;
+   }
+  }
+ }catch(error){try{await reader.cancel()}catch(_){}throw error}
+ const blob=new Blob(chunks,{type:previewMime(arg)}),url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download=name;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+ updateDownloadProgress('✓ Download prepared · '+formatSize(received)+' · handing file to browser');
+ line('Browser download started: '+arg+' ('+formatSize(received)+')','ok');
+ line('The percentage tracks file preparation. Your browser controls the final save and does not expose its transfer progress to KA-SH.','dim');
+}break;
 case 'cp':case 'mv':{const recursive=args[0]==='-r'||args[0]==='-R',offset=recursive?1:0;if(args.length<offset+2)throw Error('Usage: '+cmd+' [-r] <source> <destination>');const src=resolve(args[offset]),dst=resolve(args[offset+1]);if(pathString(src)===pathString(dst)||pathString(dst).startsWith(pathString(src)+'/'))throw Error('Invalid source/destination relationship.');let isDir=false;try{await directory(src,false);isDir=true}catch(_){}if(isDir){if(!recursive)throw Error('Use '+cmd+' -r for directories.');await copyDirectory(src,dst)}else{const data=await readFileBytes(src);await writeFile(dst,data,false)}if(cmd==='mv'){const [p,n]=await parentAndName(src);await p.removeEntry(n,{recursive:isDir})}line((cmd==='cp'?'Copied ':'Moved ')+args[offset]+' → '+args[offset+1],'ok')}break;
 case 'find':{const base=arg?resolve(arg):cwd,needle=(args[1]||'').toLowerCase();let found=0;async function walk(p){const d=await directory(p,false);for await(const [name,h] of d.entries()){const full=pathString(p.concat(name));if(!needle||name.toLowerCase().includes(needle)){line(full+(h.kind==='directory'?'/':''));found++}if(h.kind==='directory')await walk(p.concat(name))}}await walk(base);if(!found)line('No matches.','dim')}break;
 case 'stat':{if(!arg)throw Error('Usage: stat <path>');const p=resolve(arg);try{const d=await directory(p,false);let count=0;for await(const _ of d.entries())count++;line('Directory: '+pathString(p));line('Entries: '+count)}catch(_){const f=await readFile(p);line('File: '+pathString(p));line('Size: '+new TextEncoder().encode(f).length+' bytes');line('Lines: '+(f?f.split('\n').length:0))}}break;
@@ -1464,7 +1549,34 @@ case 'proxy':{
  throw Error('Try proxy help.');
 }
 case 'curl':if(!arg)throw Error('Usage: curl <https-url>');await webFetch(arg);break;
-case 'wget':if(!arg)throw Error('Usage: wget <https-url> [filename]');{const r=await terminalFetch(new URL(arg,location.href).href);if(!r.ok)throw Error('HTTP '+r.status+' '+r.statusText);const data=await r.text(),name=args[1]||new URL(arg).pathname.split('/').filter(Boolean).pop()||'download.txt';const parts=resolve(name);await directory(parts.slice(0,-1),true);await writeFile(parts,data,false);line('Downloaded '+name+' ('+formatSize(new TextEncoder().encode(data).length)+')','ok')}break;
+case 'wget':if(!arg)throw Error('Usage: wget <https-url> [filename]');{
+ const target=new URL(arg,location.href),r=await terminalFetch(target.href);
+ if(!r.ok)throw Error('HTTP '+r.status+' '+r.statusText);
+ const name=args[1]||target.pathname.split('/').filter(Boolean).pop()||'download.bin';
+ const total=Number(r.headers.get('content-length'))||0,chunks=[];let received=0,lastUpdate=0;
+ updateDownloadProgress('Downloading '+name+' · 0 B'+(total?' / '+formatSize(total)+' · 0%':''));
+ if(r.body&&r.body.getReader){
+  const reader=r.body.getReader();
+  while(true){
+   const part=await reader.read();if(part.done)break;
+   chunks.push(part.value);received+=part.value.byteLength;
+   const now=Date.now();
+   if(now-lastUpdate>120||(total&&received>=total)){
+    const percent=total?Math.min(100,Math.floor(received/total*100)):null;
+    updateDownloadProgress('Downloading '+name+' · '+formatSize(received)+(total?' / '+formatSize(total)+' · '+percent+'%':''));
+    lastUpdate=now;
+   }
+  }
+ }else{
+  const buffer=await r.arrayBuffer();chunks.push(new Uint8Array(buffer));received=buffer.byteLength;
+  updateDownloadProgress('Downloaded '+formatSize(received)+'; saving '+name+'…');
+ }
+ const bytes=new Uint8Array(received);let offset=0;
+ for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength}
+ const parts=resolve(name);await directory(parts.slice(0,-1),true);await writeFile(parts,bytes,false);
+ updateDownloadProgress('Download complete · '+name+' · '+formatSize(received));
+ line('Saved '+name+' to '+pathString(parts),'ok');
+}break;
 case 'fetch':if(!arg)throw Error('Usage: fetch <https-url>');await webFetch(arg);break;
 case 'json':if(!arg)throw Error('Usage: json <file.json>');line(JSON.stringify(JSON.parse(await readFile(resolve(arg))),null,2));break;
 case 'url':if(!arg)throw Error('Usage: url <https-url>');{const u=new URL(arg);line('Protocol: '+u.protocol);line('Host: '+u.host);line('Path: '+u.pathname);line('Query: '+u.search);line('Hash: '+u.hash)}break;
@@ -1549,6 +1661,13 @@ async function run(raw){
  const looksLikeJavaScript=/^(?:const|let|var|function|class|async\s+function|import\s|export\s|require\s*\(|console\.|process\.|module\.|exports\.|await\s|fetch\s*\(|https?\.(?:get|request)\s*\(|Promise\.|throw\s|try\s*\{|if\s*\(|for\s*\(|while\s*\(|\/\*|\/\/)/.test(trimmed);
  if(looksLikeJavaScript){await executeNode(raw,'pasted JavaScript');return}
  const parsed=tokenize(trimmed),head=(parsed[0]||'').toLowerCase();
+ // Route KA-SH-owned commands directly to the host dispatcher.
+ // Bashkit's command resolver can shadow or reject app commands such as git.
+ // Shell operators still go through Bashkit so pipelines and compound commands work.
+ if(['ls','wget','git','github'].includes(head)&&!/[|&;<>()]/.test(trimmed)){
+  await runSingle(raw,true);
+  return;
+ }
  if(['help','?','clear','exit'].includes(head)&&!/[|&]/.test(trimmed)){
   line((cwd.length===2&&cwd[0]==='home'&&cwd[1]===HOME[1]?'~':pathString(cwd))+' $ '+raw,'cmd');
   const response=await handleKaCommand({name:head,argv:parsed.slice(1),cwd:pathString(cwd)});
