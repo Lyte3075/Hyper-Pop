@@ -352,7 +352,7 @@ function rewriteSiteCss(css,fromPath,assetUrls){
  css=css.replace(/@import\s+(['"])([^'"]+)\1/gi,(all,q,value)=>'@import "'+rewrite(value)+'"');
  return css;
 }
-async function compileSiteCss(path,stack=[]){
+async function compileSiteCss(path,stack,files,cssPaths,assetUrls){
  const raw=new TextDecoder().decode(files.get(path).bytes);
  const pattern=/@import\s+(?:url\(\s*)?(['"])([^'"]+)\1\s*\)?\s*([^;]*);/gi;
  let output='',last=0,match;
@@ -360,7 +360,7 @@ async function compileSiteCss(path,stack=[]){
   output+=raw.slice(last,match.index);last=pattern.lastIndex;
   const ref=siteRelativePath(match[2],path);
   if(!ref||!cssPaths.includes(ref.path)||stack.includes(ref.path)){output+=match[0];continue}
-  const nested=await compileSiteCss(ref.path,stack.concat(path));
+  const nested=await compileSiteCss(ref.path,stack.concat(path),files,cssPaths,assetUrls);
   output+=match[3]?'@media '+match[3]+'{'+nested+'}':nested;
  }
  output+=raw.slice(last);
@@ -401,7 +401,7 @@ async function buildSitePreview(entryPath,rootOverride){
   URL.revokeObjectURL(assetUrls.get(path));assetUrls.set(path,url);importMap.imports[siteVirtualUrl(path)]=url;
  }
  for(const path of cssPaths){
-  const css=await compileSiteCss(path);
+  const css=await compileSiteCss(path,[],files,cssPaths,assetUrls);
   const url=URL.createObjectURL(new Blob([css],{type:'text/css;charset=utf-8'}));
   URL.revokeObjectURL(assetUrls.get(path));assetUrls.set(path,url);
  }
