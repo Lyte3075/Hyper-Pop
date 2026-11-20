@@ -119,7 +119,7 @@ async function handleKaCommand(message){
 const KA_SH_COMMANDS=new Set(['nano','write','append','download','calc','js','run','python','py','pip','preview','image','nodejs','npm','github','git','korona','server','node','apt','apt-get','sudo','proxy','curl','wget','fetch','json','url','upload','open','storage','db','version','about','reset','history','man','which','hostname','id','uptime','free','tree','whoami','uname','clear','help','remote']);
 async function runBashkit(raw){
  try{
-  line((cwd.length===2?'~':pathString(cwd))+' $ '+raw,'cmd');
+  line((cwd.length===2&&cwd[0]==='home'&&cwd[1]===HOME[1]?'~':pathString(cwd))+' $ '+raw,'cmd');
   status('LOADING BASH…','warn');
   const result=await requestBashWorker('execute',{command:raw,cwd:pathString(cwd)});
   status('BASH READY','good');
@@ -145,7 +145,7 @@ async function runBashkit(raw){
  }
 }
 function pathString(parts){return '/'+parts.join('/')}
-function updatePrompt(){cwdLabel.textContent=cwd.length===2?'~':pathString(cwd)}
+function updatePrompt(){cwdLabel.textContent=cwd.length===2&&cwd[0]==='home'&&cwd[1]===HOME[1]?'~':pathString(cwd)}
 function tokenize(s){const out=[];let cur='',quote=null,escape=false;for(const ch of s){if(escape){cur+=ch;escape=false;continue}if(ch==='\\'&&quote!=="'"){escape=true;continue}if(quote){if(ch===quote)quote=null;else cur+=ch;continue}if(ch==='"'||ch==="'"){quote=ch;continue}if(/\s/.test(ch)){if(cur){out.push(cur);cur=''}}else cur+=ch}if(escape)cur+='\\';if(cur)out.push(cur);return out}
 function normalizeHome(parts){const out=parts.slice();if(out[0]==='home'&&out[1]==='guest')out[1]=HOME[1];return out}
 function resolve(path){let raw=String(path||'');if(!raw||raw==='~'||raw==='/')return HOME.slice();const fromHome=raw.startsWith('~/');if(fromHome)raw=raw.slice(2);let parts;if(raw==='/tmp'||raw.startsWith('/tmp/')){parts=HOME.concat('.ka-sh-tmp');raw=raw==='/tmp'?'':raw.slice(5)}else if(raw.startsWith('/'))parts=[];else if(fromHome)parts=HOME.slice();else if(cwd[0]==='tmp')parts=HOME.concat('.ka-sh-tmp',cwd.slice(1));else parts=cwd.slice();for(const part of raw.split('/')){if(!part||part==='.')continue;if(part==='..')parts.pop();else{if(part.includes('\0'))throw Error('Invalid path.');parts.push(part)}}parts=normalizeHome(parts);if(!parts.length||(parts.length===1&&parts[0]==='home'))return HOME.slice();if(parts[0]!=='home'||parts[1]!==HOME[1])throw Error('Permission denied: files are isolated to your account directory.');return parts}
@@ -947,7 +947,7 @@ async function runRemoteApt(inputArgs){
  if(!data.commandOk)throw Error('APT command failed. See the output above.');
 }
 async function runSingle(raw,bypassBash=false){const trimmed=raw.trim(),args=tokenize(raw),cmd=(args.shift()||'').toLowerCase(),arg=args[0];if(!cmd)return;
-if(!suppressCommandEcho)line((cwd.length===2?'~':pathString(cwd))+' $ '+raw,'cmd');
+if(!suppressCommandEcho)line((cwd.length===2&&cwd[0]==='home'&&cwd[1]===HOME[1]?'~':pathString(cwd))+' $ '+raw,'cmd');
  const looksLikeJavaScript=/^(?:const|let|var|function|class|async\s+function|import\s|export\s|require\s*\(|console\.|process\.|module\.|exports\.|await\s|fetch\s*\(|https?\.(?:get|request)\s*\(|Promise\.|throw\s|try\s*\{|if\s*\(|for\s*\(|while\s*\(|\/\*|\/\/)/.test(trimmed)||/;\s*(?:const|let|var)\s/.test(trimmed);
  if(looksLikeJavaScript){await executeNode(raw,'pasted JavaScript');return;}
 try{
@@ -1419,7 +1419,7 @@ async function run(raw){
  if(looksLikeJavaScript){await executeNode(raw,'pasted JavaScript');return}
  const parsed=tokenize(trimmed),head=(parsed[0]||'').toLowerCase();
  if(['help','?','clear','exit'].includes(head)&&!/[|&]/.test(trimmed)){
-  line((cwd.length===2?'~':pathString(cwd))+' $ '+raw,'cmd');
+  line((cwd.length===2&&cwd[0]==='home'&&cwd[1]===HOME[1]?'~':pathString(cwd))+' $ '+raw,'cmd');
   const response=await handleKaCommand({name:head,argv:parsed.slice(1),cwd:pathString(cwd)});
   appendBashOutput(response.stdout,'');appendBashOutput(response.stderr,'err');return;
  }
