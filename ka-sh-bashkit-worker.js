@@ -14,7 +14,7 @@ function askPage(payload) {
 }
 
 const appCommands = [
-  "nano", "write", "append", "download", "calc",
+  "ls", "nano", "write", "append", "download", "calc",
   "js", "run", "python", "py", "pip", "preview", "image",
   "nodejs", "npm", "github", "git", "korona", "server", "node",
   "apt", "apt-get", "sudo", "proxy", "curl", "wget", "fetch", "remote",
