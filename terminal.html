@@ -352,6 +352,20 @@ function rewriteSiteCss(css,fromPath,assetUrls){
  css=css.replace(/@import\s+(['"])([^'"]+)\1/gi,(all,q,value)=>'@import "'+rewrite(value)+'"');
  return css;
 }
+async function compileSiteCss(path,stack=[]){
+ const raw=new TextDecoder().decode(files.get(path).bytes);
+ const pattern=/@import\s+(?:url\(\s*)?(['"])([^'"]+)\1\s*\)?\s*([^;]*);/gi;
+ let output='',last=0,match;
+ while((match=pattern.exec(raw))){
+  output+=raw.slice(last,match.index);last=pattern.lastIndex;
+  const ref=siteRelativePath(match[2],path);
+  if(!ref||!cssPaths.includes(ref.path)||stack.includes(ref.path)){output+=match[0];continue}
+  const nested=await compileSiteCss(ref.path,stack.concat(path));
+  output+=match[3]?'@media '+match[3]+'{'+nested+'}':nested;
+ }
+ output+=raw.slice(last);
+ return rewriteSiteCss(output,path,assetUrls);
+}
 function rewriteSiteJs(source,fromPath,assetUrls){
  const resolve=value=>{
   const ref=siteRelativePath(value,fromPath);if(!ref)return value;
@@ -387,7 +401,7 @@ async function buildSitePreview(entryPath){
   URL.revokeObjectURL(assetUrls.get(path));assetUrls.set(path,url);importMap.imports[siteVirtualUrl(path)]=url;
  }
  for(const path of cssPaths){
-  const css=rewriteSiteCss(new TextDecoder().decode(files.get(path).bytes),path,assetUrls);
+  const css=await compileSiteCss(path);
   const url=URL.createObjectURL(new Blob([css],{type:'text/css;charset=utf-8'}));
   URL.revokeObjectURL(assetUrls.get(path));assetUrls.set(path,url);
  }
@@ -395,7 +409,7 @@ async function buildSitePreview(entryPath){
  const rewriteHtml=path=>{
   let html=new TextDecoder().decode(files.get(path).bytes);
   html=html.replace(/<(script\b[^>]*type\s*=\s*(['"])module\2[^>]*>)([\s\S]*?)<\/script>/gi,(all,open,q,body)=>open+rewriteSiteJs(body,path,assetUrls)+'<\/script>');
-  html=html.replace(/\b(src|href|poster|data-src|action)\s*=\s*(['"])(.*?)\2/gi,(all,attr,q,value)=>{
+  html=html.replace(/\b(src|href|poster|data-src|action|data)\s*=\s*(['"])(.*?)\2/gi,(all,attr,q,value)=>{
    const ref=siteRelativePath(value,path);if(!ref)return all;
    const target=assetUrls.get(ref.path);
    if(target)return attr+'='+q+target+ref.query+ref.hash+q;
