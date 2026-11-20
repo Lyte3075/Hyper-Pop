@@ -1,0 +1,56 @@
+name: Vendor KA-SH Bashkit
+
+on:
+  push:
+    branches:
+      - terminal
+    paths:
+      - .github/workflows/vendor-ka-sh-bashkit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: vendor-ka-sh-bashkit-terminal
+  cancel-in-progress: false
+
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out terminal branch
+        uses: actions/checkout@v4
+        with:
+          ref: terminal
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Download the pinned Bashkit browser package
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/bashkit-package"
+          npm pack @everruns/bashkit-wasm@0.21.1 --pack-destination "$RUNNER_TEMP"
+          tar -xzf "$RUNNER_TEMP/everruns-bashkit-wasm-0.21.1.tgz" -C "$RUNNER_TEMP/bashkit-package"
+          test -s "$RUNNER_TEMP/bashkit-package/package/index.js"
+          test -s "$RUNNER_TEMP/bashkit-package/package/bashkit_wasm.js"
+          test -s "$RUNNER_TEMP/bashkit-package/package/bashkit_wasm_bg.wasm"
+          mkdir -p vendor/bashkit
+          cp -a "$RUNNER_TEMP/bashkit-package/package/." vendor/bashkit/
+
+      - name: Commit the local runtime
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add vendor/bashkit
+          if git diff --cached --quiet; then
+            echo "Bashkit vendor files are already current."
+            exit 0
+          fi
+          git commit -m "Vendor Bashkit WASM runtime for KA-SH"
+          git push origin HEAD:terminal
