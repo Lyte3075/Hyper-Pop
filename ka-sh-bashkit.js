@@ -38,6 +38,7 @@ function mapPath(path, username) {
   if (normalized === "/home") return { kind: "home" };
   if (normalized === "/dev") return { kind: "dev" };
   if (normalized === "/dev/null") return { kind: "null" };
+  if (["/bin", "/usr", "/usr/bin", "/usr/local", "/usr/local/bin", "/etc"].includes(normalized)) return { kind: "system-dir" };
   if (normalized === "/tmp" || normalized.startsWith("/tmp/")) {
     const suffix = normalized === "/tmp" ? [] : normalized.slice(5).split("/");
     return { kind: "physical", parts: ["home", username, ".ka-sh-tmp", ...suffix] };
@@ -162,7 +163,7 @@ class KaShOpfsHost {
 
   async stat(path) {
     const mapped = mapPath(path, this.username);
-    if (["root", "home", "dev"].includes(mapped.kind)) {
+    if (["root", "home", "dev", "system-dir"].includes(mapped.kind)) {
       return { type: "dir", size: 0, mode: 0o755, mtimeMs: 0 };
     }
     if (mapped.kind === "null") return { type: "file", size: 0, mode: 0o666, mtimeMs: 0 };
@@ -185,6 +186,7 @@ class KaShOpfsHost {
     ];
     if (mapped.kind === "home") return [{ name: this.username, type: "dir", mode: 0o755 }];
     if (mapped.kind === "dev") return [{ name: "null", type: "file", size: 0, mode: 0o666 }];
+    if (mapped.kind === "system-dir") return [];
     if (mapped.kind === "null") throw fsError("ENOTDIR", "Not a directory: " + path);
     try {
       const directory = await getDirectory(this.root, mapped.parts);
