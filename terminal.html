@@ -1012,7 +1012,8 @@ async function gitClone(url,destination){
   try{
    await directory(parts.slice(0,-1),true);
    const rawPath=item.path.split('/').map(encodeURIComponent).join('/');
-   const response=await terminalFetch('https://raw.githubusercontent.com/'+owner+'/'+repo+'/'+encodeURIComponent(branch)+'/'+rawPath);
+   const rawBranch=branch.split('/').map(encodeURIComponent).join('/');
+   const response=await terminalFetch('https://raw.githubusercontent.com/'+owner+'/'+repo+'/'+rawBranch+'/'+rawPath);
    if(!response.ok)throw Error('HTTP '+response.status+' '+response.statusText);
    const size=await writeResponseToFileWithProgress(response,parts,item.path,receivedBytes,totalBytes,done,files.length);
    receivedBytes+=size;done++;
