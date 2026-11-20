@@ -379,9 +379,9 @@ function rewriteSiteJs(source,fromPath,assetUrls){
  source=source.replace(/\bnew\s+URL\s*\(\s*(['"])([^'"]+)\1\s*,\s*import\.meta\.url\s*\)/g,(all,q,value)=>'new URL('+JSON.stringify(resolve(value))+')');
  return source;
 }
-async function buildSitePreview(entryPath){
- const entry=entryPath.slice(),rootParts=entry.slice(0,-1),entryName=entry[entry.length-1];
- const files=await collectSiteTree(rootParts),entryRel=entryName;
+async function buildSitePreview(entryPath,rootOverride){
+ const entry=entryPath.slice(),rootParts=rootOverride?rootOverride.slice():entry.slice(0,-1),entryRel=entry.slice(rootParts.length).join('/');
+ const files=await collectSiteTree(rootParts);
  if(!files.has(entryRel))throw Error('The selected HTML entry file is not inside the preview folder.');
  const assetUrls=new Map(),cssPaths=[],jsPaths=[],htmlPaths=[];
  for(const [path,file] of files){
@@ -469,8 +469,8 @@ async function openBlobPreview(blob,name){
  line('Opened preview: '+name,'ok');
  setTimeout(()=>URL.revokeObjectURL(url),5*60*1000);
 }
-async function previewHtml(path){
- const bundle=await buildSitePreview(path);
+async function previewHtml(path,rootParts){
+ const bundle=await buildSitePreview(path,rootParts);
  await openSandboxedSitePreview(bundle);
 }
 async function previewFile(path){
@@ -1260,7 +1260,7 @@ case 'js':{
 case 'run':if(!arg)throw Error('Usage: run <file.js>');if(!arg.toLowerCase().endsWith('.js'))throw Error('The run command currently executes .js files.');await executeJavaScript(await readFile(resolve(arg)),arg);break;
 case 'python':case 'py':if(!arg){line('Usage: python <file.py>  |  python -c <code>','dim');line('Example: python -c print(2 ** 10)');break}else if(arg==='-c'){if(args.length<2)throw Error('Usage: python -c <code>');await executePython((()=>{let code=raw.slice(raw.indexOf('-c')+2).trim();if((code[0]==='"'&&code.at(-1)==='"')||(code[0]==="'"&&code.at(-1)==="'"))code=code.slice(1,-1);return code})(),'Python command')}else await executePython(await readFile(resolve(arg)),arg);break;
 case 'pip':if(args[0]!=='install'||!args[1])throw Error('Usage: pip install <package>');{const py=await loadPyodideRuntime();line('Installing '+args[1]+'…','dim');await py.loadPackage('micropip');await py.runPythonAsync("import micropip\\nawait micropip.install("+JSON.stringify(args[1])+")");line('Installed '+args[1]+' (if compatible with Pyodide).','ok')}break;
-case 'preview':if(!arg)throw Error('Usage: preview <file-or-folder> [entry.html]');{const p=resolve(arg);let isDir=false;try{await directory(p,false);isDir=true}catch(_){}if(isDir){const names=[];async function findHtml(parts,relative){const d=await directory(parts,false);for await(const [name,h] of d.entries()){if(name==='.ka-sh-tmp')continue;if(h.kind==='directory')await findHtml(parts.concat(name),relative?relative+'/'+name:name);else if(h.kind==='file'&&/\.html?$/i.test(name))names.push({parts:parts.concat(name),relative:relative?relative+'/'+name:name})}}await findHtml(p,'');const requested=args[1];const chosen=requested?names.find(x=>x.relative===requested||x.relative===requested.replace(/^\.\//,'')):names.find(x=>x.relative.toLowerCase()==='index.html')||names.find(x=>x.relative.toLowerCase().endsWith('/index.html'))||names[0];if(!chosen)throw Error('No HTML entry point found anywhere inside this folder.');await previewHtml(chosen.parts)}else{if(!/\.html?$/i.test(arg))throw Error('Preview a folder or an HTML entry file.');await previewHtml(p)}}break;
+case 'preview':if(!arg)throw Error('Usage: preview <file-or-folder> [entry.html]');{const p=resolve(arg);let isDir=false;try{await directory(p,false);isDir=true}catch(_){}if(isDir){const names=[];async function findHtml(parts,relative){const d=await directory(parts,false);for await(const [name,h] of d.entries()){if(name==='.ka-sh-tmp')continue;if(h.kind==='directory')await findHtml(parts.concat(name),relative?relative+'/'+name:name);else if(h.kind==='file'&&/\.html?$/i.test(name))names.push({parts:parts.concat(name),relative:relative?relative+'/'+name:name})}}await findHtml(p,'');const requested=args[1];const chosen=requested?names.find(x=>x.relative===requested||x.relative===requested.replace(/^\.\//,'')):names.find(x=>x.relative.toLowerCase()==='index.html')||names.find(x=>x.relative.toLowerCase().endsWith('/index.html'))||names[0];if(!chosen)throw Error('No HTML entry point found anywhere inside this folder.');await previewHtml(chosen.parts,p)}else{if(!/\.html?$/i.test(arg))throw Error('Preview a folder or an HTML entry file.');await previewHtml(p)}}break;
 case 'image':if(!arg)throw Error('Usage: image <image-file>');{const p=resolve(arg);if(!previewMime(arg).startsWith('image/'))throw Error('That file does not look like a supported image.');await previewFile(p)}break;
 case 'nodejs':{
  if(!arg){line('KA Node-compatible runtime. Usage: nodejs <file.js> | nodejs -e <code>','dim');line('This is not native Node.js; browser-compatible packages only.','warn');break}
