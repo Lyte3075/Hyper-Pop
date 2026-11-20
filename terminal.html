@@ -154,7 +154,7 @@ async function parentAndName(parts){parts=normalizeHome(parts);if(parts.length<3
 async function readFile(parts){const [p,n]=await parentAndName(parts);const h=await p.getFileHandle(n);return await (await h.getFile()).text()}
  async function readFileBytes(parts){const [p,n]=await parentAndName(parts);const h=await p.getFileHandle(n);return new Uint8Array(await (await h.getFile()).arrayBuffer())}
 async function writeFile(parts,data,append){const [p,n]=await parentAndName(parts);const h=await p.getFileHandle(n,{create:true});const w=await h.createWritable({keepExistingData:!!append});if(append){const f=await h.getFile();await w.seek(f.size)}else await w.truncate(0);await w.write(data);await w.close()}
-async function list(parts){const d=await directory(parts,false),rows=[];for await(const [name,handle] of d.entries()){rows.push({name,dir:handle.kind==='directory'})}rows.sort((a,b)=>Number(b.dir)-Number(a.dir)||a.name.localeCompare(b.name));if(!rows.length)line('(empty)','dim');for(const x of rows)line((x.dir?'[DIR] ':'      ')+x.name,x.dir?'ok':'')}
+async function list(parts){const d=await directory(parts,false),rows=[];for await(const [name,handle] of d.entries()){rows.push({name,dir:handle.kind==='directory'})}rows.sort((a,b)=>Number(b.dir)-Number(a.dir)||a.name.localeCompare(b.name));if(!rows.length){line('No files found.','dim');return;}for(const x of rows)line((x.dir?'[DIR] ':'      ')+x.name,x.dir?'ok':'')}
 function editorDirty(){return editorText.value!==editorOriginal}
 function updateLineNumbers(){
  const count=editorText.value.split('\n').length;
