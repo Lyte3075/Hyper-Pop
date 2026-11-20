@@ -64,6 +64,18 @@ function line(text='',kind=''){if(outputCapture){outputCapture.push({text:String
 function status(text,kind){state.textContent=text;state.className=kind||''}
 function shellQuote(value){return "'"+String(value).replace(/'/g,"'\\''")+"'"}
 function appendBashOutput(value,kind){if(!value)return;const text=String(value).replace(/\r\n/g,'\n').replace(/\r/g,'\n');const rows=text.split('\n');if(rows[rows.length-1]==='')rows.pop();for(const row of rows)line(row,kind)}
+function appendBashOutput(value,kind){if(!value)return;const text=String(value).replace(/\\r\\n/g,'\\n').replace(/\\r/g,'\\n');const rows=text.split('\\n');if(rows[rows.length-1]==='')rows.pop();for(const row of rows)line(row,kind)}
+let downloadProgressElement=null;
+function updateDownloadProgress(message){
+ if(outputCapture){line(message,'dim');return}
+ if(!downloadProgressElement||!downloadProgressElement.isConnected){
+  downloadProgressElement=document.createElement('div');
+  downloadProgressElement.className='line download-progress dim';
+  screen.appendChild(downloadProgressElement);
+ }
+ downloadProgressElement.textContent=message;
+ screen.scrollTop=screen.scrollHeight;
+}
 function ensureBashWorker(){
  if(bashWorkerReady)return bashWorkerReady;
  if(typeof Worker==='undefined')return Promise.reject(new Error('This browser does not support module workers.'));
@@ -1245,7 +1257,13 @@ case 'date':{const d=new Date(),fmt=args[0]||'';if(!fmt.startsWith('+'))line(d.t
 case 'whoami':line(HOME[1],'ok');break;
 case 'uname':line("Kara's Browser Runtime / JavaScript / OPFS");break;
 case 'storage':line('Origin Private File System: '+(root?'available':'unavailable'),root?'ok':'err');line('Storage is private to this browser profile and this website origin.','dim');break;
-case 'download':if(!arg)throw Error('Usage: download <file>');{const blob=new Blob([await readFileBytes(resolve(arg))],{type:previewMime(arg)}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=resolve(arg).pop();a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);line('Download started: '+arg,'ok')}break;
+case 'download':if(!arg)throw Error('Usage: download <file>');{
+ const filePath=resolve(arg);line('Preparing '+arg+' for download…','dim');
+ const bytes=await readFileBytes(filePath),blob=new Blob([bytes],{type:previewMime(arg)}),url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download=filePath.pop();a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);
+ line('Browser download started: '+arg+' ('+formatSize(bytes.byteLength)+')','ok');
+ line('Browser-managed transfer progress is not exposed to webpages.','dim');
+}break;
 case 'cp':case 'mv':{const recursive=args[0]==='-r'||args[0]==='-R',offset=recursive?1:0;if(args.length<offset+2)throw Error('Usage: '+cmd+' [-r] <source> <destination>');const src=resolve(args[offset]),dst=resolve(args[offset+1]);if(pathString(src)===pathString(dst)||pathString(dst).startsWith(pathString(src)+'/'))throw Error('Invalid source/destination relationship.');let isDir=false;try{await directory(src,false);isDir=true}catch(_){}if(isDir){if(!recursive)throw Error('Use '+cmd+' -r for directories.');await copyDirectory(src,dst)}else{const data=await readFileBytes(src);await writeFile(dst,data,false)}if(cmd==='mv'){const [p,n]=await parentAndName(src);await p.removeEntry(n,{recursive:isDir})}line((cmd==='cp'?'Copied ':'Moved ')+args[offset]+' → '+args[offset+1],'ok')}break;
 case 'find':{const base=arg?resolve(arg):cwd,needle=(args[1]||'').toLowerCase();let found=0;async function walk(p){const d=await directory(p,false);for await(const [name,h] of d.entries()){const full=pathString(p.concat(name));if(!needle||name.toLowerCase().includes(needle)){line(full+(h.kind==='directory'?'/':''));found++}if(h.kind==='directory')await walk(p.concat(name))}}await walk(base);if(!found)line('No matches.','dim')}break;
 case 'stat':{if(!arg)throw Error('Usage: stat <path>');const p=resolve(arg);try{const d=await directory(p,false);let count=0;for await(const _ of d.entries())count++;line('Directory: '+pathString(p));line('Entries: '+count)}catch(_){const f=await readFile(p);line('File: '+pathString(p));line('Size: '+new TextEncoder().encode(f).length+' bytes');line('Lines: '+(f?f.split('\n').length:0))}}break;
@@ -1474,7 +1492,34 @@ case 'proxy':{
  throw Error('Try proxy help.');
 }
 case 'curl':if(!arg)throw Error('Usage: curl <https-url>');await webFetch(arg);break;
-case 'wget':if(!arg)throw Error('Usage: wget <https-url> [filename]');{const r=await terminalFetch(new URL(arg,location.href).href);if(!r.ok)throw Error('HTTP '+r.status+' '+r.statusText);const data=await r.text(),name=args[1]||new URL(arg).pathname.split('/').filter(Boolean).pop()||'download.txt';const parts=resolve(name);await directory(parts.slice(0,-1),true);await writeFile(parts,data,false);line('Downloaded '+name+' ('+formatSize(new TextEncoder().encode(data).length)+')','ok')}break;
+case 'wget':if(!arg)throw Error('Usage: wget <https-url> [filename]');{
+ const target=new URL(arg,location.href),r=await terminalFetch(target.href);
+ if(!r.ok)throw Error('HTTP '+r.status+' '+r.statusText);
+ const name=args[1]||target.pathname.split('/').filter(Boolean).pop()||'download.bin';
+ const total=Number(r.headers.get('content-length'))||0,chunks=[];let received=0,lastUpdate=0;
+ updateDownloadProgress('Downloading '+name+' · 0 B'+(total?' / '+formatSize(total)+' · 0%':''));
+ if(r.body&&r.body.getReader){
+  const reader=r.body.getReader();
+  while(true){
+   const part=await reader.read();if(part.done)break;
+   chunks.push(part.value);received+=part.value.byteLength;
+   const now=Date.now();
+   if(now-lastUpdate>120||(total&&received>=total)){
+    const percent=total?Math.min(100,Math.floor(received/total*100)):null;
+    updateDownloadProgress('Downloading '+name+' · '+formatSize(received)+(total?' / '+formatSize(total)+' · '+percent+'%':''));
+    lastUpdate=now;
+   }
+  }
+ }else{
+  const buffer=await r.arrayBuffer();chunks.push(new Uint8Array(buffer));received=buffer.byteLength;
+  updateDownloadProgress('Downloaded '+formatSize(received)+'; saving '+name+'…');
+ }
+ const bytes=new Uint8Array(received);let offset=0;
+ for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength}
+ const parts=resolve(name);await directory(parts.slice(0,-1),true);await writeFile(parts,bytes,false);
+ updateDownloadProgress('Download complete · '+name+' · '+formatSize(received));
+ line('Saved '+name+' to '+pathString(parts),'ok');
+}break;
 case 'fetch':if(!arg)throw Error('Usage: fetch <https-url>');await webFetch(arg);break;
 case 'json':if(!arg)throw Error('Usage: json <file.json>');line(JSON.stringify(JSON.parse(await readFile(resolve(arg))),null,2));break;
 case 'url':if(!arg)throw Error('Usage: url <https-url>');{const u=new URL(arg);line('Protocol: '+u.protocol);line('Host: '+u.host);line('Path: '+u.pathname);line('Query: '+u.search);line('Hash: '+u.hash)}break;
@@ -1559,6 +1604,12 @@ async function run(raw){
  const looksLikeJavaScript=/^(?:const|let|var|function|class|async\s+function|import\s|export\s|require\s*\(|console\.|process\.|module\.|exports\.|await\s|fetch\s*\(|https?\.(?:get|request)\s*\(|Promise\.|throw\s|try\s*\{|if\s*\(|for\s*\(|while\s*\(|\/\*|\/\/)/.test(trimmed);
  if(looksLikeJavaScript){await executeNode(raw,'pasted JavaScript');return}
  const parsed=tokenize(trimmed),head=(parsed[0]||'').toLowerCase();
+ // Keep filesystem and network-transfer commands on the KA-SH host path.
+ // They do not need Bash parsing, and Bashkit built-ins can shadow them.
+ if(['ls','wget'].includes(head)&&!/[|&;<>()\\n]/.test(trimmed)){
+  await runSingle(raw,true);
+  return;
+ }
  if(['help','?','clear','exit'].includes(head)&&!/[|&]/.test(trimmed)){
   line((cwd.length===2&&cwd[0]==='home'&&cwd[1]===HOME[1]?'~':pathString(cwd))+' $ '+raw,'cmd');
   const response=await handleKaCommand({name:head,argv:parsed.slice(1),cwd:pathString(cwd)});
