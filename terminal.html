@@ -314,6 +314,134 @@ async function rewriteCssAssets(css,baseParts){
  }
  return css;
 }
+function siteRelativePath(reference,fromFile){
+ const value=String(reference||'').trim();
+ if(!value||value[0]==='#'||/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(value))return null;
+ try{
+  const base='https://ka-sh-preview.invalid/'+fromFile.split('/').slice(0,-1).map(encodeURIComponent).join('/')+'/';
+  const url=new URL(value,base);
+  if(url.origin!=='https://ka-sh-preview.invalid')return null;
+  const path=url.pathname.split('/').filter(Boolean).map(x=>decodeURIComponent(x)).join('/');
+  return {path,query:url.search,hash:url.hash};
+ }catch(_){return null}
+}
+function siteVirtualUrl(path){return 'https://ka-sh-preview.invalid/'+path.split('/').map(encodeURIComponent).join('/')}
+async function collectSiteTree(rootParts){
+ const files=new Map();let total=0;
+ async function walk(parts,relative){
+  const dir=await directory(parts,false);
+  for await(const [name,handle] of dir.entries()){
+   if(name==='.ka-sh-tmp')continue;
+   const child=parts.concat(name),rel=relative?relative+'/'+name:name;
+   if(handle.kind==='directory'){await walk(child,rel);continue}
+   const bytes=await readFileBytes(child);total+=bytes.length;
+   if(files.size>=1200)throw Error('Site preview is limited to 1,200 files.');
+   if(total>96*1024*1024)throw Error('Site preview is limited to 96 MB total.');
+   files.set(rel,{bytes,mime:previewMime(name)});
+  }
+ }
+ await walk(rootParts,'');
+ return files;
+}
+function rewriteSiteCss(css,fromPath,assetUrls){
+ const rewrite=value=>{
+  const ref=siteRelativePath(value,fromPath);if(!ref)return value;
+  const target=assetUrls.get(ref.path);return target?target+ref.query+ref.hash:value;
+ };
+ css=css.replace(/url\(\s*(['"]?)([^'")]+)\1\s*\)/gi,(all,q,value)=>'url("'+rewrite(value)+'")');
+ css=css.replace(/@import\s+(['"])([^'"]+)\1/gi,(all,q,value)=>'@import "'+rewrite(value)+'"');
+ return css;
+}
+function rewriteSiteJs(source,fromPath,assetUrls){
+ const resolve=value=>{
+  const ref=siteRelativePath(value,fromPath);if(!ref)return value;
+  const target=assetUrls.get(ref.path);return target?target+ref.query+ref.hash:value;
+ };
+ source=source.replace(/(\bfrom\s*|\bimport\s*\(\s*|\bimport\s*)(['"])([^'"]+)\2/g,(all,prefix,q,value)=>{
+  const ref=siteRelativePath(value,fromPath);return ref&&assetUrls.has(ref.path)?prefix+q+siteVirtualUrl(ref.path)+ref.query+ref.hash+q:all;
+ });
+ source=source.replace(/\b(fetch|open)\s*\(\s*(['"])([^'"]+)\2/g,(all,fn,q,value)=>all.replace(value,resolve(value)));
+ source=source.replace(/\bnew\s+(Worker|SharedWorker)\s*\(\s*(['"])([^'"]+)\2/g,(all,kind,q,value)=>all.replace(value,resolve(value)));
+ source=source.replace(/\bnew\s+URL\s*\(\s*(['"])([^'"]+)\1\s*,\s*import\.meta\.url\s*\)/g,(all,q,value)=>'new URL('+JSON.stringify(resolve(value))+')');
+ return source;
+}
+async function buildSitePreview(entryPath){
+ const entry=entryPath.slice(),rootParts=entry.slice(0,-1),entryName=entry[entry.length-1];
+ const files=await collectSiteTree(rootParts),entryRel=entryName;
+ if(!files.has(entryRel))throw Error('The selected HTML entry file is not inside the preview folder.');
+ const assetUrls=new Map(),cssPaths=[],jsPaths=[],htmlPaths=[];
+ for(const [path,file] of files){
+  const ext=path.split('.').pop().toLowerCase();
+  if(['html','htm'].includes(ext))htmlPaths.push(path);
+  else if(['css'].includes(ext))cssPaths.push(path);
+  else if(['js','mjs','cjs'].includes(ext))jsPaths.push(path);
+  else assetUrls.set(path,URL.createObjectURL(new Blob([file.bytes],{type:file.mime||'application/octet-stream'})));
+ }
+ const importMap={imports:{}};
+ for(const path of jsPaths){
+  const source=new TextDecoder().decode(files.get(path).bytes);
+  const rewritten=rewriteSiteJs(source,path,assetUrls);
+  const url=URL.createObjectURL(new Blob([rewritten],{type:'text/javascript;charset=utf-8'}));
+  assetUrls.set(path,url);importMap.imports[siteVirtualUrl(path)]=url;
+ }
+ for(const path of cssPaths){
+  const css=rewriteSiteCss(new TextDecoder().decode(files.get(path).bytes),path,assetUrls);
+  assetUrls.set(path,URL.createObjectURL(new Blob([css],{type:'text/css;charset=utf-8'})));
+ }
+ const pageUrls=new Map();
+ const fakeOrigin='https://ka-sh-preview.invalid';
+ const rewriteHtml=path=>{
+  let html=new TextDecoder().decode(files.get(path).bytes);
+  html=html.replace(/<(script\b[^>]*type\s*=\s*(['"])module\2[^>]*>)([\s\S]*?)<\/script>/gi,(all,open,q,body)=>open+rewriteSiteJs(body,path,assetUrls)+'</script>');
+  html=html.replace(/\b(src|href|poster|data-src|action)\s*=\s*(['"])(.*?)\2/gi,(all,attr,q,value)=>{
+   const ref=siteRelativePath(value,path);if(!ref)return all;
+   const target=assetUrls.get(ref.path);
+   if(target)return attr+'='+q+target+ref.query+ref.hash+q;
+   if(htmlPaths.includes(ref.path))return attr+'='+q+siteVirtualUrl(ref.path)+ref.query+ref.hash+q;
+   return all;
+  });
+  html=html.replace(/\bsrcset\s*=\s*(['"])(.*?)\1/gi,(all,q,value)=>{
+   const updated=value.split(',').map(part=>{const bits=part.trim().split(/\s+/),ref=siteRelativePath(bits[0],path);if(ref&&assetUrls.has(ref.path))bits[0]=assetUrls.get(ref.path)+ref.query+ref.hash;return bits.join(' ')}).join(', ');
+   return 'srcset='+q+updated+q;
+  });
+  html=html.replace(/\bstyle\s*=\s*(['"])([\s\S]*?)\1/gi,(all,q,css)=>'style='+q+rewriteSiteCss(css,path,assetUrls)+q);
+  html=html.replace(/<style\b([^>]*)>([\s\S]*?)<\/style>/gi,(all,attrs,css)=>'<style'+attrs+'>'+rewriteSiteCss(css,path,assetUrls)+'</style>');
+  const directoryPath=path.split('/').slice(0,-1).join('/');
+  const baseUrl=fakeOrigin+'/'+(directoryPath?directoryPath+'/':'');
+  const importTag='<script type="importmap">'+JSON.stringify(importMap)+'</script>';
+  const bootstrap='<script>(function(){const origin='+JSON.stringify(fakeOrigin)+',assets='+JSON.stringify(Object.fromEntries(assetUrls))+',pages='+JSON.stringify(Object.fromEntries(pageUrls))+',nativeFetch=window.fetch.bind(window);window.fetch=function(input,init){try{const raw=typeof input==="string"?input:input.url,u=new URL(raw,document.baseURI);if(u.origin===origin&&assets[u.pathname.slice(1)])return nativeFetch(assets[u.pathname.slice(1)]+u.search,init)}catch(e){}return nativeFetch(input,init)};document.addEventListener("click",function(e){const a=e.target.closest&&e.target.closest("a[href]");if(!a)return;try{const u=new URL(a.href);if(u.origin!==origin)return;const path=u.pathname.slice(1),target=pages[path];if(target){e.preventDefault();location.href=target+u.search+u.hash}}catch(e){}})})();</script>';
+  const baseTag='<base href="'+baseUrl.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'">';
+  if(/<head\b[^>]*>/i.test(html))html=html.replace(/<head\b[^>]*>/i,match=>match+baseTag+importTag+bootstrap);
+  else html=baseTag+importTag+bootstrap+html;
+  return html;
+ };
+ for(const path of htmlPaths)pageUrls.set(path,null);
+ const htmlBlobs=new Map();
+ for(const path of htmlPaths){
+  const html=rewriteHtml(path);
+  htmlBlobs.set(path,URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})));
+ }
+ const pageMap=Object.fromEntries(htmlBlobs);
+ for(const path of htmlPaths){
+  const html=rewriteHtml(path).replace(/pages=\{\}/,'pages='+JSON.stringify(pageMap));
+  const replacement=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'}));
+  URL.revokeObjectURL(htmlBlobs.get(path));htmlBlobs.set(path,replacement);
+ }
+ for(const [path,url] of htmlBlobs)pageUrls.set(path,url);
+ const finalHtml=rewriteHtml(entryRel).replace(/pages=\{\}/,'pages='+JSON.stringify(Object.fromEntries(pageUrls)));
+ const finalBlob=new Blob([finalHtml],{type:'text/html;charset=utf-8'});
+ return {blob:finalBlob,name:entryRel,urls:[...assetUrls.values(),...htmlBlobs.values()]};
+}
+async function openSandboxedSitePreview(bundle){
+ const tab=window.open('about:blank','_blank');
+ if(!tab)throw Error('Pop-up blocked. Allow pop-ups for this site and try again.');
+ const url=URL.createObjectURL(bundle.blob);
+ tab.document.open();
+ tab.document.write('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+String(bundle.name).replace(/[&<>"]/g,'')+'</title><style>html,body,iframe{margin:0;width:100%;height:100%;border:0;background:#fff}body{overflow:hidden}</style></head><body><iframe id="site" title="Site preview" sandbox="allow-scripts allow-forms allow-downloads allow-modals allow-pointer-lock"></iframe><script>document.getElementById("site").src='+JSON.stringify(url)+';<\/script></body></html>');
+ tab.document.close();
+ line('Opened isolated site preview: '+bundle.name,'ok');
+ setTimeout(()=>{for(const item of bundle.urls)URL.revokeObjectURL(item);URL.revokeObjectURL(url)},10*60*1000);
+}
 async function buildHtmlPreview(path){
  const source=await readFile(path),folder=path.slice(0,-1);
  let html=source;
@@ -339,8 +467,8 @@ async function openBlobPreview(blob,name){
  setTimeout(()=>URL.revokeObjectURL(url),5*60*1000);
 }
 async function previewHtml(path){
- const source=await buildHtmlPreview(path);
- await openBlobPreview(new Blob([source],{type:'text/html;charset=utf-8'}),pathString(path));
+ const bundle=await buildSitePreview(path);
+ await openSandboxedSitePreview(bundle);
 }
 async function previewFile(path){
  const parts=Array.isArray(path)?path:resolve(path),name=parts[parts.length-1],mime=previewMime(name);
@@ -1129,7 +1257,7 @@ case 'js':{
 case 'run':if(!arg)throw Error('Usage: run <file.js>');if(!arg.toLowerCase().endsWith('.js'))throw Error('The run command currently executes .js files.');await executeJavaScript(await readFile(resolve(arg)),arg);break;
 case 'python':case 'py':if(!arg){line('Usage: python <file.py>  |  python -c <code>','dim');line('Example: python -c print(2 ** 10)');break}else if(arg==='-c'){if(args.length<2)throw Error('Usage: python -c <code>');await executePython((()=>{let code=raw.slice(raw.indexOf('-c')+2).trim();if((code[0]==='"'&&code.at(-1)==='"')||(code[0]==="'"&&code.at(-1)==="'"))code=code.slice(1,-1);return code})(),'Python command')}else await executePython(await readFile(resolve(arg)),arg);break;
 case 'pip':if(args[0]!=='install'||!args[1])throw Error('Usage: pip install <package>');{const py=await loadPyodideRuntime();line('Installing '+args[1]+'…','dim');await py.loadPackage('micropip');await py.runPythonAsync("import micropip\\nawait micropip.install("+JSON.stringify(args[1])+")");line('Installed '+args[1]+' (if compatible with Pyodide).','ok')}break;
-case 'preview':if(!arg)throw Error('Usage: preview <file-or-folder>');{const p=resolve(arg);let isDir=false;try{await directory(p,false);isDir=true}catch(_){}if(isDir){const d=await directory(p,false),names=[];for await(const [name,h] of d.entries())if(h.kind==='file'&&/\.html?$/i.test(name))names.push(name);const chosen=names.find(x=>x.toLowerCase()==='index.html')||names[0];if(!chosen)throw Error('This folder has no HTML entry point. Preview an individual file instead.');await previewHtml(p.concat(chosen))}else await previewFile(p)}break;
+case 'preview':if(!arg)throw Error('Usage: preview <file-or-folder> [entry.html]');{const p=resolve(arg);let isDir=false;try{await directory(p,false);isDir=true}catch(_){}if(isDir){const names=[];async function findHtml(parts,relative){const d=await directory(parts,false);for await(const [name,h] of d.entries()){if(name==='.ka-sh-tmp')continue;if(h.kind==='directory')await findHtml(parts.concat(name),relative?relative+'/'+name:name);else if(h.kind==='file'&&/\.html?$/i.test(name))names.push({parts:parts.concat(name),relative:relative?relative+'/'+name:name})}}await findHtml(p,'');const requested=args[1];const chosen=requested?names.find(x=>x.relative===requested||x.relative===requested.replace(/^\.\//,'')):names.find(x=>x.relative.toLowerCase()==='index.html')||names.find(x=>x.relative.toLowerCase().endsWith('/index.html'))||names[0];if(!chosen)throw Error('No HTML entry point found anywhere inside this folder.');await previewHtml(chosen.parts)}else{if(!/\.html?$/i.test(arg))throw Error('Preview a folder or an HTML entry file.');await previewHtml(p)}}break;
 case 'image':if(!arg)throw Error('Usage: image <image-file>');{const p=resolve(arg);if(!previewMime(arg).startsWith('image/'))throw Error('That file does not look like a supported image.');await previewFile(p)}break;
 case 'nodejs':{
  if(!arg){line('KA Node-compatible runtime. Usage: nodejs <file.js> | nodejs -e <code>','dim');line('This is not native Node.js; browser-compatible packages only.','warn');break}
