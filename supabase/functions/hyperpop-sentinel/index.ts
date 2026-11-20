@@ -18,6 +18,13 @@ const validDevice = (v: unknown): v is string => typeof v === "string" && /^[a-f
 const durationMs: Record<string, number | null> = {
   "1day": 86400000, "7days": 604800000, "30days": 2592000000, "90days": 7776000000, permanent: null,
 };
+const cleanInfo = (v: unknown) => {
+  const allowed = ["user_agent","platform","vendor","language","languages","timezone","screen_width","screen_height","screen_color_depth","viewport_width","viewport_height","pixel_ratio","hardware_concurrency","device_memory","max_touch_points","touch_supported","cookie_enabled","do_not_track","mobile_hint"];
+  const out: Record<string, unknown> = {};
+  if (!v || typeof v !== "object" || Array.isArray(v)) return out;
+  for (const k of allowed) { const x = (v as Record<string, unknown>)[k]; if (typeof x === "string") out[k] = x.slice(0,500); else if (typeof x === "number" && Number.isFinite(x)) out[k] = x; else if (typeof x === "boolean" || x === null) out[k] = x; else if (k === "languages" && Array.isArray(x)) out[k] = x.filter(y => typeof y === "string").slice(0,8).map(y => y.slice(0,40)); }
+  return out;
+};
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -40,9 +47,10 @@ Deno.serve(async (req: Request) => {
   const ip = ipOf(req);
   let deviceId: string | null = null;
   if (deviceKey) {
+    const info = cleanInfo(body.device_info);
     const { data: device } = await db.from("hyperpop_sentinel_devices").upsert({
       device_key: deviceKey, last_seen_at: new Date().toISOString(), last_ip: ip,
-      user_agent: (req.headers.get("user-agent") || "").slice(0, 500),
+      user_agent: String(info.user_agent || req.headers.get("user-agent") || "").slice(0, 500), device_info: info,
     }, { onConflict: "device_key" }).select("id").single();
     deviceId = device?.id || null;
     if (deviceId && account) {
@@ -90,14 +98,30 @@ Deno.serve(async (req: Request) => {
   const { data: admin } = await db.from("hyperpop_sentinel_admins").select("account_id").eq("account_id", account.id).maybeSingle();
   if (!admin) return reply({ ok: false, error: "Sentinel administrator permission required." }, 403);
 
+  if (action === "accounts") {
+    const q = String(body.search || "").trim().slice(0, 40);
+    let query = db.from("hyperpop_accounts").select("id,username,display_name,created_at").order("username", { ascending: true }).limit(300);
+    if (q) query = query.ilike("username", "%" + q.replace(/[%_]/g, "") + "%");
+    const { data, error } = await query;
+    if (error) return reply({ ok: false, error: "Could not load account directory." }, 500);
+    const ids = (data || []).map(x => x.id); const counts: Record<string, number> = {};
+    if (ids.length) { const { data: links } = await db.from("hyperpop_sentinel_device_accounts").select("account_id").in("account_id", ids); for (const l of links || []) counts[l.account_id] = (counts[l.account_id] || 0) + 1; }
+    return reply({ ok: true, accounts: (data || []).map(x => ({ id:x.id, username:x.username, display_name:x.display_name, created_at:x.created_at, device_count:counts[x.id] || 0 })) });
+  }
+
   if (action === "overview") {
-    const [bans, devices, appeals, events] = await Promise.all([
+    const [bans, devices, appeals, events, accounts] = await Promise.all([
       db.from("hyperpop_sentinel_bans").select("*,hyperpop_accounts!hyperpop_sentinel_bans_account_id_fkey(username)").order("created_at", { ascending: false }).limit(150),
-      db.from("hyperpop_sentinel_devices").select("id,device_key,first_seen_at,last_seen_at,last_ip,user_agent").order("last_seen_at", { ascending: false }).limit(150),
+      db.from("hyperpop_sentinel_devices").select("id,device_key,first_seen_at,last_seen_at,last_ip,user_agent,device_info").order("last_seen_at", { ascending: false }).limit(150),
       db.from("hyperpop_sentinel_appeals").select("*,hyperpop_accounts(username)").order("created_at", { ascending: false }).limit(100),
       db.from("hyperpop_sentinel_events").select("*").order("created_at", { ascending: false }).limit(100),
+      db.from("hyperpop_accounts").select("id,username,display_name,created_at").order("username", { ascending: true }).limit(300),
     ]);
-    return reply({ ok: true, bans: bans.data || [], devices: devices.data || [], appeals: appeals.data || [], events: events.data || [] });
+    const deviceRows = devices.data || [], deviceIds = deviceRows.map(x => x.id), linksByDevice: Record<string, any[]> = {};
+    if (deviceIds.length) { const { data: links } = await db.from("hyperpop_sentinel_device_accounts").select("device_id,account_id,hyperpop_accounts(username)").in("device_id", deviceIds); for (const l of links || []) (linksByDevice[l.device_id] ??= []).push({ account_id:l.account_id, username:(l as any).hyperpop_accounts?.username || "Unknown" }); }
+    const accountCounts: Record<string, number> = {};
+    for (const rows of Object.values(linksByDevice)) for (const l of rows) accountCounts[l.account_id] = (accountCounts[l.account_id] || 0) + 1;
+    return reply({ ok:true, bans:bans.data || [], devices:deviceRows.map(x => ({...x, linked_accounts:linksByDevice[x.id] || []})), appeals:appeals.data || [], events:events.data || [], accounts:(accounts.data || []).map(x => ({...x, device_count:accountCounts[x.id] || 0})) });
   }
 
   if (action === "issue") {
