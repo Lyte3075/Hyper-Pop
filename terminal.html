@@ -118,6 +118,7 @@ async function handleKaCommand(message){
 }
 async function runBashkit(raw){
  try{
+  line((cwd.length===2?'~':pathString(cwd))+' $ '+raw,'cmd');
   status('LOADING BASH…','warn');
   const result=await requestBashWorker('execute',{command:raw,cwd:pathString(cwd)});
   status('BASH READY','good');
@@ -943,7 +944,7 @@ if(!suppressCommandEcho)line((cwd.length===2?'~':pathString(cwd))+' $ '+raw,'cmd
 try{
 switch(cmd){
 case 'help':case '?':
-line("KARA'S TERMINAL / KA-SH 0.5",'ok');
+line("KARA'S TERMINAL / KA-SH 0.6",'ok');
 line('Browser-local shell environment. Not a full Linux or iOS shell.','dim');
 line('');
 line('FILESYSTEM');
@@ -981,7 +982,7 @@ line('  printf / basename / dirname Formatted output and path tools');
 line('  realpath / file / sha256sum Inspect files and checksums');
 line('  cmp / diff / cut / tr       Compare and extract text');
 line('  sed / awk                   Basic stream text processing');
-line('  source / sh <script.sh>    Run shell scripts line by line');
+line('  source / sh <script.sh>    Run Bash scripts with real shell syntax');
 line('  test / true / false / sleep Basic shell utilities');
 line('  js <code|file.js>            Run JavaScript code or a script file (await input() for answers)');
 line('  run <file.js>               Execute a JavaScript file');
@@ -1017,6 +1018,7 @@ line('  node preview/logs            Open project previews and inspect output');
   line('  sudo apt update              Refresh cloud server package lists');
   line('  sudo apt install <package>  Install Debian packages on your cloud server');
   line('  sudo apt remove <package>   Remove Debian packages from your cloud server');
+line('  Bash supports variables, pipes, redirects, loops, functions and conditionals.','dim');
   line('  APT runs on the connected server, not on this device; installed packages may reset after restarts.','warn');
 line('  proxy open                  Open your account proxy route manager');
 line('  proxy map <host> <slug>     Route a hostname through a saved proxy route');
@@ -1049,7 +1051,7 @@ line('  whoami                      Show local user');
 line('  uname                       Show runtime information');
 line('  storage                     Show OPFS availability');
 line('  js, run, nodejs, python, pip  JavaScript, Node-compatible and Python runtimes');
-line('  Linux tools                 Run installed programs on your connected server');
+line('  remote <command>            Run a command on your connected cloud server');
 line('  server                      Manage browser-local HTTP servers');
 line('  preview                     Preview saved HTML');
 line('  help                        Show this help');
@@ -1188,6 +1190,10 @@ case 'korona':{
  const launch=runtime+'?target='+encodeURIComponent(u.href)+'&wisps='+encoded;
  const tab=window.open(launch,'_blank','noopener');if(!tab)throw Error('Pop-up blocked. Allow pop-ups and try again.');
  line('Launching Korona for '+u.href,'ok');line('Runtime: '+runtime,'dim');line('Wisp: '+endpoints[0],'dim');break;
+}
+case 'remote':{
+ if(!args[0])throw Error('Usage: remote <command> [arguments...]');
+ await runRemoteCommand(args[0],args.slice(1));break;
 }
 case 'server':{
  const sub=args[0];
@@ -1335,7 +1341,8 @@ case 'uptime':line('Session uptime: '+Math.floor((Date.now()-startedAt)/1000)+' 
 case 'free':line('Browser-managed memory is not fully exposed to web pages.','warn');if(performance.memory)line('JS heap: '+formatSize(performance.memory.usedJSHeapSize)+' / '+formatSize(performance.memory.jsHeapSizeLimit));break;
 case 'db':{const sub=args[0];if(sub==='help'||!sub){line('Local OPFS document database commands:');line('  db collections');line('  db create <collection>');line('  db insert <collection> <json>');line('  db find <collection> [json-filter]');line('  db delete <collection> <json-filter>');line("Node API: const db=await require(\"database\"); const users=db.collection(\"users\");");line("Remote REST: await db.connect(\"https://api.example\",{headers:{Authorization:\"Bearer TOKEN\"}}); await db.request(\"/records\");")}else if(sub==='collections'){const names=await browserDatabase.collections();line(names.length?names.join('\\n'):'(no collections)','ok')}else if(sub==='create'){if(!args[1])throw Error('Usage: db create <collection>');await browserDatabase.collection(args[1]).create();line('Created '+args[1],'ok')}else if(sub==='insert'){if(!args[1]||!args[2])throw Error('Usage: db insert <collection> <json>');const result=await browserDatabase.collection(args[1]).insertOne(JSON.parse(args.slice(2).join(' ')));line('Inserted document '+result.insertedId,'ok')}else if(sub==='find'){if(!args[1])throw Error('Usage: db find <collection> [json-filter]');line(JSON.stringify(await browserDatabase.collection(args[1]).find(args[2]?JSON.parse(args.slice(2).join(' ')):{}),null,2),'ok')}else if(sub==='delete'){if(!args[1]||!args[2])throw Error('Usage: db delete <collection> <json-filter>');const result=await browserDatabase.collection(args[1]).deleteMany(JSON.parse(args.slice(2).join(' ')));line('Deleted '+result.deletedCount+' document(s)','ok')}else throw Error('Try db help.');break}
  case 'version':line("Kara's Terminal 0.6 / KA-SH + Bash + JavaScript + Python WebAssembly",'ok');break;
-case 'about':line('A browser-local command environment. Files live in this site origin’s OPFS storage.');line('Network requests can use the authenticated CORS proxy or your account-owned Reverse Proxy routes.','dim');
+case 'about':line('A browser-local Bash and developer environment. Files live in this site origin’s OPFS storage.');line('Network requests can use the authenticated CORS proxy or your account-owned Reverse Proxy routes.','dim');
+line('Bash scripts run locally in an isolated browser runtime with a persistent, account-scoped filesystem.','dim');
 line('JavaScript runs in the page runtime. Python runs in Pyodide/WebAssembly (downloaded on first use).','dim');
 line('Node scripts support CommonJS require for built-ins and installed browser-compatible npm bundles. http/https clients use authenticated proxy-aware fetch.','dim');
 line('Node commands use a browser-side compatibility runtime, not native Node.js. npm downloads and caches ESM bundles; native addons, child processes, raw sockets and OS binaries are not available. http/https requests use proxy-aware fetch. Git commands connect to public GitHub repositories; this is not a full Git object database and local commits/pushes are not implemented.','dim');
@@ -1401,6 +1408,7 @@ async function run(raw){
  if(looksLikeJavaScript){await executeNode(raw,'pasted JavaScript');return}
  const parsed=tokenize(trimmed),head=(parsed[0]||'').toLowerCase();
  if(['help','?','clear','exit'].includes(head)&&!/[|&]/.test(trimmed)){
+  line((cwd.length===2?'~':pathString(cwd))+' $ '+raw,'cmd');
   const response=await handleKaCommand({name:head,argv:parsed.slice(1),cwd:pathString(cwd)});
   appendBashOutput(response.stdout,'');appendBashOutput(response.stderr,'err');return;
  }
