@@ -120,6 +120,16 @@ const KA_SH_COMMANDS=new Set(['ls','nano','write','append','download','calc','js
 async function runBashkit(raw){
  try{
   line((cwd.length===2&&cwd[0]==='home'&&cwd[1]===HOME[1]?'~':pathString(cwd))+' $ '+raw,'cmd');
+  // Bashkit ships its own ls builtin, which can shadow KA-SH's OPFS-aware
+  // implementation. Route a plain "ls [path]" directly to the host command.
+  const lsArgs=tokenize(raw);
+  if(lsArgs[0]?.toLowerCase()==='ls'&&lsArgs.length<=2&&!/[|&;<>()\n]/.test(raw)){
+   const response=await handleKaCommand({name:'ls',argv:lsArgs.slice(1),cwd:pathString(cwd)});
+   appendBashOutput(response.stdout,'');
+   appendBashOutput(response.stderr,'err');
+   status(response.exitCode===0?'BASH READY':'EXIT '+response.exitCode,response.exitCode===0?'good':'warn');
+   return;
+  }
   status('LOADING BASH…','warn');
   const result=await requestBashWorker('execute',{command:raw,cwd:pathString(cwd)});
   status('BASH READY','good');
