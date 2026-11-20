@@ -64,7 +64,6 @@ function line(text='',kind=''){if(outputCapture){outputCapture.push({text:String
 function status(text,kind){state.textContent=text;state.className=kind||''}
 function shellQuote(value){return "'"+String(value).replace(/'/g,"'\\''")+"'"}
 function appendBashOutput(value,kind){if(!value)return;const text=String(value).replace(/\r\n/g,'\n').replace(/\r/g,'\n');const rows=text.split('\n');if(rows[rows.length-1]==='')rows.pop();for(const row of rows)line(row,kind)}
-function appendBashOutput(value,kind){if(!value)return;const text=String(value).replace(/\\r\\n/g,'\\n').replace(/\\r/g,'\\n');const rows=text.split('\\n');if(rows[rows.length-1]==='')rows.pop();for(const row of rows)line(row,kind)}
 let downloadProgressElement=null;
 function updateDownloadProgress(message){
  if(outputCapture){line(message,'dim');return}
@@ -1606,7 +1605,7 @@ async function run(raw){
  const parsed=tokenize(trimmed),head=(parsed[0]||'').toLowerCase();
  // Keep filesystem and network-transfer commands on the KA-SH host path.
  // They do not need Bash parsing, and Bashkit built-ins can shadow them.
- if(['ls','wget'].includes(head)&&!/[|&;<>()\\n]/.test(trimmed)){
+ if(['ls','wget'].includes(head)&&!/[|&;<>()]/.test(trimmed)){
   await runSingle(raw,true);
   return;
  }
