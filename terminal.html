@@ -66,7 +66,8 @@ function shellQuote(value){return "'"+String(value).replace(/'/g,"'\\''")+"'"}
 function appendBashOutput(value,kind){if(!value)return;const text=String(value).replace(/\r\n/g,'\n').replace(/\r/g,'\n');const rows=text.split('\n');if(rows[rows.length-1]==='')rows.pop();for(const row of rows)line(row,kind)}
 let downloadProgressElement=null;
 function updateDownloadProgress(message){
- if(outputCapture){line(message,'dim');return}
+ // Progress is a live UI signal, not captured command output. This must remain
+ // visible even when a KA-SH command is being executed by the Bash worker.
  if(!downloadProgressElement||!downloadProgressElement.isConnected){
   downloadProgressElement=document.createElement('div');
   downloadProgressElement.className='line download-progress dim';
@@ -74,6 +75,34 @@ function updateDownloadProgress(message){
  }
  downloadProgressElement.textContent=message;
  screen.scrollTop=screen.scrollHeight;
+}
+async function readTextWithDownloadProgress(response,label,completedBytes,totalBytes,completedFiles,totalFiles){
+ const headerTotal=Number(response.headers.get('content-length'))||0;
+ const expected=headerTotal||0;
+ const reader=response.body?.getReader?.();
+ if(!reader){
+  const text=await response.text(),received=new TextEncoder().encode(text).byteLength;
+  const doneBytes=completedBytes+received,allBytes=totalBytes||0;
+  const percent=allBytes?Math.min(100,Math.floor(doneBytes/allBytes*100)):Math.floor((completedFiles+1)/Math.max(1,totalFiles)*100);
+  updateDownloadProgress('Downloading '+label+' · '+percent+'% · '+(completedFiles+1)+'/'+totalFiles+' files · '+formatSize(doneBytes)+(allBytes?' / '+formatSize(allBytes):''));
+  return text;
+ }
+ const decoder=new TextDecoder(),parts=[];let received=0,lastUpdate=0;
+ try{
+  while(true){
+   const part=await reader.read();if(part.done)break;
+   if(part.value?.byteLength){received+=part.value.byteLength;parts.push(decoder.decode(part.value,{stream:true}));}
+   const now=performance.now();
+   if(now-lastUpdate>=100){
+    const doneBytes=completedBytes+received,allBytes=totalBytes||0;
+    const percent=allBytes?Math.min(99,Math.floor(doneBytes/allBytes*100)):Math.floor((completedFiles+received/Math.max(1,expected))/Math.max(1,totalFiles)*100);
+    updateDownloadProgress('Downloading '+label+' · '+percent+'% · '+(completedFiles+1)+'/'+totalFiles+' files · '+formatSize(doneBytes)+(allBytes?' / '+formatSize(allBytes):''));
+    lastUpdate=now;
+   }
+  }
+ }catch(error){try{await reader.cancel()}catch(_){}throw error}
+ parts.push(decoder.decode());
+ return parts.join('');
 }
 function ensureBashWorker(){
  if(bashWorkerReady)return bashWorkerReady;
@@ -936,26 +965,33 @@ async function githubCommand(args){
 async function gitClone(url,destination){
  const {owner,repo}=parseGitHubUrl(url),meta=await githubApi('https://api.github.com/repos/'+owner+'/'+repo),branch=meta.default_branch;
  line('Cloning '+owner+'/'+repo+' ('+branch+')…','dim');
+ updateDownloadProgress('Preparing clone · fetching repository file list…');
  const tree=await githubApi('https://api.github.com/repos/'+owner+'/'+repo+'/git/trees/'+encodeURIComponent(branch)+'?recursive=1');
  if(tree.truncated)throw Error('Repository is too large for browser cloning (GitHub truncated its file tree).');
  const base=resolve(destination||repo);
  await directory(base,true);
  const files=tree.tree.filter(x=>x.type==='blob'&&!x.path.startsWith('.git/')&&x.size<=1500000);
- let done=0,skipped=0;
+ const totalBytes=files.reduce((sum,item)=>sum+(Number(item.size)||0),0);
+ let done=0,skipped=0,receivedBytes=0;
+ updateDownloadProgress('Downloading '+owner+'/'+repo+' · 0% · 0/'+files.length+' files · '+formatSize(0)+' / '+formatSize(totalBytes));
  for(const item of files){
   const parts=base.concat(item.path.split('/'));
   await directory(parts.slice(0,-1),true);
   try{
    const r=await terminalFetch('https://raw.githubusercontent.com/'+owner+'/'+repo+'/'+branch+'/'+item.path);
    if(!r.ok){skipped++;continue}
-   const textData=await r.text();
-   if(textData.includes('\\u0000')){skipped++;continue}
-   await writeFile(parts,textData,false);done++;
+   const textData=await readTextWithDownloadProgress(r,item.path,receivedBytes,totalBytes,done,files.length);
+   const size=new TextEncoder().encode(textData).byteLength;
+   if(textData.includes('\\u0000')){skipped++;receivedBytes+=size;continue}
+   await writeFile(parts,textData,false);done++;receivedBytes+=size;
+   const percent=totalBytes?Math.min(100,Math.floor(receivedBytes/totalBytes*100)):Math.floor((done+skipped)/Math.max(1,files.length)*100);
+   updateDownloadProgress('Downloading '+owner+'/'+repo+' · '+percent+'% · '+(done+skipped)+'/'+files.length+' files · '+formatSize(receivedBytes)+' / '+formatSize(totalBytes));
   }catch(_){skipped++}
  }
  const gitDir=base.concat('.git');await directory(gitDir,true);
  await writeFile(gitDir.concat('hp-config.json'),JSON.stringify({owner,repo,branch,sha:tree.sha,remote:'https://github.com/'+owner+'/'+repo+'.git'},null,2),false);
  await writeFile(gitDir.concat('hp-index.json'),JSON.stringify(files.map(x=>({path:x.path,sha:x.sha,size:x.size})),null,2),false);
+ updateDownloadProgress('Clone complete · '+owner+'/'+repo+' · '+done+'/'+files.length+' files · '+formatSize(receivedBytes));
  line('Cloned '+done+' text files into '+pathString(base)+(skipped?' ('+skipped+' skipped)':''),'ok');
 }
 
@@ -1047,16 +1083,23 @@ async function gitLog(){
 async function gitPull(){
  const cfg=await gitConfig(),tree=await githubApi('https://api.github.com/repos/'+cfg.owner+'/'+cfg.repo+'/git/trees/'+encodeURIComponent(cfg.branch)+'?recursive=1');
  const index=JSON.parse(await readFile(resolve('.git/hp-index.json'))),old=new Map(index.map(x=>[x.path,x]));
- let updated=0,conflicts=0;
- for(const item of tree.tree.filter(x=>x.type==='blob'&&x.size<=1500000&&!x.path.startsWith('.git/'))){
+ const files=tree.tree.filter(x=>x.type==='blob'&&x.size<=1500000&&!x.path.startsWith('.git/'));
+ const totalBytes=files.reduce((sum,item)=>sum+(Number(item.size)||0),0);
+ let updated=0,conflicts=0,checked=0,receivedBytes=0;
+ updateDownloadProgress('Preparing pull · 0/'+files.length+' repository files · '+formatSize(0)+' / '+formatSize(totalBytes));
+ for(const item of files){
   const prior=old.get(item.path);let safe=!prior;
   if(prior){try{const now=await readFile(resolve(item.path));const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-1',new TextEncoder().encode('blob '+new TextEncoder().encode(now).length+String.fromCharCode(0)+now))),b=>b.toString(16).padStart(2,'0')).join('');safe=hash===prior.sha}catch(_){safe=true}}
-  if(!safe){conflicts++;continue}
-  const r=await terminalFetch('https://raw.githubusercontent.com/'+cfg.owner+'/'+cfg.repo+'/'+cfg.branch+'/'+item.path);if(!r.ok)continue;
-  const data=await r.text();const parts=resolve(item.path);await directory(parts.slice(0,-1),true);await writeFile(parts,data,false);updated++;
+  if(!safe){conflicts++;checked++;continue}
+  const r=await terminalFetch('https://raw.githubusercontent.com/'+cfg.owner+'/'+cfg.repo+'/'+cfg.branch+'/'+item.path);if(!r.ok){checked++;continue}
+  const data=await readTextWithDownloadProgress(r,item.path,receivedBytes,totalBytes,checked,files.length);
+  const size=new TextEncoder().encode(data).byteLength,parts=resolve(item.path);await directory(parts.slice(0,-1),true);await writeFile(parts,data,false);updated++;checked++;receivedBytes+=size;
+  const percent=totalBytes?Math.min(100,Math.floor(receivedBytes/totalBytes*100)):Math.floor(checked/Math.max(1,files.length)*100);
+  updateDownloadProgress('Pulling '+cfg.owner+'/'+cfg.repo+' · '+percent+'% · '+checked+'/'+files.length+' files · '+formatSize(receivedBytes)+' / '+formatSize(totalBytes));
  }
  cfg.sha=tree.sha;await writeFile(resolve('.git/hp-config.json'),JSON.stringify(cfg,null,2),false);
  await writeFile(resolve('.git/hp-index.json'),JSON.stringify(tree.tree.filter(x=>x.type==='blob').map(x=>({path:x.path,sha:x.sha,size:x.size})),null,2),false);
+ updateDownloadProgress('Pull complete · '+updated+' files updated'+(conflicts?', '+conflicts+' local changes preserved':'')+' · '+formatSize(receivedBytes));
  line('Pull complete: '+updated+' files updated'+(conflicts?', '+conflicts+' local changes preserved as conflicts':''),'ok');
 }
 async function webFetch(url,method='GET'){
