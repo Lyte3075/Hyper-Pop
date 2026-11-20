@@ -2,7 +2,7 @@
 (function(){
   const UNLOCK_KEY='hyperpop-command-prompt-unlocked';
   const unlocked=()=>localStorage.getItem(UNLOCK_KEY)==='1'||Number(localStorage.getItem('hyperpop-dont-danger')||0)>=99;
-  const go=(path)=>{const clean=String(path||'').replace(/^\\/+/, '');location.href=new URL('/'+clean,location.origin).href;};
+  const go=(path)=>{const clean=String(path||'').split('/').filter(Boolean).join('/');location.href=new URL('/'+clean,location.origin).href;};
   function addTerminal(){
     if(document.getElementById('hp-terminal-launcher')){updateTerminalState();return;}
     const style=document.createElement('style');
@@ -65,7 +65,8 @@ if(cmd==='/gust'){go('GUST/index.html');return}
 if(cmd==='/helios'){go('Helios/index.html');return}
 if(cmd==='/ugum'){go('ugum/index.html');return}
 if(cmd==='/gn-math'){go('gn-math.html');return}
-if(cmd==='/korona'){go('korona/korona.html');return}\nif(cmd==='/korona-runtime'){go('korona/runtime-launcher.html');return}
+if(cmd==='/korona'){go('korona/korona.html');return}
+if(cmd==='/korona-runtime'){go('korona/runtime-launcher.html');return}
 if(cmd==='/cherri'){go('cherri/cherri.html');return}
 if(cmd==='/duck'){go('duck/package/index.html');return}
 if(cmd==='/uv-static'){go('UV-STATIC/active/index.html');return}
