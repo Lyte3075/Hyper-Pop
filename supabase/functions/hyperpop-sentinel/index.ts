@@ -48,15 +48,21 @@ Deno.serve(async (req: Request) => {
   let deviceId: string | null = null;
   if (deviceKey) {
     const info = cleanInfo(body.device_info);
-    const { data: device } = await db.from("hyperpop_sentinel_devices").upsert({
+    const { data: device, error: deviceError } = await db.from("hyperpop_sentinel_devices").upsert({
       device_key: deviceKey, last_seen_at: new Date().toISOString(), last_ip: ip,
       user_agent: String(info.user_agent || req.headers.get("user-agent") || "").slice(0, 500), device_info: info,
     }, { onConflict: "device_key" }).select("id").single();
+    if (deviceError) console.error("[sentinel] device registration failed", deviceError.message);
     deviceId = device?.id || null;
+    if (!deviceId) {
+      const { data: existing } = await db.from("hyperpop_sentinel_devices").select("id").eq("device_key", deviceKey).maybeSingle();
+      deviceId = existing?.id || null;
+    }
     if (deviceId && account) {
-      await db.from("hyperpop_sentinel_device_accounts").upsert({
+      const { error: linkError } = await db.from("hyperpop_sentinel_device_accounts").upsert({
         device_id: deviceId, account_id: account.id, last_seen_at: new Date().toISOString(),
       }, { onConflict: "device_id,account_id" });
+      if (linkError) console.error("[sentinel] account-device link failed", linkError.message);
     }
   }
   const action = String(body.action || "check");
@@ -70,8 +76,9 @@ Deno.serve(async (req: Request) => {
       matches.push(...(data || []));
     }
     if (deviceId) {
-      const { data } = await db.from("hyperpop_sentinel_bans").select("id,scope,reason,duration,expires_at,created_at")
-        .eq("device_id", deviceId).is("revoked_at", null).or(`expires_at.is.null,expires_at.gt.${now}`);
+      const { data, error } = await db.from("hyperpop_sentinel_bans").select("id,scope,reason,duration,expires_at,created_at")
+        .eq("device_id", deviceId).is("revoked_at", null).lte("starts_at", now).or(`expires_at.is.null,expires_at.gt.${now}`);
+      if (error) { console.error("[sentinel] device ban lookup failed", error.message); return reply({ ok:false, error:"Could not verify device restrictions." }, 503); }
       matches.push(...(data || []));
     }
     if (ip) {
@@ -140,8 +147,9 @@ Deno.serve(async (req: Request) => {
     }
     if (scope === "device") {
       if (!targetDeviceKey) return reply({ ok: false, error: "Enter a valid device key." }, 400);
-      const { data } = await db.from("hyperpop_sentinel_devices").select("id").eq("device_key", targetDeviceKey).maybeSingle();
-      if (!data) return reply({ ok: false, error: "Device has not registered with Sentinel yet." }, 404);
+      const { data, error } = await db.from("hyperpop_sentinel_devices").select("id,device_key").eq("device_key", targetDeviceKey).maybeSingle();
+      if (error) return reply({ ok:false, error:"Could not look up that device: " + error.message }, 500);
+      if (!data) return reply({ ok: false, error: "Device has not registered with Sentinel yet. Refresh the Devices tab and copy its ID again." }, 404);
       targetDeviceId = data.id;
     }
     if (scope === "network") {
@@ -164,8 +172,13 @@ Deno.serve(async (req: Request) => {
         }
       }
     }
+    if (!rows.length) return reply({ ok:false, error:"No ban target was resolved. Nothing was changed." }, 400);
     const { data: created, error } = await db.from("hyperpop_sentinel_bans").insert(rows).select("id,scope,account_id,device_id,network_ip,reason,duration,expires_at");
     if (error) return reply({ ok: false, error: "Could not issue ban: " + error.message }, 500);
+    if (scope === "device" && (!created || created.length !== 1 || created[0].device_id !== targetDeviceId)) {
+      console.error("[sentinel] device ban insert did not persist as expected", { targetDeviceId, created });
+      return reply({ ok:false, error:"The device ban was not saved against the selected device." }, 500);
+    }
     if (targetAccountId) await db.from("hyperpop_sessions").delete().eq("account_id", targetAccountId);
     await db.from("hyperpop_sentinel_events").insert({ actor_account_id: account.id, event_type: "ban_issued", details: { scope, target_username: targetUsername || null, reason, duration, ban_count: created?.length || 0 }, ip });
     return reply({ ok: true, bans: created || [] });

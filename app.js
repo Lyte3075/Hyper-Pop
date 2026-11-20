@@ -3,7 +3,7 @@
   var script = document.currentScript;
   var base = new URL('.', script && script.src ? script.src : location.href);
   var path = location.pathname;
-  var HP_BUILD_VERSION='social-2026-10-31-h';
+  var HP_BUILD_VERSION='terminal-nav-2026-11-20-a';
   var soundtrackDisabled = document.body && document.body.dataset.noSoundtrack === 'true';
   if (!soundtrackDisabled && !document.getElementById('hp-sound-orb')) {
     var fallbackStyle = document.createElement('style');
@@ -147,7 +147,7 @@
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addFooterLink,{once:true});else addFooterLink();
     window.addEventListener('hyperpop:navigate',addFooterLink);
   })();
-  var files = ['terminal.js?v=cmdfix-10','chat-widget.js?v=group-chat-1','party-voice.js?v=shared-1','group-voice.js?v=group-2','voice-call.js?v=group-call-1'];
+  var files = ['terminal.js?v=cmdfix-11','chat-widget.js?v=group-chat-1','party-voice.js?v=shared-1','group-voice.js?v=group-2','voice-call.js?v=group-call-1'];
   if (!/\/accounts\.html$/.test(location.pathname)) files.unshift('account.js?v=profile-2');
   files.push('sentinel-client.js?v=sentinel-2');
   if (!soundtrackDisabled) files.push('soundtrack.js?v=page-mode-6');

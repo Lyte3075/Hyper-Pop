@@ -18,6 +18,7 @@ function render(){
 async function loadAccounts(q=''){const d=await api({action:'accounts',search:q});accounts=d.accounts||[];render()}
 async function refresh(){try{data=await api({action:'overview'});accounts=data.accounts||[];render();status('Sentinel connected. Administrator access verified.')}catch(e){status(e.message,true)}}
 $('scope').onchange=()=>{let s=$('scope').value;$('username-wrap').classList.toggle('sentinel-hidden',!['account','account_device','full'].includes(s));$('device-wrap').classList.toggle('sentinel-hidden',s!=='device');$('ip-wrap').classList.toggle('sentinel-hidden',s!=='network')};
+$('device-ban-mode').onclick=()=>{$('scope').value='device';$('scope').dispatchEvent(new Event('change'));$('issue-msg').textContent='Device-ban mode selected. Choose a registered device in the Devices tab, or paste its device key.';$('target-device').focus();};
 $('issue').onclick=async()=>{try{let d=await api({action:'issue',scope:$('scope').value,duration:$('duration').value,reason:$('reason').value,username:$('username').value,target_device_key:$('target-device').value,network_ip:$('target-ip').value});$('issue-msg').textContent='Issued '+d.bans.length+' ban record(s).';await refresh()}catch(e){$('issue-msg').textContent=e.message}};
 $('refresh').onclick=refresh;
 document.querySelectorAll('[data-tab]').forEach(x=>x.onclick=()=>{tab=x.dataset.tab;render();if(tab==='accounts')loadAccounts($('account-search').value).catch(e=>status(e.message,true))});
