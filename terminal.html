@@ -40,7 +40,7 @@ button{font:inherit;color:var(--fg);background:#101010;border:1px solid #333;bor
 </head>
 <body>
 <div id="app">
-<header><div class="brand"><span>KA</span> / TERMINAL <span style="color:var(--muted);font-weight:400">v0.5</span></div><div id="state" class="warn">INITIALIZING…</div></header>
+<header><div class="brand"><span>KA</span> / TERMINAL <span style="color:var(--muted);font-weight:400">v0.6</span></div><div id="state" class="warn">INITIALIZING…</div></header>
 <main id="screen" role="log" aria-live="polite" aria-label="Terminal output"></main>
 <form id="form" autocomplete="off">
 <span id="cwd">~</span><span class="prompt">$</span>
@@ -58,10 +58,82 @@ button{font:inherit;color:var(--fg);background:#101010;border:1px solid #333;bor
 'use strict';
 const screen=document.getElementById('screen'),form=document.getElementById('form'),input=document.getElementById('input'),cwdLabel=document.getElementById('cwd'),state=document.getElementById('state');
 const editor=document.getElementById('editor'),editorText=document.getElementById('editorText'),editorTitle=document.getElementById('editorTitle'),editorStatus=document.getElementById('editorStatus'),editorGutter=document.getElementById('editorGutter'),editorSaveButton=document.getElementById('editorSave');
-let editorPath=null,editorOriginal='',root=null,HOME=['home','guest'],cwd=HOME.slice(),history=[],historyIndex=0,terminalInputResolver=null;const envVars={HOME:'/home/guest',USER:'guest',SHELL:'/bin/ka-sh',TERM:'xterm-ka',PATH:'/bin:/usr/bin'};const startedAt=Date.now();
+let editorPath=null,editorOriginal='',root=null,HOME=['home','guest'],cwd=HOME.slice(),history=[],historyIndex=0,terminalInputResolver=null,outputCapture=null,suppressCommandEcho=false,bashWorker=null,bashWorkerReady=null,bashWorkerReadyResolve=null,bashWorkerReadyReject=null,bashRequestId=0,bashPending=new Map(),hostCommandQueue=Promise.resolve();const envVars={HOME:'/home/guest',USER:'guest',SHELL:'/bin/bash',TERM:'xterm-256color',PATH:'/usr/local/bin:/usr/bin:/bin'};const startedAt=Date.now();
 async function resolveTerminalUsername(){try{const token=localStorage.getItem('hyperpop_token');if(!token)return 'guest';const response=await fetch('https://iapnejlttsqqefkpmelp.supabase.co/rest/v1/rpc/hyperpop_me',{method:'POST',headers:{apikey:'sb_publishable_TB7oC4nDlUJq-Gcb2yoTjQ_Dvbh6NlM','Content-Type':'application/json'},body:JSON.stringify({p_token:token})});if(!response.ok)return 'guest';const data=await response.json();const name=String(data?.username||'').trim().toLowerCase();return /^[a-z0-9][a-z0-9_-]{0,31}$/.test(name)?name:'guest'}catch(_){return 'guest'}}
-function line(text='',kind=''){const el=document.createElement('div');el.className='line '+kind;el.textContent=String(text);screen.appendChild(el);screen.scrollTop=screen.scrollHeight}
+function line(text='',kind=''){if(outputCapture){outputCapture.push({text:String(text),kind:kind||''});return}const el=document.createElement('div');el.className='line '+kind;el.textContent=String(text);screen.appendChild(el);screen.scrollTop=screen.scrollHeight}
 function status(text,kind){state.textContent=text;state.className=kind||''}
+function shellQuote(value){return "'"+String(value).replace(/'/g,"'\\''")+"'"}
+function appendBashOutput(value,kind){if(!value)return;const text=String(value).replace(/\r\n/g,'\n').replace(/\r/g,'\n');const rows=text.split('\n');if(rows[rows.length-1]==='')rows.pop();for(const row of rows)line(row,kind)}
+function ensureBashWorker(){
+ if(bashWorkerReady)return bashWorkerReady;
+ if(typeof Worker==='undefined')return Promise.reject(new Error('This browser does not support module workers.'));
+ bashWorker=new Worker(new URL('/ka-sh-bashkit-worker.js',location.origin),{type:'module',name:'ka-sh-bash'});
+ bashWorker.onmessage=event=>{
+  const message=event.data||{};
+  if(message.type==='ready'){if(bashWorkerReadyResolve){bashWorkerReadyResolve();bashWorkerReadyResolve=null;bashWorkerReadyReject=null}return}
+  if(message.type==='init-error'){const error=new Error(message.error||'Could not initialize the Bash runtime.');if(bashWorkerReadyReject){bashWorkerReadyReject(error);bashWorkerReadyResolve=null;bashWorkerReadyReject=null}status('BASH UNAVAILABLE','bad');return}
+  if(message.type==='ka-command'){
+   handleKaCommand(message).then(result=>bashWorker.postMessage({type:'host-response',id:message.id,result})).catch(error=>bashWorker.postMessage({type:'host-error',id:message.id,error:error&&error.message?error.message:String(error)}));
+   return;
+  }
+  if(message.type==='result'){
+   const pending=bashPending.get(message.id);if(!pending)return;bashPending.delete(message.id);
+   if(message.error)pending.reject(new Error(message.error));else pending.resolve(message.result||{});
+  }
+ };
+ bashWorker.onerror=event=>{
+  const error=new Error(event.message||'The Bash worker stopped unexpectedly.');
+  if(bashWorkerReadyReject){bashWorkerReadyReject(error);bashWorkerReadyResolve=null;bashWorkerReadyReject=null}
+  for(const pending of bashPending.values())pending.reject(error);
+  bashPending.clear();status('BASH ERROR','bad');
+ };
+ bashWorkerReady=new Promise((resolve,reject)=>{bashWorkerReadyResolve=resolve;bashWorkerReadyReject=reject});
+ bashWorker.postMessage({type:'init',username:HOME[1]});
+ return bashWorkerReady;
+}
+async function requestBashWorker(type,payload={}){
+ await ensureBashWorker();
+ const id=++bashRequestId;
+ return new Promise((resolve,reject)=>{bashPending.set(id,{resolve,reject});bashWorker.postMessage({type,id,...payload})});
+}
+async function handleKaCommand(message){
+ const execute=async()=>{
+  const previousCapture=outputCapture,previousSuppress=suppressCommandEcho,captured=[];
+  outputCapture=captured;suppressCommandEcho=true;
+  const requestedCwd=String(message.cwd||pathString(cwd));
+  const homePath='/home/'+HOME[1];
+  cwd=requestedCwd===homePath||requestedCwd.startsWith(homePath+'/')?requestedCwd.split('/').filter(Boolean):HOME.slice();
+  updatePrompt();
+  try{
+   const raw=[message.name,...(message.argv||[])].map(shellQuote).join(' ');
+   await runSingle(raw,true);
+  }finally{suppressCommandEcho=previousSuppress;outputCapture=previousCapture}
+  const stdout=captured.filter(item=>item.kind!=='err').map(item=>item.text).join('\n')+(captured.some(item=>item.kind!=='err')?'\n':'');
+  const stderr=captured.filter(item=>item.kind==='err').map(item=>item.text).join('\n')+(captured.some(item=>item.kind==='err')?'\n':'');
+  return {stdout,stderr,exitCode:stderr?1:0};
+ };
+ const task=hostCommandQueue.then(execute,execute);
+ hostCommandQueue=task.then(()=>undefined,()=>undefined);
+ return task;
+}
+async function runBashkit(raw){
+ try{
+  status('LOADING BASH…','warn');
+  const result=await requestBashWorker('execute',{command:raw,cwd:pathString(cwd)});
+  status('BASH READY','good');
+  appendBashOutput(result.stdout,'');
+  appendBashOutput(result.stderr,'err');
+  if(result.stdoutTruncated||result.stderrTruncated)line('Output was truncated to protect browser memory.','warn');
+  const homePath='/home/'+HOME[1],reported=String(result.cwd||homePath);
+  cwd=reported===homePath||reported.startsWith(homePath+'/')?reported.split('/').filter(Boolean):HOME.slice();
+  updatePrompt();
+  if(result.exitCode!==0)status('EXIT '+result.exitCode,'warn');
+ }catch(error){
+  status('BASH ERROR','bad');
+  line('Bash runtime error: '+(error&&error.message?error.message:String(error)),'err');
+  line('KA-SH application commands remain available, but shell execution could not start.','warn');
+ }
+}
 function pathString(parts){return '/'+parts.join('/')}
 function updatePrompt(){cwdLabel.textContent=cwd.length===2?'~':pathString(cwd)}
 function tokenize(s){const out=[];let cur='',quote=null,escape=false;for(const ch of s){if(escape){cur+=ch;escape=false;continue}if(ch==='\\'&&quote!=="'"){escape=true;continue}if(quote){if(ch===quote)quote=null;else cur+=ch;continue}if(ch==='"'||ch==="'"){quote=ch;continue}if(/\s/.test(ch)){if(cur){out.push(cur);cur=''}}else cur+=ch}if(escape)cur+='\\';if(cur)out.push(cur);return out}
@@ -864,8 +936,8 @@ async function runRemoteApt(inputArgs){
  if(data.commandOk&&(action==='install'||action==='upgrade'))line('Installed on the connected server. Runtime packages may be reset after a restart or redeploy.','dim');
  if(!data.commandOk)throw Error('APT command failed. See the output above.');
 }
-async function runSingle(raw){const trimmed=raw.trim(),args=tokenize(raw),cmd=(args.shift()||'').toLowerCase(),arg=args[0];if(!cmd)return;
-line((cwd.length===2?'~':pathString(cwd))+' $ '+raw,'cmd');
+async function runSingle(raw,bypassBash=false){const trimmed=raw.trim(),args=tokenize(raw),cmd=(args.shift()||'').toLowerCase(),arg=args[0];if(!cmd)return;
+if(!suppressCommandEcho)line((cwd.length===2?'~':pathString(cwd))+' $ '+raw,'cmd');
  const looksLikeJavaScript=/^(?:const|let|var|function|class|async\s+function|import\s|export\s|require\s*\(|console\.|process\.|module\.|exports\.|await\s|fetch\s*\(|https?\.(?:get|request)\s*\(|Promise\.|throw\s|try\s*\{|if\s*\(|for\s*\(|while\s*\(|\/\*|\/\/)/.test(trimmed)||/;\s*(?:const|let|var)\s/.test(trimmed);
  if(looksLikeJavaScript){await executeNode(raw,'pasted JavaScript');return;}
 try{
@@ -1262,7 +1334,7 @@ case 'id':line('uid=1000('+HOME[1]+') gid=1000('+HOME[1]+') groups=1000('+HOME[1
 case 'uptime':line('Session uptime: '+Math.floor((Date.now()-startedAt)/1000)+' seconds');break;
 case 'free':line('Browser-managed memory is not fully exposed to web pages.','warn');if(performance.memory)line('JS heap: '+formatSize(performance.memory.usedJSHeapSize)+' / '+formatSize(performance.memory.jsHeapSizeLimit));break;
 case 'db':{const sub=args[0];if(sub==='help'||!sub){line('Local OPFS document database commands:');line('  db collections');line('  db create <collection>');line('  db insert <collection> <json>');line('  db find <collection> [json-filter]');line('  db delete <collection> <json-filter>');line("Node API: const db=await require(\"database\"); const users=db.collection(\"users\");");line("Remote REST: await db.connect(\"https://api.example\",{headers:{Authorization:\"Bearer TOKEN\"}}); await db.request(\"/records\");")}else if(sub==='collections'){const names=await browserDatabase.collections();line(names.length?names.join('\\n'):'(no collections)','ok')}else if(sub==='create'){if(!args[1])throw Error('Usage: db create <collection>');await browserDatabase.collection(args[1]).create();line('Created '+args[1],'ok')}else if(sub==='insert'){if(!args[1]||!args[2])throw Error('Usage: db insert <collection> <json>');const result=await browserDatabase.collection(args[1]).insertOne(JSON.parse(args.slice(2).join(' ')));line('Inserted document '+result.insertedId,'ok')}else if(sub==='find'){if(!args[1])throw Error('Usage: db find <collection> [json-filter]');line(JSON.stringify(await browserDatabase.collection(args[1]).find(args[2]?JSON.parse(args.slice(2).join(' ')):{}),null,2),'ok')}else if(sub==='delete'){if(!args[1]||!args[2])throw Error('Usage: db delete <collection> <json-filter>');const result=await browserDatabase.collection(args[1]).deleteMany(JSON.parse(args.slice(2).join(' ')));line('Deleted '+result.deletedCount+' document(s)','ok')}else throw Error('Try db help.');break}
- case 'version':line("Kara's Terminal 0.5 / KA-SH + JavaScript + Python WebAssembly",'ok');break;
+ case 'version':line("Kara's Terminal 0.6 / KA-SH + Bash + JavaScript + Python WebAssembly",'ok');break;
 case 'about':line('A browser-local command environment. Files live in this site origin’s OPFS storage.');line('Network requests can use the authenticated CORS proxy or your account-owned Reverse Proxy routes.','dim');
 line('JavaScript runs in the page runtime. Python runs in Pyodide/WebAssembly (downloaded on first use).','dim');
 line('Node scripts support CommonJS require for built-ins and installed browser-compatible npm bundles. http/https clients use authenticated proxy-aware fetch.','dim');
@@ -1327,12 +1399,15 @@ async function run(raw){
  if(/^[\s\S]*\.ts$/.test(trimmed)&&!/\s/.test(trimmed)){try{await executeTypeScript(await readFile(resolve(trimmed)),trimmed)}catch(e){line('TypeScript error: '+e.message,'err')}return}
  const looksLikeJavaScript=/^(?:const|let|var|function|class|async\s+function|import\s|export\s|require\s*\(|console\.|process\.|module\.|exports\.|await\s|fetch\s*\(|https?\.(?:get|request)\s*\(|Promise\.|throw\s|try\s*\{|if\s*\(|for\s*\(|while\s*\(|\/\*|\/\/)/.test(trimmed);
  if(looksLikeJavaScript){await executeNode(raw,'pasted JavaScript');return}
- const commands=splitShellBatch(raw);
- if(commands.length>1){for(const command of commands)await runSingle(command);return}
- await runSingle(trimmed);
+ const parsed=tokenize(trimmed),head=(parsed[0]||'').toLowerCase();
+ if(['help','?','clear','exit'].includes(head)&&!/[|&]/.test(trimmed)){
+  const response=await handleKaCommand({name:head,argv:parsed.slice(1),cwd:pathString(cwd)});
+  appendBashOutput(response.stdout,'');appendBashOutput(response.stderr,'err');return;
+ }
+ await runBashkit(raw);
 }
 
-async function init(){try{if(!navigator.storage||!navigator.storage.getDirectory)throw Error('This browser does not support OPFS. Try an up-to-date Safari or another modern browser.');root=await navigator.storage.getDirectory();HOME=['home',await resolveTerminalUsername()];cwd=HOME.slice();envVars.HOME='/home/'+HOME[1];envVars.USER=HOME[1];await directory(['home'],true);await directory(HOME,true);await loadNodePackages();status('OPFS READY','good');line("Kara's Terminal [KA-SH 0.5]",'ok');line('Persistent browser-local filesystem initialized.','dim');line('Authenticated account proxy networking is available. No access to private device files.','dim');line('Type help to see available commands.','');line('');updatePrompt()}catch(e){status('FILESYSTEM UNAVAILABLE','bad');line('Could not initialize browser storage: '+e.message,'err');line('This terminal requires a secure HTTPS page and browser OPFS support.','warn')}}
+async function init(){try{if(!navigator.storage||!navigator.storage.getDirectory)throw Error('This browser does not support OPFS. Try an up-to-date Safari or another modern browser.');root=await navigator.storage.getDirectory();HOME=['home',await resolveTerminalUsername()];cwd=HOME.slice();envVars.HOME='/home/'+HOME[1];envVars.USER=HOME[1];await directory(['home'],true);await directory(HOME,true);await loadNodePackages();status('OPFS READY','good');line("Kara's Terminal [KA-SH 0.6]",'ok');line('Persistent browser-local filesystem initialized.','dim');line('Authenticated account proxy networking is available. No access to private device files.','dim');line('Type help to see available commands.','');line('');updatePrompt()}catch(e){status('FILESYSTEM UNAVAILABLE','bad');line('Could not initialize browser storage: '+e.message,'err');line('This terminal requires a secure HTTPS page and browser OPFS support.','warn')}}
 form.addEventListener('submit',async e=>{e.preventDefault();const raw=input.value;input.value='';input.style.height='auto';if(terminalInputResolver){line('> '+raw,'cmd');const resolve=terminalInputResolver;finishTerminalInput(raw);resolve(raw);return}if(raw.trim()){history.push(raw);historyIndex=history.length;await run(raw)}});
 input.addEventListener('input',()=>{input.style.height='auto';input.style.height=Math.min(input.scrollHeight,window.innerHeight*.38)+'px'});
 input.addEventListener('keydown',e=>{
