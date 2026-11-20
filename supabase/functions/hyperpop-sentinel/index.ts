@@ -1,26 +1,170 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};
-const out=(x:Record<string,unknown>,s=200)=>new Response(JSON.stringify(x),{status:s,headers:{...cors,"Content-Type":"application/json"}});
-const key=()=>Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||(()=>{try{return JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS")||"{}").default||""}catch{return ""}})();
-const durations:Record<string,number|null>={"1day":86400000,"7days":604800000,"30days":2592000000,"90days":7776000000,permanent:null};
-Deno.serve(async req=>{
- if(req.method==="OPTIONS")return new Response("ok",{headers:cors});
- if(req.method!=="POST")return out({ok:false,error:"POST required"},405);
- let b:any;try{b=await req.json()}catch{return out({ok:false,error:"Invalid JSON"},400)}
- const db=createClient(Deno.env.get("SUPABASE_URL")||"",key(),{auth:{autoRefreshToken:false,persistSession:false}});
- const token=typeof b.token==="string"?b.token:"";let user:any=null;
- if(token){const {data:s}=await db.from("hyperpop_sessions").select("account_id").eq("token",token).gt("expires_at",new Date().toISOString()).maybeSingle();if(s){const {data:u}=await db.from("hyperpop_accounts").select("id,username").eq("id",s.account_id).maybeSingle();user=u}}
- const ip=(req.headers.get("cf-connecting-ip")||req.headers.get("x-real-ip")||req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()||"");
- const dk=typeof b.device_key==="string"&&/^[a-f0-9-]{36}$/i.test(b.device_key)?b.device_key.toLowerCase():null;let did:string|null=null;
- if(dk){const {data:d}=await db.from("hyperpop_sentinel_devices").upsert({device_key:dk,last_seen_at:new Date().toISOString(),last_ip:/^[0-9a-f:.]+$/i.test(ip)?ip:null,user_agent:(req.headers.get("user-agent")||"").slice(0,500)},{onConflict:"device_key"}).select("id").single();did=d?.id||null;if(did&&user)await db.from("hyperpop_sentinel_device_accounts").upsert({device_id:did,account_id:user.id,last_seen_at:new Date().toISOString()},{onConflict:"device_id,account_id"})}
- const now=new Date().toISOString(),action=String(b.action||"check");
- if(action==="check"){let rows:any[]=[];for(const [field,value] of [["account_id",user?.id],["device_id",did],["network_ip",/^[0-9a-f:.]+$/i.test(ip)?ip:null]] as any){if(!value)continue;const {data}=await db.from("hyperpop_sentinel_bans").select("id,scope,reason,duration,expires_at,created_at").eq(field,value).is("revoked_at",null).or("expires_at.is.null,expires_at.gt."+now);rows.push(...(data||[]))}return out({ok:true,banned:rows.length>0,bans:[...new Map(rows.map(x=>[x.id,x])).values()]})}
- if(action==="appeal"){const id=String(b.ban_id||""),message=String(b.message||"").trim();if(message.length<10||message.length>2000)return out({ok:false,error:"Appeal must be 10-2,000 characters"},400);const {data:ban}=await db.from("hyperpop_sentinel_bans").select("id,account_id").eq("id",id).maybeSingle();if(!ban||(user&&ban.account_id&&ban.account_id!==user.id))return out({ok:false,error:"Ban not found"},404);const {error}=await db.from("hyperpop_sentinel_appeals").insert({ban_id:id,account_id:user?.id||null,message});if(error)return out({ok:false,error:"Could not submit appeal"},500);return out({ok:true})}
- if(!user)return out({ok:false,error:"Sign in with an administrator account"},401);
- const {data:admin}=await db.from("hyperpop_sentinel_admins").select("account_id").eq("account_id",user.id).maybeSingle();if(!admin)return out({ok:false,error:"Sentinel administrator permission required"},403);
- if(action==="overview"){const [a,d,p,e]=await Promise.all([db.from("hyperpop_sentinel_bans").select("*,hyperpop_accounts!hyperpop_sentinel_bans_account_id_fkey(username)").order("created_at",{ascending:false}).limit(150),db.from("hyperpop_sentinel_devices").select("*").order("last_seen_at",{ascending:false}).limit(150),db.from("hyperpop_sentinel_appeals").select("*,hyperpop_accounts(username)").order("created_at",{ascending:false}).limit(100),db.from("hyperpop_sentinel_events").select("*").order("created_at",{ascending:false}).limit(100)]);return out({ok:true,bans:a.data||[],devices:d.data||[],appeals:p.data||[],events:e.data||[]})}
- if(action==="issue"){const scope=String(b.scope||""),duration=String(b.duration||""),reason=String(b.reason||"").trim();if(!["account","device","network","account_device","full"].includes(scope)||!(duration in durations)||reason.length<3||reason.length>500)return out({ok:false,error:"Invalid scope, duration, or reason"},400);let accountId:string|null=null,deviceId:string|null=null;const username=String(b.username||"").trim();if(["account","account_device","full"].includes(scope)){if(!/^[a-z0-9_]{3,20}$/i.test(username))return out({ok:false,error:"Enter a valid username"},400);const {data}=await db.from("hyperpop_accounts").select("id").ilike("username",username).maybeSingle();if(!data)return out({ok:false,error:"Account not found"},404);accountId=data.id}if(scope==="device"){const dk2=String(b.target_device_key||"");if(!/^[a-f0-9-]{36}$/i.test(dk2))return out({ok:false,error:"Enter a valid device key"},400);const {data}=await db.from("hyperpop_sentinel_devices").select("id").eq("device_key",dk2.toLowerCase()).maybeSingle();if(!data)return out({ok:false,error:"Device not registered yet"},404);deviceId=data.id}const base={scope,reason,duration,expires_at:durations[duration]===null?null:new Date(Date.now()+durations[duration]!).toISOString(),created_by:user.id};const rows:any[]=[];if(accountId)rows.push({...base,account_id:accountId});if(deviceId)rows.push({...base,device_id:deviceId});if(scope==="network"){const addr=String(b.network_ip||"");if(!/^[0-9a-f:.]+$/i.test(addr))return out({ok:false,error:"Enter a valid IP address"},400);rows.push({...base,network_ip:addr})}if(["account_device","full"].includes(scope)&&accountId){const {data:links}=await db.from("hyperpop_sentinel_device_accounts").select("device_id").eq("account_id",accountId);for(const l of links||[])rows.push({...base,device_id:l.device_id});if(scope==="full"&&(links||[]).length){const {data:devs}=await db.from("hyperpop_sentinel_devices").select("last_ip").in("id",(links||[]).map(x=>x.device_id));for(const d of devs||[])if(d.last_ip)rows.push({...base,network_ip:d.last_ip})}}const {data:created,error}=await db.from("hyperpop_sentinel_bans").insert(rows).select("id");if(error)return out({ok:false,error:"Could not issue ban: "+error.message},500);if(accountId)await db.from("hyperpop_sessions").delete().eq("account_id",accountId);await db.from("hyperpop_sentinel_events").insert({actor_account_id:user.id,event_type:"ban_issued",details:{scope,username:username||null,reason,duration,ban_count:created?.length||0}});return out({ok:true,bans:created||[]})}
- if(action==="revoke"){const {data,error}=await db.from("hyperpop_sentinel_bans").update({revoked_at:now,revoked_by:user.id}).eq("id",String(b.ban_id||"")).is("revoked_at",null).select("id").maybeSingle();if(error||!data)return out({ok:false,error:"Ban not found or already revoked"},404);await db.from("hyperpop_sentinel_events").insert({actor_account_id:user.id,event_type:"ban_revoked",details:{ban_id:data.id}});return out({ok:true})}
- if(action==="review_appeal"){const status=String(b.status||"");if(!["approved","denied"].includes(status))return out({ok:false,error:"Invalid decision"},400);const {data,error}=await db.from("hyperpop_sentinel_appeals").update({status,reviewed_by:user.id,reviewed_at:now,review_note:String(b.note||"").slice(0,1000)}).eq("id",String(b.appeal_id||"")).eq("status","pending").select("id,ban_id").maybeSingle();if(error||!data)return out({ok:false,error:"Appeal is no longer pending"},409);if(status==="approved")await db.from("hyperpop_sentinel_bans").update({revoked_at:now,revoked_by:user.id}).eq("id",data.ban_id).is("revoked_at",null);return out({ok:true})}
- return out({ok:false,error:"Unknown Sentinel action"},400)
+
+const cors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+const reply = (data: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(data), { status, headers: { ...cors, "Content-Type": "application/json" } });
+const secret = () => Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || (() => {
+  try { return JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") || "{}").default || ""; } catch { return ""; }
+})();
+const ipOf = (req: Request) => {
+  const raw = req.headers.get("cf-connecting-ip") || req.headers.get("x-real-ip") || req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "";
+  return raw && /^[0-9a-f:.]+$/i.test(raw) ? raw : null;
+};
+const validDevice = (v: unknown): v is string => typeof v === "string" && /^[a-f0-9-]{36}$/i.test(v);
+const durationMs: Record<string, number | null> = {
+  "1day": 86400000, "7days": 604800000, "30days": 2592000000, "90days": 7776000000, permanent: null,
+};
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (req.method !== "POST") return reply({ ok: false, error: "POST required." }, 405);
+  let body: Record<string, unknown>;
+  try { body = await req.json(); } catch { return reply({ ok: false, error: "Invalid request." }, 400); }
+  const url = Deno.env.get("SUPABASE_URL") || "", key = secret();
+  if (!url || !key) return reply({ ok: false, error: "Sentinel is not configured." }, 500);
+  const db = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
+  const token = typeof body.token === "string" ? body.token : "";
+  let account: { id: string; username: string } | null = null;
+  if (token) {
+    const { data: session } = await db.from("hyperpop_sessions").select("account_id").eq("token", token).gt("expires_at", new Date().toISOString()).maybeSingle();
+    if (session?.account_id) {
+      const { data } = await db.from("hyperpop_accounts").select("id,username").eq("id", session.account_id).maybeSingle();
+      account = data;
+    }
+  }
+  const deviceKey = validDevice(body.device_key) ? body.device_key.toLowerCase() : null;
+  const ip = ipOf(req);
+  let deviceId: string | null = null;
+  if (deviceKey) {
+    const { data: device } = await db.from("hyperpop_sentinel_devices").upsert({
+      device_key: deviceKey, last_seen_at: new Date().toISOString(), last_ip: ip,
+      user_agent: (req.headers.get("user-agent") || "").slice(0, 500),
+    }, { onConflict: "device_key" }).select("id").single();
+    deviceId = device?.id || null;
+    if (deviceId && account) {
+      await db.from("hyperpop_sentinel_device_accounts").upsert({
+        device_id: deviceId, account_id: account.id, last_seen_at: new Date().toISOString(),
+      }, { onConflict: "device_id,account_id" });
+    }
+  }
+  const action = String(body.action || "check");
+  const now = new Date().toISOString();
+
+  if (action === "check") {
+    const matches: any[] = [];
+    if (account) {
+      const { data } = await db.from("hyperpop_sentinel_bans").select("id,scope,reason,duration,expires_at,created_at")
+        .eq("account_id", account.id).is("revoked_at", null).or(`expires_at.is.null,expires_at.gt.${now}`);
+      matches.push(...(data || []));
+    }
+    if (deviceId) {
+      const { data } = await db.from("hyperpop_sentinel_bans").select("id,scope,reason,duration,expires_at,created_at")
+        .eq("device_id", deviceId).is("revoked_at", null).or(`expires_at.is.null,expires_at.gt.${now}`);
+      matches.push(...(data || []));
+    }
+    if (ip) {
+      const { data } = await db.from("hyperpop_sentinel_bans").select("id,scope,reason,duration,expires_at,created_at")
+        .eq("network_ip", ip).is("revoked_at", null).or(`expires_at.is.null,expires_at.gt.${now}`);
+      matches.push(...(data || []));
+    }
+    const unique = [...new Map(matches.map(x => [x.id, x])).values()];
+    return reply({ ok: true, banned: unique.length > 0, bans: unique, device_id: deviceId });
+  }
+
+  if (action === "appeal") {
+    const banId = String(body.ban_id || ""), message = String(body.message || "").trim();
+    if (!banId || message.length < 10 || message.length > 2000) return reply({ ok: false, error: "Write an appeal of 10-2,000 characters." }, 400);
+    const { data: ban } = await db.from("hyperpop_sentinel_bans").select("id,account_id,device_id").eq("id", banId).maybeSingle();
+    if (!ban || (account && ban.account_id && ban.account_id !== account.id)) return reply({ ok: false, error: "Ban not found for this account." }, 404);
+    const { error } = await db.from("hyperpop_sentinel_appeals").insert({ ban_id: banId, account_id: account?.id || null, message });
+    if (error) return reply({ ok: false, error: "Could not submit appeal." }, 500);
+    await db.from("hyperpop_sentinel_events").insert({ actor_account_id: account?.id || null, event_type: "appeal_submitted", details: { ban_id: banId }, ip });
+    return reply({ ok: true });
+  }
+
+  if (!account) return reply({ ok: false, error: "Sign in with an administrator account." }, 401);
+  const { data: admin } = await db.from("hyperpop_sentinel_admins").select("account_id").eq("account_id", account.id).maybeSingle();
+  if (!admin) return reply({ ok: false, error: "Sentinel administrator permission required." }, 403);
+
+  if (action === "overview") {
+    const [bans, devices, appeals, events] = await Promise.all([
+      db.from("hyperpop_sentinel_bans").select("*,hyperpop_accounts!hyperpop_sentinel_bans_account_id_fkey(username)").order("created_at", { ascending: false }).limit(150),
+      db.from("hyperpop_sentinel_devices").select("id,device_key,first_seen_at,last_seen_at,last_ip,user_agent").order("last_seen_at", { ascending: false }).limit(150),
+      db.from("hyperpop_sentinel_appeals").select("*,hyperpop_accounts(username)").order("created_at", { ascending: false }).limit(100),
+      db.from("hyperpop_sentinel_events").select("*").order("created_at", { ascending: false }).limit(100),
+    ]);
+    return reply({ ok: true, bans: bans.data || [], devices: devices.data || [], appeals: appeals.data || [], events: events.data || [] });
+  }
+
+  if (action === "issue") {
+    const scope = String(body.scope || ""), duration = String(body.duration || ""), reason = String(body.reason || "").trim();
+    if (!["account","device","network","account_device","full"].includes(scope) || !Object.prototype.hasOwnProperty.call(durationMs, duration) || reason.length < 3 || reason.length > 500)
+      return reply({ ok: false, error: "Choose a valid scope, duration, and reason (3-500 characters)." }, 400);
+    const targetUsername = String(body.username || "").trim();
+    const targetDeviceKey = validDevice(body.target_device_key) ? String(body.target_device_key).toLowerCase() : null;
+    const targetIp = String(body.network_ip || "").trim();
+    let targetAccountId: string | null = null, targetDeviceId: string | null = null;
+    if (["account","account_device","full"].includes(scope)) {
+      if (!/^[a-z0-9_]{3,20}$/i.test(targetUsername)) return reply({ ok: false, error: "Enter the target username." }, 400);
+      const { data } = await db.from("hyperpop_accounts").select("id").ilike("username", targetUsername).maybeSingle();
+      if (!data) return reply({ ok: false, error: "Account not found." }, 404);
+      targetAccountId = data.id;
+    }
+    if (scope === "device") {
+      if (!targetDeviceKey) return reply({ ok: false, error: "Enter a valid device key." }, 400);
+      const { data } = await db.from("hyperpop_sentinel_devices").select("id").eq("device_key", targetDeviceKey).maybeSingle();
+      if (!data) return reply({ ok: false, error: "Device has not registered with Sentinel yet." }, 404);
+      targetDeviceId = data.id;
+    }
+    if (scope === "network") {
+      if (!/^[0-9a-f:.]+$/i.test(targetIp)) return reply({ ok: false, error: "Enter a valid IPv4 or IPv6 address." }, 400);
+    }
+    const expiresAt = durationMs[duration] === null ? null : new Date(Date.now() + durationMs[duration]!).toISOString();
+    const rows: any[] = [];
+    const base = { scope, reason, duration, expires_at: expiresAt, created_by: account.id };
+    if (targetAccountId) rows.push({ ...base, account_id: targetAccountId });
+    if (targetDeviceId) rows.push({ ...base, device_id: targetDeviceId });
+    if (scope === "network") rows.push({ ...base, network_ip: targetIp });
+    if (["account_device","full"].includes(scope) && targetAccountId) {
+      const { data: links } = await db.from("hyperpop_sentinel_device_accounts").select("device_id").eq("account_id", targetAccountId);
+      for (const link of links || []) rows.push({ ...base, device_id: link.device_id });
+      if (scope === "full") {
+        const ids = (links || []).map(x => x.device_id);
+        if (ids.length) {
+          const { data: devs } = await db.from("hyperpop_sentinel_devices").select("last_ip").in("id", ids);
+          for (const d of devs || []) if (d.last_ip) rows.push({ ...base, network_ip: d.last_ip });
+        }
+      }
+    }
+    const { data: created, error } = await db.from("hyperpop_sentinel_bans").insert(rows).select("id,scope,account_id,device_id,network_ip,reason,duration,expires_at");
+    if (error) return reply({ ok: false, error: "Could not issue ban: " + error.message }, 500);
+    if (targetAccountId) await db.from("hyperpop_sessions").delete().eq("account_id", targetAccountId);
+    await db.from("hyperpop_sentinel_events").insert({ actor_account_id: account.id, event_type: "ban_issued", details: { scope, target_username: targetUsername || null, reason, duration, ban_count: created?.length || 0 }, ip });
+    return reply({ ok: true, bans: created || [] });
+  }
+
+  if (action === "revoke") {
+    const banId = String(body.ban_id || "");
+    if (!banId) return reply({ ok: false, error: "Ban ID required." }, 400);
+    const { data, error } = await db.from("hyperpop_sentinel_bans").update({ revoked_at: now, revoked_by: account.id }).eq("id", banId).is("revoked_at", null).select("id").maybeSingle();
+    if (error || !data) return reply({ ok: false, error: "Ban could not be revoked." }, 404);
+    await db.from("hyperpop_sentinel_events").insert({ actor_account_id: account.id, event_type: "ban_revoked", details: { ban_id: banId }, ip });
+    return reply({ ok: true });
+  }
+
+  if (action === "review_appeal") {
+    const appealId = String(body.appeal_id || ""), status = String(body.status || "");
+    if (!appealId || !["approved","denied"].includes(status)) return reply({ ok: false, error: "Invalid appeal decision." }, 400);
+    const { data, error } = await db.from("hyperpop_sentinel_appeals").update({ status, reviewed_by: account.id, reviewed_at: now, review_note: String(body.note || "").slice(0,1000) }).eq("id", appealId).eq("status","pending").select("id,ban_id").maybeSingle();
+    if (error || !data) return reply({ ok: false, error: "Appeal is no longer pending." }, 409);
+    if (status === "approved") await db.from("hyperpop_sentinel_bans").update({ revoked_at: now, revoked_by: account.id }).eq("id", data.ban_id).is("revoked_at", null);
+    await db.from("hyperpop_sentinel_events").insert({ actor_account_id: account.id, event_type: "appeal_reviewed", details: { appeal_id: appealId, status }, ip });
+    return reply({ ok: true });
+  }
+
+  return reply({ ok: false, error: "Unknown Sentinel action." }, 400);
 });
