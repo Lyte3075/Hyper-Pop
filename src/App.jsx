@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { experiences } from "./data/experiences.js";
 
@@ -6,7 +6,7 @@ const categories = ["All", "Games", "Tools", "Create", "System"];
 
 function ExperienceCard({ item }) {
   return (
-    <a className="experience-card" href={item.href}>
+    <Link className="experience-card" to={"/" + item.href}>
       <div className="experience-preview">
         <span className="preview-tag">{item.tag}</span>
         <span className="preview-icon" aria-hidden="true">{item.icon}</span>
@@ -51,8 +51,8 @@ function Home() {
         <nav className="top-actions" aria-label="Main navigation">
           <button className="quiet-button" onClick={() => setMenuOpen(true)}>☰ <span>Explore</span></button>
           <button className="quiet-button" onClick={surprise}>Surprise ✨</button>
-          <a className="quiet-button" href="leaderboard.html">🏆</a>
-          <a className="account-button" href="accounts.html">Account ↗</a>
+          <Link className="quiet-button" to="/leaderboard.html">🏆</Link>
+          <Link className="account-button" to="/accounts.html">Account ↗</Link>
         </nav>
       </header>
 
@@ -61,9 +61,9 @@ function Home() {
           <div className="menu-heading"><strong>Explore Hyper-Pop</strong><button onClick={() => setMenuOpen(false)} aria-label="Close menu">✕</button></div>
           <p>Every experience has its own little universe.</p>
           {categories.map(value => <button key={value} className="menu-category" onClick={() => { setCategory(value); setMenuOpen(false); window.scrollTo({ top: 500, behavior: "smooth" }); }}>{value}<span>→</span></button>)}
-          <a className="menu-category" href="terminal.html">Terminal <span>↗</span></a>
-          <a className="menu-category" href="social.html">Social <span>↗</span></a>
-          <a className="menu-category" href="stats.html">Status & stats <span>↗</span></a>
+          <Link className="menu-category" to="/terminal.html" onClick={() => setMenuOpen(false)}>Terminal <span>↗</span></Link>
+          <Link className="menu-category" to="/social.html" onClick={() => setMenuOpen(false)}>Social <span>↗</span></Link>
+          <Link className="menu-category" to="/stats.html" onClick={() => setMenuOpen(false)}>Status & stats <span>↗</span></Link>
         </aside>
       </div>}
 
@@ -102,7 +102,7 @@ function Home() {
 function LegacyExperience() {
   const location = useLocation();
   const navigate = useNavigate();
-  const source = location.pathname + location.search + location.hash;
+  const source = location.pathname + (location.search ? location.search + "&" : "?") + "hp-react-embed=1" + location.hash;
   return (
     <main className="legacy-view">
       <div className="legacy-toolbar">
