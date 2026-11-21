@@ -1,18 +1,14 @@
-name: Deploy Hyper-Pop React to GitHub Pages
+name: Build Hyper-Pop React
 
 on:
   push:
+    branches: [react]
+  pull_request:
     branches: [react]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: github-pages
-  cancel-in-progress: true
 
 jobs:
   build:
@@ -24,10 +20,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
       - name: Install dependencies
         run: npm install
-      - name: Build React application
+      - name: Build static React site
         run: npm run build
       - name: Preserve existing static experiences and assets
         run: |
@@ -42,17 +37,9 @@ jobs:
             --exclude='/package-lock.json' \
             --exclude='/vite.config.js'
           touch dist/.nojekyll
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
         with:
-          path: dist
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          name: hyper-pop-react-static
+          path: dist/
+          retention-days: 7
