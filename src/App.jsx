@@ -102,7 +102,7 @@ function Home() {
 function LegacyExperience() {
   const location = useLocation();
   const navigate = useNavigate();
-  const source = location.pathname + (location.search ? location.search + "&" : "?") + "hp-react-embed=1" + location.hash;
+  const source = location.pathname + location.search + location.hash;
   return (
     <main className="legacy-view">
       <div className="legacy-toolbar">
