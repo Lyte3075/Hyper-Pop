@@ -32,6 +32,7 @@ jobs:
             --exclude='/node_modules/' \
             --exclude='/dist/' \
             --exclude='/src/' \
+            --exclude='/react-app/' \
             --exclude='/index.html' \
             --exclude='/package.json' \
             --exclude='/package-lock.json' \
