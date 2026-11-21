@@ -117,5 +117,6 @@ function LegacyExperience() {
 
 export default function App() {
   const location = useLocation();
+  useEffect(() => { window.HyperPopSoundtrack?.onPageChange?.(location.pathname); }, [location.pathname]);
   return location.pathname === "/" || location.pathname === "/index.html" ? <Home /> : <LegacyExperience />;
 }
