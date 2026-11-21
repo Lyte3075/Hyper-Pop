@@ -42,9 +42,8 @@ jobs:
             --exclude='/package-lock.json' \
             --exclude='/vite.config.js'
           touch dist/.nojekyll
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: hyper-pop-react-static
-          path: dist/
-          retention-days: 7
+      - name: Verify React entry and preserved legacy routes
+        run: |
+          test -f dist/index.html
+          test -f dist/terminal.html
+          test -f dist/gl/games/2048.html
