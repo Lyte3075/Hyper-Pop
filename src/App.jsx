@@ -17,7 +17,7 @@ function ExperienceCard({ item }) {
         <p>{item.description}</p>
         <span className="open-link">Open {item.title} <span aria-hidden="true">→</span></span>
       </div>
-    </a>
+    </Link>
   );
 }
 
