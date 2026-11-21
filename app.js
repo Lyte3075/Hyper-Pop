@@ -16,6 +16,8 @@
     fallbackOrb.addEventListener('click', function(){if (!document.getElementById('hp-sound-panel')) console.warn('[Hyper-Pop] Music player script has not initialized yet.');});
     (document.body || document.documentElement).appendChild(fallbackOrb);
   }
+  // React owns the top-level navigation on the React app. Legacy pages keep the original iframe sidebar.
+  if (!document.getElementById('root')) {
   // The navigation lives in a standalone same-origin iframe. The iframe owns
   // its gestures and UI, so page swaps cannot detach its event listeners.
   (function(){
@@ -147,12 +149,13 @@
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addFooterLink,{once:true});else addFooterLink();
     window.addEventListener('hyperpop:navigate',addFooterLink);
   })();
+  }
   var files = ['terminal.js?v=cmdfix-11','chat-widget.js?v=group-chat-1','party-voice.js?v=shared-1','group-voice.js?v=group-2','voice-call.js?v=group-call-1'];
   if (!/\/accounts\.html$/.test(location.pathname)) files.unshift('account.js?v=profile-2');
   files.push('sentinel-client.js?v=sentinel-2');
   if (!soundtrackDisabled) files.push('soundtrack.js?v=page-mode-6');
   files.forEach(function(file){var node=document.createElement('script');node.src=new URL(file,base).href;node.async=false;node.onerror=function(){console.error('[Hyper-Pop] Failed to load '+node.src)};(document.head||document.documentElement).appendChild(node)});
-  if (!window.__HP_SOFT_NAV__) {
+  if (!document.getElementById('root') && !window.__HP_SOFT_NAV__) {
     window.__HP_SOFT_NAV__=true;let currentUrl=location.href;
     document.head.querySelectorAll('style,link[rel="stylesheet"]').forEach(n=>n.setAttribute('data-hp-page-style',''));
     async function navigateHyperPop(url,addHistory=true){
