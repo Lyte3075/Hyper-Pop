@@ -1707,7 +1707,7 @@ async function run(raw){
  // Route KA-SH-owned commands directly to the host dispatcher.
  // Bashkit's command resolver can shadow or reject app commands such as git.
  // Shell operators still go through Bashkit so pipelines and compound commands work.
- if(['ls','wget','git','github'].includes(head)&&!/[|&;<>()]/.test(trimmed)){
+ if(['ls','wget','git','github','node'].includes(head)&&!/[|&;<>()]/.test(trimmed)){
   await runSingle(raw,true);
   return;
  }
