@@ -64,17 +64,20 @@ function line(text='',kind=''){if(outputCapture){outputCapture.push({text:String
 function status(text,kind){state.textContent=text;state.className=kind||''}
 function shellQuote(value){return "'"+String(value).replace(/'/g,"'\\''")+"'"}
 function appendBashOutput(value,kind){if(!value)return;const text=String(value).replace(/\r\n/g,'\n').replace(/\r/g,'\n');const rows=text.split('\n');if(rows[rows.length-1]==='')rows.pop();for(const row of rows)line(row,kind)}
-let downloadProgressElement=null;
-function updateDownloadProgress(message){
- // Progress is a live UI signal, not captured command output. This must remain
- // visible even when a KA-SH command is being executed by the Bash worker.
+let downloadProgressElement=null,downloadProgressLastUpdate=0;
+function updateDownloadProgress(message,force=false){
+ // Keep one stable line and throttle repainting. Scrolling on every network
+ // chunk caused the progress indicator to jump and flicker during large clones.
  if(!downloadProgressElement||!downloadProgressElement.isConnected){
   downloadProgressElement=document.createElement('div');
   downloadProgressElement.className='line download-progress dim';
   screen.appendChild(downloadProgressElement);
+  force=true;
  }
+ const now=performance.now();
+ if(!force&&now-downloadProgressLastUpdate<350)return;
+ downloadProgressLastUpdate=now;
  downloadProgressElement.textContent=message;
- screen.scrollTop=screen.scrollHeight;
 }
 async function readTextWithDownloadProgress(response,label,completedBytes,totalBytes,completedFiles,totalFiles){
  const headerTotal=Number(response.headers.get('content-length'))||0;
@@ -962,37 +965,77 @@ async function githubCommand(args){
  throw Error('Unknown GitHub command. Type github help.');
 }
 
+async function writeResponseToFileWithProgress(response,parts,label,completedBytes,totalBytes,completedFiles,totalFiles){
+ const writerHandle=await (async()=>{const [parent,name]=await parentAndName(parts);return parent.getFileHandle(name,{create:true})})();
+ const writer=await writerHandle.createWritable();
+ const reader=response.body?.getReader?.();
+ let received=0,lastUpdate=0;
+ try{
+  if(reader){
+   while(true){
+    const chunk=await reader.read();if(chunk.done)break;
+    if(chunk.value?.byteLength){await writer.write(chunk.value);received+=chunk.value.byteLength;}
+    const now=performance.now();
+    if(now-lastUpdate>=350){
+     const bytes=completedBytes+received,percent=totalBytes?Math.min(99,Math.floor(bytes/totalBytes*100)):Math.floor((completedFiles+received/Math.max(1,Number(response.headers.get('content-length'))||received||1))/Math.max(1,totalFiles)*100);
+     updateDownloadProgress('Cloning · '+percent+'% · '+(completedFiles+1)+'/'+totalFiles+' files · '+formatSize(bytes)+(totalBytes?' / '+formatSize(totalBytes):''));
+     lastUpdate=now;
+    }
+   }
+  }else{
+   const bytes=new Uint8Array(await response.arrayBuffer());received=bytes.byteLength;await writer.write(bytes);
+  }
+  await writer.close();
+ }catch(error){
+  try{await reader?.cancel()}catch(_){}
+  try{await writer.abort()}catch(_){}
+  throw error;
+ }
+ return received;
+}
 async function gitClone(url,destination){
  const {owner,repo}=parseGitHubUrl(url),meta=await githubApi('https://api.github.com/repos/'+owner+'/'+repo),branch=meta.default_branch;
  line('Cloning '+owner+'/'+repo+' ('+branch+')…','dim');
- updateDownloadProgress('Preparing clone · fetching repository file list…');
+ updateDownloadProgress('Preparing clone · fetching repository file list…',true);
  const tree=await githubApi('https://api.github.com/repos/'+owner+'/'+repo+'/git/trees/'+encodeURIComponent(branch)+'?recursive=1');
- if(tree.truncated)throw Error('Repository is too large for browser cloning (GitHub truncated its file tree).');
+ if(tree.truncated)throw Error('GitHub truncated this repository tree. This browser clone cannot safely complete it; use git system on a connected server for this repository.');
  const base=resolve(destination||repo);
  await directory(base,true);
- const files=tree.tree.filter(x=>x.type==='blob'&&!x.path.startsWith('.git/')&&x.size<=1500000);
+ // Do not silently omit large files or binary assets. OPFS accepts byte streams,
+ // so preserve the exact bytes returned by GitHub instead of decoding as text.
+ const files=(tree.tree||[]).filter(x=>x.type==='blob'&&!x.path.startsWith('.git/'));
  const totalBytes=files.reduce((sum,item)=>sum+(Number(item.size)||0),0);
- let done=0,skipped=0,receivedBytes=0;
- updateDownloadProgress('Downloading '+owner+'/'+repo+' · 0% · 0/'+files.length+' files · '+formatSize(0)+' / '+formatSize(totalBytes));
+ let done=0,receivedBytes=0;const failures=[];
+ updateDownloadProgress('Cloning '+owner+'/'+repo+' · 0% · 0/'+files.length+' files',true);
  for(const item of files){
   const parts=base.concat(item.path.split('/'));
-  await directory(parts.slice(0,-1),true);
   try{
-   const r=await terminalFetch('https://raw.githubusercontent.com/'+owner+'/'+repo+'/'+branch+'/'+item.path);
-   if(!r.ok){skipped++;continue}
-   const textData=await readTextWithDownloadProgress(r,item.path,receivedBytes,totalBytes,done,files.length);
-   const size=new TextEncoder().encode(textData).byteLength;
-   if(textData.includes('\\u0000')){skipped++;receivedBytes+=size;continue}
-   await writeFile(parts,textData,false);done++;receivedBytes+=size;
-   const percent=totalBytes?Math.min(100,Math.floor(receivedBytes/totalBytes*100)):Math.floor((done+skipped)/Math.max(1,files.length)*100);
-   updateDownloadProgress('Downloading '+owner+'/'+repo+' · '+percent+'% · '+(done+skipped)+'/'+files.length+' files · '+formatSize(receivedBytes)+' / '+formatSize(totalBytes));
-  }catch(_){skipped++}
+   await directory(parts.slice(0,-1),true);
+   const rawPath=item.path.split('/').map(encodeURIComponent).join('/');
+   const rawBranch=branch.split('/').map(encodeURIComponent).join('/');
+   const response=await terminalFetch('https://raw.githubusercontent.com/'+owner+'/'+repo+'/'+rawBranch+'/'+rawPath);
+   if(!response.ok)throw Error('HTTP '+response.status+' '+response.statusText);
+   const size=await writeResponseToFileWithProgress(response,parts,item.path,receivedBytes,totalBytes,done,files.length);
+   receivedBytes+=size;done++;
+   const percent=totalBytes?Math.min(100,Math.floor(receivedBytes/totalBytes*100)):Math.floor(done/Math.max(1,files.length)*100);
+   updateDownloadProgress('Cloning '+owner+'/'+repo+' · '+percent+'% · '+done+'/'+files.length+' files · '+formatSize(receivedBytes)+' / '+formatSize(totalBytes));
+  }catch(error){
+   failures.push({path:item.path,error:error?.message||String(error)});
+   line('FAILED '+item.path+' · '+(error?.message||String(error)),'err');
+  }
  }
  const gitDir=base.concat('.git');await directory(gitDir,true);
  await writeFile(gitDir.concat('hp-config.json'),JSON.stringify({owner,repo,branch,sha:tree.sha,remote:'https://github.com/'+owner+'/'+repo+'.git'},null,2),false);
- await writeFile(gitDir.concat('hp-index.json'),JSON.stringify(files.map(x=>({path:x.path,sha:x.sha,size:x.size})),null,2),false);
- updateDownloadProgress('Clone complete · '+owner+'/'+repo+' · '+done+'/'+files.length+' files · '+formatSize(receivedBytes));
- line('Cloned '+done+' text files into '+pathString(base)+(skipped?' ('+skipped+' skipped)':''),'ok');
+ // Index only successfully written files, so later status/pull operations do
+ // not falsely treat skipped paths as present in the checkout.
+ const failedPaths=new Set(failures.map(x=>x.path));
+ await writeFile(gitDir.concat('hp-index.json'),JSON.stringify(files.filter(x=>!failedPaths.has(x.path)).map(x=>({path:x.path,sha:x.sha,size:x.size})),null,2),false);
+ if(failures.length){
+  updateDownloadProgress('Clone incomplete · '+done+'/'+files.length+' files · '+failures.length+' failed',true);
+  throw Error('Clone incomplete: '+done+'/'+files.length+' files saved; '+failures.length+' failed. Failed paths are listed above. Retry after resolving the reported network/storage errors.');
+ }
+ updateDownloadProgress('Clone complete · '+owner+'/'+repo+' · '+done+'/'+files.length+' files · '+formatSize(receivedBytes),true);
+ line('Cloned '+done+' files into '+pathString(base),'ok');
 }
 
 async function collectGitFiles(parts,relative='',out=[]){
