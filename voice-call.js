@@ -116,6 +116,9 @@
  }
  const observer=new MutationObserver(()=>{installButton();mountPanel()});observer.observe(document.documentElement,{childList:true,subtree:true});installButton();mountPanel();
  window.HyperPopVoiceCall={start:(id,name)=>startCall(id,name||'Friend'),setGroupMode:isGroup=>{const b=$('hp-chat-call');if(!b)return;b.textContent=isGroup?'☎ Call group':'☎ Call';b.title=isGroup?'Start a voice call with this group':'Call selected friend'}};
- inboxTimer=setInterval(checkInbox,2500);checkInbox();
+ // Idle inbox checks only run while this tab is visible. Active call signaling keeps its 1s cadence.
+ inboxTimer=setInterval(()=>{if(document.visibilityState==='visible')checkInbox()},15000);
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkInbox()});
+ checkInbox();
  window.addEventListener('beforeunload',()=>{if(call)request('hangup',{call_id:call.id}).catch(()=>{});cleanup()});
 })();
