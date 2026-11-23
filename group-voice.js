@@ -15,6 +15,9 @@
   toggleMute(){if(!this.stream)return;this.muted=!this.muted;this.stream.getAudioTracks().forEach(t=>t.enabled=!this.muted);this.dock.querySelector('#hp-group-call-mute').textContent=this.muted?'Unmute':'Mute';},
   async stop(){clearInterval(this.poll);this.poll=null;const room=this.room;this.room=null;if(room)this.api('leave',{room_id:room}).catch(()=>{});for(const id of [...this.peers.keys()])this.dropPeer(id);if(this.stream)this.stream.getTracks().forEach(t=>t.stop());this.stream=null;this.conversation=null;this.muted=false;if(this.dock)this.dock.style.display='none';}
  };
- voice.inboxTimer=setInterval(()=>voice.checkInbox(),3000);voice.checkInbox();
+ // Avoid polling from background tabs. Check immediately when the user returns.
+ voice.inboxTimer=setInterval(()=>{if(document.visibilityState==='visible')voice.checkInbox()},15000);
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')voice.checkInbox()});
+ voice.checkInbox();
  window.HyperPopGroupVoice=voice;
 })();
