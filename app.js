@@ -126,7 +126,9 @@
       fetch(API,{method:'POST',headers:{apikey:ANON,'Content-Type':'application/json'},body:JSON.stringify(payload),keepalive:true}).catch(function(){});
     }
     function page(){send('visit');send('heartbeat')}
-    page();setInterval(function(){send('heartbeat')},45000);
+    // A page view already refreshes the session row, so avoid a duplicate request.
+    // Keep signed-in/session presence warm with a lightweight 5-minute heartbeat.
+    send('visit');setInterval(function(){if(document.visibilityState==='visible')send('heartbeat')},300000);
     window.addEventListener('hyperpop:navigate',page);
     function addFooterLink(){
       document.querySelectorAll('footer').forEach(function(footer){
