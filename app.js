@@ -128,7 +128,7 @@
     function page(){send('visit')}
     // A page view already refreshes the session row, so avoid a duplicate request.
     // Keep signed-in/session presence warm with a lightweight 5-minute heartbeat.
-    send('visit');setInterval(function(){if(document.visibilityState==='visible')send('heartbeat')},300000);
+    send('visit');setInterval(function(){if(document.visibilityState==='visible')send('heartbeat')},600000);
     window.addEventListener('hyperpop:navigate',page);
     function addFooterLink(){
       document.querySelectorAll('footer').forEach(function(footer){
