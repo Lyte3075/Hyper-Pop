@@ -14,9 +14,9 @@ Deno.serve(async(req:Request)=>{
   const {data:rows,error}=await db.from("hyperpop_announcements").select("id,author_account_id,title,body,show_at,end_at,created_at").lte("show_at",now).or(`end_at.is.null,end_at.gt.${now}`).order("show_at",{ascending:false}).limit(20);
   if(error){console.error("[announcements] list",error.message);return reply({ok:false,error:"Announcements are temporarily unavailable."},500)}
   const ids=[...new Set((rows||[]).map(x=>x.author_account_id))];
-  const {data:accounts}=ids.length?await db.from("hyperpop_accounts").select("id,username,display_name").in("id",ids):{data:[]};
+  const {data:accounts}=ids.length?await db.from("hyperpop_accounts").select("id,username,display_name,avatar_url").in("id",ids):{data:[]};
   const authors=new Map((accounts||[]).map(x=>[x.id,x]));
-  return reply({ok:true,announcements:(rows||[]).map(row=>{const author=authors.get(row.author_account_id);return{id:row.id,title:row.title,text:row.body,author:author?.display_name||author?.username||"Hyper-Pop",username:author?.username||null,show_at:row.show_at,end_at:row.end_at,created_at:row.created_at}})});
+  return reply({ok:true,announcements:(rows||[]).map(row=>{const author=authors.get(row.author_account_id);return{id:row.id,title:row.title,text:row.body,author:author?.display_name||author?.username||"Hyper-Pop",username:author?.username||null,avatar_url:author?.avatar_url||null,show_at:row.show_at,end_at:row.end_at,created_at:row.created_at}})});
  }
  const token=typeof body.token==="string"?body.token:"";
  if(!token||token.length>200)return reply({ok:false,error:"Sign in with an administrator account."},401);
