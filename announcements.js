@@ -22,7 +22,9 @@
         const card=node('article','hp-announcement-card');
         const top=node('div','hp-announcement-top');
         const author=node('div','hp-announcement-author');
-        const avatar=node('span','hp-announcement-avatar',(item.author||'H').trim().charAt(0).toUpperCase());\n        if(item.avatar_url){try{const avatarUrl=new URL(item.avatar_url,location.href);if(avatarUrl.protocol==='https:'||avatarUrl.protocol==='http:'){const img=node('img','hp-announcement-avatar-image');img.alt='';img.loading='lazy';img.src=avatarUrl.href;img.onerror=()=>{img.remove()};avatar.replaceChildren(img)}}catch(_){}}\n        author.append(avatar,node('span','',item.author||'Hyper-Pop'));
+        const avatar=node('span','hp-announcement-avatar',(item.author||'H').trim().charAt(0).toUpperCase());
+        if(item.avatar_url){try{const avatarUrl=new URL(item.avatar_url,location.href);if(avatarUrl.protocol==='https:'||avatarUrl.protocol==='http:'){const img=node('img','hp-announcement-avatar-image');img.alt='';img.loading='lazy';img.src=avatarUrl.href;img.onerror=()=>{img.remove()};avatar.replaceChildren(img)}}catch(_){}}
+        author.append(avatar,node('span','',item.author||'Hyper-Pop'));
         top.append(author,node('span','hp-announcement-date','Shown '+date(item.show_at)));
         card.append(top,node('h3','hp-announcement-title',item.title));
         const body=node('p','hp-announcement-text');body.textContent=item.text;card.append(body);
