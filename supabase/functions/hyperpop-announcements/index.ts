@@ -25,8 +25,8 @@ Deno.serve(async(req:Request)=>{
  const {data:admin,error:adminError}=await db.from("hyperpop_sentinel_admins").select("account_id").eq("account_id",session.account_id).maybeSingle();
  if(adminError||!admin)return reply({ok:false,error:"Administrator permission required."},403);
  if(action==="admin-list"){
-  const {data,error}=await db.from("hyperpop_announcements").select("id,title,body,show_at,end_at,created_at").order("created_at",{ascending:false}).limit(100);
-  if(error)return reply({ok:false,error:"Could not load announcements."},500);
+  const {data,error}=await db.from("hyperpop_announcements").select("id,title,body,show_at,end_at,created_at").eq("author_account_id",session.account_id).order("created_at",{ascending:false}).limit(100);
+  if(error)return reply({ok:false,error:"Could not load your announcements."},500);
   return reply({ok:true,announcements:data||[]});
  }
  if(action==="create"){
@@ -38,6 +38,26 @@ Deno.serve(async(req:Request)=>{
   const {data,error}=await db.from("hyperpop_announcements").insert({author_account_id:session.account_id,title,body:text,show_at:showAt.toISOString(),end_at:endAt.toISOString()}).select("id,title,body,show_at,end_at,created_at").single();
   if(error){console.error("[announcements] create",error.message);return reply({ok:false,error:"Could not publish the announcement."},500)}
   return reply({ok:true,announcement:data});
+ }
+ if(action==="edit"){
+  const id=typeof body.id==="string"?body.id:"",title=typeof body.title==="string"?body.title.trim():"",text=typeof body.text==="string"?body.text.trim():"",startValue=typeof body.show_at==="string"?body.show_at:"",endValue=typeof body.end_at==="string"?body.end_at:"",showAt=new Date(startValue),endAt=new Date(endValue);
+  if(!id)return reply({ok:false,error:"Announcement ID is required."},400);
+  if(!title||title.length>120)return reply({ok:false,error:"Title must be between 1 and 120 characters."},400);
+  if(!text||text.length>5000)return reply({ok:false,error:"Announcement text must be between 1 and 5,000 characters."},400);
+  if(!startValue||!Number.isFinite(showAt.getTime()))return reply({ok:false,error:"Choose a valid display date and time."},400);
+  if(!endValue||!Number.isFinite(endAt.getTime())||endAt<=showAt)return reply({ok:false,error:"Choose an end date and time later than the display date."},400);
+  const {data,error}=await db.from("hyperpop_announcements").update({title,body:text,show_at:showAt.toISOString(),end_at:endAt.toISOString()}).eq("id",id).eq("author_account_id",session.account_id).select("id,title,body,show_at,end_at,created_at").maybeSingle();
+  if(error){console.error("[announcements] edit",error.message);return reply({ok:false,error:"Could not update the announcement."},500)}
+  if(!data)return reply({ok:false,error:"That announcement was not found or does not belong to your account."},404);
+  return reply({ok:true,announcement:data});
+ }
+ if(action==="delete"){
+  const id=typeof body.id==="string"?body.id:"";
+  if(!id)return reply({ok:false,error:"Announcement ID is required."},400);
+  const {data,error}=await db.from("hyperpop_announcements").delete().eq("id",id).eq("author_account_id",session.account_id).select("id").maybeSingle();
+  if(error){console.error("[announcements] delete",error.message);return reply({ok:false,error:"Could not delete the announcement."},500)}
+  if(!data)return reply({ok:false,error:"That announcement was not found or does not belong to your account."},404);
+  return reply({ok:true});
  }
  return reply({ok:false,error:"Unknown announcement action."},400);
 });
