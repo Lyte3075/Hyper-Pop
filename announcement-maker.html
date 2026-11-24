@@ -57,7 +57,7 @@ textarea{min-height:150px;resize:vertical;line-height:1.55}
 <p class="intro">Write an announcement and choose when it should appear and when it should disappear from the homepage. Only Sentinel administrators can publish announcements.</p>
 <section class="panel" id="gate"><p>Checking administrator access…</p></section>
 </main>
-<script src="app.js?v=announcement-admin-3"></script>
+<script src="app.js?v=announcement-admin-4"></script>
 <script>
 (function(){
 const API='https://iapnejlttsqqefkpmelp.supabase.co/functions/v1/hyperpop-announcements';
@@ -90,8 +90,8 @@ async function init(){
   const cancel=el('button','cancel-edit','Cancel editing');cancel.type='button';cancel.hidden=true;
   const status=el('div','status','');status.setAttribute('role','status');
   form.append(heading,titleLabel,title,textLabel,text,dates,hint,submit,cancel,status);
-  const list=el('div','list');gate.append(list);
-  gate.append(form);
+  const list=el('div','list');gate.append(form);
+  gate.append(list);
   let editingId=null;
   function resetEditor(){editingId=null;form.reset();heading.textContent='Create an announcement';submit.textContent='Schedule announcement';cancel.hidden=true}
   function render(items){
