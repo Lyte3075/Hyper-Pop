@@ -491,7 +491,41 @@
         <div id="account-slot">
         </div>
       </nav>
-      <div id="hp-announcements" hidden aria-live="polite"></div>
+      <div id="hp-announcements" aria-live="polite" data-static-show-at="2026-11-24T05:00:00Z" data-static-end-at="2026-12-08T04:59:00Z">
+        <section class="hp-announcement-section" aria-label="Announcements">
+          <div class="hp-announcement-heading">
+            <div class="hp-announcement-heading-copy">
+              <span class="hp-announcement-kicker">HYPER-POP / BULLETIN</span>
+              <h2>📣 Announcements</h2>
+            </div>
+          </div>
+          <article class="hp-announcement-card">
+            <div class="hp-announcement-top">
+              <div class="hp-announcement-author">
+                <span class="hp-announcement-avatar">H</span>
+                <span>Hyper-Pop</span>
+              </div>
+              <span class="hp-announcement-date">Shown Nov 24, 2026</span>
+            </div>
+            <h3 class="hp-announcement-title">There is going to be a site wide issue...</h3>
+            <p class="hp-announcement-text">The backend (or basically the server that handles all the accounts, social features, and connectivity) has reached max usage and will stop working on November 25th. So until December 7th (i hope), a large portion of Hyper-Pop will not function. Most games and tools should work, but some data will not be accessible at the moment. At the moment, I lack the sufficient funds to pay for higher usage limits. Anyways, I'm currently optimizing scripts and functions like calling, messaging, scores, user status, and etc so next time we wont hit the usage limit (or as quickly as we did). We hit the usage limit in less than a week btw. Thank you for your support and cooperation. Also, William, the leaderboards are not gonna work. Ur not beating me in snake for now...</p>
+            <div class="hp-announcement-dates">
+              <span class="hp-announcement-posted">Posted Nov 23, 2026</span>
+              <span class="hp-announcement-ends">Until Dec 7, 2026</span>
+            </div>
+          </article>
+        </section>
+      </div>
+      <script>
+        (function(){
+          const host=document.getElementById('hp-announcements');
+          if(!host)return;
+          const now=Date.now();
+          const start=Date.parse(host.dataset.staticShowAt);
+          const end=Date.parse(host.dataset.staticEndAt);
+          host.hidden=!(Number.isFinite(start)&&Number.isFinite(end)&&now>=start&&now<end);
+        })();
+      </script>
       <header class="hero">
         <div class="eyebrow">
           welcome to the tiny internet ✦
@@ -1759,7 +1793,7 @@
       Each experience lives on its own page.
     </footer>
   </main>
-  <script src="announcements.js?v=announcement-avatar-3"></script>
+  <script src="announcements.js?v=announcement-static-fallback-1"></script>
   <script src="app.js?v=party-tab-5">
   </script>
 
