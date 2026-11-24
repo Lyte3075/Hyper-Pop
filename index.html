@@ -440,6 +440,22 @@
   }
   
   }
+
+#hp-announcements[hidden]{display:none!important}
+.hp-announcement-section{margin:0 auto 34px;max-width:900px;display:grid;gap:12px}
+.hp-announcement-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.hp-announcement-kicker{font:10px "DM Mono";letter-spacing:.14em;color:var(--cyan)}
+.hp-announcement-heading h2{font-size:22px;margin:4px 0 0;letter-spacing:-.04em}
+.hp-announcement-card{padding:18px 20px;border:1px solid #9b7bff44;border-radius:18px;background:linear-gradient(120deg,#191629ed,#101b27ed);box-shadow:0 12px 38px #0003;overflow:hidden}
+.hp-announcement-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.hp-announcement-author{display:flex;align-items:center;gap:9px;font-size:12px;font-weight:700}
+.hp-announcement-avatar{width:27px;height:27px;display:grid;place-items:center;border-radius:50%;background:linear-gradient(135deg,var(--pink),var(--purple),var(--cyan));color:#111;font-weight:800}
+.hp-announcement-date,.hp-announcement-posted{font:10px "DM Mono";color:#aaa7c1}
+.hp-announcement-title{font-size:21px;letter-spacing:-.04em;margin:13px 0 7px}
+.hp-announcement-text{white-space:pre-wrap;overflow-wrap:anywhere;color:#dedbed;font-size:14px;line-height:1.65;margin:0}
+.hp-announcement-posted{margin-top:13px}
+@media(max-width:580px){.hp-announcement-card{padding:15px}.hp-announcement-heading h2{font-size:19px}}
+
 </style>
   </head>
   <body>
@@ -472,6 +488,7 @@
         <div id="account-slot">
         </div>
       </nav>
+      <div id="hp-announcements" hidden aria-live="polite"></div>
       <header class="hero">
         <div class="eyebrow">
           welcome to the tiny internet ✦
@@ -1739,6 +1756,7 @@
       Each experience lives on its own page.
     </footer>
   </main>
+  <script src="announcements.js?v=announcement-1"></script>
   <script src="app.js?v=party-tab-5">
   </script>
 
