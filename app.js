@@ -127,8 +127,10 @@
       var payload={action:action,visitor_id:visitor,session_id:session,page_path:path,token:(function(){try{return localStorage.getItem('hyperpop_token')||''}catch(_){return ''}})()};
       fetch(API,{method:'POST',headers:{apikey:ANON,'Content-Type':'application/json'},body:JSON.stringify(payload),keepalive:true}).catch(function(){});
     }
-    function page(){send('visit');send('heartbeat')}
-    page();setInterval(function(){send('heartbeat')},45000);
+    function page(){send('visit')}
+    // A page view already refreshes the session row, so avoid a duplicate request.
+    // Keep signed-in/session presence warm with a lightweight 5-minute heartbeat.
+    send('visit');setInterval(function(){if(document.visibilityState==='visible')send('heartbeat')},600000);
     window.addEventListener('hyperpop:navigate',page);
     function addFooterLink(){
       document.querySelectorAll('footer').forEach(function(footer){

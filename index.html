@@ -440,6 +440,25 @@
   }
   
   }
+
+
+#hp-announcements{width:100%;min-width:0}
+.hp-announcement-section{width:min(100%,900px);min-width:0;margin:0 auto 34px;padding:0;display:grid;gap:12px}
+.hp-announcement-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
+.hp-announcement-heading-copy{min-width:0}
+.hp-announcement-kicker{font:10px "DM Mono";letter-spacing:.14em;color:var(--cyan)}
+.hp-announcement-heading h2{font-size:clamp(19px,4vw,22px);line-height:1.2;margin:4px 0 0;letter-spacing:-.04em}
+.hp-announcement-card{width:100%;min-width:0;padding:clamp(14px,3vw,20px);border:1px solid #9b7bff44;border-radius:18px;background:linear-gradient(120deg,#191629ed,#101b27ed);box-shadow:0 12px 38px #0003;overflow:hidden}
+.hp-announcement-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;min-width:0}
+.hp-announcement-author{display:flex;align-items:center;gap:9px;min-width:0;font-size:12px;font-weight:700;overflow-wrap:anywhere}
+.hp-announcement-avatar{width:27px;height:27px;flex:0 0 27px;display:grid;place-items:center;border-radius:50%;background:linear-gradient(135deg,var(--pink),var(--purple),var(--cyan));color:#111;font-weight:800}
+.hp-announcement-avatar-image{display:block;width:100%;height:100%;border-radius:50%;object-fit:cover}\n.hp-announcement-date,.hp-announcement-posted,.hp-announcement-ends{font:10px/1.5 "DM Mono";color:#aaa7c1;overflow-wrap:anywhere}
+.hp-announcement-title{font-size:clamp(18px,4vw,21px);line-height:1.25;letter-spacing:-.04em;margin:13px 0 7px;overflow-wrap:anywhere}
+.hp-announcement-text{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;color:#dedbed;font-size:14px;line-height:1.65;margin:0}
+.hp-announcement-dates{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:13px}
+@media(max-width:580px){.hp-announcement-section{margin-bottom:26px}.hp-announcement-card{padding:14px;border-radius:15px}.hp-announcement-top{align-items:flex-start}.hp-announcement-date{max-width:100%}}
+
+
 </style>
   </head>
   <body>
@@ -472,6 +491,7 @@
         <div id="account-slot">
         </div>
       </nav>
+      <div id="hp-announcements" hidden aria-live="polite"></div>
       <header class="hero">
         <div class="eyebrow">
           welcome to the tiny internet ✦
@@ -1739,6 +1759,7 @@
       Each experience lives on its own page.
     </footer>
   </main>
+  <script src="announcements.js?v=announcement-avatar-3"></script>
   <script src="app.js?v=party-tab-5">
   </script>
 

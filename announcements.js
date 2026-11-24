@@ -1,0 +1,42 @@
+(function(){
+  const API='https://iapnejlttsqqefkpmelp.supabase.co/functions/v1/hyperpop-announcements';
+  const KEY='sb_publishable_TB7oC4nDlUJq-Gcb2yoTjQ_Dvbh6NlM';
+  const host=document.getElementById('hp-announcements');
+  if(!host)return;
+  const date=value=>{const d=new Date(value);return Number.isFinite(d.getTime())?d.toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'}):'Date unavailable'};
+  function node(tag,className,text){const el=document.createElement(tag);if(className)el.className=className;if(text!==undefined)el.textContent=text;return el}
+  async function load(){
+    try{
+      const r=await fetch(API,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({action:'list'}),cache:'no-store'});
+      const data=await r.json();if(!r.ok||!data.ok)throw new Error(data.error||'Could not load announcements.');
+      host.replaceChildren();
+      if(!data.announcements.length){host.hidden=true;return}
+      host.hidden=false;
+      const section=node('section','hp-announcement-section');
+      const heading=node('div','hp-announcement-heading');
+      const headingCopy=node('div','hp-announcement-heading-copy');
+      headingCopy.append(node('span','hp-announcement-kicker','HYPER-POP / BULLETIN'),node('h2','','📣 Announcements'));
+      heading.append(headingCopy);
+      section.append(heading);
+      data.announcements.forEach(item=>{
+        const card=node('article','hp-announcement-card');
+        const top=node('div','hp-announcement-top');
+        const author=node('div','hp-announcement-author');
+        const avatar=node('span','hp-announcement-avatar',(item.author||'H').trim().charAt(0).toUpperCase());
+        if(item.avatar_url){try{const avatarUrl=new URL(item.avatar_url,location.href);if(avatarUrl.protocol==='https:'||avatarUrl.protocol==='http:'){const img=node('img','hp-announcement-avatar-image');img.alt='';img.loading='lazy';img.src=avatarUrl.href;img.onerror=()=>{img.remove()};avatar.replaceChildren(img)}}catch(_){}}
+        author.append(avatar,node('span','',item.author||'Hyper-Pop'));
+        top.append(author,node('span','hp-announcement-date','Shown '+date(item.show_at)));
+        card.append(top,node('h3','hp-announcement-title',item.title));
+        const body=node('p','hp-announcement-text');body.textContent=item.text;card.append(body);
+        const dates=node('div','hp-announcement-dates');
+        dates.append(node('span','hp-announcement-posted','Posted '+date(item.created_at)));
+        if(item.end_at)dates.append(node('span','hp-announcement-ends','Until '+date(item.end_at)));
+        card.append(dates);
+        section.append(card);
+      });
+      host.append(section);
+    }catch(error){console.warn('[Hyper-Pop announcements]',error);host.hidden=true}
+  }
+  load();
+  window.addEventListener('hyperpop:navigate',load);
+})();
