@@ -14,7 +14,9 @@
       host.hidden=false;
       const section=node('section','hp-announcement-section');
       const heading=node('div','hp-announcement-heading');
-      heading.append(node('span','hp-announcement-kicker','HYPER-POP / BULLETIN'),node('h2','','📣 Announcements'));
+      const headingCopy=node('div','hp-announcement-heading-copy');
+      headingCopy.append(node('span','hp-announcement-kicker','HYPER-POP / BULLETIN'),node('h2','','📣 Announcements'));
+      heading.append(headingCopy);
       section.append(heading);
       data.announcements.forEach(item=>{
         const card=node('article','hp-announcement-card');
@@ -24,7 +26,10 @@
         top.append(author,node('span','hp-announcement-date','Shown '+date(item.show_at)));
         card.append(top,node('h3','hp-announcement-title',item.title));
         const body=node('p','hp-announcement-text');body.textContent=item.text;card.append(body);
-        card.append(node('div','hp-announcement-posted','Posted '+date(item.created_at)));
+        const dates=node('div','hp-announcement-dates');
+        dates.append(node('span','hp-announcement-posted','Posted '+date(item.created_at)));
+        if(item.end_at)dates.append(node('span','hp-announcement-ends','Until '+date(item.end_at)));
+        card.append(dates);
         section.append(card);
       });
       host.append(section);
