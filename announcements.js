@@ -35,7 +35,7 @@
         section.append(card);
       });
       host.append(section);
-    }catch(error){console.warn('[Hyper-Pop announcements]',error);/* Keep the static HTML fallback visible when Supabase is unavailable. */}
+    }catch(error){console.warn('[Hyper-Pop announcements]',error);host.hidden=true}
   }
   load();
   window.addEventListener('hyperpop:navigate',load);
